@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasActivityLog;
+
+
+class LogsFollup extends Model
+{
+    use HasFactory, HasActivityLog;
+
+    protected $table = 'logs_follup';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'follup',
+        'customer',
+        'keterangan',
+        'create_at',
+        'update_at',
+        'status'
+    ];
+
+    public function follup_rel()
+    {
+        return $this->belongsTo(TemplateFollup::class, 'follup', 'id');
+    }
+
+    public function customer_rel()
+    {
+        return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+}
