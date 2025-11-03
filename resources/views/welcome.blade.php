@@ -174,7 +174,7 @@
   <div class="card">
     <h1>One Dashboard</h1>
     <p>by Ternak Properti</p>
-    <div class="highlight">Highlight</div>
+    <div class="highlight">V 1.0.0</div>
     <!-- <div class="card-buttons">
       <button>Login</button>
       <button>Kreativitas</button>
