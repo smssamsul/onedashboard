@@ -27,7 +27,19 @@ class OrderCustomer extends Model
         'create_at',
         'update_at',
         'status',
+        'status_order',
     ];
 
     public $timestamps = false;
+
+     public function produk_rel()
+    {
+        return $this->belongsTo(Produk::class, 'produk', 'id');
+    }
+
+    
+     public function customer_rel()
+    {
+        return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
 }

@@ -41,10 +41,11 @@ Route::middleware('auth:api')->group(function () {
 
     // Customer
     Route::get('/customer', [CustomerController::class, 'index']);
-    Route::post('/customer', [CustomerController::class, 'store']);
+    // Route::post('/customer', [CustomerController::class, 'store']);
     Route::get('/customer/{id}', [CustomerController::class, 'show']);
     Route::put('/customer/{id}', [CustomerController::class, 'update']);
     Route::delete('/customer/{id}', [CustomerController::class, 'destroy']);
+    Route::post('/customer/update/{id}', [CustomerController::class, 'form_customer_update']);
 
     // Kategori Produk
     Route::get('/kategori-produk', [KategoriProdukController::class, 'index']);
@@ -71,13 +72,14 @@ Route::middleware('auth:api')->group(function () {
 
     // Log Follup
     Route::get('/logs-follup', [LogsFollupController::class, 'index']);
-    Route::get('/logs-follup/{id}', [LogsFollupController::class, 'show']);
+    Route::post('/logs-follup', [LogsFollupController::class, 'show']);
 
     // Order Customer
     Route::get('/order', [OrderCustomerController::class, 'index']);
     Route::post('/order', [OrderCustomerController::class, 'store']);
     Route::get('/order/{id}', [OrderCustomerController::class, 'show']);
     Route::put('/order/{id}', [OrderCustomerController::class, 'update']);
+    Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
     // Route::delete('/order/{id}', [TemplateFollupController::class, 'destroy']);
 });
 

@@ -38,5 +38,16 @@ class Produk extends Model
         'lainnya'   => 'array'
     ];
 
+     public function kategori_rel()
+    {
+        return $this->belongsTo(KategoriProduk::class, 'kategori', 'id');
+    }
+
+    
+     public function user_rel()
+    {
+        return $this->belongsTo(User::class, 'user_input', 'id');
+    }
+
 
 }

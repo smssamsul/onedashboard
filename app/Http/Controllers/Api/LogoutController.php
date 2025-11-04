@@ -15,7 +15,7 @@ class LogoutController extends Controller
     public function __invoke(Request $request)
     {
         try {
-            // ✅ Ambil user yang sedang login
+            
             $user = auth()->guard('api')->user();
 
             if (!$user) {
@@ -25,15 +25,12 @@ class LogoutController extends Controller
                 ], 401);
             }
 
-            // ✅ Ambil token dari header Authorization
             $token = $request->bearerToken();
 
-            // ✅ Hapus / kosongkan token dari tabel user_logins
             UserLogin::where('id', $user->id)->update([
                 'token' => null
             ]);
 
-            // ✅ Blacklist token agar tidak bisa digunakan lagi
             auth()->guard('api')->logout();
 
             return response()->json([

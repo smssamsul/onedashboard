@@ -18,7 +18,9 @@ class LogsFollupController extends Controller
     {
         $tanggal = $request->query('tanggal');
 
-        $query = LogsFollup::with(['follup_rel', 'customer_rel']);
+        $query = LogsFollup::with([
+            'follup_rel',
+            'customer_rel:id,nama,wa']);
 
         if ($tanggal) {
             $query->whereDate('create_at', $tanggal);
@@ -33,16 +35,32 @@ class LogsFollupController extends Controller
         ]);
     }
 
-    public function show($id)
+
+    public function show(Request $request)
     {
-        $log = LogsFollup::with(['follup_rel', 'customer_rel'])->find($id);
+        // $tanggal = $request->query('tanggal');
+        // $customerId = $request->query('customer_id');
+        // $event = $request->query('event');
+        
 
-        if (!$log) {
-            return response()->json(['message' => 'Data tidak ditemukan'], 404);
-        }
+        $logs = LogsFollup::with([
+            'follup_rel:id,nama,event',
+            'customer_rel:id,nama,wa'
+        ])
+        ->when($request->query('customer_id'), fn($q, $id) => $q->where('customer', $id))
+        ->when($request->query('tanggal'), fn($q, $tanggal) => $q->where('create_at', $tanggal))
+        ->when($request->query('event'), fn($q, $event) => $q->whereHas('follup_rel', fn($q2) => $q2->where('event', $event)))
+        ->orderByDesc('create_at')
+        ->get();
 
-        return response()->json($log);
+        return response()->json([
+            'message' => 'Data logs follow up berhasil diambil',
+            'total' => $logs->count(),
+            'data' => $logs
+        ]);
     }
+
+
 
    
 }

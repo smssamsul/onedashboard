@@ -17,7 +17,15 @@ class ProdukController extends Controller
   
     public function index()
     {
-        $produk = Produk::all();
+
+        // $tanggal = $request->query('tanggal');
+
+        $query = Produk::with([
+            'kategori_rel:id,nama',
+            'user_rel:id,nama'
+        ]);
+
+        $produk = $query->orderBy('create_at', 'desc')->get();
 
         return response()->json([
             'success' => true,
@@ -149,7 +157,6 @@ class ProdukController extends Controller
         ]);
     }
 
-    // ✅ Hapus produk
     public function destroy($id)
     {
         $produk = Produk::find($id);
@@ -161,20 +168,23 @@ class ProdukController extends Controller
             ], 404);
         }
 
+
+        $produk->update([
+            'status'    => "2"
+        ]);
+
         // Hapus header
-        if ($produk->header && Storage::disk('public')->exists($produk->header)) {
-            Storage::disk('public')->delete($produk->header);
-        }
+        // if ($produk->header && Storage::disk('public')->exists($produk->header)) {
+        //     Storage::disk('public')->delete($produk->header);
+        // }
 
         // Hapus semua gambar
-        $gambarArray = json_decode($produk->gambar ?? '[]', true);
-        foreach ($gambarArray as $g) {
-            if (isset($g['path']) && Storage::disk('public')->exists($g['path'])) {
-                Storage::disk('public')->delete($g['path']);
-            }
-        }
-
-        $produk->delete();
+        // $gambarArray = json_decode($produk->gambar ?? '[]', true);
+        // foreach ($gambarArray as $g) {
+        //     if (isset($g['path']) && Storage::disk('public')->exists($g['path'])) {
+        //         Storage::disk('public')->delete($g['path']);
+        //     }
+        // }
 
         return response()->json([
             'success' => true,

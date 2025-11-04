@@ -17,18 +17,30 @@ class CustomerController extends Controller
 
     public function index()
     {
-        $customers = Customer::orderBy('id', 'desc')->get();
+         $customers = Customer::select(array_diff(
+                    \Schema::getColumnListing('customer'),
+                    ['password','create_at','update_at'] 
+                ))
+                ->orderBy('id', 'desc')
+                ->get();
+
         return response()->json([
             'success' => true,
             'data' => $customers
         ]);
     }
 
-    public function store(Request $request)
+    public function form_customer_update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:customer,email',
+            'nama_panggilan' => 'required|string|max:255',
+            'instagram' => 'required',
+            'profesi' => 'required',
+            'pendapatan_bln' => 'required',
+            'industri_pekerjaan' => 'required',
+            'jenis_kelamin' => 'required',
+            'tanggal_lahir' => 'required',
+
             // 'password' => 'required|min:6',
         ]);
 
@@ -36,34 +48,59 @@ class CustomerController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $customer = Customer::create([
-            'nama' => $request->nama,
-            'nama_panggilan' => $request->nama_panggilan,
-            'email' => $request->email,
-            'instagram' => $request->instagram,
-            // 'password' => Hash::make($request->password),
-            'wa' => $request->wa,
-            'profesi' => $request->profesi,
-            'pendapatan_bln' => $request->pendapatan_bln,
-            'industri_pekerjaan' => $request->industri_pekerjaan,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            // 'status_order' => $request->status_order,
-            // 'verifikasi' => $request->verifikasi,
-            // 'alasan_tertarik' => $request->alasan_tertarik,
-            // 'alasan_belum' => $request->alasan_belum,
-            // 'harapan' => $request->harapan,
-            'create_at' => now(),
-            'status' => '1'
-        ]);
+        $customer = Customer::find($id);
+        $customer->fill($validator->validated());
+        $customer->update_at = now();
+        $customer->save();
 
+ 
         return response()->json([
             'success' => true,
-            'message' => 'Customer berhasil ditambahkan',
+            'message' => 'Customer berhasil diupdate',
             'id' => $customer->id
         ], 201);
     }
+
+    // public function store(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'nama' => 'required|string|max:255',
+    //         'email' => 'required|email|unique:customer,email',
+    //         // 'password' => 'required|min:6',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json($validator->errors(), 422);
+    //     }
+
+    //     $customer = Customer::create([
+    //         'nama' => $request->nama,
+    //         'nama_panggilan' => $request->nama_panggilan,
+    //         'email' => $request->email,
+    //         'instagram' => $request->instagram,
+    //         // 'password' => Hash::make($request->password),
+    //         'wa' => $request->wa,
+    //         'profesi' => $request->profesi,
+    //         'pendapatan_bln' => $request->pendapatan_bln,
+    //         'industri_pekerjaan' => $request->industri_pekerjaan,
+    //         'jenis_kelamin' => $request->jenis_kelamin,
+    //         'tanggal_lahir' => $request->tanggal_lahir,
+    //         'alamat' => $request->alamat,
+    //         // 'status_order' => $request->status_order,
+    //         // 'verifikasi' => $request->verifikasi,
+    //         // 'alasan_tertarik' => $request->alasan_tertarik,
+    //         // 'alasan_belum' => $request->alasan_belum,
+    //         // 'harapan' => $request->harapan,
+    //         'create_at' => now(),
+    //         'status' => '1'
+    //     ]);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Customer berhasil ditambahkan',
+    //         'id' => $customer->id
+    //     ], 201);
+    // }
  
 
     public function show($id)

@@ -134,7 +134,7 @@ class UserController extends Controller
 
         
         $user->update([
-            'status'    => "2"
+            'status'    => "N"
         ]);
 
         return response()->json([
