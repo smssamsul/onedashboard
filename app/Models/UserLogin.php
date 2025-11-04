@@ -21,6 +21,7 @@ class UserLogin extends Authenticatable implements JWTSubject
     protected $fillable = [
         'email',
         'password',
+        'user'
     ];
 
     /**
@@ -64,5 +65,10 @@ class UserLogin extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+     public function userData()
+    {
+        return $this->belongsTo(User::class, 'user', 'id');
     }
 }

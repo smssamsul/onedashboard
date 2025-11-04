@@ -13,7 +13,7 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable;
 
-    protected $table = 'user'; // karena nama tabel kamu bukan 'users'
+    protected $table = 'user'; 
 
     protected $fillable = [
         'nama',
@@ -40,6 +40,11 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+     public function login()
+    {
+        return $this->hasOne(UserLogin::class, 'user', 'id');
     }
 }
 

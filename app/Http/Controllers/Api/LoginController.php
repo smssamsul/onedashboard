@@ -40,20 +40,27 @@ class LoginController extends Controller
             ], 401);
         }
 
-        $user = auth()->guard('api')->user();
-
-        // Cek apakah user sudah punya record login
-        UserLogin::where('id', $user->id)
+        $userLogin = auth()->guard('api')->user();
+        
+        UserLogin::where('id', $userLogin->id)
                 ->update([
                     'token' => $token,
                     'updated_at' => now(),
                 ]);
+
+         $userLogin->load('userData');
        
         
         //if auth success
         return response()->json([
             'success' => true,
-            'user'    => auth()->guard('api')->user(),    
+            'user'    => [
+                            'id'       => $userLogin->id,
+                            'email'    => $userLogin->email,
+                            'name'     => $userLogin->userData->nama ?? null,
+                            'divisi'   => $userLogin->userData->divisi ?? null,
+                            'level'    => $userLogin->userData->level ?? null,
+                        ],    
             'token'   => $token
         ], 200);
     }
