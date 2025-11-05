@@ -17,7 +17,7 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::all();
+        $users = User::where('status', '!=', 'N')->get();
         return response()->json([
             'success' => true,
             'data' => $users
@@ -26,7 +26,9 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::find($id);
+        $user = User::where('id', $id)
+                ->where('status', '!=', 'N')
+                ->first();
 
         if (!$user) {
             return response()->json([

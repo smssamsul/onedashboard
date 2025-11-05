@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -29,13 +30,31 @@ class Handler extends ExceptionHandler
 
     /**
      * Register the exception handling callbacks for the application.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    /**
+     * Custom render untuk menangani error khusus (termasuk rate limiter)
+     */
+    public function render($request, Throwable $exception)
+    {
+        // 🔹 Tangani error rate limit (Too Many Requests)
+        if ($exception instanceof ThrottleRequestsException) {
+            // Ambil waktu retry jika tersedia
+            $retryAfter = $exception->getHeaders()['Retry-After'] ?? 60;
+
+            return response()->json([
+                'success' => false,
+                'message' => "Terlalu banyak percobaan, silakan coba lagi dalam {$retryAfter} detik.",
+            ], 429);
+        }
+
+        // 🔹 Gunakan render bawaan untuk exception lain
+        return parent::render($request, $exception);
     }
 }

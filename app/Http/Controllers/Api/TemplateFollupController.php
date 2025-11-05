@@ -16,7 +16,7 @@ class TemplateFollupController extends Controller
     
     public function index()
     {
-        $data = TemplateFollup::all();
+        $data = TemplateFollup::where('status', '!=', 'N')->get();
         return response()->json([
             'success' => true,
             'data' => $data
@@ -48,7 +48,9 @@ class TemplateFollupController extends Controller
 
     public function show($id)
     {
-        $template = TemplateFollup::find($id);
+        $template = TemplateFollup::where('id', $id)
+                ->where('status', '!=', 'N')
+                ->first();
 
         if (!$template) {
             return response()->json([

@@ -21,6 +21,7 @@ class CustomerController extends Controller
                     \Schema::getColumnListing('customer'),
                     ['password','create_at','update_at'] 
                 ))
+                ->where('status', '!=', 'N')
                 ->orderBy('id', 'desc')
                 ->get();
 
@@ -105,7 +106,16 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-        $customer = Customer::find($id);
+
+        $customers = Customer::select(array_diff(
+                    \Schema::getColumnListing('customer'),
+                    ['password','create_at','update_at'] 
+                ))
+                ->where('id', $id)
+                ->where('status', '!=', 'N')
+                ->orderBy('id', 'desc')
+                ->get();
+        
 
         if (!$customer) {
             return response()->json(['message' => 'Customer tidak ditemukan'], 404);

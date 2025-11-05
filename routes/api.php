@@ -29,6 +29,12 @@ Route::post('/register', App\Http\Controllers\Api\RegisterController::class)->na
 //     return $request->user_login();
 // });
 
+Route::middleware(['throttle:order'])->group(function () {
+    Route::post('/order', [OrderCustomerController::class, 'store']);
+});
+
+// Route::post('/order', [OrderCustomerController::class, 'store']);
+
 Route::middleware('auth:api')->post('/logout', LogoutController::class)->name('logout');
 
 Route::middleware('auth:api')->group(function () {
@@ -76,7 +82,6 @@ Route::middleware('auth:api')->group(function () {
 
     // Order Customer
     Route::get('/order', [OrderCustomerController::class, 'index']);
-    Route::post('/order', [OrderCustomerController::class, 'store']);
     Route::get('/order/{id}', [OrderCustomerController::class, 'show']);
     Route::put('/order/{id}', [OrderCustomerController::class, 'update']);
     Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);

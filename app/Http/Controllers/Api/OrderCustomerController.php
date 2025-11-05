@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderCustomer;
 use App\Models\Customer;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 
 class OrderCustomerController extends Controller
@@ -67,12 +68,13 @@ class OrderCustomerController extends Controller
             // 'status' => 'required|char',
         ]);
 
+        $wa = $this->formatPhoneNumber($request->wa);
 
         $customer = customer::create([
             'nama'      => $request->nama,
             'email'     => $request->email,
             'alamat'    => $request->alamat,
-            'wa'        => $request->wa,
+            'wa'        => $wa,
             'status'    => '1',
             'create_at' => now(),
 
@@ -93,10 +95,50 @@ class OrderCustomerController extends Controller
         ]);
         // $order = OrderCustomer::create($validated);
 
+        // $deviceKey = 'rCAIkWZDFOCosr3';
+        // $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+
+        // $message = "Terimakasih Kak ".$request->nama." pesanan anda sudah kami terima mohon segera lakukan pembayaran yaa.";
+         
+        // try {
+        //     $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
+        //         'device_key' => $deviceKey,
+        //         'phone'      => $wa,
+        //         'message'    => $message,
+        //     ]);
+
+        //     if ($response->successful()) {
+        //         return response()->json([
+        //             'success' => true,
+        //             'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+        //             'data' => [
+        //                 'order' => $order,
+        //                 'whatsapp_response' => $response->json()
+        //             ]
+        //         ], 200);
+        //     }
+
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
+        //         'status' => $response->status(),
+        //         'error' => $response->json()
+        //     ], $response->status());
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Order tersimpan tapi terjadi kesalahan saat kirim pesan',
+        //         'error' => $e->getMessage()
+        //     ], 500);
+        // }
+
         return response()->json([
-            'message' => 'Order Customer berhasil dibuat',
-            'data' => $order
-        ], 201);
+                'success' => true,
+                'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+                'data' => $order
+            ], 200);
+
+       
     }
 
     
@@ -161,6 +203,25 @@ class OrderCustomerController extends Controller
             'message' => 'Konfirmasi Pembayaran Sukses',
             'data' => $order
         ]);
+    }
+
+    private function formatPhoneNumber($phone)
+    {
+        // Hapus semua spasi, tanda +, tanda hubung, dll
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Jika diawali dengan 0 → ubah jadi 62
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
+        }
+
+        // Jika sudah diawali 62 → biarkan
+        // Jika diawali 8 tanpa 0 → tambahkan 62 di depan
+        if (substr($phone, 0, 2) !== '62') {
+            $phone = '62' . ltrim($phone, '0');
+        }
+
+        return $phone;
     }
 
     // DELETE /orders/{id}

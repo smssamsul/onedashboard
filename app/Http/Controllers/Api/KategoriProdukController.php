@@ -16,7 +16,7 @@ class KategoriProdukController extends Controller
 
     public function index()
     {
-        $data = KategoriProduk::all();
+        $data = KategoriProduk::where('status', '!=', 'N')->get();
         return response()->json([
             'success' => true,
             'data' => $data
@@ -44,7 +44,10 @@ class KategoriProdukController extends Controller
 
     public function show($id)
     {
-        $kategori = KategoriProduk::find($id);
+        ;
+        $kategori = KategoriProduk::where('id', $id)
+                ->where('status', '!=', 'N')
+                ->first();
 
         if (!$kategori) {
             return response()->json([

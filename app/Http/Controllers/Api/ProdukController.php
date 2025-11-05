@@ -23,7 +23,9 @@ class ProdukController extends Controller
         $query = Produk::with([
             'kategori_rel:id,nama',
             'user_rel:id,nama'
-        ]);
+        ])
+        ->where('status', '!=', 'N') 
+        ->orderBy('create_at', 'desc');
 
         $produk = $query->orderBy('create_at', 'desc')->get();
 
@@ -87,8 +89,9 @@ class ProdukController extends Controller
 
     public function show($id)
     {
-        $produk = Produk::find($id);
-
+        $produk = Produk::where('id', $id)
+                ->where('status', '!=', 'N')
+                ->first();
         if (!$produk) {
             return response()->json([
                 'success' => false,
