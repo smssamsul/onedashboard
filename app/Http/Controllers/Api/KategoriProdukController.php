@@ -98,7 +98,7 @@ class KategoriProdukController extends Controller
         }
 
         $kategori->update([
-            'status'    => "2"
+            'status'    => "N"
         ]);
 
 
