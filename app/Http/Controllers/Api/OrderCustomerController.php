@@ -180,7 +180,7 @@ class OrderCustomerController extends Controller
         $validated = $request->validate([
             'waktu_pembayaran' => 'required|string',
             'bukti_pembayaran' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'metode_bayar' => 'required|string',
+            'metode_pembayaran' => 'required|string',
         ]);
 
 
