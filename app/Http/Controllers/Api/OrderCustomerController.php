@@ -192,7 +192,7 @@ class OrderCustomerController extends Controller
         $order->update([
             'bukti_pembayaran' => $headerPath,
             'waktu_pembayaran' => $request->waktu_pembayaran,
-            'metode_bayar' =>  $request->metode_bayar,            
+            'metode_bayar' =>  $request->metode_pembayaran,            
             'update_at' => now(),
             'status_order' => '2',
             'status_pembayaran' => '1'
