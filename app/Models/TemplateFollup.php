@@ -19,6 +19,8 @@ class TemplateFollup extends Model
         'create_at',
         'update_at',
         'status',
+        'produk_id',
+        'type',
     ];
 
     public $timestamps = false;

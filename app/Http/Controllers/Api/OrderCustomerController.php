@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderCustomer;
 use App\Models\Customer;
+use App\Models\Produk;
+use App\Models\TemplateFollup;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 
@@ -65,10 +67,25 @@ class OrderCustomerController extends Controller
             'waktu_pembayaran' => 'nullable|date',
             'bukti_pembayaran' => 'nullable|string',
             'metode_bayar' => 'nullable|string',
+            'custom_value' => 'nullable|array',
             // 'status' => 'required|char',
         ]);
 
         $wa = $this->formatPhoneNumber($request->wa);
+
+        $produk = Produk::findOrFail($request->produk);
+
+        $fields = json_decode($produk->custom_field, true) ?? [];
+
+        $customValue = [];
+        if (!empty($request->custom_value)) {
+            foreach ($fields as $field) {
+                $namaField = $field['nama_field'] ?? null;
+                if ($namaField && isset($request->custom_value[$namaField])) {
+                    $customValue[$namaField] = $request->custom_value[$namaField];
+                }
+            }
+        }
 
         $customer = customer::create([
             'nama'      => $request->nama,
@@ -91,9 +108,9 @@ class OrderCustomerController extends Controller
             'sumber' => $request->sumber,
             'status_order' => '1',
             'create_at' => now(),
-            'status' => '1'
+            'status' => '1',
+            'custom_value'     => json_encode($customValue), 
         ]);
-        // $order = OrderCustomer::create($validated);
 
         // $deviceKey = 'rCAIkWZDFOCosr3';
         // $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
@@ -141,6 +158,139 @@ class OrderCustomerController extends Controller
        
     }
 
+
+    public function store_admin(Request $request)
+    {
+        $validated = $request->validate([
+            // 'customer' => 'required',
+            'produk' => 'required|integer',
+            'harga' => 'required|string',
+            'ongkir' => 'nullable|string',
+            'total_harga' => 'required|string',
+            'alamat' => 'required|string',
+            'sumber' => 'required|string',
+            'custom_value' => 'nullable|array',
+        ]);
+
+        
+
+        $produk = Produk::findOrFail($request->produk);
+
+        $fields = json_decode($produk->custom_field, true) ?? [];
+
+        $customValue = [];
+        if (!empty($request->custom_value)) {
+            foreach ($fields as $field) {
+                $namaField = $field['nama_field'] ?? null;
+                if ($namaField && isset($request->custom_value[$namaField])) {
+                    $customValue[$namaField] = $request->custom_value[$namaField];
+                }
+            }
+        }
+
+        $customerId = $request->customer;
+
+        if (!$customerId) {
+            $wa = $this->formatPhoneNumber($request->wa);
+            $customer = Customer::create([
+                'nama'      => $request->nama,
+                'email'     => $request->email,
+                'alamat'    => $request->alamat,
+                'wa'        => $wa,
+                'status'    => '1',
+                'create_at' => now(),
+            ]);
+
+            $customerId = $customer->id;
+        }
+
+        $orderData = [
+            'customer'      => $customerId,
+            'produk'        => $request->produk,
+            'tanggal'       => now(),
+            'harga'         => $request->harga,
+            'total_harga'   => $request->total_harga,
+            'ongkir'        => $request->ongkir,
+            'alamat'        => $request->alamat,
+            'sumber'        => $request->sumber,
+            'status_order'  => '1',
+            'create_at'     => now(),
+            'status'        => '1',
+            'custom_value'  => json_encode($customValue),
+        ];
+
+        $order = OrderCustomer::create($orderData);
+        
+       
+        
+        if($request->notif)
+        {
+            $deviceKey = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+            $token     = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
+
+            $templateFollup = TemplateFollup::where('produk', $request->produk)
+                                    ->where('type', '5')
+                                    ->first();
+
+            $dataCustomer = Customer::where('id', $customerId)
+                                    ->first();
+
+            $dataProduk = Produk::where('id', $produk)
+                                    ->first();
+
+            $dataText = array_merge([
+                            'customer_name' => $dataCustomer->nama ?? '',
+                            'product_name'  => $dataProduk->nama ?? '',
+                            'order_date'    => Carbon::parse($order->create_at)->format('d-m-Y'),
+                            'order_total'   => number_format($order->total_harga, 0, ',', '.'),
+                        ], $field);
+
+            $message = TemplateHelper::render($templateFollup->text, $data);
+
+            try {
+                $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
+                    'device_key' => $deviceKey,
+                    'phone'      => $wa,
+                    'message'    => $message,
+                ]);
+
+                if ($response->successful()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+                        'data' => [
+                            'order' => $order,
+                            'whatsapp_response' => $response->json()
+                        ]
+                    ], 200);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
+                    'status' => $response->status(),
+                    'error' => $response->json()
+                ], $response->status());
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order tersimpan tapi terjadi kesalahan saat kirim pesan',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+        }
+        
+        
+
+        return response()->json([
+                'success' => true,
+                'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+                'data' => $order
+            ], 200);
+
+       
+    }
+
     
     public function update(Request $request, $id)
     {
@@ -157,7 +307,6 @@ class OrderCustomerController extends Controller
             'waktu_pembayaran' => 'nullable|date',
             'bukti_pembayaran' => 'nullable|string',
             'metode_bayar' => 'nullable|string',
-            'status' => 'nullable|char',
         ]);
 
         $validated['update_at'] = now();
@@ -180,7 +329,7 @@ class OrderCustomerController extends Controller
         $validated = $request->validate([
             'waktu_pembayaran' => 'required|string',
             'bukti_pembayaran' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'metode_bayar' => 'required|string',
+            'metode_pembayaran' => 'required|string',
         ]);
 
 
@@ -207,16 +356,12 @@ class OrderCustomerController extends Controller
 
     private function formatPhoneNumber($phone)
     {
-        // Hapus semua spasi, tanda +, tanda hubung, dll
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        // Jika diawali dengan 0 → ubah jadi 62
         if (substr($phone, 0, 1) === '0') {
             $phone = '62' . substr($phone, 1);
         }
 
-        // Jika sudah diawali 62 → biarkan
-        // Jika diawali 8 tanpa 0 → tambahkan 62 di depan
         if (substr($phone, 0, 2) !== '62') {
             $phone = '62' . ltrim($phone, '0');
         }
@@ -224,15 +369,16 @@ class OrderCustomerController extends Controller
         return $phone;
     }
 
-    // DELETE /orders/{id}
-    // public function destroy($id)
-    // {
-    //     $order = OrderCustomer::find($id);
-    //     if (!$order) {
-    //         return response()->json(['message' => 'Order not found'], 404);
-    //     }
+    public function archive($id)
+    {
+        $order = OrderCustomer::find($id);
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
 
-    //     $order->delete();
-    //     return response()->json(['message' => 'Order deleted successfully']);
-    // }
+        $order->update([
+            'status'    => "3"
+        ]);
+        return response()->json(['message' => 'Order deleted successfully']);
+    }
 }

@@ -23,11 +23,19 @@ class Produk extends Model
         'deskripsi',
         'tanggal_event',
         'gambar',
-        'lainnya',
         'landingpage',
         'create_at',
         'update_at',
         'status',
+        'assign',
+        'custom_field',
+        'list_point',
+        'testimoni',
+        'fb_pixel',
+        'event_fb_pixel',
+        'gtm',
+        'video',
+        
     ];
 
     public $timestamps = false;
@@ -35,7 +43,14 @@ class Produk extends Model
     // Supaya kolom 'gambar' otomatis dikonversi ke array saat diakses
     protected $casts = [
         'gambar'    => 'array',
-        'lainnya'   => 'array'
+        'assign' => 'array',
+        'custom_field' => 'array',
+        'list_point' => 'array',
+        'testimoni' => 'array',
+        'fb_pixel' => 'array',
+        'event_fb_pixel' => 'array',
+        'gtm' => 'array',
+        'video' => 'array',
     ];
 
      public function kategori_rel()

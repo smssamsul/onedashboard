@@ -63,5 +63,19 @@ class RouteServiceProvider extends ServiceProvider
          RateLimiter::for('order', function (Request $request) {
             return Limit::perMinute(3)->by($request->ip());
         });
+
+        RateLimiter::for('otp', function (Request $request) {
+            $identifier = $request->phone ?? $request->ip();
+            return Limit::perMinute(3)
+                ->by($identifier)
+                ->response(function () {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Terlalu banyak percobaan OTP, silakan coba lagi nanti.'
+                    ], 429);
+                });
+        });
     }
+
+    
 }

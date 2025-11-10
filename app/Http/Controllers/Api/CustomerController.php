@@ -62,46 +62,48 @@ class CustomerController extends Controller
         ], 201);
     }
 
-    // public function store(Request $request)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'nama' => 'required|string|max:255',
-    //         'email' => 'required|email|unique:customer,email',
-    //         // 'password' => 'required|min:6',
-    //     ]);
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email|unique:customer,email',
+            // 'password' => 'required|min:6',
+        ]);
 
-    //     if ($validator->fails()) {
-    //         return response()->json($validator->errors(), 422);
-    //     }
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
 
-    //     $customer = Customer::create([
-    //         'nama' => $request->nama,
-    //         'nama_panggilan' => $request->nama_panggilan,
-    //         'email' => $request->email,
-    //         'instagram' => $request->instagram,
-    //         // 'password' => Hash::make($request->password),
-    //         'wa' => $request->wa,
-    //         'profesi' => $request->profesi,
-    //         'pendapatan_bln' => $request->pendapatan_bln,
-    //         'industri_pekerjaan' => $request->industri_pekerjaan,
-    //         'jenis_kelamin' => $request->jenis_kelamin,
-    //         'tanggal_lahir' => $request->tanggal_lahir,
-    //         'alamat' => $request->alamat,
-    //         // 'status_order' => $request->status_order,
-    //         // 'verifikasi' => $request->verifikasi,
-    //         // 'alasan_tertarik' => $request->alasan_tertarik,
-    //         // 'alasan_belum' => $request->alasan_belum,
-    //         // 'harapan' => $request->harapan,
-    //         'create_at' => now(),
-    //         'status' => '1'
-    //     ]);
+        $wa = $this->formatPhoneNumber($request->wa);
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Customer berhasil ditambahkan',
-    //         'id' => $customer->id
-    //     ], 201);
-    // }
+        $customer = Customer::create([
+            'nama' => $request->nama,
+            'nama_panggilan' => $request->nama_panggilan,
+            'email' => $request->email,
+            'instagram' => $request->instagram,
+            // 'password' => Hash::make($request->password),
+            'wa' => $wa,
+            'profesi' => $request->profesi,
+            'pendapatan_bln' => $request->pendapatan_bln,
+            'industri_pekerjaan' => $request->industri_pekerjaan,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'alamat' => $request->alamat,
+            // 'status_order' => $request->status_order,
+            // 'verifikasi' => $request->verifikasi,
+            // 'alasan_tertarik' => $request->alasan_tertarik,
+            // 'alasan_belum' => $request->alasan_belum,
+            // 'harapan' => $request->harapan,
+            'create_at' => now(),
+            'status' => '1'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer berhasil ditambahkan',
+            'data' => $customer
+        ], 201);
+    }
  
 
     public function show($id)
@@ -158,7 +160,7 @@ class CustomerController extends Controller
         }
 
         $customer->update([
-            'status'    => "2"
+            'status'    => "N"
         ]);
 
         return response()->json([
@@ -166,4 +168,20 @@ class CustomerController extends Controller
             'message' => 'Customer berhasil dihapus'
         ]);
     }
+
+    private function formatPhoneNumber($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
+        }
+
+        if (substr($phone, 0, 2) !== '62') {
+            $phone = '62' . ltrim($phone, '0');
+        }
+
+        return $phone;
+    }
 }
+
