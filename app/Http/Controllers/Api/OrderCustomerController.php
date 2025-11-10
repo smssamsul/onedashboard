@@ -341,7 +341,7 @@ class OrderCustomerController extends Controller
         $order->update([
             'bukti_pembayaran' => $headerPath,
             'waktu_pembayaran' => $request->waktu_pembayaran,
-            'metode_bayar' =>  $request->metode_bayar,            
+            'metode_bayar' =>  $request->metode_pembayaran,            
             'update_at' => now(),
             'status_order' => '2',
             'status_pembayaran' => '1'
@@ -375,10 +375,6 @@ class OrderCustomerController extends Controller
         if (!$order) {
             return response()->json(['message' => 'Order not found'], 404);
         }
-
-        $order->update([
-            'status'    => "3"
-        ]);
-        return response()->json(['message' => 'Order deleted successfully']);
     }
 }
+
