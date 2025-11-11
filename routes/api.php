@@ -15,7 +15,8 @@ use App\Http\Controllers\Api\{
     LogsFollupController,
     OrderCustomerController,
     OtpCustomerController,
-    LoginCustomerController
+    LoginCustomerController,
+    MidtransController
 };
 
 use App\Http\Controllers\Api\Customer\CustomerDashboardController;
@@ -72,8 +73,7 @@ Route::prefix('admin')->group(function () {
 });
 
 Route::prefix('customer')->group(function () {
-    
-    
+
     Route::post('/login', LoginCustomerController::class);
     Route::middleware('auth:customer')->group(function () {
         Route::get('/dashboard', [CustomerDashboardController::class, 'index']);
@@ -85,4 +85,9 @@ Route::prefix('customer')->group(function () {
             ]);
         });
     });
+});
+
+Route::prefix('midtrans')->group(function () {
+    Route::post('/create-snap', [MidtransController::class, 'createSnapToken']);
+    Route::post('/notification', [MidtransController::class, 'notificationHandler']);
 });

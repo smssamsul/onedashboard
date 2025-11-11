@@ -28,6 +28,7 @@ class OrderCustomer extends Model
         'update_at',
         'status',
         'status_order',
+        'custom_value',
     ];
 
     public $timestamps = false;

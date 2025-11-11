@@ -77,12 +77,19 @@ class OrderCustomerController extends Controller
 
         $fields = json_decode($produk->custom_field, true) ?? [];
 
+        // \Log::info('custom_field', ['data' => $fields]);
+        // \Log::info('custom_value_request', ['data' => $request->custom_value]);
         $customValue = [];
         if (!empty($request->custom_value)) {
             foreach ($fields as $field) {
                 $namaField = $field['nama_field'] ?? null;
-                if ($namaField && isset($request->custom_value[$namaField])) {
-                    $customValue[$namaField] = $request->custom_value[$namaField];
+                if (!$namaField) continue;
+
+                foreach ($request->custom_value as $key => $value) {
+                    if (strtolower($key) === strtolower($namaField)) {
+                        $customValue[$namaField] = $value;
+                        break;
+                    }
                 }
             }
         }
@@ -108,8 +115,8 @@ class OrderCustomerController extends Controller
             'sumber' => $request->sumber,
             'status_order' => '1',
             'create_at' => now(),
+            'custom_value'  => json_encode($customValue), 
             'status' => '1',
-            'custom_value'     => json_encode($customValue), 
         ]);
 
         // $deviceKey = 'rCAIkWZDFOCosr3';
@@ -152,7 +159,7 @@ class OrderCustomerController extends Controller
         return response()->json([
                 'success' => true,
                 'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
-                'data' => $order
+                'data' => json_encode($customValue)
             ], 200);
 
        
