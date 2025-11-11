@@ -11,6 +11,8 @@ use App\Models\TemplateFollup;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 
+use Carbon\Carbon;
+
 class OrderCustomerController extends Controller
 {
     
@@ -48,6 +50,40 @@ class OrderCustomerController extends Controller
         return response()->json([
             'success' => true,
             'data' => $orders
+        ]);
+    }
+
+    public function laporanMingguIni(Request $request)
+    {
+        $startOfWeek = Carbon::now()->startOfWeek();
+        $endOfWeek   = Carbon::now()->endOfWeek();
+
+        $orders = OrderCustomer::whereBetween('create_at', [$startOfWeek, $endOfWeek])
+            ->select('id', 'customer', 'total_harga', 'create_at')
+            ->with('customer_rel:id,nama')
+            ->orderBy('create_at', 'desc')
+            ->get();
+
+        $totalPenjualan = $orders->sum('total_harga');
+        $jumlahOrder = $orders->count();
+
+        $pesan = "📊 *Laporan Order Minggu Ini*\n\n";
+        $pesan .= "🗓️ Periode: " . $startOfWeek->format('d M') . " - " . $endOfWeek->format('d M Y') . "\n";
+        $pesan .= "🛍️ Jumlah Order: *{$jumlahOrder}*\n";
+        $pesan .= "💰 Total Penjualan: *Rp " . number_format($totalPenjualan, 0, ',', '.') . "*\n\n";
+        $pesan .= "📦 Rincian Order:\n";
+
+        foreach ($orders->take(5) as $o) {
+            $pesan .= "- {$o->customer_rel->nama} | Rp" . number_format($o->total_harga, 0, ',', '.') . " | " . $o->create_at->format('d/m') . "\n";
+        }
+
+        if ($orders->count() > 5) {
+            $pesan .= "...dan lainnya (" . ($orders->count() - 5) . " order)\n";
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $pesan
         ]);
     }
 

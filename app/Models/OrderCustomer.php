@@ -12,6 +12,10 @@ class OrderCustomer extends Model
 
     protected $table = 'order_customer';
 
+      protected $casts = [
+        'create_at' => 'datetime',
+    ];
+
     protected $fillable = [
         'customer',
         'produk',
