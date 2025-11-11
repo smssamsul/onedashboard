@@ -61,6 +61,7 @@ class OrderCustomerController extends Controller
         $orders = OrderCustomer::whereBetween('create_at', [$startOfWeek, $endOfWeek])
             ->select('id', 'customer', 'total_harga', 'create_at')
             ->with('customer_rel:id,nama')
+            ->with('produk_rel:id,nama')
             ->orderBy('create_at', 'desc')
             ->get();
 
@@ -74,7 +75,7 @@ class OrderCustomerController extends Controller
         $pesan .= "📦 Rincian Order:\n";
 
         foreach ($orders->take(5) as $o) {
-            $pesan .= "- {$o->customer_rel->nama} | Rp" . number_format($o->total_harga, 0, ',', '.') . " | " . $o->create_at->format('d/m') . "\n";
+            $pesan .= "- {$o->customer_rel->nama} | Rp" . number_format($o->total_harga, 0, ',', '.') . " | ". $o->produk_rel->nama ." | " . $o->create_at->format('d/m') . "\n";
         }
 
         if ($orders->count() > 5) {
