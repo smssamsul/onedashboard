@@ -196,7 +196,7 @@ class OrderCustomerController extends Controller
         return response()->json([
                 'success' => true,
                 'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
-                'data' => json_encode($customValue)
+                'data' => $order
             ], 200);
 
        
