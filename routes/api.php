@@ -21,7 +21,7 @@ use App\Http\Controllers\Api\{
 
 use App\Http\Controllers\Api\Customer\CustomerDashboardController;
 
-Route::get('/laporan/minggu-ini', [OrderCustomerController::class, 'laporanMingguIni']);
+Route::post('/laporan/minggu-ini', [OrderCustomerController::class, 'laporanMingguIni']);
 
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
 
