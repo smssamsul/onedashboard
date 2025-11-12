@@ -29,8 +29,11 @@ class LoginController extends Controller
        
         $credentials = $request->only('email', 'password');
 
-        $user = UserLogin::where('email', $credentials['email'])->first();
-        if ($user->status == 'N') {
+        $user = UserLogin::where('email', $credentials['email'])
+                        ->with('userData') // pastikan relasi 'user' sudah didefinisikan di model UserLogin
+                        ->first();
+                        
+        if ($user->userData->status == 'N') {
             return response()->json([
                 'success' => false,
                 'message' => 'Akun Anda belum aktif atau telah dinonaktifkan'

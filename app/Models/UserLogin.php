@@ -66,7 +66,7 @@ class UserLogin extends Authenticatable implements JWTSubject
     {
         return [];
     }
-
+    
      public function userData()
     {
         return $this->belongsTo(User::class, 'user', 'id');
