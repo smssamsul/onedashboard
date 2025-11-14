@@ -10,8 +10,9 @@ use App\Models\Produk;
 use App\Models\TemplateFollup;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
-
+use App\Helpers\TemplateHelper;
 use Carbon\Carbon;
+
 
 class OrderCustomerController extends Controller
 {
@@ -269,32 +270,30 @@ class OrderCustomerController extends Controller
         
         if($request->notif)
         {
-            $deviceKey = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
-            $token     = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
+            $token = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+            $deviceKey    = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
 
-            $templateFollup = TemplateFollup::where('produk', $request->produk)
+            $templateFollup = TemplateFollup::where('produk_id', $request->produk)
                                     ->where('type', '5')
                                     ->first();
 
             $dataCustomer = Customer::where('id', $customerId)
                                     ->first();
 
-            $dataProduk = Produk::where('id', $produk)
-                                    ->first();
 
             $dataText = array_merge([
                             'customer_name' => $dataCustomer->nama ?? '',
-                            'product_name'  => $dataProduk->nama ?? '',
-                            'order_date'    => Carbon::parse($order->create_at)->format('d-m-Y'),
-                            'order_total'   => number_format($order->total_harga, 0, ',', '.'),
+                            'product_name'  => $produk->nama ?? '',
+                            'order_date'    => Carbon::parse($request->create_at)->format('d-m-Y'),
+                            'order_total'   => number_format($request->total_harga, 0, ',', '.'),
                         ], $field);
 
-            $message = TemplateHelper::render($templateFollup->text, $data);
+            $message = TemplateHelper::render($templateFollup->text, $dataText);
 
             try {
                 $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
                     'device_key' => $deviceKey,
-                    'phone'      => $wa,
+                    'phone'      => $dataCustomer->wa,
                     'message'    => $message,
                 ]);
 
@@ -303,7 +302,7 @@ class OrderCustomerController extends Controller
                         'success' => true,
                         'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
                         'data' => [
-                            'order' => $order,
+                            'order' => $dataCustomer->wa,
                             'whatsapp_response' => $response->json()
                         ]
                     ], 200);
@@ -313,7 +312,7 @@ class OrderCustomerController extends Controller
                     'success' => false,
                     'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
                     'status' => $response->status(),
-                    'error' => $response->json()
+                    'error' => $message
                 ], $response->status());
             } catch (\Exception $e) {
                 return response()->json([
