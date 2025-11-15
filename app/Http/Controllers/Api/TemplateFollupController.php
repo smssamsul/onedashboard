@@ -16,10 +16,10 @@ class TemplateFollupController extends Controller
     
     public function index(Request $request)
     {
-        $produkId = $request->query('produk_id');
+        $produkId = $request->produk_id;
 
         $data = TemplateFollup::where('status', '!=', 'N')
-        ->where('produk',$produkId)
+        ->where('produk_id',$produkId)
         ->get();
 
         return response()->json([

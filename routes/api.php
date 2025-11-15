@@ -21,6 +21,22 @@ use App\Http\Controllers\Api\{
 
 use App\Http\Controllers\Api\Customer\CustomerDashboardController;
 
+use App\Services\ZoomService;
+
+use App\Http\Controllers\Api\WebinarController;
+
+Route::get('/webinar', [WebinarController::class, 'index']);
+Route::post('/webinar', [WebinarController::class, 'store']);
+
+Route::get('/test-zoom-token', function () {
+    
+    $token = ZoomService::getAccessToken();
+    $response = Http::withToken($token)
+        ->get('https://api.zoom.us/v2/users/me');
+
+    return $response->json();
+});
+
 Route::post('/laporan/minggu-ini', [OrderCustomerController::class, 'laporanMingguIni']);
 
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
@@ -56,8 +72,12 @@ Route::prefix('admin')->group(function () {
         Route::delete('/customer/{id}', [CustomerController::class, 'destroy']);
         Route::post('/customer/update/{id}', [CustomerController::class, 'form_customer_update']);
 
+        Route::post('/template-follup', [TemplateFollupController::class, 'index']);
+        Route::post('/template-follup/store', [TemplateFollupController::class, 'store']);
+       
         Route::apiResource('kategori-produk', KategoriProdukController::class);
-        Route::apiResource('template-follup', TemplateFollupController::class);
+        // Route::apiResource('template-follup', TemplateFollupController::class);
+        
         Route::apiResource('produk', ProdukController::class);
 
         Route::delete('/produk/{id}/gambar/{index}', [ProdukController::class, 'deleteImage']);
