@@ -132,6 +132,7 @@ class ProdukController extends Controller
         $produk = Produk::create([
             'kategori' => $request->kategori,
             'user_input' => auth()->user()->id,
+            'kode' => $request->kode,
             'nama' => $request->nama,
             'url' => $request->url,
             'header' => $headerPath,
@@ -285,6 +286,7 @@ class ProdukController extends Controller
         $produk->update([
             'kategori' => $request->kategori ?? $produk->kategori,
             'nama' => $request->nama ?? $produk->nama,
+            'kode' => $request->nama ?? $produk->kode,
             'url' => $request->url ?? $produk->url,
             'harga_coret' => $request->harga_coret ?? $produk->harga_coret,
             'harga_asli' => $request->harga_asli ?? $produk->harga_asli,
