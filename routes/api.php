@@ -110,6 +110,9 @@ Route::prefix('customer')->group(function () {
 });
 
 Route::prefix('midtrans')->group(function () {
-    Route::post('/create-snap', [MidtransController::class, 'createSnapToken']);
+    Route::post('/create-snap', [MidtransController::class, 'createSnapTokenGeneral']);
+    Route::post('/create-snap-cc', [MidtransController::class, 'createSnapTokenCC']);
+    Route::post('/create-snap-va', [MidtransController::class, 'createSnapTokenVA']);
+    Route::post('/create-snap-ewallet', [MidtransController::class, 'createSnapTokenEwallet']);
     Route::post('/notification', [MidtransController::class, 'notificationHandler']);
 });

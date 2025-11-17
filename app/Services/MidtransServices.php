@@ -16,37 +16,41 @@ class MidtransServices
         Config::$is3ds         = config('midtrans.is_3ds');
     }
 
-
+    /**
+     * Create Snap transaction and return token & redirect_url
+     */
     public function createTransaction(array $params)
     {
-        return Snap::getSnapToken($params);
-    }
+        $transaction = Snap::createTransaction($params);
 
+        return [
+            'token' => $transaction->token,
+            'redirect_url' => $transaction->redirect_url,
+        ];
+    }
 
     public function getStatus(string $orderId)
     {
         return Transaction::status($orderId);
     }
 
-
     public function handleNotification(array $payload)
     {
         $notif = new \Midtrans\Notification();
 
         return [
-            'order_id'       => $notif->order_id,
-            'transaction_id' => $notif->transaction_id,
-            'transaction_status' => $notif->transaction_status,
-            'fraud_status'   => $notif->fraud_status,
-            'payment_type'   => $notif->payment_type,
-            'gross_amount'   => $notif->gross_amount,
-            'status_code'    => $notif->status_code,
+            'order_id'             => $notif->order_id,
+            'transaction_id'       => $notif->transaction_id,
+            'transaction_status'    => $notif->transaction_status,
+            'fraud_status'         => $notif->fraud_status,
+            'payment_type'         => $notif->payment_type,
+            'gross_amount'         => $notif->gross_amount,
+            'status_code'          => $notif->status_code,
         ];
     }
 
-
     public function cancelTransaction(string $orderId)
     {
-        return Transaction::cancel($orderId);
+        return Transaction::cancel($order_id);
     }
 }

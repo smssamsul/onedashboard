@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use App\Services\MidtransServices;
 use Illuminate\Support\Facades\Log;
 
-
 class MidtransController extends Controller
 {
     protected $midtrans;
@@ -17,8 +16,7 @@ class MidtransController extends Controller
         $this->midtrans = $midtrans;
     }
 
-
-    public function createSnapToken(Request $request)
+    public function createSnapTokenGeneral(Request $request)
     {
         $request->validate([
             'amount' => 'required|numeric|min:1000',
@@ -35,11 +33,15 @@ class MidtransController extends Controller
             ],
             'item_details' => [
                 [
-                    'id' => 'donation-1',
+                    'id' => 'product-1',
                     'price' => $request->amount,
                     'quantity' => 1,
-                    'name' => $request->product_name ?? 'Ternak Properti',
+                    'name' => $request->product_name ?? 'Produk Pembayaran',
                 ]
+            ],
+            // 'enabled_payments' => ['credit_card'],  
+            'credit_card' => [
+                'secure' => true
             ],
             'customer_details' => [
                 'first_name' => $request->name,
@@ -47,25 +49,177 @@ class MidtransController extends Controller
             ],
         ];
 
-        $token = $this->midtrans->createTransaction($params);
+        // Create transaction (token + redirect_url)
+        $transaction = $this->midtrans->createTransaction($params);
 
         return response()->json([
             'success' => true,
-            'snap_token' => $token,
+            'snap_token' => $transaction['token'],
+            'redirect_url' => $transaction['redirect_url'],
             'order_id' => $orderId,
         ]);
     }
 
-    /**
-     * Endpoint untuk notifikasi dari Midtrans
-     */
+    public function createSnapTokenCC(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+            'name' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        $orderId = 'ORDER-' . time();
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $request->amount,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'product-1',
+                    'price' => $request->amount,
+                    'quantity' => 1,
+                    'name' => $request->product_name ?? 'Produk Pembayaran',
+                ]
+            ],
+            'enabled_payments' => [
+                'credit_card'
+            
+            ],  
+            'credit_card' => [
+                'secure' => true
+            ],
+            'customer_details' => [
+                'first_name' => $request->name,
+                'email' => $request->email,
+            ],
+        ];
+
+        // Create transaction (token + redirect_url)
+        $transaction = $this->midtrans->createTransaction($params);
+
+        return response()->json([
+            'success' => true,
+            'snap_token' => $transaction['token'],
+            'redirect_url' => $transaction['redirect_url'],
+            'order_id' => $orderId,
+        ]);
+    }
+
+
+    public function createSnapTokenEwallet(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+            'name' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        $orderId = 'ORDER-' . time();
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $request->amount,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'product-1',
+                    'price' => $request->amount,
+                    'quantity' => 1,
+                    'name' => $request->product_name ?? 'Produk Pembayaran',
+                ]
+            ],
+            'enabled_payments' => [
+                'gopay',
+                'shopeepay',
+                'ovo',
+                'qris'
+            
+            ],  
+            'credit_card' => [
+                'secure' => true
+            ],
+            'customer_details' => [
+                'first_name' => $request->name,
+                'email' => $request->email,
+            ],
+        ];
+
+        // Create transaction (token + redirect_url)
+        $transaction = $this->midtrans->createTransaction($params);
+
+        return response()->json([
+            'success' => true,
+            'snap_token' => $transaction['token'],
+            'redirect_url' => $transaction['redirect_url'],
+            'order_id' => $orderId,
+        ]);
+    }
+
+    public function createSnapTokenVA(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+            'name' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        $orderId = 'ORDER-' . time();
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $request->amount,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'product-1',
+                    'price' => $request->amount,
+                    'quantity' => 1,
+                    'name' => $request->product_name ?? 'Produk Pembayaran',
+                ]
+            ],
+            'enabled_payments' => [
+                'bca_va',
+                'bri_va',
+                'bni_va',
+                'permata_va',
+                'echannel',
+                'other_va',
+            
+            ],  
+            'credit_card' => [
+                'secure' => true
+            ],
+            'customer_details' => [
+                'first_name' => $request->name,
+                'email' => $request->email,
+            ],
+        ];
+
+        // Create transaction (token + redirect_url)
+        $transaction = $this->midtrans->createTransaction($params);
+
+        return response()->json([
+            'success' => true,
+            'snap_token' => $transaction['token'],
+            'redirect_url' => $transaction['redirect_url'],
+            'order_id' => $orderId,
+        ]);
+    }
+
+
+
+
+
     public function notificationHandler(Request $request)
     {
         Log::info('Midtrans Notification: ', $request->all());
 
         $notif = $this->midtrans->handleNotification($request->all());
-
-        // $order = Order::where('order_id', $notif['order_id'])->first();
+         // $order = Order::where('order_id', $notif['order_id'])->first();
 
         // if ($order) {
         //     $order->update([
@@ -78,7 +232,7 @@ class MidtransController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Order updated successfully',
+            'message' => 'Notification processed',
             'data' => $notif,
         ]);
     }
