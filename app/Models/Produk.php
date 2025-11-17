@@ -15,6 +15,7 @@ class Produk extends Model
     protected $fillable = [
         'kategori',
         'user_input',
+        'kode',
         'nama',
         'url',
         'header',
