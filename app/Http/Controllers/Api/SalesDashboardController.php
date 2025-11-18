@@ -34,37 +34,22 @@ class SalesDashboardController extends Controller
             ], 404);
         }
 
-        $userId = $user->id;
-        $userName = $user->nama;
-
-        // Total penjualan hari ini
+        // Total penjualan hari ini (semua sales)
         $today = Carbon::today();
-        $totalPenjualanHariIni = OrderCustomer::where(function($query) use ($userId) {
-                $query->where('sumber', (string) $userId)
-                      ->orWhere('sumber', $userId);
-            })
-            ->whereDate('create_at', $today)
+        $totalPenjualanHariIni = OrderCustomer::whereDate('create_at', $today)
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
-        // Total penjualan bulan ini
+        // Total penjualan bulan ini (semua sales)
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
-        $totalPenjualanBulanIni = OrderCustomer::where(function($query) use ($userId) {
-                $query->where('sumber', (string) $userId)
-                      ->orWhere('sumber', $userId);
-            })
-            ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
+        $totalPenjualanBulanIni = OrderCustomer::whereBetween('create_at', [$startOfMonth, $endOfMonth])
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
         // Chart performa penjualan (30 hari terakhir)
         $salesPerformance = [];
         for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
-            $total = OrderCustomer::where(function($query) use ($userId) {
-                    $query->where('sumber', (string) $userId)
-                          ->orWhere('sumber', $userId);
-                })
-                ->whereDate('create_at', $date)
+            $total = OrderCustomer::whereDate('create_at', $date)
                 ->sum(DB::raw('CAST(total_harga AS numeric)'));
             
             $salesPerformance[] = [
@@ -78,11 +63,7 @@ class SalesDashboardController extends Controller
         $salesActivity = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
-            $count = OrderCustomer::where(function($query) use ($userId) {
-                    $query->where('sumber', (string) $userId)
-                          ->orWhere('sumber', $userId);
-                })
-                ->whereDate('create_at', $date)
+            $count = OrderCustomer::whereDate('create_at', $date)
                 ->count();
             
             $salesActivity[] = [
@@ -92,13 +73,8 @@ class SalesDashboardController extends Controller
             ];
         }
 
-        // Riwayat terakhir follow up (10 terakhir)
-        // Ambil customer IDs yang memiliki order dengan sumber = userId
-        $customerIds = OrderCustomer::where(function($query) use ($userId) {
-                $query->where('sumber', (string) $userId)
-                      ->orWhere('sumber', $userId);
-            })
-            ->distinct()
+        // Riwayat terakhir follow up (10 terakhir) untuk semua customer
+        $customerIds = OrderCustomer::distinct()
             ->pluck('customer')
             ->toArray();
 
@@ -120,10 +96,6 @@ class SalesDashboardController extends Controller
 
         // Pembelian terakhir (10 terakhir)
         $lastPurchases = OrderCustomer::with(['customer_rel:id,nama', 'produk_rel:id,nama'])
-            ->where(function($query) use ($userId) {
-                $query->where('sumber', (string) $userId)
-                      ->orWhere('sumber', $userId);
-            })
             ->orderBy('create_at', 'desc')
             ->limit(10)
             ->get()
