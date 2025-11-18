@@ -8,6 +8,7 @@ use App\Models\OrderCustomer;
 use App\Models\LogsFollup;
 use App\Models\User;
 use App\Models\UserLogin;
+use App\Models\Customer;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,8 +35,20 @@ class SalesDashboardController extends Controller
             ], 404);
         }
 
-        // Total penjualan hari ini (semua sales)
         $today = Carbon::today();
+
+        // Overview statistics
+        $totalOrders = OrderCustomer::count();
+        $totalOrdersPaid = OrderCustomer::where('status_pembayaran', '1')->count();
+        $totalOrdersUnpaid = OrderCustomer::where(function ($query) {
+                $query->whereNull('status_pembayaran')
+                      ->orWhere('status_pembayaran', '!=', '1');
+            })->count();
+
+        $totalCustomers = Customer::count();
+        $newCustomersToday = Customer::whereDate('create_at', $today)->count();
+
+        // Total penjualan hari ini (semua sales)
         $totalPenjualanHariIni = OrderCustomer::whereDate('create_at', $today)
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
@@ -127,6 +140,13 @@ class SalesDashboardController extends Controller
                     'total_penjualan_hari_ini_formatted' => 'Rp ' . number_format($totalPenjualanHariIni, 0, ',', '.'),
                     'total_penjualan_bulan_ini' => (float) $totalPenjualanBulanIni,
                     'total_penjualan_bulan_ini_formatted' => 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'),
+                ],
+                'overview' => [
+                    'orders_total' => $totalOrders,
+                    'orders_paid' => $totalOrdersPaid,
+                    'orders_unpaid' => $totalOrdersUnpaid,
+                    'customers_total' => $totalCustomers,
+                    'customers_new_today' => $newCustomersToday,
                 ],
                 'chart_performa_penjualan' => $salesPerformance,
                 'chart_performa_sales' => $salesActivity,

@@ -31,6 +31,7 @@ class OrderCustomer extends Model
         'create_at',
         'update_at',
         'status',
+        'status_pembayaran',
         'status_order',
         'custom_value',
     ];

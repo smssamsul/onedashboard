@@ -4,6 +4,51 @@
 @section('page_title', 'Dashboard Sales')
 
 @section('content')
+    <div class="card-grid" style="margin-bottom: 1.5rem;">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 3h18v4H3z" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <path d="M5 7v14h14V7" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+            <span class="stat-label">Total Order</span>
+            <span class="stat-value" id="total-order">0</span>
+            <small class="text-muted">Keseluruhan</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+            </div>
+            <span class="stat-label">Order Paid</span>
+            <span class="stat-value" id="paid-order">0</span>
+            <small class="text-muted">Status pembayaran = paid</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="stat-label">Order Belum Paid</span>
+            <span class="stat-value" id="unpaid-order">0</span>
+            <small class="text-muted">Butuh tindak lanjut</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-6a4 4 0 1 1 0 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="stat-label">Total Customer</span>
+            <span class="stat-value" id="total-customer">0</span>
+            <small class="text-muted" id="customer-today">+0 hari ini</small>
+        </div>
+    </div>
+
     <div class="card-grid">
         <div class="stat-card">
             <div class="stat-icon">
@@ -115,6 +160,16 @@
                 // Update statistik
                 document.getElementById('total-hari-ini').textContent = data.statistik.total_penjualan_hari_ini_formatted;
                 document.getElementById('total-bulan-ini').textContent = data.statistik.total_penjualan_bulan_ini_formatted;
+
+                // Overview cards
+                if (data.overview) {
+                    document.getElementById('total-order').textContent = data.overview.orders_total ?? 0;
+                    document.getElementById('paid-order').textContent = data.overview.orders_paid ?? 0;
+                    document.getElementById('unpaid-order').textContent = data.overview.orders_unpaid ?? 0;
+                    document.getElementById('total-customer').textContent = data.overview.customers_total ?? 0;
+                    const todayIncrement = data.overview.customers_new_today ?? 0;
+                    document.getElementById('customer-today').textContent = `+${todayIncrement} hari ini`;
+                }
 
                 // Update chart performa penjualan
                 updateChartPenjualan(data.chart_performa_penjualan);
