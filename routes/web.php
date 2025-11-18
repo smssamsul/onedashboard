@@ -2,16 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
+use App\Http\Controllers\ZoomSdkController;
+
+use App\Http\Controllers\WebinarController;
+
+Route::get('/webinar/join/{meeting_id}', [WebinarController::class, 'join'])->name('webinar.join');
+
+Route::get('/webinar/join2/{id}', [WebinarController::class, 'join2'])->name('webinar.join2');
+
+Route::get('/zoom/signature', [ZoomSdkController::class, 'generateSignature']);
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,3 +19,20 @@ Route::get('/', function () {
 Route::get('/midtrans', function () {
     return view('midtrans');
 });
+
+
+Route::get('/login', function () {
+    return view('login');
+});
+
+Route::get('/customer/login', function () {
+    return view('customerLogin');
+});
+
+Route::get('/admin/dashboard', function () {
+    return view('admin.dashboard');
+})->name('admin.dashboard');
+
+Route::get('/sales/dashboard', function () {
+    return view('sales.dashboard');
+})->name('sales.dashboard');

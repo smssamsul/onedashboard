@@ -26,14 +26,20 @@ class LoginController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-       
         $credentials = $request->only('email', 'password');
 
-        $user = UserLogin::where('email', $credentials['email'])
-                        ->with('userData') // pastikan relasi 'user' sudah didefinisikan di model UserLogin
+        $user = UserLogin::with('userData')
+                        ->where('email', $credentials['email'])
                         ->first();
-                        
-        if ($user->userData->status == 'N') {
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email tidak terdaftar'
+            ], 404);
+        }
+
+        if (!$user->userData || $user->userData->status == 'N') {
             return response()->json([
                 'success' => false,
                 'message' => 'Akun Anda belum aktif atau telah dinonaktifkan'

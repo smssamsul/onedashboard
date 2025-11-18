@@ -151,6 +151,7 @@ class OrderCustomerController extends Controller
             'ongkir' => $request->ongkir,
             'alamat' => $request->alamat,
             'sumber' => $request->sumber,
+            'metode_bayar' => $request->metode_bayar,
             'status_order' => '1',
             'create_at' => now(),
             'custom_value'  => json_encode($customValue), 

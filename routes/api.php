@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\{
 };
 
 use App\Http\Controllers\Api\Customer\CustomerDashboardController;
+use App\Http\Controllers\Api\SalesDashboardController;
 
 use App\Services\ZoomService;
 
@@ -58,6 +59,9 @@ Route::prefix('admin')->group(function () {
 
     Route::middleware('auth:api')->group(function () {
         Route::post('/logout', LogoutController::class)->name('logout');
+        
+        // Sales Dashboard
+        Route::get('/sales/dashboard', [SalesDashboardController::class, 'index']);
 
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);
