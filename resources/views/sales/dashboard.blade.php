@@ -24,7 +24,7 @@
             </div>
             <span class="stat-label">Order Paid</span>
             <span class="stat-value" id="paid-order">0</span>
-            <small class="text-muted">Status pembayaran = paid</small>
+            <small class="text-muted">Status pembayaran = Sukses</small>
         </div>
         <div class="stat-card">
             <div class="stat-icon">
@@ -69,6 +69,17 @@
             <span class="stat-label">Total Penjualan Bulan Ini</span>
             <span class="stat-value" id="total-bulan-ini">Rp 0</span>
             <small class="text-muted">Bulan ini</small>
+        </div>
+        <div class="stat-card stat-card-dimmed" style="opacity:0.65;">
+            <div class="stat-icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="currentColor" stroke-width="2" fill="none" opacity="0.6"/>
+                    <path d="M8 15l3-3-3-3m5 6l3-3-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+                </svg>
+            </div>
+            <span class="stat-label">Penjualan Belum Paid</span>
+            <span class="stat-value" id="penjualan-belum-paid">Rp 0</span>
+            <small class="text-muted">Status order (pending)</small>
         </div>
     </div>
 
@@ -166,6 +177,7 @@
                 // Update statistik
                 document.getElementById('total-hari-ini').textContent = data.statistik.total_penjualan_hari_ini_formatted;
                 document.getElementById('total-bulan-ini').textContent = data.statistik.total_penjualan_bulan_ini_formatted;
+                document.getElementById('penjualan-belum-paid').textContent = data.statistik.total_penjualan_belum_paid_formatted;
 
                 // Overview cards
                 if (data.overview) {

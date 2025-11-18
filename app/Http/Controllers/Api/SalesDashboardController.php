@@ -49,13 +49,20 @@ class SalesDashboardController extends Controller
         $newCustomersToday = Customer::whereDate('create_at', $today)->count();
 
         // Total penjualan hari ini (semua sales)
-        $totalPenjualanHariIni = OrderCustomer::whereDate('create_at', $today)
+        $totalPenjualanHariIni = OrderCustomer::where('status_order', '2')
+            ->whereDate('create_at', $today)
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
         // Total penjualan bulan ini (semua sales)
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
-        $totalPenjualanBulanIni = OrderCustomer::whereBetween('create_at', [$startOfMonth, $endOfMonth])
+        $totalPenjualanBulanIni = OrderCustomer::where('status_order', '2')
+            ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
+            ->sum(DB::raw('CAST(total_harga AS numeric)'));
+
+        // Penjualan belum paid (status order 1) bulan ini
+        $totalPenjualanBelumPaid = OrderCustomer::where('status_order', '1')
+            ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
         // Chart performa penjualan (30 hari terakhir)
@@ -162,6 +169,8 @@ class SalesDashboardController extends Controller
                     'total_penjualan_hari_ini_formatted' => 'Rp ' . number_format($totalPenjualanHariIni, 0, ',', '.'),
                     'total_penjualan_bulan_ini' => (float) $totalPenjualanBulanIni,
                     'total_penjualan_bulan_ini_formatted' => 'Rp ' . number_format($totalPenjualanBulanIni, 0, ',', '.'),
+                    'total_penjualan_belum_paid' => (float) $totalPenjualanBelumPaid,
+                    'total_penjualan_belum_paid_formatted' => 'Rp ' . number_format($totalPenjualanBelumPaid, 0, ',', '.'),
                 ],
                 'overview' => [
                     'orders_total' => $totalOrders,
