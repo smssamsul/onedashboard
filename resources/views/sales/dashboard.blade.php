@@ -72,6 +72,11 @@
         </div>
     </div>
 
+    <div class="card-table" style="margin-top: 1.5rem;">
+        <h3>Perbandingan Order Harian (Paid vs Belum Paid)</h3>
+        <canvas id="chartOrderStatus" style="max-height: 360px;"></canvas>
+    </div>
+
     <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
         <div class="card-table">
             <h3>Performa Penjualan (30 Hari)</h3>
@@ -128,6 +133,7 @@
 
 @push('scripts')
 <script>
+    let chartOrderStatus = null;
     let chartPenjualan = null;
     let chartSales = null;
 
@@ -171,6 +177,11 @@
                     document.getElementById('customer-today').textContent = `+${todayIncrement} hari ini`;
                 }
 
+                // Update chart status order
+                if (data.chart_status_order) {
+                    updateOrderStatusChart(data.chart_status_order);
+                }
+
                 // Update chart performa penjualan
                 updateChartPenjualan(data.chart_performa_penjualan);
                 
@@ -186,6 +197,51 @@
         } catch (error) {
             console.error('Error loading dashboard:', error);
         }
+    }
+
+    function updateOrderStatusChart(data) {
+        const ctx = document.getElementById('chartOrderStatus').getContext('2d');
+
+        if (chartOrderStatus) {
+            chartOrderStatus.destroy();
+        }
+
+        chartOrderStatus = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => item.label),
+                datasets: [
+                    {
+                        label: 'Paid',
+                        data: data.map(item => item.paid),
+                        backgroundColor: '#22c55e',
+                        borderRadius: 8,
+                    },
+                    {
+                        label: 'Belum Paid',
+                        data: data.map(item => item.unpaid),
+                        backgroundColor: '#f97316',
+                        borderRadius: 8,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                        }
+                    }
+                }
+            }
+        });
     }
 
     function updateChartPenjualan(data) {

@@ -39,10 +39,10 @@ class SalesDashboardController extends Controller
 
         // Overview statistics
         $totalOrders = OrderCustomer::count();
-        $totalOrdersPaid = OrderCustomer::where('status_pembayaran', '1')->count();
+        $totalOrdersPaid = OrderCustomer::where('status_order', '2')->count();
         $totalOrdersUnpaid = OrderCustomer::where(function ($query) {
-                $query->whereNull('status_pembayaran')
-                      ->orWhere('status_pembayaran', '!=', '1');
+                $query->whereNull('status_order')
+                      ->orWhere('status_order', '!=', '2');
             })->count();
 
         $totalCustomers = Customer::count();
@@ -69,6 +69,28 @@ class SalesDashboardController extends Controller
                 'date' => $date->format('Y-m-d'),
                 'label' => $date->format('d M'),
                 'total' => (float) $total
+            ];
+        }
+
+        // Perbandingan order paid vs unpaid harian (14 hari terakhir)
+        $orderStatusComparison = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $paidCount = OrderCustomer::where('status_order', '2')
+                ->whereDate('create_at', $date)
+                ->count();
+            $unpaidCount = OrderCustomer::where(function ($query) {
+                    $query->whereNull('status_order')
+                          ->orWhere('status_order', '!=', '2');
+                })
+                ->whereDate('create_at', $date)
+                ->count();
+
+            $orderStatusComparison[] = [
+                'date' => $date->format('Y-m-d'),
+                'label' => $date->format('d M'),
+                'paid' => $paidCount,
+                'unpaid' => $unpaidCount,
             ];
         }
 
@@ -149,6 +171,7 @@ class SalesDashboardController extends Controller
                     'customers_new_today' => $newCustomersToday,
                 ],
                 'chart_performa_penjualan' => $salesPerformance,
+                'chart_status_order' => $orderStatusComparison,
                 'chart_performa_sales' => $salesActivity,
                 'riwayat_follow_up' => $lastFollowUps,
                 'pembelian_terakhir' => $lastPurchases
