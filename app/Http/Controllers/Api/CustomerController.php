@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use App\Models\OrderCustomer;
 
 class CustomerController extends Controller
 {
@@ -182,6 +183,23 @@ class CustomerController extends Controller
         }
 
         return $phone;
+    }
+
+    public function riwayat_order(Request $request, $id)
+    {
+        
+        $riwayat_order = OrderCustomer::with([
+            'produk_rel:id,nama',
+            'customer_rel:id,nama,wa'])
+            ->where('customer', $id)
+            ->orderBy('create_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Riwayat order berhasil diambil',
+            'data' => $riwayat_order
+        ]);
     }
 }
 

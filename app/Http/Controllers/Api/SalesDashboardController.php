@@ -45,6 +45,9 @@ class SalesDashboardController extends Controller
                       ->orWhere('status_order', '!=', '2');
             })->count();
 
+        // Calculate paid ratio
+        $paidRatio = $totalOrders > 0 ? round(($totalOrdersPaid / $totalOrders) * 100, 2) : 0;
+
         $totalCustomers = Customer::count();
         $newCustomersToday = Customer::whereDate('create_at', $today)->count();
 
@@ -65,6 +68,30 @@ class SalesDashboardController extends Controller
             ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
             ->sum(DB::raw('CAST(total_harga AS numeric)'));
 
+        // Financial Metrics (bulan ini - order yang sudah dibayar/status_order = 2)
+        $ordersPaidBulanIni = OrderCustomer::where('status_order', '2')
+            ->whereBetween('create_at', [$startOfMonth, $endOfMonth]);
+
+        // Gross Revenue = total_harga (dari order yang sudah dibayar)
+        $grossRevenue = (float) $ordersPaidBulanIni->sum(DB::raw('CAST(total_harga AS numeric)'));
+        
+        // Shipping Cost = ongkir (dari order yang sudah dibayar)
+        $shippingCost = (float) OrderCustomer::where('status_order', '2')
+            ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
+            ->sum(DB::raw('CAST(ongkir AS numeric)'));
+        
+        // Net Revenue = harga (bukan total_harga) dari order yang sudah dibayar
+        $netRevenue = (float) OrderCustomer::where('status_order', '2')
+            ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
+            ->sum(DB::raw('CAST(harga AS numeric)'));
+        
+        // Gross Profit = Net Revenue - Shipping Cost (karena belum ada COGS/HPP)
+        // $grossProfit = $netRevenue - $shippingCost;
+        $grossProfit = $netRevenue;
+        
+        // Net Profit = Gross Profit (karena belum ada biaya lain selain shipping)
+        $netProfit = $grossProfit;
+
         // Chart performa penjualan (30 hari terakhir)
         $salesPerformance = [];
         for ($i = 29; $i >= 0; $i--) {
@@ -79,7 +106,42 @@ class SalesDashboardController extends Controller
             ];
         }
 
-        // Perbandingan order paid vs unpaid harian (14 hari terakhir)
+        // Chart perbandingan transaksi dan order (14 hari terakhir)
+        $chartTransaksiOrder = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            
+            // Total transaksi (penjualan) per hari
+            $totalTransaksi = OrderCustomer::where('status_order', '2')
+                ->whereDate('create_at', $date)
+                ->sum(DB::raw('CAST(total_harga AS numeric)'));
+            
+            // Total order per hari
+            $totalOrder = OrderCustomer::whereDate('create_at', $date)
+                ->count();
+            
+            $paidCount = OrderCustomer::where('status_order', '2')
+                ->whereDate('create_at', $date)
+                ->count();
+            
+            $unpaidCount = OrderCustomer::where(function ($query) {
+                    $query->whereNull('status_order')
+                          ->orWhere('status_order', '!=', '2');
+                })
+                ->whereDate('create_at', $date)
+                ->count();
+
+            $chartTransaksiOrder[] = [
+                'date' => $date->format('Y-m-d'),
+                'label' => $date->format('d M'),
+                'transaksi' => (float) $totalTransaksi,
+                'order' => $totalOrder,
+                'paid' => $paidCount,
+                'unpaid' => $unpaidCount,
+            ];
+        }
+
+        // Perbandingan order paid vs unpaid harian (14 hari terakhir) - keep for compatibility
         $orderStatusComparison = [];
         for ($i = 13; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
@@ -172,13 +234,28 @@ class SalesDashboardController extends Controller
                     'total_penjualan_belum_paid' => (float) $totalPenjualanBelumPaid,
                     'total_penjualan_belum_paid_formatted' => 'Rp ' . number_format($totalPenjualanBelumPaid, 0, ',', '.'),
                 ],
+                'financial' => [
+                    'gross_revenue' => $grossRevenue,
+                    'gross_revenue_formatted' => 'Rp ' . number_format($grossRevenue, 0, ',', '.'),
+                    'shipping_cost' => $shippingCost,
+                    'shipping_cost_formatted' => 'Rp ' . number_format($shippingCost, 0, ',', '.'),
+                    'net_revenue' => $netRevenue,
+                    'net_revenue_formatted' => 'Rp ' . number_format($netRevenue, 0, ',', '.'),
+                    'gross_profit' => $grossProfit,
+                    'gross_profit_formatted' => 'Rp ' . number_format($grossProfit, 0, ',', '.'),
+                    'net_profit' => $netProfit,
+                    'net_profit_formatted' => 'Rp ' . number_format($netProfit, 0, ',', '.'),
+                ],
                 'overview' => [
                     'orders_total' => $totalOrders,
                     'orders_paid' => $totalOrdersPaid,
                     'orders_unpaid' => $totalOrdersUnpaid,
+                    'paid_ratio' => $paidRatio,
+                    'paid_ratio_formatted' => number_format($paidRatio, 2) . '%',
                     'customers_total' => $totalCustomers,
                     'customers_new_today' => $newCustomersToday,
                 ],
+                'chart_transaksi_order' => $chartTransaksiOrder,
                 'chart_performa_penjualan' => $salesPerformance,
                 'chart_status_order' => $orderStatusComparison,
                 'chart_performa_sales' => $salesActivity,

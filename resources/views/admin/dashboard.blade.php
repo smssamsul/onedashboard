@@ -3,12 +3,51 @@
 @section('title', 'Admin Dashboard')
 @section('page_title', 'Dashboard')
 
+@push('styles')
+<style>
+    .stat-icon {
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon {
+        transform: scale(1.05);
+    }
+    
+    .stat-card:hover .stat-icon[style] {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .stat-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+    }
+
+    .stat-card {
+        min-height: 140px;
+    }
+</style>
+@endpush
+
 @section('content')
     <div class="card-grid">
         <div class="stat-card">
-            <div class="stat-icon">
+            <div class="stat-icon" style="background: #FFE5D4; color: #F97316;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 12h4l3 9 4-18 3 9h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 12h4l3 9 4-18 3 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
             <span class="stat-label">Total Sales</span>
@@ -16,9 +55,9 @@
             <small class="text-muted">+12% vs last month</small>
         </div>
         <div class="stat-card">
-            <div class="stat-icon">
+            <div class="stat-icon" style="background: #E5F5FF; color: #4DA6FF;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm11 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm11 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
             <span class="stat-label">Customers</span>
@@ -26,10 +65,10 @@
             <small class="text-muted">+48 new today</small>
         </div>
         <div class="stat-card">
-            <div class="stat-icon">
+            <div class="stat-icon" style="background: #E5FFE5; color: #4DFF4D;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M13 2v7h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <path d="M13 2v7h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
             <span class="stat-label">Projects</span>

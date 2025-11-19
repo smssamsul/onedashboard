@@ -43,6 +43,11 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        // 🔹 Untuk request API, pastikan response selalu JSON
+        if ($request->is('api/*')) {
+            $request->headers->set('Accept', 'application/json');
+        }
+        
         // 🔹 Tangani error rate limit (Too Many Requests)
         if ($exception instanceof ThrottleRequestsException) {
             // Ambil waktu retry jika tersedia
@@ -51,7 +56,17 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'success' => false,
                 'message' => "Terlalu banyak percobaan, silakan coba lagi dalam {$retryAfter} detik.",
-            ], 429);
+            ], 429)->header('Content-Type', 'application/json');
+        }
+
+        // 🔹 Jika request API, pastikan semua error mengembalikan JSON
+        if ($request->is('api/*') && $request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'An error occurred',
+                'error' => get_class($exception),
+            ], $this->isHttpException($exception) ? $exception->getStatusCode() : 500)
+            ->header('Content-Type', 'application/json');
         }
 
         // 🔹 Gunakan render bawaan untuk exception lain

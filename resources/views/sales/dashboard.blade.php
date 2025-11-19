@@ -3,89 +3,229 @@
 @section('title', 'Sales Dashboard')
 @section('page_title', 'Dashboard Sales')
 
+@push('styles')
+<style>
+    :root {
+        --theme-primary: #5EEAD4;
+        --theme-primary-dark: #14B8A6;
+        --theme-primary-light: #7DD3FC;
+        --theme-primary-lighter: #CCFBF1;
+    }
+
+    .stat-card::before {
+        background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-light) 100%);
+    }
+
+    .stat-icon {
+        background: var(--theme-primary-lighter);
+        color: var(--theme-primary);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon {
+        transform: scale(1.05);
+    }
+    
+    /* Override untuk card dengan inline style (financial metrics & stats-grid-2x2) */
+    .stat-card:hover .stat-icon[style] {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+
+    .sidebar-link.active,
+    .sidebar-link:hover {
+        background: linear-gradient(135deg, rgba(94, 234, 212, 0.08) 0%, rgba(94, 234, 212, 0.03) 100%);
+        color: var(--theme-primary-dark);
+    }
+
+    .sidebar-link.active::before {
+        background: linear-gradient(180deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+    }
+
+    .stats-grid-2x2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stats-grid-2x2 .stat-card {
+        min-height: 140px;
+        padding: 1.5rem;
+    }
+
+    .stats-grid-2x2 .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .stats-grid-2x2 .stat-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .stats-grid-2x2 .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .stats-grid-2x2 .stat-label {
+        font-size: 0.8125rem;
+    }
+
+    @media (max-width: 1024px) {
+        .stats-grid-2x2 {
+            grid-template-columns: 1fr;
+        }
+
+        .financial-metrics-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .financial-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .financial-metrics-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .financial-metrics-grid .stat-card {
+        min-height: 140px;
+    }
+
+    .financial-metrics-grid .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .financial-metrics-grid .stat-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .financial-metrics-grid .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .financial-metrics-grid .stat-label {
+        font-size: 0.8125rem;
+    }
+</style>
+@endpush
+
 @section('content')
-    <div class="card-grid" style="margin-bottom: 1.5rem;">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 3h18v4H3z" stroke="currentColor" stroke-width="2" fill="none"/>
-                    <path d="M5 7v14h14V7" stroke="currentColor" stroke-width="2" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Total Order</span>
-            <span class="stat-value" id="total-order">0</span>
-            <small class="text-muted">Keseluruhan</small>
+    <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+        <!-- Col 6 - Chart Perbandingan Transaksi dan Order -->
+        <div class="card-table">
+            <h3>Perbandingan Transaksi & Order</h3>
+            <canvas id="chartTransaksiOrder" style="max-height: 360px;"></canvas>
         </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
+
+        <!-- Col 6 - 4 Card Statistik (2x2) -->
+        <div class="stats-grid-2x2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #CCFBF1; color: #14B8A6;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 3h18v4H3z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M5 7v14h14V7" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
+                </div>
+                <span class="stat-label">Total Order</span>
+                <span class="stat-value" id="overview-total-order">0</span>
+                <small class="text-muted">Keseluruhan</small>
             </div>
-            <span class="stat-label">Order Paid</span>
-            <span class="stat-value" id="paid-order">0</span>
-            <small class="text-muted">Status pembayaran = Sukses</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #D1FAE5; color: #10B981;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                </div>
+                <span class="stat-label">Total Paid</span>
+                <span class="stat-value" id="overview-paid-order">0</span>
+                <small class="text-muted">Status order = 2</small>
             </div>
-            <span class="stat-label">Order Belum Paid</span>
-            <span class="stat-value" id="unpaid-order">0</span>
-            <small class="text-muted">Butuh tindak lanjut</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-6a4 4 0 1 1 0 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #FEE2E2; color: #EF4444;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                </div>
+                <span class="stat-label">Total Unpaid</span>
+                <span class="stat-value" id="overview-unpaid-order">0</span>
+                <small class="text-muted">Belum dibayar</small>
             </div>
-            <span class="stat-label">Total Customer</span>
-            <span class="stat-value" id="total-customer">0</span>
-            <small class="text-muted" id="customer-today">+0 hari ini</small>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #FEF3C7; color: #F59E0B;">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <path d="M12 8V12L16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                </div>
+                <span class="stat-label">Paid Ratio</span>
+                <span class="stat-value" id="paid-ratio">0%</span>
+                <small class="text-muted">Persentase</small>
+            </div>
         </div>
     </div>
 
-    <div class="card-grid">
+    <!-- Financial Metrics Section -->
+    <div class="card-grid financial-metrics-grid" style="grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 1.5rem;">
         <div class="stat-card">
-            <div class="stat-icon">
+            <div class="stat-icon" style="background: #FFE5E5; color: #FF6B6B;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 12h4l3 9 4-18 3 9h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
-            <span class="stat-label">Total Penjualan Hari Ini</span>
-            <span class="stat-value" id="total-hari-ini">Rp 0</span>
-            <small class="text-muted">Hari ini</small>
+            <span class="stat-label">Gross Revenue</span>
+            <span class="stat-value" id="gross-revenue">Rp 0</span>
+            <small class="text-muted">Total harga</small>
         </div>
         <div class="stat-card">
-            <div class="stat-icon">
+            <div class="stat-icon" style="background: #FFF4E5; color: #FFB84D;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
-            <span class="stat-label">Total Penjualan Bulan Ini</span>
-            <span class="stat-value" id="total-bulan-ini">Rp 0</span>
-            <small class="text-muted">Bulan ini</small>
+            <span class="stat-label">Shipping Cost</span>
+            <span class="stat-value" id="shipping-cost">Rp 0</span>
+            <small class="text-muted">Total ongkir</small>
         </div>
-        <div class="stat-card stat-card-dimmed" style="opacity:0.65;">
-            <div class="stat-icon">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #E5F5FF; color: #4DA6FF;">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="currentColor" stroke-width="2" fill="none" opacity="0.6"/>
-                    <path d="M8 15l3-3-3-3m5 6l3-3-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
             </div>
-            <span class="stat-label">Penjualan Belum Paid</span>
-            <span class="stat-value" id="penjualan-belum-paid">Rp 0</span>
-            <small class="text-muted">Status order (pending)</small>
+            <span class="stat-label">Net Revenue</span>
+            <span class="stat-value" id="net-revenue">Rp 0</span>
+            <small class="text-muted">Harga produk</small>
         </div>
-    </div>
-
-    <div class="card-table" style="margin-top: 1.5rem;">
-        <h3>Perbandingan Order Harian (Paid vs Belum Paid)</h3>
-        <canvas id="chartOrderStatus" style="max-height: 360px;"></canvas>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #E5FFE5; color: #4DFF4D;">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+            </div>
+            <span class="stat-label">Gross Profit</span>
+            <span class="stat-value" id="gross-profit">Rp 0</span>
+            <small class="text-muted">Net - shipping</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #F0E5FF; color: #9D4DFF;">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+            </div>
+            <span class="stat-label">Net Profit</span>
+            <span class="stat-value" id="net-profit">Rp 0</span>
+            <small class="text-muted">Profit bersih</small>
+        </div>
     </div>
 
     <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
@@ -144,6 +284,7 @@
 
 @push('scripts')
 <script>
+    let chartTransaksiOrder = null;
     let chartOrderStatus = null;
     let chartPenjualan = null;
     let chartSales = null;
@@ -174,22 +315,38 @@
             if (result.success && result.data) {
                 const data = result.data;
                 
-                // Update statistik
-                document.getElementById('total-hari-ini').textContent = data.statistik.total_penjualan_hari_ini_formatted;
-                document.getElementById('total-bulan-ini').textContent = data.statistik.total_penjualan_bulan_ini_formatted;
-                document.getElementById('penjualan-belum-paid').textContent = data.statistik.total_penjualan_belum_paid_formatted;
+                // Helper function to safely update element
+                function safeUpdateElement(id, value) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value;
+                    }
+                }
+
+                // Update financial metrics
+                if (data.financial) {
+                    safeUpdateElement('gross-revenue', data.financial.gross_revenue_formatted ?? 'Rp 0');
+                    safeUpdateElement('shipping-cost', data.financial.shipping_cost_formatted ?? 'Rp 0');
+                    safeUpdateElement('net-revenue', data.financial.net_revenue_formatted ?? 'Rp 0');
+                    safeUpdateElement('gross-profit', data.financial.gross_profit_formatted ?? 'Rp 0');
+                    safeUpdateElement('net-profit', data.financial.net_profit_formatted ?? 'Rp 0');
+                }
 
                 // Overview cards
                 if (data.overview) {
-                    document.getElementById('total-order').textContent = data.overview.orders_total ?? 0;
-                    document.getElementById('paid-order').textContent = data.overview.orders_paid ?? 0;
-                    document.getElementById('unpaid-order').textContent = data.overview.orders_unpaid ?? 0;
-                    document.getElementById('total-customer').textContent = data.overview.customers_total ?? 0;
-                    const todayIncrement = data.overview.customers_new_today ?? 0;
-                    document.getElementById('customer-today').textContent = `+${todayIncrement} hari ini`;
+                    // Update overview stats cards (2x2 grid)
+                    safeUpdateElement('overview-total-order', data.overview.orders_total ?? 0);
+                    safeUpdateElement('overview-paid-order', data.overview.orders_paid ?? 0);
+                    safeUpdateElement('overview-unpaid-order', data.overview.orders_unpaid ?? 0);
+                    safeUpdateElement('paid-ratio', data.overview.paid_ratio_formatted ?? '0%');
                 }
 
-                // Update chart status order
+                // Update chart transaksi dan order
+                if (data.chart_transaksi_order) {
+                    updateChartTransaksiOrder(data.chart_transaksi_order);
+                }
+
+                // Update chart status order (keep for compatibility)
                 if (data.chart_status_order) {
                     updateOrderStatusChart(data.chart_status_order);
                 }
@@ -211,8 +368,111 @@
         }
     }
 
+    function updateChartTransaksiOrder(data) {
+        const canvas = document.getElementById('chartTransaksiOrder');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+
+        if (chartTransaksiOrder) {
+            chartTransaksiOrder.destroy();
+        }
+
+        chartTransaksiOrder = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => item.label),
+                datasets: [
+                    {
+                        label: 'Transaksi (Rp)',
+                        data: data.map(item => item.transaksi),
+                        backgroundColor: '#14b8a6',
+                        borderRadius: 8,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Jumlah Order',
+                        data: data.map(item => item.order),
+                        backgroundColor: '#5eead4',
+                        borderRadius: 8,
+                        yAxisID: 'y1',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.datasetIndex === 0) {
+                                    label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
+                                } else {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + new Intl.NumberFormat('id-ID', {
+                                    notation: 'compact',
+                                    maximumFractionDigits: 1
+                                }).format(value);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Transaksi (Rp)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Jumlah Order'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function updateOrderStatusChart(data) {
-        const ctx = document.getElementById('chartOrderStatus').getContext('2d');
+        const canvas = document.getElementById('chartOrderStatus');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
 
         if (chartOrderStatus) {
             chartOrderStatus.destroy();
@@ -257,7 +517,10 @@
     }
 
     function updateChartPenjualan(data) {
-        const ctx = document.getElementById('chartPenjualan').getContext('2d');
+        const canvas = document.getElementById('chartPenjualan');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
         
         if (chartPenjualan) {
             chartPenjualan.destroy();
@@ -299,7 +562,10 @@
     }
 
     function updateChartSales(data) {
-        const ctx = document.getElementById('chartSales').getContext('2d');
+        const canvas = document.getElementById('chartSales');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
         
         if (chartSales) {
             chartSales.destroy();
@@ -338,16 +604,17 @@
 
     function updateFollowUpTable(data) {
         const tbody = document.getElementById('follow-up-table');
+        if (!tbody) return;
         
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem;">Tidak ada data</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.map(item => `
             <tr>
-                <td>${item.customer}</td>
-                <td>${item.follup}</td>
+                <td>${item.customer || '-'}</td>
+                <td>${item.follup || '-'}</td>
                 <td>${item.tanggal || '-'}</td>
             </tr>
         `).join('');
@@ -355,17 +622,18 @@
 
     function updatePembelianTable(data) {
         const tbody = document.getElementById('pembelian-table');
+        if (!tbody) return;
         
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">Tidak ada data</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.map(item => `
             <tr>
-                <td>${item.customer}</td>
-                <td>${item.produk}</td>
-                <td>${item.total_harga_formatted}</td>
+                <td>${item.customer || '-'}</td>
+                <td>${item.produk || '-'}</td>
+                <td>${item.total_harga_formatted || '-'}</td>
                 <td>${item.tanggal || '-'}</td>
             </tr>
         `).join('');

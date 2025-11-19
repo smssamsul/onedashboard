@@ -65,5 +65,10 @@ class Produk extends Model
         return $this->belongsTo(User::class, 'user_input', 'id');
     }
 
+    public function webinar()
+    {
+        return $this->hasOne(Webinar::class, 'produk', 'id');
+    }
+
 
 }

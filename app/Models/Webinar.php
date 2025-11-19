@@ -12,7 +12,7 @@ class Webinar extends Model
     protected $table = 'webinar'; 
 
     protected $fillable = [
-        'produk_id',
+        'produk',
         'meeting_id',
         'join_url',
         'start_url',
@@ -26,6 +26,6 @@ class Webinar extends Model
 
     public function produk()
     {
-        return $this->belongsTo(Produk::class);
+        return $this->belongsTo(Produk::class, 'produk', 'id');
     }
 }

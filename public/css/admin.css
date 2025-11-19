@@ -102,14 +102,13 @@ a {
 .sidebar-link svg {
     width: 22px;
     height: 22px;
-    transition: transform 0.3s ease;
 }
 
 .sidebar-link.active,
 .sidebar-link:hover {
-    background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(249, 115, 22, 0.03) 100%);
     color: var(--primary-dark);
-    transform: translateX(4px);
+    transform: translateX(2px);
     box-shadow: var(--shadow-sm);
 }
 
@@ -123,10 +122,6 @@ a {
     height: 60%;
     background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
     border-radius: 0 4px 4px 0;
-}
-
-.sidebar-link:hover svg {
-    transform: scale(1.1);
 }
 
 .main-content {
@@ -175,6 +170,191 @@ a {
 .admin-navbar .page-title {
     font-size: 1.25rem;
     font-weight: 600;
+}
+
+.dashboard-selector {
+    position: relative;
+    margin-left: 1.5rem;
+}
+
+.dashboard-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.dashboard-toggle:hover {
+    background: var(--bg);
+    border-color: var(--primary-lighter);
+    box-shadow: var(--shadow);
+}
+
+.dashboard-toggle svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+}
+
+.dashboard-menu {
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: auto;
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+    padding: 1.25rem;
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    transform: translateY(-10px);
+    z-index: 110;
+}
+
+.dashboard-option {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 14px;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    color: var(--text);
+    border: 1px solid transparent;
+    flex-direction: column;
+    text-align: center;
+    min-height: 180px;
+    justify-content: center;
+}
+
+.dashboard-option:hover {
+    background: var(--bg);
+    border-color: var(--border);
+}
+
+.dashboard-option.active {
+    background: var(--bg);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.dashboard-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-bottom: 0.75rem;
+}
+
+.dashboard-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.dashboard-content {
+    width: 100%;
+}
+
+.dashboard-name {
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+
+.dashboard-desc {
+    font-size: 0.9375rem;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.dashboard-selector:hover .dashboard-menu,
+.dashboard-selector:focus-within .dashboard-menu,
+.dashboard-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Ensure dropdown stays visible */
+.dashboard-menu {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+    .dashboard-menu {
+        grid-template-columns: repeat(3, 1fr);
+        min-width: 720px;
+        max-width: 720px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .dashboard-menu {
+        grid-template-columns: repeat(2, 1fr);
+        width: 600px;
+        min-width: 600px;
+        max-width: 600px;
+    }
+    
+    .dashboard-option {
+        min-height: 160px;
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-menu {
+        left: auto;
+        right: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-menu {
+        grid-template-columns: repeat(2, 1fr);
+        min-width: 500px;
+        max-width: 500px;
+        left: 0;
+        right: auto;
+    }
+    
+    .dashboard-option {
+        min-height: 140px;
+        padding: 1rem;
+    }
+    
+    .dashboard-icon {
+        width: 64px;
+        height: 64px;
+    }
+    
+    .dashboard-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .dashboard-name {
+        font-size: 1rem;
+    }
+    
+    .dashboard-desc {
+        font-size: 0.875rem;
+    }
 }
 
 .navbar-actions {
@@ -358,7 +538,6 @@ a {
 .stat-card:hover .stat-icon {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     color: white;
-    transform: rotate(5deg) scale(1.1);
 }
 
 .stat-label {

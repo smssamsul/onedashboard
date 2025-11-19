@@ -50,17 +50,27 @@ class OtpCustomerController extends Controller
         $nama = $customer->nama ?? 'Kak';
         $message = "Halo {$nama},\n\nKode OTP kamu adalah *{$otpCode}*.\n\nKode ini berlaku selama 5 menit. Jangan bagikan ke siapapun ya 😊";
 
-        // Data untuk Quods API
+        // Data untuk Quods API (format batch)
         $deviceKey = 'rCAIkWZDFOCosr3'; // device key kamu
         $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
 
         try {
-            // Kirim ke Quods
-            $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
-                'device_key' => $deviceKey,
-                'phone'      => $request->wa,
-                'message'    => $message,
-            ]);
+            // Kirim ke Quods dengan format batch (JSON)
+            $response = Http::withToken($token)
+                ->asJson()
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])
+                ->post('https://api.quods.id/api/message', [
+                    'device_key' => $deviceKey,
+                    'data' => [
+                        [
+                            'phone'   => $request->wa,
+                            'message' => $message,
+                        ]
+                    ]
+                ]);
 
             if ($response->successful()) {
                 return response()->json([
@@ -169,17 +179,27 @@ class OtpCustomerController extends Controller
             'status' => '1',
         ]);
 
-        // Kirim via WhatsApp API
-        $deviceKey = 'UkG7LETw8PJAKKJ';
+        // Kirim via WhatsApp API (format batch)
+        $deviceKey = 'rCAIkWZDFOCosr3';
         $token = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
 
         $message = "Hai *{$customer->nama}*,\nKode OTP baru kamu adalah *{$otp}*.\nKode ini berlaku selama 5 menit.";
 
-        $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
-            'device_key' => $deviceKey,
-            'phone' => $request->phone,
-            'message' => $message,
-        ]);
+        $response = Http::withToken($token)
+            ->asJson()
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post('https://api.quods.id/api/message', [
+                'device_key' => $deviceKey,
+                'data' => [
+                    [
+                        'phone'   => $request->phone,
+                        'message' => $message,
+                    ]
+                ]
+            ]);
 
         return response()->json([
             'success' => true,

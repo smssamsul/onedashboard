@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!menu) return;
 
+        // Click handler
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
             const isOpen = menu.classList.contains('open');
@@ -68,6 +69,42 @@ document.addEventListener('DOMContentLoaded', () => {
             // Toggle current dropdown
             menu.classList.toggle('open', !isOpen);
         });
+
+        // Hover handler for dashboard menu specifically
+        if (menu.classList.contains('dashboard-menu')) {
+            let hoverTimeout;
+            
+            trigger.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown-menu').forEach(m => {
+                    if (m !== menu) {
+                        m.classList.remove('open');
+                    }
+                });
+                menu.classList.add('open');
+            });
+
+            trigger.addEventListener('mouseleave', () => {
+                hoverTimeout = setTimeout(() => {
+                    // Only close if mouse is not over the menu
+                    if (!menu.matches(':hover')) {
+                        menu.classList.remove('open');
+                    }
+                }, 100);
+            });
+
+            menu.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                menu.classList.add('open');
+            });
+
+            menu.addEventListener('mouseleave', () => {
+                hoverTimeout = setTimeout(() => {
+                    menu.classList.remove('open');
+                }, 100);
+            });
+        }
     });
 
     // Close dropdowns when clicking outside

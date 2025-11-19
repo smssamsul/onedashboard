@@ -3,8 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ZoomSdkController;
-
 use App\Http\Controllers\WebinarController;
+use App\Http\Controllers\CustomerDashboardController;
 
 Route::get('/webinar/join/{meeting_id}', [WebinarController::class, 'join'])->name('webinar.join');
 
@@ -36,3 +36,17 @@ Route::get('/admin/dashboard', function () {
 Route::get('/sales/dashboard', function () {
     return view('sales.dashboard');
 })->name('sales.dashboard');
+
+Route::get('/hr/dashboard', function () {
+    return view('hr.dashboard');
+})->name('hr.dashboard');
+
+Route::get('/finance/dashboard', function () {
+    return view('finance.dashboard');
+})->name('finance.dashboard');
+
+Route::get('/marketing/dashboard', function () {
+    return view('marketing.dashboard');
+})->name('marketing.dashboard');
+
+Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
