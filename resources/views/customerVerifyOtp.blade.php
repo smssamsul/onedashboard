@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Customer - One Dashboard</title>
+    <title>Verifikasi OTP - One Dashboard</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,7 @@
             min-height: 100vh;
         }
 
-        /* Left Side - Login Form */
+        /* Left Side - OTP Form */
         .login-form-section {
             width: 50%;
             background: #ffffff;
@@ -75,6 +75,22 @@
             line-height: 1.6;
         }
 
+        .otp-info {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+
+        .otp-info strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: #78350f;
+        }
+
         .form-group {
             margin-bottom: 1.5rem;
         }
@@ -87,59 +103,65 @@
             margin-bottom: 0.5rem;
         }
 
-        .form-group input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            font-size: 0.9375rem;
+        .otp-input-container {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
             color: #1c1917;
             background: #fafafa;
-            border: 1px solid #e7e5e4;
+            border: 2px solid #e7e5e4;
             border-radius: 8px;
             outline: none;
             transition: all 0.2s;
         }
 
-        .form-group input:focus {
+        .otp-input:focus {
             border-color: #f97316;
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
         }
 
-        .form-group input::placeholder {
-            color: #a8a29e;
+        .otp-input.filled {
+            border-color: #f97316;
+            background: #fff7ed;
         }
 
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .resend-otp {
+            text-align: center;
             margin-bottom: 1.5rem;
             font-size: 0.875rem;
+            color: #78716c;
         }
 
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #1c1917;
-        }
-
-        .remember-me input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #f97316;
-        }
-
-        .forgot-password {
+        .resend-otp a {
             color: #f97316;
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.2s;
+            cursor: pointer;
         }
 
-        .forgot-password:hover {
-            color: #ea580c;
+        .resend-otp a:hover {
+            text-decoration: underline;
+        }
+
+        .resend-otp a:disabled {
+            color: #a8a29e;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .countdown {
+            color: #f97316;
+            font-weight: 600;
         }
 
         .login-btn {
@@ -214,19 +236,19 @@
             display: block;
         }
 
-        .register-link {
+        .back-link {
             text-align: center;
             font-size: 0.875rem;
             color: #78716c;
         }
 
-        .register-link a {
+        .back-link a {
             color: #f97316;
             text-decoration: none;
             font-weight: 500;
         }
 
-        .register-link a:hover {
+        .back-link a:hover {
             text-decoration: underline;
         }
 
@@ -406,12 +428,22 @@
             .slide-nav {
                 display: none;
             }
+
+            .otp-input-container {
+                gap: 0.5rem;
+            }
+
+            .otp-input {
+                width: 45px;
+                height: 55px;
+                font-size: 1.25rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-wrapper">
-        <!-- Left Side - Login Form -->
+        <!-- Left Side - OTP Form -->
         <div class="login-form-section">
             <div class="login-container">
                 <div class="login-logo">
@@ -419,48 +451,46 @@
                     <p>Ternak Properti</p>
                 </div>
                 
-                <h2>Login to Your Account</h2>
-                <p class="login-description">Selamat datang kembali! Masuk ke akun Anda untuk mengakses dashboard dan layanan kami.</p>
+                <h2>Verifikasi OTP</h2>
+                <p class="login-description">Masukkan kode OTP 6 digit yang telah dikirim ke WhatsApp Anda untuk memverifikasi akun.</p>
+
+                <div id="otpInfo" class="otp-info" style="display: none;">
+                    <strong>Kode OTP telah dikirim ke:</strong>
+                    <span id="phoneNumber"></span>
+                </div>
 
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
                 <div id="loading" class="loading">Memproses...</div>
 
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="email" 
-                            placeholder="your-email@gmail.com" 
-                            required
-                            autofocus>
-                    </div>
+                <form id="verifyOtpForm">
+                    <!-- Tidak perlu customer_id karena sudah login, ambil dari token -->
 
                     <div class="form-group">
-                        <label for="password">Password</label>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            placeholder="Your Password" 
-                            required>
+                        <label for="otp">Kode OTP</label>
+                        <div class="otp-input-container" id="otpContainer">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp1">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp2">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp3">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp4">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp5">
+                            <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" id="otp6">
+                        </div>
                     </div>
 
-                    <div class="form-options">
-                        <label class="remember-me">
-                            <input type="checkbox" id="remember" checked>
-                            <span>Remember me</span>
-                        </label>
-                    
+                    <div class="resend-otp">
+                        Tidak menerima kode? 
+                        <a href="#" id="resendLink" onclick="resendOtp(event)">
+                            Kirim ulang OTP
+                        </a>
+                        <span id="countdown" class="countdown" style="display: none;"></span>
                     </div>
 
-                    <button type="submit" class="login-btn" id="submitBtn">Log In</button>
+                    <button type="submit" class="login-btn" id="submitBtn">Verifikasi</button>
                 </form>
 
-                <div class="register-link">
-                    Belum punya akun? <a href="#">Daftar Sekarang</a>
+                <div class="back-link">
+                    Kembali ke <a href="/customer/login">Halaman Login</a>
                 </div>
             </div>
         </div>
@@ -472,8 +502,8 @@
                 <div class="slide active">
                     <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Property Investment" class="slide-image">
                     <div class="slide-content">
-                        <h3>Investasi Properti yang Menguntungkan</h3>
-                        <p>Pelajari strategi investasi properti yang terbukti menguntungkan dan bangun portofolio properti impian Anda bersama kami.</p>
+                        <h3>Keamanan Akun Anda</h3>
+                        <p>Verifikasi OTP memastikan keamanan akun Anda dan melindungi data penting dari akses tidak sah.</p>
                     </div>
                 </div>
 
@@ -481,8 +511,8 @@
                 <div class="slide">
                     <img src="https://images.unsplash.com/photo-1511578314322-379afb476865?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Property Seminar" class="slide-image">
                     <div class="slide-content">
-                        <h3>Seminar & Workshop Terbaru</h3>
-                        <p>Ikuti seminar dan workshop eksklusif dari para ahli properti untuk mengembangkan pengetahuan dan network bisnis Anda.</p>
+                        <h3>Kode OTP Anda</h3>
+                        <p>Kode OTP telah dikirim ke nomor WhatsApp Anda. Kode ini berlaku selama 5 menit.</p>
                     </div>
                 </div>
 
@@ -490,8 +520,8 @@
                 <div class="slide">
                     <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Property Resources" class="slide-image">
                     <div class="slide-content">
-                        <h3>Ebook & Materi Lengkap</h3>
-                        <p>Akses ebook, panduan, dan materi lengkap tentang investasi properti yang dapat membantu kesuksesan investasi Anda.</p>
+                        <h3>Akses Dashboard</h3>
+                        <p>Setelah verifikasi, Anda dapat mengakses dashboard dan semua layanan yang tersedia untuk Anda.</p>
                     </div>
                 </div>
 
@@ -499,8 +529,8 @@
                 <div class="slide">
                     <img src="https://images.unsplash.com/photo-1497215842964-222b430dc094?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Success Stories" class="slide-image">
                     <div class="slide-content">
-                        <h3>Kisah Sukses Member</h3>
-                        <p>Dapatkan inspirasi dari kisah sukses member kami yang telah mencapai kebebasan finansial melalui investasi properti.</p>
+                        <h3>Keamanan Terjamin</h3>
+                        <p>Jangan bagikan kode OTP Anda kepada siapapun untuk menjaga keamanan akun Anda.</p>
                     </div>
                 </div>
 
@@ -535,7 +565,6 @@
         const totalSlides = slides.length;
 
         function showSlide(index) {
-            // Handle wrap-around
             if (index >= totalSlides) {
                 currentSlide = 0;
             } else if (index < 0) {
@@ -544,12 +573,10 @@
                 currentSlide = index;
             }
 
-            // Update slides
             slides.forEach((slide, i) => {
                 slide.classList.toggle('active', i === currentSlide);
             });
 
-            // Update indicators
             indicators.forEach((indicator, i) => {
                 indicator.classList.toggle('active', i === currentSlide);
             });
@@ -563,12 +590,10 @@
             showSlide(index);
         }
 
-        // Auto-play slideshow
         let slideInterval = setInterval(() => {
             changeSlide(1);
         }, 5000);
 
-        // Pause on hover
         const slideshowSection = document.querySelector('.slideshow-section');
         slideshowSection.addEventListener('mouseenter', () => {
             clearInterval(slideInterval);
@@ -580,82 +605,301 @@
             }, 5000);
         });
 
-        // Login form functionality
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        // OTP Input handling
+        const otpInputs = document.querySelectorAll('.otp-input');
+        
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                if (this.value.length === 1) {
+                    this.classList.add('filled');
+                    if (index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                } else {
+                    this.classList.remove('filled');
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                    otpInputs[index - 1].focus();
+                    otpInputs[index - 1].value = '';
+                    otpInputs[index - 1].classList.remove('filled');
+                }
+            });
+
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const digits = paste.replace(/\D/g, '').slice(0, 6);
+                
+                digits.split('').forEach((digit, i) => {
+                    if (otpInputs[i]) {
+                        otpInputs[i].value = digit;
+                        otpInputs[i].classList.add('filled');
+                    }
+                });
+                
+                if (digits.length === 6) {
+                    otpInputs[5].focus();
+                } else if (digits.length > 0) {
+                    otpInputs[digits.length].focus();
+                }
+            });
+        });
+
+        // Countdown timer
+        let countdownTimer = null;
+        let countdownSeconds = 60;
+
+        function startCountdown() {
+            const countdownEl = document.getElementById('countdown');
+            const resendLink = document.getElementById('resendLink');
+            
+            countdownEl.style.display = 'inline';
+            resendLink.style.display = 'none';
+            resendLink.parentElement.style.pointerEvents = 'none';
+
+            countdownTimer = setInterval(() => {
+                countdownSeconds--;
+                countdownEl.textContent = ` (${countdownSeconds}s)`;
+
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownTimer);
+                    countdownEl.style.display = 'none';
+                    resendLink.style.display = 'inline';
+                    resendLink.parentElement.style.pointerEvents = 'auto';
+                    countdownSeconds = 60;
+                }
+            }, 1000);
+        }
+
+        // Get OTP value
+        function getOtpValue() {
+            return Array.from(otpInputs).map(input => input.value).join('');
+        }
+
+        // Verify OTP
+        document.getElementById('verifyOtpForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const submitBtn = document.getElementById('submitBtn');
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
             const loading = document.getElementById('loading');
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const otp = getOtpValue();
 
-            // Reset messages
+            // Cek token dari localStorage
+            const token = localStorage.getItem('customer_auth_token') || sessionStorage.getItem('customer_auth_token');
+
+            if (!token) {
+                errorMessage.textContent = 'Anda belum login. Silakan login terlebih dahulu.';
+                errorMessage.classList.add('show');
+                setTimeout(() => {
+                    window.location.href = '/customer/login';
+                }, 2000);
+                return;
+            }
+
+            if (otp.length !== 6) {
+                errorMessage.textContent = 'Silakan masukkan kode OTP lengkap (6 digit)';
+                errorMessage.classList.add('show');
+                return;
+            }
+
             errorMessage.classList.remove('show');
             successMessage.classList.remove('show');
             loading.classList.add('show');
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Memproses...';
+            submitBtn.textContent = 'Memverifikasi...';
 
             try {
-                const response = await fetch('/api/customer/login', {
+                const response = await fetch('/api/customer/otp/verify', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + token,
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify({
-                        email: email,
-                        password: password
+                        otp: otp
                     })
                 });
 
                 const data = await response.json();
                 loading.classList.remove('show');
 
-                if (response.ok && data.success) {
-                    // Store token in localStorage with customer prefix
-                    if (data.token) {
-                        localStorage.setItem('customer_auth_token', data.token);
-                        localStorage.setItem('customer_data', JSON.stringify(data.user));
-                    }
+                if (response.status === 401) {
+                    // Token expired atau tidak valid
+                    errorMessage.textContent = 'Session Anda telah berakhir. Silakan login kembali.';
+                    errorMessage.classList.add('show');
+                    
+                    // Clear token dan redirect
+                    localStorage.removeItem('customer_auth_token');
+                    sessionStorage.removeItem('customer_auth_token');
+                    localStorage.removeItem('customer_data');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/customer/login';
+                    }, 2000);
+                    return;
+                }
 
-                    successMessage.textContent = data.message || 'Login berhasil! Mengalihkan...';
+                if (response.ok && data.success) {
+                    successMessage.textContent = data.message || 'Verifikasi berhasil! Mengalihkan...';
                     successMessage.classList.add('show');
 
-                    // Redirect after 1 second
                     setTimeout(() => {
                         window.location.href = '/customer/dashboard';
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    // Show error message
-                    let errorMsg = 'Email atau password salah';
-                    
-                    if (data.message) {
-                        errorMsg = data.message;
-                    } else if (data.errors) {
-                        const errorKeys = Object.keys(data.errors);
-                        if (errorKeys.length > 0) {
-                            errorMsg = data.errors[errorKeys[0]][0];
-                        }
-                    }
-                    
-                    errorMessage.textContent = errorMsg;
+                    errorMessage.textContent = data.message || 'Kode OTP tidak valid';
                     errorMessage.classList.add('show');
+                    
+                    // Clear OTP inputs on error
+                    otpInputs.forEach(input => {
+                        input.value = '';
+                        input.classList.remove('filled');
+                    });
+                    otpInputs[0].focus();
+                    
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Log In';
+                    submitBtn.textContent = 'Verifikasi';
                 }
             } catch (error) {
                 loading.classList.remove('show');
                 errorMessage.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                 errorMessage.classList.add('show');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Log In';
+                submitBtn.textContent = 'Verifikasi';
                 console.error('Error:', error);
             }
         });
+
+        // Resend OTP
+        async function resendOtp(e) {
+            e.preventDefault();
+            
+            const resendLink = document.getElementById('resendLink');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const loading = document.getElementById('loading');
+            
+            // Cek token dari localStorage
+            const token = localStorage.getItem('customer_auth_token') || sessionStorage.getItem('customer_auth_token');
+
+            if (!token) {
+                errorMessage.textContent = 'Anda belum login. Silakan login terlebih dahulu.';
+                errorMessage.classList.add('show');
+                setTimeout(() => {
+                    window.location.href = '/customer/login';
+                }, 2000);
+                return;
+            }
+
+            resendLink.style.pointerEvents = 'none';
+            resendLink.textContent = 'Mengirim...';
+            loading.classList.add('show');
+
+            try {
+                const response = await fetch('/api/customer/otp/resend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const data = await response.json();
+                loading.classList.remove('show');
+
+                if (response.status === 401) {
+                    // Token expired atau tidak valid
+                    errorMessage.textContent = 'Session Anda telah berakhir. Silakan login kembali.';
+                    errorMessage.classList.add('show');
+                    
+                    // Clear token dan redirect
+                    localStorage.removeItem('customer_auth_token');
+                    sessionStorage.removeItem('customer_auth_token');
+                    localStorage.removeItem('customer_data');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/customer/login';
+                    }, 2000);
+                    return;
+                }
+
+                if (response.ok && data.success) {
+                    successMessage.textContent = data.message || 'OTP baru berhasil dikirim';
+                    successMessage.classList.add('show');
+                    
+                    // Reset countdown
+                    clearInterval(countdownTimer);
+                    countdownSeconds = 60;
+                    startCountdown();
+                    
+                    // Clear OTP inputs
+                    otpInputs.forEach(input => {
+                        input.value = '';
+                        input.classList.remove('filled');
+                    });
+                    otpInputs[0].focus();
+                    
+                    resendLink.style.pointerEvents = 'auto';
+                    resendLink.textContent = 'Kirim ulang OTP';
+                } else {
+                    errorMessage.textContent = data.message || 'Gagal mengirim ulang OTP';
+                    errorMessage.classList.add('show');
+                    resendLink.style.pointerEvents = 'auto';
+                    resendLink.textContent = 'Kirim ulang OTP';
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                errorMessage.textContent = 'Gagal mengirim ulang OTP. Silakan coba lagi.';
+                errorMessage.classList.add('show');
+                resendLink.style.pointerEvents = 'auto';
+                resendLink.textContent = 'Kirim ulang OTP';
+                console.error('Error:', error);
+            }
+        }
+
+
+        // Check if user is logged in
+        const token = localStorage.getItem('customer_auth_token') || sessionStorage.getItem('customer_auth_token');
+        if (!token) {
+            // Redirect to login if not logged in
+            window.location.href = '/customer/login';
+        } else {
+            // Load customer data and show phone number
+            const customerData = localStorage.getItem('customer_data');
+            if (customerData) {
+                try {
+                    const customer = JSON.parse(customerData);
+                    if (customer.wa) {
+                        // Mask phone number
+                        const phone = customer.wa;
+                        const length = phone.length;
+                        const visible = phone.substring(length - 3);
+                        const masked = '*'.repeat(length - 3) + visible;
+                        
+                        document.getElementById('phoneNumber').textContent = masked;
+                        document.getElementById('otpInfo').style.display = 'block';
+                    }
+                } catch (e) {
+                    console.error('Error parsing customer data:', e);
+                }
+            }
+            
+            // Start countdown on page load
+            startCountdown();
+
+            // Auto focus first OTP input
+            otpInputs[0].focus();
+        }
     </script>
 </body>
 </html>
+

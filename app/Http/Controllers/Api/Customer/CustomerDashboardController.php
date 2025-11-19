@@ -17,6 +17,16 @@ class CustomerDashboardController extends Controller
     {
         $customer = auth('customer')->user();
 
+        // Check jika customer belum diverifikasi (verifikasi = 0)
+        if ($customer->verifikasi == 0 || $customer->verifikasi === '0' || $customer->verifikasi === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Anda belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.',
+                'redirect' => '/customer/verify-otp',
+                'verifikasi' => false
+            ], 403);
+        }
+
         // Ambil order aktif (yang sudah dibayar - status_pembayaran = '1')
         $ordersAktif = OrderCustomer::with([
             'produk_rel' => function($query) {

@@ -340,6 +340,17 @@
                 return;
             }
 
+            // Check jika customer belum diverifikasi (403)
+            if (response.status === 403) {
+                const result = await response.json();
+                if (result.verifikasi === false) {
+                    // Redirect ke halaman verifikasi OTP
+                    alert(result.message || 'Akun Anda belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.');
+                    window.location.href = result.redirect || '/customer/verify-otp';
+                    return;
+                }
+            }
+
             const result = await response.json();
             
             if (result.success && result.data) {

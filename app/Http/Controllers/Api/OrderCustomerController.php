@@ -158,48 +158,73 @@ class OrderCustomerController extends Controller
             'status' => '1',
         ]);
 
-        // $deviceKey = 'rCAIkWZDFOCosr3';
-        // $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+        $token = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+        $deviceKey    = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
 
-        // $message = "Terimakasih Kak ".$request->nama." pesanan anda sudah kami terima mohon segera lakukan pembayaran yaa.";
-         
-        // try {
-        //     $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
-        //         'device_key' => $deviceKey,
-        //         'phone'      => $wa,
-        //         'message'    => $message,
-        //     ]);
+        $templateFollup = TemplateFollup::where('produk_id', $request->produk)
+                                ->where('type', '5')
+                                ->first();
 
-        //     if ($response->successful()) {
-        //         return response()->json([
-        //             'success' => true,
-        //             'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
-        //             'data' => [
-        //                 'order' => $order,
-        //                 'whatsapp_response' => $response->json()
-        //             ]
-        //         ], 200);
-        //     }
+        $dataCustomer = Customer::where('id', $customerId)
+                                ->first();
 
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
-        //         'status' => $response->status(),
-        //         'error' => $response->json()
-        //     ], $response->status());
-        // } catch (\Exception $e) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Order tersimpan tapi terjadi kesalahan saat kirim pesan',
-        //         'error' => $e->getMessage()
-        //     ], 500);
-        // }
 
-        return response()->json([
-                'success' => true,
-                'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
-                'data' => $order
-            ], 200);
+        $dataText = array_merge([
+                        'customer_name' => $dataCustomer->nama ?? '',
+                        'product_name'  => $produk->nama ?? '',
+                        'order_date'    => Carbon::parse($request->create_at)->format('d-m-Y'),
+                        'order_total'   => number_format($request->total_harga, 0, ',', '.'),
+                    ], $field);
+
+        $message = TemplateHelper::render($templateFollup->text, $dataText);
+
+        try {
+            $response = Http::withToken($token)
+                ->asJson()
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])
+                ->post('https://api.quods.id/api/message', [
+                    'device_key' => $deviceKey,
+                    'data' => [
+                        [
+                            'phone'   => $dataCustomer->wa,
+                            'message' => $message,
+                        ]
+                    ]
+                ]);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+                    'data' => [
+                        'order' => $dataCustomer->wa,
+                        'whatsapp_response' => $response->json()
+                    ]
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
+                'status' => $response->status(),
+                'error' => $message
+            ], $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tersimpan tapi terjadi kesalahan saat kirim pesan',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+        // return response()->json([
+        //         'success' => true,
+        //         'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
+        //         'data' => $order
+        //     ], 200);
 
        
     }
@@ -292,11 +317,21 @@ class OrderCustomerController extends Controller
             $message = TemplateHelper::render($templateFollup->text, $dataText);
 
             try {
-                $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
-                    'device_key' => $deviceKey,
-                    'phone'      => $dataCustomer->wa,
-                    'message'    => $message,
-                ]);
+                $response = Http::withToken($token)
+                    ->asJson()
+                    ->withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json'
+                    ])
+                    ->post('https://api.quods.id/api/message', [
+                        'device_key' => $deviceKey,
+                        'data' => [
+                            [
+                                'phone'   => $dataCustomer->wa,
+                                'message' => $message,
+                            ]
+                        ]
+                    ]);
 
                 if ($response->successful()) {
                     return response()->json([

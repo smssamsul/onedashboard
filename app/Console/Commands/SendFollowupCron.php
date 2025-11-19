@@ -94,11 +94,21 @@ class SendFollowupCron extends Command
                     }
 
                     try {
-                        $response = Http::withToken($token)->post('https://api.quods.id/api/direct-send', [
-                            'device_key' => $deviceKey,
-                            'phone'      => $order->customer_rel->wa,
-                            'message'    => $message,
-                        ]);
+                        $response = Http::withToken($token)
+                            ->asJson()
+                            ->withHeaders([
+                                'Content-Type' => 'application/json',
+                                'Accept' => 'application/json'
+                            ])
+                            ->post('https://api.quods.id/api/message', [
+                                'device_key' => $deviceKey,
+                                'data' => [
+                                    [
+                                        'phone'   => $order->customer_rel->wa,
+                                        'message' => $message,
+                                    ]
+                                ]
+                            ]);
 
                         LogsFollup::create([
                             'follup'     => $template->id,

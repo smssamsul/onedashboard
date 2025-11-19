@@ -29,6 +29,12 @@ Route::get('/customer/login', function () {
     return view('customerLogin');
 });
 
+Route::get('/customer/verify-otp', function () {
+    // Halaman verify-otp hanya bisa diakses setelah login
+    // Check token akan dilakukan di JavaScript
+    return view('customerVerifyOtp');
+})->name('customer.verify.otp');
+
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->name('admin.dashboard');

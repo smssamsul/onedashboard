@@ -14,13 +14,35 @@ class OtpCustomerController extends Controller
 {
     public function sendOtp(Request $request)
     {
-        $request->validate([
-            'customer_id' => 'required|integer',
-            'wa' => 'required|string'
-        ]);
+        // Ambil customer_id dari authenticated user (jika sudah login)
+        // Atau dari request body (jika belum login)
+        $customerId = null;
+        $wa = null;
+        
+        if (auth()->guard('customer')->check()) {
+            // Jika sudah login, ambil dari authenticated user
+            $customer = auth()->guard('customer')->user();
+            $customerId = $customer->id;
+            $wa = $customer->wa ?? $request->wa;
+            
+            if (!$wa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nomor WhatsApp tidak ditemukan. Silakan lengkapi profil Anda.'
+                ], 400);
+            }
+        } else {
+            // Jika belum login, validasi dan ambil dari request
+            $request->validate([
+                'customer_id' => 'required|integer',
+                'wa' => 'required|string'
+            ]);
+            $customerId = $request->customer_id;
+            $wa = $request->wa;
+        }
 
         // Ambil data customer dari tabel
-        $customer = Customer::find($request->customer_id);
+        $customer = Customer::find($customerId);
 
         if (!$customer) {
             return response()->json([
@@ -66,7 +88,7 @@ class OtpCustomerController extends Controller
                     'device_key' => $deviceKey,
                     'data' => [
                         [
-                            'phone'   => $request->wa,
+                            'phone'   => $wa,
                             'message' => $message,
                         ]
                     ]
@@ -82,7 +104,7 @@ class OtpCustomerController extends Controller
                             'id' => $customer->id,
                             'nama' => $customer->nama,
                             'email' => $customer->email ?? null,
-                            'phone' => $request->wa
+                            'phone' => $wa
                         ],
                         'otp' => $otpCode,
                         'wa_response' => $response->json(),
@@ -108,27 +130,41 @@ class OtpCustomerController extends Controller
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'customer_id' => 'required|integer',
             'otp' => 'required|string',
         ]);
 
-        $otpRecord = OtpCus::where('customer', $request->customer_id)
+        // Ambil customer_id dari authenticated user (jika sudah login)
+        // Atau dari request body (jika belum login)
+        $customerId = null;
+        
+        if (auth()->guard('customer')->check()) {
+            // Jika sudah login, ambil dari authenticated user
+            $customerId = auth()->guard('customer')->user()->id;
+        } else {
+            // Jika belum login, ambil dari request (backward compatibility)
+            $request->validate([
+                'customer_id' => 'required|integer',
+            ]);
+            $customerId = $request->customer_id;
+        }
+
+        $otpRecord = OtpCus::where('customer', $customerId)
             ->where('otp', $request->otp)
             ->where('status', '1')
             ->first();
 
         if (!$otpRecord) {
-            return response()->json(['success' => false, 'message' => 'OTP tidak ditemukan'], 404);
+            return response()->json(['success' => false, 'message' => 'Kode OTP tidak valid'], 404);
         }
 
         if ($otpRecord->used == '1') {
             return response()->json(['success' => false, 'message' => 'OTP sudah digunakan'], 400);
         }
 
-        // if (Carbon::now()->greaterThan(Carbon::parse($otpRecord->expires_at))) {
-        //     return response()->json(['success' => false, 'message' => 'OTP sudah kedaluwarsa'], 400);
-        // }
-
+        // Check expiry
+        if (Carbon::now()->greaterThan(Carbon::parse($otpRecord->expires_at))) {
+            return response()->json(['success' => false, 'message' => 'OTP sudah kedaluwarsa'], 400);
+        }
         
         // Tandai OTP sebagai digunakan
         $otpRecord->update([
@@ -136,7 +172,7 @@ class OtpCustomerController extends Controller
             'status' => '0'
         ]);
 
-        $customer = Customer::find($request->customer_id);
+        $customer = Customer::find($customerId);
         if ($customer) {
             $customer->update(['verifikasi' => 1]);
         }
@@ -154,12 +190,34 @@ class OtpCustomerController extends Controller
 
     public function resendOtp(Request $request)
     {
-        $request->validate([
-            'customer' => 'required|integer|exists:customers,id',
-            'phone' => 'required|string',
-        ]);
+        // Ambil customer_id dari authenticated user (jika sudah login)
+        // Atau dari request body (jika belum login)
+        $customerId = null;
+        $phone = null;
+        
+        if (auth()->guard('customer')->check()) {
+            // Jika sudah login, ambil dari authenticated user
+            $customer = auth()->guard('customer')->user();
+            $customerId = $customer->id;
+            $phone = $customer->wa ?? $request->phone;
+            
+            if (!$phone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nomor WhatsApp tidak ditemukan. Silakan lengkapi profil Anda.'
+                ], 400);
+            }
+        } else {
+            // Jika belum login, validasi dan ambil dari request
+            $request->validate([
+                'customer' => 'required|integer|exists:customers,id',
+                'phone' => 'required|string',
+            ]);
+            $customerId = $request->customer;
+            $phone = $request->phone;
+        }
 
-        $customer = Customer::find($request->customer);
+        $customer = Customer::find($customerId);
 
         // Nonaktifkan OTP lama
         OtpCus::where('customer', $customer->id)
@@ -195,7 +253,7 @@ class OtpCustomerController extends Controller
                 'device_key' => $deviceKey,
                 'data' => [
                     [
-                        'phone'   => $request->phone,
+                        'phone'   => $phone,
                         'message' => $message,
                     ]
                 ]
