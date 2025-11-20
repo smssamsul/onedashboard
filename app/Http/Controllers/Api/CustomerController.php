@@ -82,6 +82,7 @@ class CustomerController extends Controller
             'nama_panggilan' => $request->nama_panggilan,
             'email' => $request->email,
             'instagram' => $request->instagram,
+            'password' => bcrypt("123456"),
             // 'password' => Hash::make($request->password),
             'wa' => $wa,
             'profesi' => $request->profesi,
