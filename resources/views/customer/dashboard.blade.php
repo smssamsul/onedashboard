@@ -419,8 +419,12 @@
                 `;
 
                 if (webinar.join_url) {
+                    const token = localStorage.getItem('customer_auth_token');
+                    const joinUrl = token 
+                        ? `/customer/order/${order.id}/join?token=${encodeURIComponent(token)}`
+                        : `/customer/order/${order.id}/join`;
                     actionButtons = `
-                        <a href="${webinar.join_url}" target="_blank" class="btn-primary">
+                        <a href="${joinUrl}" class="btn-primary">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M15 12L9 8V16L15 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
