@@ -10,6 +10,10 @@ Route::get('/webinar/join/{meeting_id}', [WebinarController::class, 'join'])->na
 
 Route::get('/webinar/join2/{id}', [WebinarController::class, 'join2'])->name('webinar.join2');
 
+// Route untuk join webinar dari order customer
+// Verifikasi dilakukan di controller menggunakan token dari request
+Route::get('/customer/order/{orderId}/join', [WebinarController::class, 'joinFromOrder'])->name('customer.order.join');
+
 Route::get('/zoom/signature', [ZoomSdkController::class, 'generateSignature']);
 
 Route::get('/', function () {

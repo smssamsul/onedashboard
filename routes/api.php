@@ -16,7 +16,8 @@ use App\Http\Controllers\Api\{
     OrderCustomerController,
     OtpCustomerController,
     LoginCustomerController,
-    MidtransController
+    MidtransController,
+    WhatsAppBotController
 };
 
 use App\Http\Controllers\Api\Customer\CustomerDashboardController;
@@ -54,6 +55,9 @@ Route::post('/otp/send', [OtpCustomerController::class, 'sendOtp'])
 Route::post('/otp/resend', [OtpCustomerController::class, 'resendOtp'])
         ->middleware(['throttle:otp', 'hash.key']);
 
+// WhatsApp Bot Webhook
+Route::post('/whatsapp/webhook', [WhatsAppBotController::class, 'webhook'])
+    ->middleware('throttle:60,1'); // Rate limit: 60 requests per minute
 
 Route::middleware(['throttle:order'])->post('/order', [OrderCustomerController::class, 'store']);
 
