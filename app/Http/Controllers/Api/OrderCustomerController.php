@@ -137,6 +137,7 @@ class OrderCustomerController extends Controller
             'email'     => $request->email,
             'alamat'    => $request->alamat,
             'wa'        => $wa,
+            'password'  => bcrypt("123456"),
             'status'    => '1',
             'create_at' => now(),
 
@@ -269,6 +270,7 @@ class OrderCustomerController extends Controller
                 'alamat'    => $request->alamat,
                 'wa'        => $wa,
                 'status'    => '1',
+                'password'  => bcrypt("123456"),
                 'create_at' => now(),
             ]);
 
