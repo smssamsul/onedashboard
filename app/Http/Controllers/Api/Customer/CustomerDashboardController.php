@@ -156,6 +156,7 @@ class CustomerDashboardController extends Controller
             'industri_pekerjaan' => $request->industri_pekerjaan,
             'jenis_kelamin' => $request->jenis_kelamin,
             'tanggal_lahir' => $request->tanggal_lahir,
+            'password' => bcrypt("123456"),
             'alamat' => $request->alamat,
             'update_at' => now(),
         ]);
