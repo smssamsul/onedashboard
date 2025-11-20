@@ -37,12 +37,14 @@ class WhatsAppBotController extends Controller
         if ($requiresCS) {
             // Simpan ke queue untuk CS
             $this->queueForCustomerService($phone, $message, $customer);
+            $autoReply = $this->getCSAutoReply();
             
             return response()->json([
                 'success' => true,
                 'handled_by' => 'cs',
                 'message' => 'Pesan Anda telah diteruskan ke Customer Service. Tim kami akan segera menghubungi Anda.',
-                'auto_reply' => $this->getCSAutoReply()
+                'auto_reply' => $autoReply,
+                'auto_reply_url' => urlencode($autoReply)
             ]);
         }
 
@@ -53,6 +55,7 @@ class WhatsAppBotController extends Controller
             'success' => true,
             'handled_by' => 'bot',
             'response' => $response['message'],
+            'response_url' => urlencode($response['message']),
             'data' => $response['data'] ?? null
         ]);
     }
