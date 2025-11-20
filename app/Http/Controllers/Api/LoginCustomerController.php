@@ -70,6 +70,7 @@ class LoginCustomerController extends Controller
                 'email' => $userLogin->email,
                 'wa'    => $userLogin->wa,
                 'alamat'=> $userLogin->alamat,
+                'verifikasi'=> $userLogin->verifikasi,
             ],
             'token' => $token,
         ], 200);
