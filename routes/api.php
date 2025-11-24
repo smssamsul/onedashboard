@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\WebinarController;
 
 Route::get('/webinar', [WebinarController::class, 'index']);
 Route::post('/webinar', [WebinarController::class, 'store']);
+Route::get('/webinar/join-order/{orderId}', [WebinarController::class, 'joinFromOrder']);
 
 Route::get('/test-zoom-token', function () {
     
