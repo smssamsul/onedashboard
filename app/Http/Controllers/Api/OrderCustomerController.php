@@ -166,12 +166,8 @@ class OrderCustomerController extends Controller
                                 ->where('type', '5')
                                 ->first();
 
-        $dataCustomer = Customer::where('id', $customerId)
-                                ->first();
-
-
         $dataText = array_merge([
-                        'customer_name' => $dataCustomer->nama ?? '',
+                        'customer_name' => $request->nama ?? '',
                         'product_name'  => $produk->nama ?? '',
                         'order_date'    => Carbon::parse($request->create_at)->format('d-m-Y'),
                         'order_total'   => number_format($request->total_harga, 0, ',', '.'),
@@ -190,7 +186,7 @@ class OrderCustomerController extends Controller
                     'device_key' => $deviceKey,
                     'data' => [
                         [
-                            'phone'   => $dataCustomer->wa,
+                            'phone'   => $wa,
                             'message' => $message,
                         ]
                     ]
@@ -201,7 +197,7 @@ class OrderCustomerController extends Controller
                     'success' => true,
                     'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
                     'data' => [
-                        'order' => $dataCustomer->wa,
+                        'order' => $wa,
                         'whatsapp_response' => $response->json()
                     ]
                 ], 200);
