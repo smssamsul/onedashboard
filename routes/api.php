@@ -30,8 +30,8 @@ use App\Services\ZoomService;
 
 use App\Http\Controllers\Api\WebinarController;
 
-Route::get('/webinar', [WebinarController::class, 'index']);
-Route::post('/webinar', [WebinarController::class, 'store']);
+
+
 Route::get('/webinar/join-order/{orderId}', [WebinarController::class, 'joinFromOrder']);
 
 Route::get('/test-zoom-token', function () {
@@ -81,6 +81,9 @@ Route::prefix('admin')->group(function () {
         // Marketing Dashboard
         Route::get('/marketing/dashboard', [MarketingDashboardController::class, 'index']);
 
+        Route::get('/webinar/{produkId}', [WebinarController::class, 'index']);
+        Route::post('/webinar', [WebinarController::class, 'store']);
+
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);
         Route::post('/users', [UserController::class, 'store']);
@@ -89,6 +92,7 @@ Route::prefix('admin')->group(function () {
 
         Route::get('/customer', [CustomerController::class, 'index']);
         Route::get('/customer/riwayat-order/{id}', [CustomerController::class, 'riwayat_order']);
+        Route::get('/customer/followup/{id}', [CustomerController::class, 'followup']);
         Route::post('/customer', [CustomerController::class, 'store']);
         Route::get('/customer/{id}', [CustomerController::class, 'show']);
         Route::put('/customer/{id}', [CustomerController::class, 'update']);

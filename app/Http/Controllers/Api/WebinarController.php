@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use App\Services\ZoomService;
 use App\Models\Webinar;
 use App\Models\OrderCustomer;
+use App\Models\Produk;
 use Firebase\JWT\JWT;
 
 class WebinarController extends Controller
@@ -73,13 +74,35 @@ class WebinarController extends Controller
     }
 
     /**
-     * Menampilkan semua webinar
+     * Menampilkan webinar berdasarkan produk
      */
-    public function index()
+    public function index($produkId)
     {
-        $webinars = Webinar::with('produk')->latest()->get();
+        // Validasi apakah produk ada
+        $produk = Produk::find($produkId);
+        
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        // Ambil webinar berdasarkan produk
+        $webinars = Webinar::with('produk:id,nama,kode')
+            ->where('produk', $produkId)
+            ->orderBy('create_at', 'desc')
+            ->get();
+
         return response()->json([
             'success' => true,
+            'message' => 'Data webinar berhasil diambil',
+            'produk' => [
+                'id' => $produk->id,
+                'nama' => $produk->nama,
+                'kode' => $produk->kode
+            ],
+            'total' => $webinars->count(),
             'data' => $webinars
         ]);
     }

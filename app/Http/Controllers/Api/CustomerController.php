@@ -8,6 +8,7 @@ use App\Models\Customer;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use App\Models\OrderCustomer;
+use App\Models\LogsFollup;
 
 class CustomerController extends Controller
 {
@@ -200,6 +201,42 @@ class CustomerController extends Controller
             'success' => true,
             'message' => 'Riwayat order berhasil diambil',
             'data' => $riwayat_order
+        ]);
+    }
+
+    public function followup($id)
+    {
+        // Cek apakah customer ada
+        $customer = Customer::find($id);
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer tidak ditemukan'
+            ], 404);
+        }
+
+        // Ambil semua follow up untuk customer ini
+        $followups = LogsFollup::with([
+            'follup_rel:id,nama,text,event,produk_id,type',
+            'follup_rel.produk_rel:id,nama' // relasi produk jika ada
+        ])
+        ->where('customer', $id)
+        ->where('status', '!=', 'N')
+        ->orderBy('create_at', 'desc')
+        ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data follow up berhasil diambil',
+            'customer' => [
+                'id' => $customer->id,
+                'nama' => $customer->nama,
+                'email' => $customer->email,
+                'wa' => $customer->wa
+            ],
+            'total' => $followups->count(),
+            'data' => $followups
         ]);
     }
 }
