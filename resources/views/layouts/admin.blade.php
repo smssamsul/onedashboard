@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - One Dashboard</title>
-    <link rel="stylesheet" href="{{ secure_asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     @stack('styles')
 </head>
@@ -49,6 +49,14 @@
                     </svg>
                     Reports
                 </a>
+                <a href="{{ route('admin.rabbitmq') }}" class="sidebar-link {{ request()->routeIs('admin.rabbitmq') ? 'active' : '' }}">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    RabbitMQ
+                </a>
             </nav>
         </aside>
 
@@ -61,7 +69,7 @@
         </div>
     </div>
 
-    <script src="{{ secure_asset('js/admin.js') }}"></script>
+    <script src="{{ asset('js/admin.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

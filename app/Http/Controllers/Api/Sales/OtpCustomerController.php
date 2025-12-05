@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\OtpCus;
 use App\Models\Customer;
+use App\Jobs\SendWhatsAppJob;
 
 class OtpCustomerController extends Controller
 {
@@ -72,51 +73,28 @@ class OtpCustomerController extends Controller
         $nama = $customer->nama ?? 'Kak';
         $message = "Halo {$nama},\n\nKode OTP kamu adalah *{$otpCode}*.\n\nKode ini berlaku selama 5 menit. Jangan bagikan ke siapapun ya 😊";
 
-        // Data untuk Quods API (format batch)
-        $deviceKey = 'rCAIkWZDFOCosr3'; // device key kamu
-        $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+        // Data untuk Woowa API
+        $woowaKey = env('WOOWA_KEY');
 
         try {
-            // Kirim ke Quods dengan format batch (JSON)
-            $response = Http::withToken($token)
-                ->asJson()
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->post('https://api.quods.id/api/message', [
-                    'device_key' => $deviceKey,
-                    'data' => [
-                        [
-                            'phone'   => $wa,
-                            'message' => $message,
-                        ]
-                    ]
-                ]);
+            // Kirim via RabbitMQ Queue (asynchronous)
+            SendWhatsAppJob::dispatch($wa, $message, $woowaKey);
 
-            if ($response->successful()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'OTP berhasil dikirim ke WhatsApp',
-                    'data' => [
-                        'otp_id' => $otp->id,
-                        'customer' => [
-                            'id' => $customer->id,
-                            'nama' => $customer->nama,
-                            'email' => $customer->email ?? null,
-                            'phone' => $wa
-                        ],
-                        'otp' => $otpCode,
-                        'wa_response' => $response->json(),
-                    ]
-                ], 200);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal mengirim pesan WhatsApp',
-                    'error' => $response->json()
-                ], $response->status());
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP berhasil dikirim ke WhatsApp (via Queue)',
+                'data' => [
+                    'otp_id' => $otp->id,
+                    'customer' => [
+                        'id' => $customer->id,
+                        'nama' => $customer->nama,
+                        'email' => $customer->email ?? null,
+                        'phone' => $wa
+                    ],
+                    'otp' => $otpCode,
+                    'queue' => 'dispatched',
+                ]
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -237,33 +215,145 @@ class OtpCustomerController extends Controller
             'status' => '1',
         ]);
 
-        // Kirim via WhatsApp API (format batch)
-        $deviceKey = 'rCAIkWZDFOCosr3';
-        $token = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
+        // Kirim via Woowa API via Queue
+        $woowaKey = env('WOOWA_KEY');
 
         $message = "Hai *{$customer->nama}*,\nKode OTP baru kamu adalah *{$otp}*.\nKode ini berlaku selama 5 menit.";
 
-        $response = Http::withToken($token)
-            ->asJson()
-            ->withHeaders([
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])
-            ->post('https://api.quods.id/api/message', [
-                'device_key' => $deviceKey,
-                'data' => [
-                    [
-                        'phone'   => $phone,
-                        'message' => $message,
-                    ]
-                ]
-            ]);
+        try {
+            // Kirim via RabbitMQ Queue (asynchronous)
+            SendWhatsAppJob::dispatch($phone, $message, $woowaKey);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'OTP baru berhasil dikirim',
-            'otp_data' => $otpData,
-            'whatsapp_response' => $response->json()
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP baru berhasil dikirim (via Queue)',
+                'otp_data' => $otpData,
+                'queue' => 'dispatched'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengirim OTP',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updatePhoneAndSendOtp(Request $request)
+    {
+        // Validasi request
+        $request->validate([
+            'wa' => 'required|string',
         ]);
+
+        // Ambil customer_id dari authenticated user (jika sudah login)
+        // Atau dari request body (jika belum login)
+        $customerId = null;
+        
+        if (auth()->guard('customer')->check()) {
+            // Jika sudah login, ambil dari authenticated user
+            $customerId = auth()->guard('customer')->user()->id;
+        } else {
+            // Jika belum login, ambil dari request
+            $request->validate([
+                'customer_id' => 'required|integer',
+            ]);
+            $customerId = $request->customer_id;
+        }
+
+        // Ambil data customer
+        $customer = Customer::find($customerId);
+
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer tidak ditemukan'
+            ], 404);
+        }
+
+        // Format nomor telepon
+        $newPhone = $this->formatPhoneNumber($request->wa);
+
+        // Update nomor customer
+        $customer->update([
+            'wa' => $newPhone,
+            'update_at' => now()
+        ]);
+
+        // Generate kode OTP (6 digit)
+        $otpCode = rand(100000, 999999);
+
+        // Hapus OTP lama customer (jika ada)
+        OtpCus::where('customer', $customer->id)->delete();
+
+        // Simpan OTP baru
+        $otp = OtpCus::create([
+            'customer'   => $customer->id,
+            'otp'        => $otpCode,
+            'used'       => '0',
+            'percobaan'  => '0',
+            'create_at'  => now(),
+            'expires_at' => now()->addMinutes(5),
+            'status'     => '1',
+        ]);
+
+        // Format pesan WhatsApp
+        $nama = $customer->nama ?? 'Kak';
+        $message = "Halo {$nama},\n\nNomor WhatsApp Anda telah diubah.\n\nKode OTP verifikasi kamu adalah *{$otpCode}*.\n\nKode ini berlaku selama 5 menit. Jangan bagikan ke siapapun ya 😊";
+
+        // Data untuk Woowa API
+        $woowaKey = env('WOOWA_KEY');
+
+        try {
+            // Kirim via RabbitMQ Queue (asynchronous)
+            SendWhatsAppJob::dispatch($newPhone, $message, $woowaKey);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nomor WhatsApp berhasil diubah dan OTP berhasil dikirim (via Queue)',
+                'data' => [
+                    'customer' => [
+                        'id' => $customer->id,
+                        'nama' => $customer->nama,
+                        'email' => $customer->email ?? null,
+                        'phone' => $newPhone,
+                        'phone_old' => $request->wa_old ?? null
+                    ],
+                    'otp_id' => $otp->id,
+                    'otp' => $otpCode,
+                    'queue' => 'dispatched',
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Jika gagal dispatch job, tetap update nomor sudah berhasil
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor WhatsApp berhasil diubah, namun terjadi kesalahan saat mengirim OTP',
+                'data' => [
+                    'customer' => [
+                        'id' => $customer->id,
+                        'nama' => $customer->nama,
+                        'phone' => $newPhone
+                    ]
+                ],
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function formatPhoneNumber($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
+        }
+
+        if (substr($phone, 0, 2) !== '62') {
+            $phone = '62' . ltrim($phone, '0');
+        }
+
+        return $phone;
     }
 }

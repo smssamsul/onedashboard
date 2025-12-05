@@ -188,7 +188,7 @@
                 return;
             }
 
-            const response = await fetch('/api/admin/hr/dashboard', {
+            const response = await fetch('/api/hr/dashboard', {
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Accept': 'application/json',

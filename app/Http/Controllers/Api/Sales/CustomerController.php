@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -93,7 +93,7 @@ class CustomerController extends Controller
             'tanggal_lahir' => $request->tanggal_lahir,
             'alamat' => $request->alamat,
             // 'status_order' => $request->status_order,
-            // 'verifikasi' => $request->verifikasi,
+            'verifikasi' => '1',
             // 'alasan_tertarik' => $request->alasan_tertarik,
             // 'alasan_belum' => $request->alasan_belum,
             // 'harapan' => $request->harapan,

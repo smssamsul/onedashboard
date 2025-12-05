@@ -55,8 +55,15 @@ Route::get('/finance/dashboard', function () {
     return view('finance.dashboard');
 })->name('finance.dashboard');
 
+Route::get('/finance/order-validation', function () {
+    return view('finance.order-validation');
+})->name('finance.order-validation');
+
 Route::get('/marketing/dashboard', function () {
     return view('marketing.dashboard');
 })->name('marketing.dashboard');
 
 Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
+
+// RabbitMQ Dashboard
+Route::get('/admin/rabbitmq', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'index'])->name('admin.rabbitmq');

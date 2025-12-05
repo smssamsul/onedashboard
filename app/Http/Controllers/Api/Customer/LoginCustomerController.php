@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -53,6 +53,13 @@ class LoginCustomerController extends Controller
             ], 401);
         }
 
+        $verifikasi = null;
+        if ($customer->tanggal_lahir == null) {
+            $verifikasi = '0';
+        } else {
+            $verifikasi = '1';
+        }
+
         // Ambil data user login
         $userLogin = auth()->guard('customer')->user();
 
@@ -70,7 +77,7 @@ class LoginCustomerController extends Controller
                 'email' => $userLogin->email,
                 'wa'    => $userLogin->wa,
                 'alamat'=> $userLogin->alamat,
-                'verifikasi'=> $userLogin->verifikasi,
+                'verifikasi'=> $verifikasi,
             ],
             'token' => $token,
         ], 200);

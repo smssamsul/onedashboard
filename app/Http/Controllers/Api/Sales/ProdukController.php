@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProdukController extends Controller
 {
@@ -22,7 +23,8 @@ class ProdukController extends Controller
 
         $query = Produk::with([
             'kategori_rel:id,nama',
-            'user_rel:id,nama'
+            'user_rel:id,nama',
+            'trainer_rel:id,nama'
         ])
         ->where('status', '!=', 'N') 
         ->orderBy('create_at', 'desc');
@@ -38,6 +40,45 @@ class ProdukController extends Controller
   
     public function store(Request $request)
     {
+        // Log request store produk
+        $logData = [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'user_id' => auth()->user()->user,
+            'request_data' => $request->except(['header', 'gambar', 'testimoni']), // Exclude file untuk menghindari log yang terlalu besar
+            'header_file' => $request->hasFile('header') ? [
+                'name' => $request->file('header')->getClientOriginalName(),
+                'size' => $request->file('header')->getSize(),
+                'mime_type' => $request->file('header')->getMimeType(),
+            ] : null,
+            'gambar_files' => $request->has('gambar') ? collect($request->gambar)->map(function($img) {
+                if (isset($img['file'])) {
+                    return [
+                        'name' => $img['file']->getClientOriginalName(),
+                        'size' => $img['file']->getSize(),
+                        'mime_type' => $img['file']->getMimeType(),
+                        'caption' => $img['caption'] ?? null,
+                    ];
+                }
+                return null;
+            })->filter()->toArray() : null,
+            'testimoni_files' => $request->has('testimoni') ? collect($request->testimoni)->map(function($testi) {
+                if (isset($testi['gambar'])) {
+                    return [
+                        'name' => $testi['gambar']->getClientOriginalName(),
+                        'size' => $testi['gambar']->getSize(),
+                        'mime_type' => $testi['gambar']->getMimeType(),
+                        'nama' => $testi['nama'] ?? null,
+                    ];
+                }
+                return null;
+            })->filter()->toArray() : null,
+            'timestamp' => now()->toDateTimeString(),
+        ];
+
+        Log::info('Store Produk Request', $logData);
 
         $jsonFields = [
             'assign',
@@ -67,9 +108,8 @@ class ProdukController extends Controller
             'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'gambar.*.caption' => 'nullable|string',
 
-               // Validasi tambahan
+             
             'assign' => 'nullable|array',
-            // 'assign.*' => 'integer|exists:users,id',
 
             'custom_field' => 'nullable|array',
             'custom_field.*.nama_field' => 'required_with:custom_field|string',
@@ -85,21 +125,18 @@ class ProdukController extends Controller
             'testimoni.*.deskripsi' => 'nullable|string',
 
             'fb_pixel' => 'nullable|array',
-            // 'fb_pixel.*' => 'integer|exists:fb_pixel,id',
 
             'event_fb_pixel' => 'nullable|array',
 
             'gtm' => 'nullable|array',
-            // 'gtm.*' => 'integer|exists:gtm,id',
 
             'video' => 'nullable|array',
             'video.*' => 'nullable|string'
         ]);
 
-        // Simpan header utama
+
         $headerPath = $request->file('header')->store('produk/header', 'public');
 
-        // Simpan gambar tambahan (multiple)
         $gambarArray = [];
         if ($request->has('gambar')) {
             foreach ($request->gambar as $img) {
@@ -113,7 +150,6 @@ class ProdukController extends Controller
             }
         }
 
-        // Simpan testimoni (upload gambar jika ada)
         $testimoniArray = [];
         if ($request->has('testimoni')) {
             foreach ($request->testimoni as $testi) {
@@ -131,7 +167,7 @@ class ProdukController extends Controller
 
         $produk = Produk::create([
             'kategori' => $request->kategori,
-            'user_input' => auth()->user()->id,
+            'user_input' => auth()->user()->user,
             'kode' => $request->kode,
             'nama' => $request->nama,
             'url' => $request->url,
@@ -142,11 +178,11 @@ class ProdukController extends Controller
             'tanggal_event' => $request->tanggal_event,
             'gambar' => json_encode($gambarArray),
             'lainnya' => $request->lainnya,
+            'trainer' => $request->trainer,
             'landingpage' => $request->landingpage,
             'create_at' => now(),
             'status' => $request->status ?? 1,
 
-            // Field tambahan (disimpan sebagai JSON)
             'assign' => json_encode($request->assign ?? []),
             'custom_field' => json_encode($request->custom_field ?? []),
             'list_point' => json_encode($request->list_point ?? []),
@@ -166,9 +202,18 @@ class ProdukController extends Controller
 
     public function show($id)
     {
-        $produk = Produk::where('id', $id)
-                ->where('status', '!=', 'N')
-                ->first();
+
+        $query = Produk::with([
+            'kategori_rel:id,nama',
+            'user_rel:id,nama',
+            'trainer_rel:id,nama'
+        ])
+        ->where('status', '!=', 'N') 
+        ->where('id', $id)
+        ->orderBy('create_at', 'desc');
+
+        $produk = $query->orderBy('create_at', 'desc')->get();
+
         if (!$produk) {
             return response()->json([
                 'success' => false,
@@ -286,7 +331,7 @@ class ProdukController extends Controller
         $produk->update([
             'kategori' => $request->kategori ?? $produk->kategori,
             'nama' => $request->nama ?? $produk->nama,
-            'kode' => $request->nama ?? $produk->kode,
+            'kode' => $request->kode ?? $produk->kode,
             'url' => $request->url ?? $produk->url,
             'harga_coret' => $request->harga_coret ?? $produk->harga_coret,
             'harga_asli' => $request->harga_asli ?? $produk->harga_asli,
@@ -390,6 +435,8 @@ class ProdukController extends Controller
             'data' => $produk
         ]);
     }
+
+
     public function showByKode($kode)
     {
         $produk = Produk::where('kode', $kode)
@@ -407,6 +454,38 @@ class ProdukController extends Controller
             'success' => true,
             'data' => $produk,
             'landing_url' => url("/{$produk->kode}")
+        ]);
+    }
+
+    public function updateTrainer(Request $request, $id)
+    {
+        // Cari produk
+        $produk = Produk::find($id);
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        // Validasi trainer (harus user yang ada di tabel user)
+        $request->validate([
+            'trainer' => 'required|integer',
+        ]);
+
+        // Update trainer saja
+        $produk->trainer   = $request->trainer;
+        $produk->update_at = now();
+        $produk->save();
+
+        // Optional: load relasi untuk response
+        $produk->load(['kategori_rel:id,nama', 'user_rel:id,nama', 'trainer_rel:id,nama']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Trainer produk berhasil diperbarui',
+            'data'    => $produk,
         ]);
     }
 }

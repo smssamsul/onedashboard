@@ -36,6 +36,7 @@ class Produk extends Model
         'event_fb_pixel',
         'gtm',
         'video',
+        'trainer',
         
     ];
 
@@ -63,6 +64,11 @@ class Produk extends Model
      public function user_rel()
     {
         return $this->belongsTo(User::class, 'user_input', 'id');
+    }
+
+    public function trainer_rel()
+    {
+        return $this->belongsTo(User::class, 'trainer', 'id');
     }
 
     public function webinar()

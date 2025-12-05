@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -26,10 +26,10 @@ class WebinarController extends Controller
             'waiting_room' => 'nullable|boolean',
         ]);
 
-        // 🔐 Ambil token dari Zoom
+  
         $token = ZoomService::getAccessToken();
 
-        // 📤 Kirim request buat meeting ke Zoom
+        
         $zoomResponse = Http::withToken($token)->post('https://api.zoom.us/v2/users/me/meetings', [
             'topic' => $request->topic,
             'type' => 2, // scheduled meeting
@@ -37,11 +37,11 @@ class WebinarController extends Controller
             'duration' => $request->duration,
             'timezone' => 'Asia/Jakarta',
             'settings' => [
-                'join_before_host' => true,
-                'host_video' => true,
-                'participant_video' => true,
-                'mute_upon_entry' => true,
-                'waiting_room' => $request->input('waiting_room', false),
+                'join_before_host' => $request->input('join_before_host', true),
+                'host_video' => $request->input('host_video', true),
+                'participant_video' => $request->input('participant_video', true),
+                'mute_upon_entry' => $request->input('mute_upon_entry', true),
+                'waiting_room' => $request->input('waiting_room', true),
             ],
         ]);
 
@@ -64,6 +64,7 @@ class WebinarController extends Controller
             'password' => $data['password'] ?? null,
             'start_time' => $request->start_time,
             'duration' => $request->duration,
+            'sesi' => $request->sesi,
         ]);
 
         return response()->json([
@@ -73,12 +74,113 @@ class WebinarController extends Controller
         ]);
     }
 
-    /**
-     * Menampilkan webinar berdasarkan produk
-     */
+    public function update(Request $request, $id)
+    {
+        $webinar = Webinar::findOrFail($id);
+
+        $request->validate([
+            'topic' => 'nullable|string',
+            'start_time' => 'nullable|date',
+            'duration' => 'nullable|integer|min:15|max:300',
+            'waiting_room' => 'nullable|boolean',
+            'host_video' => 'nullable|boolean',
+            'participant_video' => 'nullable|boolean',
+            'mute_upon_entry' => 'nullable|boolean',
+            'join_before_host' => 'nullable|boolean',
+        ]);
+
+    
+        $token = ZoomService::getAccessToken();
+
+     
+        $updateData = [];
+
+        if ($request->has('topic')) {
+            $updateData['topic'] = $request->topic;
+        }
+
+        if ($request->has('start_time')) {
+            $updateData['start_time'] = date('Y-m-d\TH:i:s', strtotime($request->start_time));
+        }
+
+        if ($request->has('duration')) {
+            $updateData['duration'] = $request->duration;
+        }
+
+ 
+        if ($request->hasAny(['waiting_room', 'host_video', 'participant_video', 'mute_upon_entry', 'join_before_host'])) {
+            $updateData['settings'] = [];
+
+            if ($request->has('waiting_room')) {
+                $updateData['settings']['waiting_room'] = $request->waiting_room;
+            }
+
+            if ($request->has('host_video')) {
+                $updateData['settings']['host_video'] = $request->host_video;
+            }
+
+            if ($request->has('participant_video')) {
+                $updateData['settings']['participant_video'] = $request->participant_video;
+            }
+
+            if ($request->has('mute_upon_entry')) {
+                $updateData['settings']['mute_upon_entry'] = $request->mute_upon_entry;
+            }
+
+            if ($request->has('join_before_host')) {
+                $updateData['settings']['join_before_host'] = $request->join_before_host;
+            }
+        }
+
+        $zoomResponse = Http::withToken($token)
+            ->patch("https://api.zoom.us/v2/meetings/{$webinar->meeting_id}", $updateData);
+
+        if ($zoomResponse->failed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate meeting di Zoom',
+                'error' => $zoomResponse->json(),
+            ], 500);
+        }
+
+        $zoomData = $zoomResponse->json();
+
+        $updateWebinar = [];
+
+        if ($request->has('start_time')) {
+            $updateWebinar['start_time'] = $request->start_time;
+        }
+
+        if ($request->has('duration')) {
+            $updateWebinar['duration'] = $request->duration;
+        }
+
+        if (isset($zoomData['join_url'])) {
+            $updateWebinar['join_url'] = $zoomData['join_url'];
+        }
+
+        if (isset($zoomData['start_url'])) {
+            $updateWebinar['start_url'] = $zoomData['start_url'];
+        }
+
+        if (isset($zoomData['password'])) {
+            $updateWebinar['password'] = $zoomData['password'];
+        }
+
+        if (!empty($updateWebinar)) {
+            $webinar->update($updateWebinar);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Webinar berhasil diupdate',
+            'data' => $webinar->fresh(),
+        ]);
+    }
+
+
     public function index($produkId)
     {
-        // Validasi apakah produk ada
         $produk = Produk::find($produkId);
         
         if (!$produk) {
@@ -88,7 +190,6 @@ class WebinarController extends Controller
             ], 404);
         }
 
-        // Ambil webinar berdasarkan produk
         $webinars = Webinar::with('produk:id,nama,kode')
             ->where('produk', $produkId)
             ->orderBy('create_at', 'desc')
@@ -107,12 +208,9 @@ class WebinarController extends Controller
         ]);
     }
 
-    /**
-     * Join webinar dari order customer (API endpoint)
-     */
+
     public function joinFromOrder(Request $request, $orderId)
     {
-        // Ambil order dengan relasi produk dan webinar
         $order = OrderCustomer::with([
             'produk_rel' => function($query) {
                 $query->with('webinar');
@@ -138,12 +236,10 @@ class WebinarController extends Controller
                     ], 403);
                 }
             } catch (\Exception $e) {
-                // Token tidak valid, lanjutkan dengan verifikasi order saja
-                // (akan dicek di frontend juga)
+
             }
         }
 
-        // Verifikasi bahwa order sudah dibayar
         if ($order->status_order != '2') {
             return response()->json([
                 'success' => false,
@@ -151,7 +247,6 @@ class WebinarController extends Controller
             ], 403);
         }
 
-        // Ambil webinar dari produk
         $produk = $order->produk_rel;
         if (!$produk) {
             return response()->json([
@@ -168,14 +263,12 @@ class WebinarController extends Controller
             ], 404);
         }
 
-        // Generate signature untuk Zoom SDK
         $sdkKey = env('ZOOM_SDK_KEY');
         $sdkSecret = env('ZOOM_SDK_SECRET');
         $meetingNumber = $webinar->meeting_id;
 
         $iat = time() - 30;
-        $exp = $iat + (60 * 60 * 2); // berlaku 2 jam
-
+        $exp = $iat + (60 * 60 * 2);
         $payload = [
             'sdkKey'   => $sdkKey,
             'appKey'   => $sdkKey,
@@ -188,7 +281,7 @@ class WebinarController extends Controller
 
         $signature = JWT::encode($payload, $sdkSecret, 'HS256');
 
-        // Ambil nama customer
+
         $userName = $order->customer_rel->nama_panggilan ?? $order->customer_rel->nama ?? 'Peserta Webinar';
         $userEmail = $order->customer_rel->email ?? 'guest@example.com';
 

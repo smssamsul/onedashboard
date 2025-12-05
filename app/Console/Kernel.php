@@ -16,11 +16,14 @@ class Kernel extends ConsoleKernel
 
     protected $commands = [
         \App\Console\Commands\SendFollowupCron::class,
+        \App\Console\Commands\RabbitMQStatus::class,
+        \App\Console\Commands\SendTrainerReminderCron::class,
     ];
     
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('followup:send')->hourly();
+        $schedule->command('trainer:reminder')->hourly();
         // $schedule->command('inspire')->hourly();
     }
 

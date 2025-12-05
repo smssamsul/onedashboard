@@ -19,6 +19,7 @@ class Webinar extends Model
         'password',
         'start_time',
         'duration',
+        'sesi',
     ];
 
     const CREATED_AT = 'create_at';

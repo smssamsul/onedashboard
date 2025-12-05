@@ -84,7 +84,7 @@
         <div id="userMenu" class="dropdown-menu">
             <a href="#" onclick="event.preventDefault(); alert('Profile feature coming soon!')">Profile</a>
             <a href="#" onclick="event.preventDefault(); alert('Settings feature coming soon!')">Settings</a>
-            <form method="POST" action="/api/admin/logout" id="logoutForm">
+            <form method="POST" action="/api/logout" id="logoutForm">
                 @csrf
                 <button type="button" onclick="handleLogout()">Logout</button>
             </form>
@@ -106,7 +106,7 @@
     function handleLogout() {
         const token = localStorage.getItem('auth_token');
         
-        fetch('/api/admin/logout', {
+        fetch('/api/logout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

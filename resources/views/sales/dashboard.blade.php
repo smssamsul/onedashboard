@@ -297,7 +297,7 @@
                 return;
             }
 
-            const response = await fetch('/api/admin/sales/dashboard', {
+            const response = await fetch('/api/sales/dashboard', {
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Accept': 'application/json',
