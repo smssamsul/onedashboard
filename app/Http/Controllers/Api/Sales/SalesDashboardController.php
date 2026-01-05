@@ -9,6 +9,7 @@ use App\Models\LogsFollup;
 use App\Models\User;
 use App\Models\UserLogin;
 use App\Models\Customer;
+use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,13 @@ class SalesDashboardController extends Controller
                 'message' => 'User data not found'
             ], 404);
         }
+
+        // Jika level 2 (sales biasa), return dashboard sales
+        if ($user->divisi == '3' && $user->level == '2') {
+            return $this->salesDashboard($user);
+        }
+
+        // Jika level 1 (head sales) atau divisi lain, return dashboard head sales
 
         $today = Carbon::today();
 
@@ -93,13 +101,13 @@ class SalesDashboardController extends Controller
         $netProfit = $grossProfit;
 
         // Chart performa penjualan (30 hari terakhir)
-        $salesPerformance = [];
+        $chartSalesPerformance = [];
         for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
             $total = OrderCustomer::whereDate('create_at', $date)
                 ->sum(DB::raw('CAST(total_harga AS numeric)'));
             
-            $salesPerformance[] = [
+            $chartSalesPerformance[] = [
                 'date' => $date->format('Y-m-d'),
                 'label' => $date->format('d M'),
                 'total' => (float) $total
@@ -217,6 +225,84 @@ class SalesDashboardController extends Controller
                 ];
             });
 
+        $salesList = User::where('divisi', '3')
+            ->where('status', '!=', 'N')
+            ->select('id', 'nama', 'email', 'level')
+            ->orderBy('nama', 'asc')
+            ->get();
+
+        $salesPerformance = $salesList->map(function($sales) use ($startOfMonth, $endOfMonth) {
+            $totalLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', '!=', 'N')
+                ->count();
+            
+            $newLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', 'NEW')
+                ->count();
+            
+            $contactedLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', 'CONTACTED')
+                ->count();
+            
+            $qualifiedLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', 'QUALIFIED')
+                ->count();
+            
+            $convertedLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', 'CONVERTED')
+                ->count();
+            
+            $lostLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', 'LOST')
+                ->count();
+            
+            $activeLeads = Lead::where('sales_id', $sales->id)
+                ->where('status', '!=', 'N')
+                ->whereNotIn('status', ['CONVERTED', 'LOST'])
+                ->count();
+
+            $conversionRate = $totalLeads > 0 
+                ? round(($convertedLeads / $totalLeads) * 100, 2) 
+                : 0;
+
+            $leadsThisMonth = Lead::where('sales_id', $sales->id)
+                ->where('status', '!=', 'N')
+                ->whereBetween('create_at', [$startOfMonth, $endOfMonth])
+                ->count();
+
+            $leadsLastMonth = Lead::where('sales_id', $sales->id)
+                ->where('status', '!=', 'N')
+                ->whereBetween('create_at', [
+                    Carbon::now()->subMonth()->startOfMonth(),
+                    Carbon::now()->subMonth()->endOfMonth()
+                ])
+                ->count();
+
+            $leadsGrowth = $leadsLastMonth > 0 
+                ? round((($leadsThisMonth - $leadsLastMonth) / $leadsLastMonth) * 100, 2)
+                : ($leadsThisMonth > 0 ? 100 : 0);
+
+            return [
+                'sales_id' => $sales->id,
+                'sales_nama' => $sales->nama,
+                'sales_email' => $sales->email,
+                'sales_level' => $sales->level,
+                'total_leads' => $totalLeads,
+                'new_leads' => $newLeads,
+                'contacted_leads' => $contactedLeads,
+                'qualified_leads' => $qualifiedLeads,
+                'converted_leads' => $convertedLeads,
+                'lost_leads' => $lostLeads,
+                'active_leads' => $activeLeads,
+                'conversion_rate' => $conversionRate,
+                'conversion_rate_formatted' => number_format($conversionRate, 2) . '%',
+                'leads_this_month' => $leadsThisMonth,
+                'leads_last_month' => $leadsLastMonth,
+                'leads_growth' => $leadsGrowth,
+                'leads_growth_formatted' => ($leadsGrowth >= 0 ? '+' : '') . number_format($leadsGrowth, 2) . '%',
+            ];
+        });
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -255,12 +341,73 @@ class SalesDashboardController extends Controller
                     'customers_total' => $totalCustomers,
                     'customers_new_today' => $newCustomersToday,
                 ],
+                'sales_performance' => $salesPerformance,
                 'chart_transaksi_order' => $chartTransaksiOrder,
-                'chart_performa_penjualan' => $salesPerformance,
+                'chart_performa_penjualan' => $chartSalesPerformance,
                 'chart_status_order' => $orderStatusComparison,
                 'chart_performa_sales' => $salesActivity,
                 'riwayat_follow_up' => $lastFollowUps,
                 'pembelian_terakhir' => $lastPurchases
+            ]
+        ]);
+    }
+
+    /**
+     * Dashboard untuk sales biasa (level 2)
+     * Menampilkan leads per sales dengan status masing-masing
+     */
+    private function salesDashboard($user)
+    {
+        $userId = $user->id;
+        
+        // Statistik leads per sales
+        $totalLeads = Lead::where('sales_id', $userId)
+            ->where('status', '!=', 'N')
+            ->count();
+        
+        $newLeads = Lead::where('sales_id', $userId)
+            ->where('status', 'NEW')
+            ->count();
+        
+        $contactedLeads = Lead::where('sales_id', $userId)
+            ->where('status', 'CONTACTED')
+            ->count();
+        
+        $qualifiedLeads = Lead::where('sales_id', $userId)
+            ->where('status', 'QUALIFIED')
+            ->count();
+        
+        $convertedLeads = Lead::where('sales_id', $userId)
+            ->where('status', 'CONVERTED')
+            ->count();
+        
+        $lostLeads = Lead::where('sales_id', $userId)
+            ->where('status', 'LOST')
+            ->count();
+        
+        $activeLeads = Lead::where('sales_id', $userId)
+            ->where('status', '!=', 'N')
+            ->whereNotIn('status', ['CONVERTED', 'LOST'])
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'nama' => $user->nama,
+                    'divisi' => $user->divisi,
+                    'level' => $user->level,
+                ],
+                'leads_statistics' => [
+                    'total_leads' => $totalLeads,
+                    'new_leads' => $newLeads,
+                    'contacted_leads' => $contactedLeads,
+                    'qualified_leads' => $qualifiedLeads,
+                    'converted_leads' => $convertedLeads,
+                    'lost_leads' => $lostLeads,
+                    'active_leads' => $activeLeads,
+                ]
             ]
         ]);
     }

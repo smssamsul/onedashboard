@@ -1,245 +1,456 @@
+@php
+    // Check user level from localStorage via JavaScript
+    // Default to admin layout, will be switched by JS if needed
+@endphp
 @extends('layouts.admin')
 
 @section('title', 'Sales Dashboard')
-@section('page_title', 'Dashboard Sales')
+@section('page_title', 'Sales Dashboard')
 
 @push('styles')
 <style>
-    :root {
-        --theme-primary: #5EEAD4;
-        --theme-primary-dark: #14B8A6;
-        --theme-primary-light: #7DD3FC;
-        --theme-primary-lighter: #CCFBF1;
+    .greeting-section {
+        margin-bottom: 1.5rem;
     }
 
-    .stat-card::before {
-        background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-light) 100%);
+    .greeting-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0 0 0.25rem 0;
     }
 
-    .stat-icon {
-        background: var(--theme-primary-lighter);
-        color: var(--theme-primary);
-        transition: all 0.3s ease;
+    .greeting-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0;
     }
 
-    .stat-card:hover .stat-icon {
-        transform: scale(1.05);
-    }
-    
-    /* Override untuk card dengan inline style (financial metrics & stats-grid-2x2) */
-    .stat-card:hover .stat-icon[style] {
-        opacity: 0.9;
-        transform: scale(1.05);
-    }
-
-    .sidebar-link.active,
-    .sidebar-link:hover {
-        background: linear-gradient(135deg, rgba(94, 234, 212, 0.08) 0%, rgba(94, 234, 212, 0.03) 100%);
-        color: var(--theme-primary-dark);
-    }
-
-    .sidebar-link.active::before {
-        background: linear-gradient(180deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-    }
-
-    .stats-grid-2x2 {
+    .stats-overview {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(4, 1fr);
         gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .stats-grid-2x2 .stat-card {
-        min-height: 140px;
-        padding: 1.5rem;
+    @media (max-width: 1200px) {
+        .stats-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 
-    .stats-grid-2x2 .stat-icon {
-        width: 40px;
-        height: 40px;
-    }
-
-    .stats-grid-2x2 .stat-icon svg {
-        width: 20px;
-        height: 20px;
-    }
-
-    .stats-grid-2x2 .stat-value {
-        font-size: 1.25rem;
-    }
-
-    .stats-grid-2x2 .stat-label {
-        font-size: 0.8125rem;
-    }
-
-    @media (max-width: 1024px) {
-        .stats-grid-2x2 {
+    @media (max-width: 640px) {
+        .stats-overview {
             grid-template-columns: 1fr;
         }
+    }
 
-        .financial-metrics-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
+    .stat-overview-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .stat-overview-card .icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-overview-card .icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .stat-overview-card .label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+
+    .stat-overview-card .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .stat-overview-card .hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .financial-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+        .financial-grid {
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 
     @media (max-width: 768px) {
-        .financial-metrics-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+        .financial-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
     @media (max-width: 480px) {
-        .financial-metrics-grid {
-            grid-template-columns: 1fr !important;
+        .financial-grid {
+            grid-template-columns: 1fr;
         }
     }
 
-    .financial-metrics-grid .stat-card {
-        min-height: 140px;
+    .financial-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
-    .financial-metrics-grid .stat-icon {
-        width: 40px;
-        height: 40px;
+    .financial-card .icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .financial-metrics-grid .stat-icon svg {
-        width: 20px;
-        height: 20px;
+    .financial-card .icon svg {
+        width: 18px;
+        height: 18px;
     }
 
-    .financial-metrics-grid .stat-value {
-        font-size: 1.25rem;
+    .financial-card .label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
     }
 
-    .financial-metrics-grid .stat-label {
+    .financial-card .value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .financial-card .hint {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+
+    .charts-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .charts-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1.25rem;
+    }
+
+    .chart-card h4 {
+        margin: 0 0 1rem 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .chart-container {
+        height: 280px;
+    }
+
+    .tables-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .tables-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .sales-performance-section {
+        margin-top: 1.5rem;
+    }
+
+    .sales-performance-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1.25rem;
+    }
+
+    .sales-performance-card h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .sales-performance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .sales-performance-table thead {
+        background: var(--background);
+    }
+
+    .sales-performance-table th {
+        padding: 0.75rem;
+        text-align: left;
         font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sales-performance-table td {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sales-performance-table tbody tr:hover {
+        background: var(--background);
+    }
+
+    .sales-performance-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-new {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .badge-contacted {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-qualified {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-converted {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-lost {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-growth-positive {
+        color: #10b981;
+    }
+
+    .badge-growth-negative {
+        color: #ef4444;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
     }
 </style>
 @endpush
 
 @section('content')
-    <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-        <!-- Col 6 - Chart Perbandingan Transaksi dan Order -->
-        <div class="card-table">
-            <h3>Perbandingan Transaksi & Order</h3>
-            <canvas id="chartTransaksiOrder" style="max-height: 360px;"></canvas>
+    <!-- Greeting -->
+    <div class="greeting-section" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="greeting-title">Sales Dashboard</h1>
+            <p class="greeting-subtitle">Monitor performa penjualan dan order</p>
         </div>
+    </div>
 
-        <!-- Col 6 - 4 Card Statistik (2x2) -->
-        <div class="stats-grid-2x2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #CCFBF1; color: #14B8A6;">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 3h18v4H3z" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                        <path d="M5 7v14h14V7" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                    </svg>
-                </div>
-                <span class="stat-label">Total Order</span>
-                <span class="stat-value" id="overview-total-order">0</span>
-                <small class="text-muted">Keseluruhan</small>
+    <!-- Attendance Card -->
+    <div class="attendance-card" style="background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Absensi Hari Ini</h3>
+            <span class="attendance-status" id="attendanceStatusBadge" style="padding: 0.375rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600;">-</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <span style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">Check In</span>
+                <span style="display: block; font-size: 1.125rem; font-weight: 600;" id="checkInTime">-</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #D1FAE5; color: #10B981;">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </svg>
-                </div>
-                <span class="stat-label">Total Paid</span>
-                <span class="stat-value" id="overview-paid-order">0</span>
-                <small class="text-muted">Status order = 2</small>
+            <div>
+                <span style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">Check Out</span>
+                <span style="display: block; font-size: 1.125rem; font-weight: 600;" id="checkOutTime">-</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #FEE2E2; color: #EF4444;">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </svg>
-                </div>
-                <span class="stat-label">Total Unpaid</span>
-                <span class="stat-value" id="overview-unpaid-order">0</span>
-                <small class="text-muted">Belum dibayar</small>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" id="checkInBtn" onclick="openCheckInModal()" style="flex: 1; background: var(--primary); padding: 0.625rem 1.25rem; border-radius: var(--radius-sm); border: none; color: white; cursor: pointer; font-weight: 500;">Check In</button>
+            <button class="btn btn-primary" id="checkOutBtn" onclick="openCheckOutModal()" disabled style="flex: 1; background: var(--border); padding: 0.625rem 1.25rem; border-radius: var(--radius-sm); border: none; color: var(--text-muted); cursor: not-allowed; font-weight: 500; opacity: 0.6;">Check Out</button>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-overview">
+        <div class="stat-overview-card">
+            <div class="icon" style="background: #ccfbf1;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <path d="M3 10h18"/>
+                </svg>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #FEF3C7; color: #F59E0B;">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <path d="M12 8V12L16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </svg>
+            <span class="label">Total Order</span>
+            <span class="value" id="overview-total-order">0</span>
+            <span class="hint">Keseluruhan</span>
+        </div>
+        <div class="stat-overview-card">
+            <div class="icon" style="background: #d1fae5;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                    <path d="M5 12l4 4L19 6"/>
+                </svg>
+            </div>
+            <span class="label">Total Paid</span>
+            <span class="value" id="overview-paid-order">0</span>
+            <span class="hint">Status order = 2</span>
+        </div>
+        <div class="stat-overview-card">
+            <div class="icon" style="background: #fee2e2;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </div>
+            <span class="label">Total Unpaid</span>
+            <span class="value" id="overview-unpaid-order">0</span>
+            <span class="hint">Belum dibayar</span>
+        </div>
+        <div class="stat-overview-card">
+            <div class="icon" style="background: #fef3c7;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+            </div>
+            <span class="label">Paid Ratio</span>
+            <span class="value" id="paid-ratio">0%</span>
+            <span class="hint">Persentase</span>
+        </div>
+    </div>
+
+    <!-- Financial Metrics -->
+    <div class="financial-grid">
+        <div class="financial-card">
+            <div class="icon" style="background: #fee2e2;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+            </div>
+            <span class="label">Gross Revenue</span>
+            <span class="value" id="gross-revenue">Rp 0</span>
+            <span class="hint">Total harga</span>
+        </div>
+        <div class="financial-card">
+            <div class="icon" style="background: #fef3c7;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M4 10h16"/>
+                </svg>
+            </div>
+            <span class="label">Shipping Cost</span>
+            <span class="value" id="shipping-cost">Rp 0</span>
+            <span class="hint">Total ongkir</span>
+        </div>
+        <div class="financial-card">
+            <div class="icon" style="background: #dbeafe;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <span class="label">Net Revenue</span>
+            <span class="value" id="net-revenue">Rp 0</span>
+            <span class="hint">Harga produk</span>
+        </div>
+        <div class="financial-card">
+            <div class="icon" style="background: #d1fae5;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="label">Gross Profit</span>
+            <span class="value" id="gross-profit">Rp 0</span>
+            <span class="hint">Net - shipping</span>
+        </div>
+        <div class="financial-card">
+            <div class="icon" style="background: #ede9fe;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M8 12h8M12 8v8"/>
+                </svg>
+            </div>
+            <span class="label">Net Profit</span>
+            <span class="value" id="net-profit">Rp 0</span>
+            <span class="hint">Profit bersih</span>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h4>Perbandingan Transaksi & Order</h4>
+            <div class="chart-container">
+                <canvas id="chartTransaksiOrder"></canvas>
+            </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="chart-card" style="flex: 1;">
+                <h4>Performa Penjualan (30 Hari)</h4>
+                <div class="chart-container" style="height: 120px;">
+                    <canvas id="chartPenjualan"></canvas>
                 </div>
-                <span class="stat-label">Paid Ratio</span>
-                <span class="stat-value" id="paid-ratio">0%</span>
-                <small class="text-muted">Persentase</small>
+            </div>
+            <div class="chart-card" style="flex: 1;">
+                <h4>Performa Sales (7 Hari)</h4>
+                <div class="chart-container" style="height: 120px;">
+                    <canvas id="chartSales"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Financial Metrics Section -->
-    <div class="card-grid financial-metrics-grid" style="grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 1.5rem;">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #FFE5E5; color: #FF6B6B;">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Gross Revenue</span>
-            <span class="stat-value" id="gross-revenue">Rp 0</span>
-            <small class="text-muted">Total harga</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #FFF4E5; color: #FFB84D;">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Shipping Cost</span>
-            <span class="stat-value" id="shipping-cost">Rp 0</span>
-            <small class="text-muted">Total ongkir</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #E5F5FF; color: #4DA6FF;">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Net Revenue</span>
-            <span class="stat-value" id="net-revenue">Rp 0</span>
-            <small class="text-muted">Harga produk</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #E5FFE5; color: #4DFF4D;">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Gross Profit</span>
-            <span class="stat-value" id="gross-profit">Rp 0</span>
-            <small class="text-muted">Net - shipping</small>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #F0E5FF; color: #9D4DFF;">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
-            </div>
-            <span class="stat-label">Net Profit</span>
-            <span class="stat-value" id="net-profit">Rp 0</span>
-            <small class="text-muted">Profit bersih</small>
-        </div>
-    </div>
-
-    <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-        <div class="card-table">
-            <h3>Performa Penjualan (30 Hari)</h3>
-            <canvas id="chartPenjualan" style="max-height: 300px;"></canvas>
-        </div>
-        <div class="card-table">
-            <h3>Performa Sales (7 Hari)</h3>
-            <canvas id="chartSales" style="max-height: 300px;"></canvas>
-        </div>
-    </div>
-
-    <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+    <!-- Tables Row -->
+    <div class="tables-row">
         <div class="card-table">
             <h3>Riwayat Terakhir Follow Up</h3>
             <div class="table-responsive">
@@ -253,7 +464,7 @@
                     </thead>
                     <tbody id="follow-up-table">
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 2rem;">Memuat data...</td>
+                            <td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -273,7 +484,38 @@
                     </thead>
                     <tbody id="pembelian-table">
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 2rem;">Memuat data...</td>
+                            <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Performance Section -->
+    <div class="sales-performance-section">
+        <div class="sales-performance-card">
+            <h3>Performa Sales (Berdasarkan Lead)</h3>
+            <div class="table-responsive">
+                <table class="sales-performance-table">
+                    <thead>
+                        <tr>
+                            <th>Sales</th>
+                            <th>Total Leads</th>
+                            <th>NEW</th>
+                            <th>CONTACTED</th>
+                            <th>QUALIFIED</th>
+                            <th>CONVERTED</th>
+                            <th>LOST</th>
+                            <th>Active</th>
+                            <th>Conversion Rate</th>
+                            <th>Leads Bulan Ini</th>
+                            <th>Growth</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-performance-table">
+                        <tr>
+                            <td colspan="11" style="text-align: center; padding: 2rem; color: var(--text-muted);">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -285,7 +527,6 @@
 @push('scripts')
 <script>
     let chartTransaksiOrder = null;
-    let chartOrderStatus = null;
     let chartPenjualan = null;
     let chartSales = null;
 
@@ -294,6 +535,14 @@
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
             if (!token) {
                 window.location.href = '/login';
+                return;
+            }
+
+            // Check user level first
+            const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+            if (userData.divisi === '3' && userData.level === '2') {
+                // Sales biasa (level 2) - redirect to sales dashboard
+                window.location.href = '/sales/dashboard-sales';
                 return;
             }
 
@@ -312,57 +561,47 @@
 
             const result = await response.json();
             
+            // Double check - if response has leads_statistics, it's sales dashboard
+            if (result.success && result.data && result.data.leads_statistics) {
+                window.location.href = '/sales/dashboard-sales';
+                return;
+            }
+            
             if (result.success && result.data) {
                 const data = result.data;
                 
-                // Helper function to safely update element
-                function safeUpdateElement(id, value) {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        element.textContent = value;
-                    }
+                function safeUpdate(id, value) {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = value;
                 }
 
-                // Update financial metrics
                 if (data.financial) {
-                    safeUpdateElement('gross-revenue', data.financial.gross_revenue_formatted ?? 'Rp 0');
-                    safeUpdateElement('shipping-cost', data.financial.shipping_cost_formatted ?? 'Rp 0');
-                    safeUpdateElement('net-revenue', data.financial.net_revenue_formatted ?? 'Rp 0');
-                    safeUpdateElement('gross-profit', data.financial.gross_profit_formatted ?? 'Rp 0');
-                    safeUpdateElement('net-profit', data.financial.net_profit_formatted ?? 'Rp 0');
+                    safeUpdate('gross-revenue', data.financial.gross_revenue_formatted ?? 'Rp 0');
+                    safeUpdate('shipping-cost', data.financial.shipping_cost_formatted ?? 'Rp 0');
+                    safeUpdate('net-revenue', data.financial.net_revenue_formatted ?? 'Rp 0');
+                    safeUpdate('gross-profit', data.financial.gross_profit_formatted ?? 'Rp 0');
+                    safeUpdate('net-profit', data.financial.net_profit_formatted ?? 'Rp 0');
                 }
 
-                // Overview cards
                 if (data.overview) {
-                    // Update overview stats cards (2x2 grid)
-                    safeUpdateElement('overview-total-order', data.overview.orders_total ?? 0);
-                    safeUpdateElement('overview-paid-order', data.overview.orders_paid ?? 0);
-                    safeUpdateElement('overview-unpaid-order', data.overview.orders_unpaid ?? 0);
-                    safeUpdateElement('paid-ratio', data.overview.paid_ratio_formatted ?? '0%');
+                    safeUpdate('overview-total-order', data.overview.orders_total ?? 0);
+                    safeUpdate('overview-paid-order', data.overview.orders_paid ?? 0);
+                    safeUpdate('overview-unpaid-order', data.overview.orders_unpaid ?? 0);
+                    safeUpdate('paid-ratio', data.overview.paid_ratio_formatted ?? '0%');
                 }
 
-                // Update chart transaksi dan order
                 if (data.chart_transaksi_order) {
                     updateChartTransaksiOrder(data.chart_transaksi_order);
                 }
 
-                // Update chart status order (keep for compatibility)
-                if (data.chart_status_order) {
-                    updateOrderStatusChart(data.chart_status_order);
-                }
-
-                // Update chart performa penjualan
                 updateChartPenjualan(data.chart_performa_penjualan);
-                
-                // Update chart performa sales
                 updateChartSales(data.chart_performa_sales);
-
-                // Update tabel follow up
                 updateFollowUpTable(data.riwayat_follow_up);
-
-                // Update tabel pembelian
                 updatePembelianTable(data.pembelian_terakhir);
             }
+            
+            // Load attendance after dashboard data
+            loadTodayAttendance();
         } catch (error) {
             console.error('Error loading dashboard:', error);
         }
@@ -386,48 +625,24 @@
                     {
                         label: 'Transaksi (Rp)',
                         data: data.map(item => item.transaksi),
-                        backgroundColor: '#14b8a6',
-                        borderRadius: 8,
+                        backgroundColor: '#1e3a5f',
+                        borderRadius: 6,
                         yAxisID: 'y',
                     },
                     {
                         label: 'Jumlah Order',
                         data: data.map(item => item.order),
-                        backgroundColor: '#5eead4',
-                        borderRadius: 8,
+                        backgroundColor: '#14b8a6',
+                        borderRadius: 6,
                         yAxisID: 'y1',
                     }
                 ]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.datasetIndex === 0) {
-                                    label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
-                                } else {
-                                    label += context.parsed.y;
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: true, position: 'top' } },
                 scales: {
                     y: {
                         type: 'linear',
@@ -436,15 +651,8 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return 'Rp ' + new Intl.NumberFormat('id-ID', {
-                                    notation: 'compact',
-                                    maximumFractionDigits: 1
-                                }).format(value);
+                                return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
                             }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Transaksi (Rp)'
                         }
                     },
                     y1: {
@@ -452,64 +660,8 @@
                         display: true,
                         position: 'right',
                         beginAtZero: true,
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        ticks: {
-                            stepSize: 1
-                        },
-                        title: {
-                            display: true,
-                            text: 'Jumlah Order'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function updateOrderStatusChart(data) {
-        const canvas = document.getElementById('chartOrderStatus');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-
-        if (chartOrderStatus) {
-            chartOrderStatus.destroy();
-        }
-
-        chartOrderStatus = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.map(item => item.label),
-                datasets: [
-                    {
-                        label: 'Paid',
-                        data: data.map(item => item.paid),
-                        backgroundColor: '#22c55e',
-                        borderRadius: 8,
-                    },
-                    {
-                        label: 'Belum Paid',
-                        data: data.map(item => item.unpaid),
-                        backgroundColor: '#f97316',
-                        borderRadius: 8,
-                    },
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                scales: {
-                    x: {
-                        stacked: true,
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                        }
+                        grid: { drawOnChartArea: false },
+                        ticks: { stepSize: 1 }
                     }
                 }
             }
@@ -518,13 +670,11 @@
 
     function updateChartPenjualan(data) {
         const canvas = document.getElementById('chartPenjualan');
-        if (!canvas) return;
+        if (!canvas || !data) return;
         
         const ctx = canvas.getContext('2d');
         
-        if (chartPenjualan) {
-            chartPenjualan.destroy();
-        }
+        if (chartPenjualan) chartPenjualan.destroy();
 
         chartPenjualan = new Chart(ctx, {
             type: 'line',
@@ -533,26 +683,22 @@
                 datasets: [{
                     label: 'Total Penjualan',
                     data: data.map(item => item.total),
-                    borderColor: '#f97316',
-                    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                    borderColor: '#1e3a5f',
+                    backgroundColor: 'rgba(30, 58, 95, 0.1)',
                     tension: 0.4,
                     fill: true
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
+                                return 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value);
                             }
                         }
                     }
@@ -563,13 +709,11 @@
 
     function updateChartSales(data) {
         const canvas = document.getElementById('chartSales');
-        if (!canvas) return;
+        if (!canvas || !data) return;
         
         const ctx = canvas.getContext('2d');
         
-        if (chartSales) {
-            chartSales.destroy();
-        }
+        if (chartSales) chartSales.destroy();
 
         chartSales = new Chart(ctx, {
             type: 'bar',
@@ -579,24 +723,15 @@
                     label: 'Jumlah Order',
                     data: data.map(item => item.count),
                     backgroundColor: '#14b8a6',
-                    borderRadius: 8
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
                 }
             }
         });
@@ -607,7 +742,7 @@
         if (!tbody) return;
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem;">Tidak ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">Tidak ada data</td></tr>';
             return;
         }
 
@@ -625,7 +760,7 @@
         if (!tbody) return;
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">Tidak ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Tidak ada data</td></tr>';
             return;
         }
 
@@ -639,10 +774,183 @@
         `).join('');
     }
 
-    // Load data when page loads
+    // Helper function untuk mendapatkan tanggal lokal Indonesia (format YYYY-MM-DD)
+    function getTodayIndonesia() {
+        const now = new Date();
+        
+        // Gunakan timezone Asia/Jakarta (WIB - UTC+7)
+        // Jika browser tidak support Intl, fallback ke manual calculation
+        try {
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            return formatter.format(now);
+        } catch (e) {
+            // Fallback: konversi manual ke WIB (UTC+7)
+            const offset = 7; // WIB (Western Indonesian Time)
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const indonesiaTime = new Date(utc + (3600000 * offset));
+            
+            const year = indonesiaTime.getFullYear();
+            const month = String(indonesiaTime.getMonth() + 1).padStart(2, '0');
+            const day = String(indonesiaTime.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        }
+    }
+
+    // Load today's attendance status
+    async function loadTodayAttendance() {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            if (!token) return;
+
+            // Menggunakan waktu lokal Indonesia
+            const today = getTodayIndonesia();
+            const response = await fetch(`/api/hr/absensi/by-current-user?tanggal=${today}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data && result.data.length > 0) {
+                    const attendance = result.data[0];
+                    updateAttendanceCard(attendance);
+                } else {
+                    // No attendance today
+                    updateAttendanceCard(null);
+                }
+            } else {
+                updateAttendanceCard(null);
+            }
+        } catch (error) {
+            console.error('Error loading today attendance:', error);
+            updateAttendanceCard(null);
+        }
+    }
+
+    function updateAttendanceCard(attendance) {
+        const checkInTimeEl = document.getElementById('checkInTime');
+        const checkOutTimeEl = document.getElementById('checkOutTime');
+        const statusBadgeEl = document.getElementById('attendanceStatusBadge');
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+
+        if (!attendance || !attendance.check_in) {
+            // Belum check in - PASTIKAN check out disabled
+            checkInTimeEl.textContent = '-';
+            checkOutTimeEl.textContent = '-';
+            statusBadgeEl.textContent = 'Belum Check In';
+            statusBadgeEl.className = 'attendance-status';
+            statusBadgeEl.style.background = '#FEE2E2';
+            statusBadgeEl.style.color = '#DC2626';
+            checkInBtn.disabled = false;
+            checkOutBtn.disabled = true;
+            // Update style untuk tombol disabled
+            checkOutBtn.style.background = 'var(--border)';
+            checkOutBtn.style.color = 'var(--text-muted)';
+            checkOutBtn.style.cursor = 'not-allowed';
+            checkOutBtn.style.opacity = '0.6';
+        } else if (attendance.check_in && !attendance.check_out) {
+            // Sudah check in, belum check out
+            checkInTimeEl.textContent = attendance.check_in || '-';
+            checkOutTimeEl.textContent = '-';
+            
+            // Determine status (Hadir/Telat)
+            const status = attendance.status_absensi || 'Hadir';
+            statusBadgeEl.textContent = status;
+            if (status === 'Telat') {
+                statusBadgeEl.style.background = '#FEF3C7';
+                statusBadgeEl.style.color = '#D97706';
+            } else {
+                statusBadgeEl.style.background = '#D1FAE5';
+                statusBadgeEl.style.color = '#059669';
+            }
+            
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = false;
+            // Update style untuk tombol enabled
+            checkOutBtn.style.background = 'var(--accent)';
+            checkOutBtn.style.color = 'white';
+            checkOutBtn.style.cursor = 'pointer';
+            checkOutBtn.style.opacity = '1';
+        } else if (attendance.check_out) {
+            // Sudah check out
+            checkInTimeEl.textContent = attendance.check_in || '-';
+            checkOutTimeEl.textContent = attendance.check_out || '-';
+            
+            // Determine status (Hadir/Telat)
+            const status = attendance.status_absensi || 'Hadir';
+            statusBadgeEl.textContent = status;
+            if (status === 'Telat') {
+                statusBadgeEl.style.background = '#FEF3C7';
+                statusBadgeEl.style.color = '#D97706';
+            } else {
+                statusBadgeEl.style.background = '#D1FAE5';
+                statusBadgeEl.style.color = '#059669';
+            }
+            
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = true;
+            // Update style untuk tombol disabled
+            checkOutBtn.style.background = 'var(--border)';
+            checkOutBtn.style.color = 'var(--text-muted)';
+            checkOutBtn.style.cursor = 'not-allowed';
+            checkOutBtn.style.opacity = '0.6';
+        }
+    }
+
+    async function openCheckOutModal() {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // Get today's attendance ID - menggunakan waktu lokal Indonesia
+            const today = getTodayIndonesia();
+            const attendanceResponse = await fetch(`/api/hr/absensi/by-current-user?tanggal=${today}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (attendanceResponse.ok) {
+                const attendanceResult = await attendanceResponse.json();
+                if (attendanceResult.success && attendanceResult.data && attendanceResult.data.length > 0) {
+                    const todayAttendance = attendanceResult.data[0];
+                    if (todayAttendance.check_in && !todayAttendance.check_out) {
+                        // Open check out modal from checkin-component
+                        if (typeof openCheckOutModalFromAbsensi === 'function') {
+                            openCheckOutModalFromAbsensi(todayAttendance.id);
+                        } else {
+                            // Fallback: redirect to absensi page
+                            window.location.href = '/sales/absensi';
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error opening check out modal:', error);
+        }
+    }
+
+    // Make function available globally
+    window.openCheckOutModal = openCheckOutModal;
+
     document.addEventListener('DOMContentLoaded', function() {
         loadDashboardData();
+        initCheckIn();
     });
 </script>
-@endpush
 
+@include('hr.checkin-component')
+@endpush

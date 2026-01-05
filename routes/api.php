@@ -19,9 +19,12 @@ use App\Http\Controllers\Api\Sales\{
     ProdukController,
     LogsFollupController,
     OrderCustomerController,
+    OrderPaymentController,
     OtpCustomerController,
     MidtransController,
-    WebinarController
+    WebinarController,
+    BroadcastController,
+    LeadController
 };
 
 // Admin Controllers
@@ -37,6 +40,10 @@ use App\Http\Controllers\Api\Customer\{
 use App\Http\Controllers\Api\Finance\FinanceDashboardController;
 use App\Http\Controllers\Api\Finance\OrderValidationController;
 use App\Http\Controllers\Api\Hr\HRDashboardController;
+use App\Http\Controllers\Api\Hr\HrDepartemenController;
+use App\Http\Controllers\Api\Hr\HrKaryawanController;
+use App\Http\Controllers\Api\Hr\HrAbsensiController;
+use App\Http\Controllers\Api\Hr\HrSettingController;
 use App\Http\Controllers\Api\Marketing\MarketingDashboardController;
 
 // ============================================
@@ -105,6 +112,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/customer', [CustomerController::class, 'store']);
         Route::put('/customer/{id}', [CustomerController::class, 'update']);
         Route::delete('/customer/{id}', [CustomerController::class, 'destroy']);
+        Route::post('/customer/import-excel', [CustomerController::class, 'importFromExcel']);
         Route::get('/customer/riwayat-order/{id}', [CustomerController::class, 'riwayat_order']);
         Route::get('/customer/followup/{id}', [CustomerController::class, 'followup']);
         Route::post('/customer/update/{id}', [CustomerController::class, 'form_customer_update']);
@@ -136,15 +144,62 @@ Route::middleware('auth:api')->group(function () {
 
         // Order
         Route::get('/order', [OrderCustomerController::class, 'index']);
+        Route::get('/order/statistic', [OrderCustomerController::class, 'statistiOrder']);
         Route::get('/order/{id}', [OrderCustomerController::class, 'show']);
         Route::put('/order/{id}', [OrderCustomerController::class, 'update']);
         Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
         Route::post('/order-admin', [OrderCustomerController::class, 'store_admin']);
 
+        // Order Payment
+        Route::get('/order-payment', [OrderPaymentController::class, 'index']);
+        Route::get('/order-payment/statistics', [OrderPaymentController::class, 'statistics']);
+        Route::get('/order-payment/by-order/{orderId}', [OrderPaymentController::class, 'getByOrder']);
+        Route::get('/order-payment/{id}', [OrderPaymentController::class, 'show']);
+        Route::post('/order-payment', [OrderPaymentController::class, 'store']);
+        Route::put('/order-payment/{id}', [OrderPaymentController::class, 'update']);
+        Route::delete('/order-payment/{id}', [OrderPaymentController::class, 'destroy']);
+
         // Webinar
         Route::get('/webinar/{produkId}', [WebinarController::class, 'index']);
         Route::post('/webinar', [WebinarController::class, 'store']);
         Route::put('/webinar/{id}', [WebinarController::class, 'update']);
+
+        // Broadcast
+        Route::get('/broadcast', [BroadcastController::class, 'index']);
+        Route::get('/broadcast/{id}', [BroadcastController::class, 'show']);
+        Route::get('/broadcast/{id}/penerima', [BroadcastController::class, 'penerima']);
+        Route::post('/broadcast', [BroadcastController::class, 'store']);
+        Route::put('/broadcast/{id}', [BroadcastController::class, 'update']);
+        Route::delete('/broadcast/{id}', [BroadcastController::class, 'destroy']);
+        Route::post('/broadcast/{id}/send', [BroadcastController::class, 'send']);
+
+        // Leads
+        Route::get('/lead', [LeadController::class, 'index']);
+        Route::get('/lead/statistics', [LeadController::class, 'statistics']);
+        Route::get('/lead/follow-today', [LeadController::class, 'followToday']);
+        Route::get('/lead/sales-list', [LeadController::class, 'getSalesList']);
+        Route::get('/lead/labels-list', [LeadController::class, 'getLeadLabels']);
+        Route::get('/lead/status-orders-list', [LeadController::class, 'getCustomerStatusOrders']);
+        Route::get('/lead/{id}', [LeadController::class, 'show']);
+        Route::post('/lead', [LeadController::class, 'store']);
+        Route::post('/lead/generate', [LeadController::class, 'generateFromCustomer']);
+        Route::put('/lead/{id}', [LeadController::class, 'update']);
+        Route::delete('/lead/{id}', [LeadController::class, 'destroy']);
+        Route::post('/lead/{id}/send-whatsapp', [LeadController::class, 'sendWhatsApp']);
+        Route::post('/lead/broadcast', [LeadController::class, 'broadcast']);
+
+        // Follow Up Leads
+        Route::get('/lead/{leadId}/followup', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'index']);
+        Route::get('/followup', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'list']);
+        Route::get('/followup/statistics', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'statistics']);
+        Route::post('/followup', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'store']);
+        Route::get('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'show']);
+        Route::put('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'update']);
+        Route::delete('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'destroy']);
+
+        // Aktivitas Leads
+        Route::get('/aktivitas/lead/{leadId}', [\App\Http\Controllers\Api\Sales\AktivitasLeadController::class, 'index']);
+        Route::get('/aktivitas/{id}', [\App\Http\Controllers\Api\Sales\AktivitasLeadController::class, 'show']);
     });
 
     Route::prefix('admin')->group(function () {
@@ -178,6 +233,45 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('hr')->group(function () {
         Route::get('/dashboard', [HRDashboardController::class, 'index']);
+        
+        // Departemen
+        Route::get('/departemen', [HrDepartemenController::class, 'index']);
+        Route::get('/departemen/{id}', [HrDepartemenController::class, 'show']);
+        Route::post('/departemen', [HrDepartemenController::class, 'store']);
+        Route::put('/departemen/{id}', [HrDepartemenController::class, 'update']);
+        Route::delete('/departemen/{id}', [HrDepartemenController::class, 'destroy']);
+        
+        // Shift
+        Route::get('/shift', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'index']);
+        Route::get('/shift/{id}', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'show']);
+        Route::post('/shift', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'store']);
+        Route::put('/shift/{id}', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'update']);
+        Route::delete('/shift/{id}', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'destroy']);
+        
+        // Karyawan
+        Route::get('/karyawan', [HrKaryawanController::class, 'index']);
+        Route::get('/karyawan/by-current-user', [HrKaryawanController::class, 'getByCurrentUser']);
+        Route::get('/karyawan/{id}', [HrKaryawanController::class, 'show']);
+        Route::post('/karyawan', [HrKaryawanController::class, 'store']);
+        Route::put('/karyawan/{id}', [HrKaryawanController::class, 'update']);
+        Route::delete('/karyawan/{id}', [HrKaryawanController::class, 'destroy']);
+        
+        // Absensi
+        Route::get('/absensi', [HrAbsensiController::class, 'index']);
+        // Route spesifik harus didefinisikan sebelum route parameter
+        Route::get('/absensi/by-current-user', [HrAbsensiController::class, 'getByCurrentUser']);
+        Route::get('/absensi/export', [HrAbsensiController::class, 'export']);
+        Route::get('/absensi/{id}', [HrAbsensiController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/absensi', [HrAbsensiController::class, 'store']);
+        Route::post('/absensi/check-in', [HrAbsensiController::class, 'checkIn']);
+        Route::post('/absensi/{id}/check-out', [HrAbsensiController::class, 'checkOut'])->where('id', '[0-9]+');
+        Route::put('/absensi/{id}', [HrAbsensiController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/absensi/{id}', [HrAbsensiController::class, 'destroy'])->where('id', '[0-9]+');
+        
+        // Setting
+        Route::get('/setting', [HrSettingController::class, 'index']);
+        Route::post('/setting', [HrSettingController::class, 'store']);
+        Route::put('/setting/{id}', [HrSettingController::class, 'update']);
     });
 
     Route::prefix('marketing')->group(function () {
@@ -215,4 +309,16 @@ Route::prefix('admin/rabbitmq')->group(function () {
     Route::post('/purge-queue', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'purgeQueue']);
     Route::get('/failed-jobs', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getFailedJobs']);
     Route::post('/queue-messages', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getQueueMessages']);
+});
+
+// User API Routes (for regular users)
+Route::middleware('auth:api')->prefix('user')->group(function () {
+    Route::get('/profile', [\App\Http\Controllers\Api\User\UserController::class, 'getProfile']);
+    Route::post('/change-password', [\App\Http\Controllers\Api\User\UserController::class, 'changePassword']);
+    Route::get('/tasks', [\App\Http\Controllers\Api\User\UserTaskController::class, 'index']);
+    Route::get('/tasks/{id}', [\App\Http\Controllers\Api\User\UserTaskController::class, 'show']);
+    Route::post('/tasks', [\App\Http\Controllers\Api\User\UserTaskController::class, 'store']);
+    Route::put('/tasks/{id}', [\App\Http\Controllers\Api\User\UserTaskController::class, 'update']);
+    Route::delete('/tasks/{id}', [\App\Http\Controllers\Api\User\UserTaskController::class, 'destroy']);
+    Route::get('/attendance-stats', [\App\Http\Controllers\Api\User\UserController::class, 'getAttendanceStats']);
 });

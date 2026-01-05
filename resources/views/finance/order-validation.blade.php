@@ -126,6 +126,11 @@
         color: #DC2626;
     }
 
+    .status-belum-bayar {
+        background: #E5E7EB;
+        color: #6B7280;
+    }
+
     .action-buttons {
         display: flex;
         gap: 0.5rem;
@@ -405,12 +410,22 @@
             </div>
             <div class="filter-group">
                 <label>Metode Pembayaran</label>
-                <select id="filter-metode-bayar" class="form-control">
+                <select id="filter-payment-method" class="form-control">
                     <option value="">Semua Metode</option>
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="E-Wallet">E-Wallet</option>
                     <option value="Credit Card">Credit Card</option>
                     <option value="Cash">Cash</option>
+                    <option value="qris">QRIS</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status Pembayaran</label>
+                <select id="filter-status" class="form-control">
+                    <option value="">Semua Status</option>
+                    <option value="1">Menunggu Approve Finance</option>
+                    <option value="2">Approved</option>
+                    <option value="3">Rejected</option>
                 </select>
             </div>
         </div>
@@ -422,24 +437,26 @@
 
     <!-- Table Section -->
     <div class="card-table">
-        <h3>Daftar Order Menunggu Validasi</h3>
+        <h3>Daftar Order</h3>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
+                        <th>Payment ID</th>
                         <th>Order ID</th>
                         <th>Customer</th>
                         <th>Produk</th>
-                        <th>Total Harga</th>
+                        <th>Amount</th>
+                        <th>Total Paid / Remaining</th>
                         <th>Metode Bayar</th>
-                        <th>Waktu Pembayaran</th>
+                        <th>Tanggal</th>
                         <th>Status</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="orders-table">
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 2rem;">Memuat data...</td>
+                        <td colspan="10" style="text-align: center; padding: 2rem;">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -494,6 +511,43 @@
         }
     }
 
+    // Helper function untuk mendapatkan keterangan status
+    function getStatusKeterangan(status) {
+        const statusMap = {
+            '1': 'Menunggu Approve Finance',
+            '2': 'Approved',
+            '3': 'Rejected',
+            null: 'Unknown',
+            undefined: 'Unknown'
+        };
+        return statusMap[status] || 'Unknown';
+    }
+
+    // Helper function untuk mendapatkan class badge status
+    function getStatusBadgeClass(status) {
+        const statusMap = {
+            '1': 'status-pending',
+            '2': 'status-approved',
+            '3': 'status-rejected',
+            null: 'status-belum-bayar',
+            undefined: 'status-belum-bayar'
+        };
+        return statusMap[status] || 'status-belum-bayar';
+    }
+
+    // Helper function untuk mendapatkan actions yang tersedia
+    function getAvailableActions(status) {
+        const statusStr = String(status || '1');
+        if (statusStr === '1') {
+            return ['approve', 'reject']; // Pending bisa approve atau reject
+        } else if (statusStr === '2') {
+            return ['reject']; // Approved bisa reject
+        } else if (statusStr === '3') {
+            return ['approve']; // Rejected bisa approve
+        }
+        return []; // Status lain tidak ada action
+    }
+
     async function loadOrders(page = 1) {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -504,9 +558,18 @@
 
             const params = new URLSearchParams({
                 page: page,
-                per_page: 15,
-                ...currentFilters
+                per_page: 15
             });
+
+            // Tambahkan filter ke params
+            if (currentFilters.tanggal_dari) params.append('tanggal_dari', currentFilters.tanggal_dari);
+            if (currentFilters.tanggal_sampai) params.append('tanggal_sampai', currentFilters.tanggal_sampai);
+            if (currentFilters.payment_method) params.append('payment_method', currentFilters.payment_method);
+            
+            // Jika ada filter status dan tidak kosong, tambahkan ke query
+            if (currentFilters.status && currentFilters.status !== '') {
+                params.append('status', currentFilters.status);
+            }
 
             const response = await fetch(`/api/finance/order-validation?${params}`, {
                 headers: {
@@ -524,35 +587,61 @@
             const tbody = document.getElementById('orders-table');
 
             if (result.success && result.data && result.data.length > 0) {
-                tbody.innerHTML = result.data.map(order => {
-                    const totalHarga = 'Rp ' + new Intl.NumberFormat('id-ID').format(order.total_harga || 0);
-                    const waktuPembayaran = order.waktu_pembayaran 
-                        ? new Date(order.waktu_pembayaran).toLocaleDateString('id-ID', {
+                tbody.innerHTML = result.data.map(payment => {
+                    const amount = 'Rp ' + new Intl.NumberFormat('id-ID').format(payment.amount || 0);
+                    const totalPaid = 'Rp ' + new Intl.NumberFormat('id-ID').format(payment.total_paid || 0);
+                    const remaining = 'Rp ' + new Intl.NumberFormat('id-ID').format(payment.remaining || 0);
+                    
+                    const tanggal = payment.tanggal 
+                        ? new Date(payment.tanggal).toLocaleDateString('id-ID', {
                             day: '2-digit',
                             month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                            year: 'numeric'
                         })
                         : '-';
+                    
+                    const paymentStatus = payment.status || '1';
+                    const statusKeterangan = getStatusKeterangan(paymentStatus);
+                    const statusBadgeClass = getStatusBadgeClass(paymentStatus);
+                    const availableActions = getAvailableActions(paymentStatus);
+
+                    // Build action buttons based on available actions
+                    let actionButtons = `<button class="btn-action btn-view" onclick="viewOrder(${payment.id})">Detail</button>`;
+                    
+                    if (availableActions.includes('approve')) {
+                        actionButtons += `<button class="btn-action btn-approve" onclick="approveOrder(${payment.id})">Approve</button>`;
+                    }
+                    
+                    if (availableActions.includes('reject')) {
+                        actionButtons += `<button class="btn-action btn-reject" onclick="rejectOrder(${payment.id})">Reject</button>`;
+                    }
+
+                    const paidRemainingHtml = `
+                        <div style="font-weight: 500; color: #059669; margin-bottom: 0.25rem;">
+                             ${totalPaid}
+                        </div>
+                        <div style="font-weight: 500; color: ${payment.remaining > 0 ? '#DC2626' : '#059669'}; font-size: 0.875rem;">
+                            / ${remaining}
+                        </div>
+                    `;
 
                     return `
                         <tr>
-                            <td>#${order.id}</td>
+                            <td>#${payment.id}</td>
+                            <td>#${payment.order_id}</td>
                             <td>
-                                <div style="font-weight: 500;">${order.customer_rel?.nama || '-'}</div>
-                                <small style="color: #6B7280;">${order.customer_rel?.email || '-'}</small>
+                                <div style="font-weight: 500;">${payment.order_rel?.customer_rel?.nama || '-'}</div>
+                                <small style="color: #6B7280;">${payment.order_rel?.customer_rel?.email || '-'}</small>
                             </td>
-                            <td>${order.produk_rel?.nama || '-'}</td>
-                            <td style="font-weight: 600;">${totalHarga}</td>
-                            <td>${order.metode_bayar || '-'}</td>
-                            <td>${waktuPembayaran}</td>
-                            <td><span class="status-badge status-pending">Menunggu Validasi</span></td>
+                            <td>${payment.order_rel?.produk_rel?.nama || '-'}</td>
+                            <td style="font-weight: 600;">${amount}</td>
+                            <td>${paidRemainingHtml}</td>
+                            <td>${payment.payment_method || '-'}</td>
+                            <td>${tanggal}</td>
+                            <td><span class="status-badge ${statusBadgeClass}">${statusKeterangan}</span></td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn-action btn-view" onclick="viewOrder(${order.id})">Detail</button>
-                                    <button class="btn-action btn-approve" onclick="approveOrder(${order.id})">Approve</button>
-                                    <button class="btn-action btn-reject" onclick="rejectOrder(${order.id})">Reject</button>
+                                    ${actionButtons}
                                 </div>
                             </td>
                         </tr>
@@ -564,8 +653,8 @@
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="empty-state">
-                            <p>Tidak ada order yang menunggu validasi</p>
+                        <td colspan="10" class="empty-state">
+                            <p>Tidak ada data pembayaran</p>
                         </td>
                     </tr>
                 `;
@@ -575,7 +664,7 @@
             console.error('Error loading orders:', error);
             document.getElementById('orders-table').innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 2rem; color: #DC2626;">
+                    <td colspan="10" style="text-align: center; padding: 2rem; color: #DC2626;">
                         Terjadi kesalahan saat memuat data
                     </td>
                 </tr>
@@ -615,74 +704,105 @@
             if (response.ok) {
                 const result = await response.json();
                 if (result.success && result.data) {
-                    const order = result.data;
+                    const payment = result.data;
                     currentOrderId = id;
 
                     const modalBody = document.getElementById('modal-body');
                     const modalFooter = document.getElementById('modal-footer');
 
+                    const order = payment.order || {};
+                    const customer = payment.customer || {};
+                    const produk = payment.produk || {};
+
                     modalBody.innerHTML = `
                         <div class="detail-group">
+                            <div class="detail-label">Payment ID</div>
+                            <div class="detail-value-large">#${payment.id}</div>
+                            <div class="detail-value" style="margin-top: 0.25rem; color: #6B7280;">
+                                Order ID: #${payment.order_id} | Payment Ke: ${payment.payment_ke || '-'}
+                            </div>
+                        </div>
+
+                        <div class="detail-group">
                             <div class="detail-label">Customer</div>
-                            <div class="detail-value-large">${order.customer.nama}</div>
+                            <div class="detail-value-large">${customer.nama || '-'}</div>
                             <div class="detail-value" style="margin-top: 0.25rem;">
-                                ${order.customer.email} | ${order.customer.wa}
+                                ${customer.email || '-'} | ${customer.wa || '-'}
                             </div>
                             <div class="detail-value" style="margin-top: 0.25rem; color: #6B7280;">
-                                ${order.customer.alamat || '-'}
+                                ${customer.alamat || '-'}
                             </div>
                         </div>
 
                         <div class="detail-group">
                             <div class="detail-label">Produk</div>
-                            <div class="detail-value-large">${order.produk.nama}</div>
+                            <div class="detail-value-large">${produk.nama || '-'}</div>
                             <div class="detail-value" style="margin-top: 0.25rem; color: #6B7280;">
-                                Kode: ${order.produk.kode || '-'}
+                                Kode: ${produk.kode || '-'}
                             </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                             <div class="detail-group">
-                                <div class="detail-label">Harga Produk</div>
-                                <div class="detail-value-large">Rp ${new Intl.NumberFormat('id-ID').format(order.harga || 0)}</div>
+                                <div class="detail-label">Amount Pembayaran</div>
+                                <div class="detail-value-large" style="color: var(--theme-primary-dark);">
+                                    Rp ${new Intl.NumberFormat('id-ID').format(payment.amount || 0)}
+                                </div>
                             </div>
                             <div class="detail-group">
-                                <div class="detail-label">Ongkir</div>
-                                <div class="detail-value-large">Rp ${new Intl.NumberFormat('id-ID').format(order.ongkir || 0)}</div>
+                                <div class="detail-label">Total Harga Order</div>
+                                <div class="detail-value-large">
+                                    Rp ${new Intl.NumberFormat('id-ID').format(order.total_harga || 0)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div class="detail-group">
+                                <div class="detail-label">Payment Method</div>
+                                <div class="detail-value">${payment.payment_method || '-'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Payment Type</div>
+                                <div class="detail-value">${payment.payment_type || '-'}</div>
                             </div>
                         </div>
 
                         <div class="detail-group">
-                            <div class="detail-label">Total Harga</div>
-                            <div class="detail-value-large" style="color: var(--theme-primary-dark);">
-                                Rp ${new Intl.NumberFormat('id-ID').format(order.total_harga || 0)}
-                            </div>
+                            <div class="detail-label">Tanggal Pembayaran</div>
+                            <div class="detail-value">${payment.tanggal ? new Date(payment.tanggal).toLocaleString('id-ID') : '-'}</div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        ${payment.catatan ? `
                             <div class="detail-group">
-                                <div class="detail-label">Metode Pembayaran</div>
-                                <div class="detail-value">${order.metode_bayar || '-'}</div>
+                                <div class="detail-label">Catatan</div>
+                                <div class="detail-value">${payment.catatan}</div>
                             </div>
-                            <div class="detail-group">
-                                <div class="detail-label">Waktu Pembayaran</div>
-                                <div class="detail-value">${order.waktu_pembayaran ? new Date(order.waktu_pembayaran).toLocaleString('id-ID') : '-'}</div>
-                            </div>
-                        </div>
+                        ` : ''}
 
-                        ${order.bukti_pembayaran ? `
+                        ${payment.bukti_pembayaran ? `
                             <div class="detail-group bukti-pembayaran">
                                 <div class="detail-label">Bukti Pembayaran</div>
-                                <img src="${order.bukti_pembayaran}" alt="Bukti Pembayaran" onclick="window.open('${order.bukti_pembayaran}', '_blank')" style="cursor: pointer;">
+                                <img src="${payment.bukti_pembayaran}" alt="Bukti Pembayaran" onclick="window.open('${payment.bukti_pembayaran}', '_blank')" style="cursor: pointer;">
                             </div>
                         ` : ''}
                     `;
 
-                    modalFooter.innerHTML = `
-                        <button class="btn-filter btn-filter-secondary" onclick="closeModal()">Tutup</button>
-                        <button class="btn-action btn-reject" onclick="showRejectForm()">Tolak</button>
-                        <button class="btn-action btn-approve" onclick="showApproveForm()">Approve</button>
-                    `;
+                    // Get available actions based on payment status
+                    const paymentStatus = payment.status || '1';
+                    const availableActions = getAvailableActions(paymentStatus);
+                    
+                    let footerButtons = `<button class="btn-filter btn-filter-secondary" onclick="closeModal()">Tutup</button>`;
+                    
+                    if (availableActions.includes('reject')) {
+                        footerButtons += `<button class="btn-action btn-reject" onclick="showRejectForm()">Tolak</button>`;
+                    }
+                    
+                    if (availableActions.includes('approve')) {
+                        footerButtons += `<button class="btn-action btn-approve" onclick="showApproveForm()">Approve</button>`;
+                    }
+                    
+                    modalFooter.innerHTML = footerButtons;
 
                     document.getElementById('orderModal').classList.add('active');
                 }
@@ -765,8 +885,8 @@
     async function submitReject() {
         if (!currentOrderId) return;
 
-        const alasan = document.getElementById('reject-alasan')?.value;
-        if (!alasan || alasan.trim() === '') {
+        const catatan = document.getElementById('reject-alasan')?.value;
+        if (!catatan || catatan.trim() === '') {
             alert('Alasan penolakan harus diisi');
             return;
         }
@@ -780,7 +900,7 @@
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ alasan })
+                body: JSON.stringify({ catatan })
             });
 
             const result = await response.json();
@@ -830,8 +950,8 @@
     }
 
     async function rejectOrder(id) {
-        const alasan = prompt('Masukkan alasan penolakan:');
-        if (!alasan || alasan.trim() === '') {
+        const catatan = prompt('Masukkan alasan penolakan:');
+        if (!catatan || catatan.trim() === '') {
             return;
         }
 
@@ -844,7 +964,7 @@
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ alasan })
+                body: JSON.stringify({ catatan })
             });
 
             const result = await response.json();
@@ -872,11 +992,13 @@
         
         const tanggalDari = document.getElementById('filter-tanggal-dari').value;
         const tanggalSampai = document.getElementById('filter-tanggal-sampai').value;
-        const metodeBayar = document.getElementById('filter-metode-bayar').value;
+        const paymentMethod = document.getElementById('filter-payment-method').value;
+        const status = document.getElementById('filter-status').value;
 
         if (tanggalDari) currentFilters.tanggal_dari = tanggalDari;
         if (tanggalSampai) currentFilters.tanggal_sampai = tanggalSampai;
-        if (metodeBayar) currentFilters.metode_bayar = metodeBayar;
+        if (paymentMethod) currentFilters.payment_method = paymentMethod;
+        if (status) currentFilters.status = status;
 
         currentPage = 1;
         loadOrders(currentPage);
@@ -885,7 +1007,8 @@
     function resetFilter() {
         document.getElementById('filter-tanggal-dari').value = '';
         document.getElementById('filter-tanggal-sampai').value = '';
-        document.getElementById('filter-metode-bayar').value = '';
+        document.getElementById('filter-payment-method').value = '';
+        document.getElementById('filter-status').value = '';
         currentFilters = {};
         currentPage = 1;
         loadOrders(currentPage);
@@ -905,4 +1028,6 @@
     });
 </script>
 @endpush
+
+
 

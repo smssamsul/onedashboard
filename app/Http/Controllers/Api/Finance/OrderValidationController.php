@@ -5,108 +5,126 @@ namespace App\Http\Controllers\Api\Finance;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderCustomer;
+use App\Models\OrderPayment;
 use Illuminate\Support\Facades\Validator;
 
 class OrderValidationController extends Controller
 {
-    /**
-     * Menampilkan daftar order yang perlu divalidasi (status_pembayaran = 2)
-     */
+   
     public function index(Request $request)
     {
-        $query = OrderCustomer::with([
-            'produk_rel:id,nama,kode',
-            'customer_rel:id,nama,email,wa'
+        $query = OrderPayment::with([
+            'order_rel:id,customer,produk,total_harga',
+            'order_rel.produk_rel:id,nama,kode',
+            'order_rel.customer_rel:id,nama,email,wa'
         ])
-        ->where('status_pembayaran', '1') // Menunggu validasi finance
         ->where('status', '!=', 'N')
-        ->orderBy('waktu_pembayaran', 'desc');
+        ->orderBy('create_at', 'desc');
 
-        // Filter berdasarkan tanggal
+        if ($request->has('status') && $request->status !== '' && $request->status !== null) {
+            $query->where('status', $request->status);
+        }
+
         if ($request->has('tanggal_dari')) {
-            $query->whereDate('waktu_pembayaran', '>=', $request->tanggal_dari);
+            $query->whereDate('create_at', '>=', $request->tanggal_dari);
         }
 
         if ($request->has('tanggal_sampai')) {
-            $query->whereDate('waktu_pembayaran', '<=', $request->tanggal_sampai);
+            $query->whereDate('create_at', '<=', $request->tanggal_sampai);
         }
 
-        // Filter berdasarkan metode bayar
-        if ($request->has('metode_bayar')) {
-            $query->where('metode_bayar', $request->metode_bayar);
+        if ($request->has('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
         }
 
-        // Pagination
+        if ($request->has('order_id')) {
+            $query->where('order_id', $request->order_id);
+        }
+
         $perPage = $request->get('per_page', 15);
-        $orders = $query->paginate($perPage);
+        $payments = $query->paginate($perPage);
+
+        $paymentsData = $payments->items();
+        foreach ($paymentsData as $payment) {
+            $order = $payment->order_rel;
+            $totalHarga = (float) ($order->total_harga ?? 0);
+            
+            $totalPaid = OrderPayment::where('order_id', $payment->order_id)
+                ->where('status', '2')
+                ->sum('amount');
+            
+            $payment->total_paid = (float) $totalPaid;
+            $payment->remaining = max(0, $totalHarga - $totalPaid);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Data order yang perlu divalidasi berhasil diambil',
-            'data' => $orders->items(),
+            'message' => 'Data pembayaran yang perlu divalidasi berhasil diambil',
+            'data' => $paymentsData,
             'pagination' => [
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
             ],
         ]);
     }
 
-    /**
-     * Menampilkan detail order untuk validasi
-     */
+
     public function show($id)
     {
-        $order = OrderCustomer::with([
-            'produk_rel:id,nama,kode,harga_asli',
-            'customer_rel:id,nama,email,wa,alamat'
+        $payment = OrderPayment::with([
+            'order_rel:id,customer,produk,total_harga,ongkir',
+            'order_rel.produk_rel:id,nama,kode,harga_asli',
+            'order_rel.customer_rel:id,nama,email,wa,alamat'
         ])
-        ->where('status_pembayaran', '1')
         ->where('status', '!=', 'N')
         ->find($id);
 
-        if (!$order) {
+        if (!$payment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order tidak ditemukan atau sudah divalidasi'
+                'message' => 'Pembayaran tidak ditemukan atau sudah divalidasi'
             ], 404);
         }
 
+        $order = $payment->order_rel;
+
         return response()->json([
             'success' => true,
-            'message' => 'Detail order berhasil diambil',
+            'message' => 'Detail pembayaran berhasil diambil',
             'data' => [
-                'id' => $order->id,
+                'id' => $payment->id,
+                'order_id' => $payment->order_id,
+                'amount' => $payment->amount,
+                'payment_ke' => $payment->payment_ke,
+                'payment_method' => $payment->payment_method,
+                'payment_type' => $payment->payment_type,
+                'tanggal' => $payment->tanggal,
+                'bukti_pembayaran' => $payment->bukti_pembayaran ? asset('storage/' . $payment->bukti_pembayaran) : null,
+                'status' => $payment->status,
+                'catatan' => $payment->catatan,
                 'customer' => [
-                    'id' => $order->customer_rel->id,
-                    'nama' => $order->customer_rel->nama,
-                    'email' => $order->customer_rel->email,
-                    'wa' => $order->customer_rel->wa,
-                    'alamat' => $order->customer_rel->alamat,
+                    'id' => $order->customer_rel->id ?? null,
+                    'nama' => $order->customer_rel->nama ?? null,
+                    'email' => $order->customer_rel->email ?? null,
+                    'wa' => $order->customer_rel->wa ?? null,
+                    'alamat' => $order->customer_rel->alamat ?? null,
                 ],
                 'produk' => [
-                    'id' => $order->produk_rel->id,
-                    'nama' => $order->produk_rel->nama,
-                    'kode' => $order->produk_rel->kode,
+                    'id' => $order->produk_rel->id ?? null,
+                    'nama' => $order->produk_rel->nama ?? null,
+                    'kode' => $order->produk_rel->kode ?? null,
                 ],
-                'harga_asli' => $order->produk_rel->harga_asli,
-                'ongkir' => $order->ongkir,
-                'total_harga' => $order->total_harga,
-                'metode_bayar' => $order->metode_bayar,
-                'waktu_pembayaran' => $order->waktu_pembayaran,
-                'bukti_pembayaran' => $order->bukti_pembayaran ? asset('storage/' . $order->bukti_pembayaran) : null,
-                'status_pembayaran' => $order->status_pembayaran,
-                'status_order' => $order->status_order,
-                'create_at' => $order->create_at,
-                'update_at' => $order->update_at,
+                'order' => [
+                    'total_harga' => $order->total_harga ?? null,
+                    'ongkir' => $order->ongkir ?? null,
+                ],
             ]
         ]);
     }
 
-    /**
-     * Approve order (ubah status_pembayaran menjadi 3)
-     */
+
     public function approve(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -120,48 +138,63 @@ class OrderValidationController extends Controller
             ], 422);
         }
 
-        $order = OrderCustomer::where('status_pembayaran', '1')
-            ->where('status', '!=', 'N')
+        $payment = OrderPayment::where('status', '!=', 'N')
+            ->whereIn('status', ['1', '3']) 
             ->find($id);
 
-        if (!$order) {
+        if (!$payment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order tidak ditemukan atau sudah divalidasi'
+                'message' => 'Pembayaran tidak ditemukan atau tidak dapat di-approve'
             ], 404);
         }
 
-        // Update status_pembayaran menjadi 3 (Finance Approve)
-        $order->update([
-            'status_pembayaran' => '3',
-            'update_at' => now(),
+        $payment->update([
+            'status' => '2',
+            'catatan' => $request->catatan ?? $payment->catatan,
         ]);
 
-        // Log activity jika diperlukan
-        \Log::info('Finance approve order', [
-            'order_id' => $order->id,
+        $order = OrderCustomer::find($payment->order_id);
+        if ($order) {
+            $totalPaid = OrderPayment::where('order_id', $order->id)
+                ->where('status', '!=', 'N')
+                ->where('status', '2')
+                ->sum('amount');
+            
+            $totalHarga = (float) ($order->total_harga ?? 0);
+            $remaining = max(0, $totalHarga - $totalPaid);
+            
+            if ($remaining <= 0) {
+                $order->update([
+                    'status_pembayaran' => '2',
+                    'status_order' => '2',
+                    'update_at' => now(),
+                ]);
+            }
+        }
+
+        \Log::info('Finance approve payment', [
+            'payment_id' => $payment->id,
+            'order_id' => $payment->order_id,
             'finance_user' => auth()->user()->id ?? null,
             'catatan' => $request->catatan,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Order berhasil disetujui',
+            'message' => 'Pembayaran berhasil disetujui',
             'data' => [
-                'id' => $order->id,
-                'status_pembayaran' => $order->status_pembayaran,
-                'update_at' => $order->update_at,
+                'id' => $payment->id,
+                'status' => $payment->status,
             ]
         ]);
     }
 
-    /**
-     * Reject order (kembalikan status_pembayaran menjadi 1 atau 0)
-     */
+   
     public function reject(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'alasan' => 'required|string|max:500',
+            'catatan' => 'required|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -171,66 +204,60 @@ class OrderValidationController extends Controller
             ], 422);
         }
 
-        $order = OrderCustomer::where('status_pembayaran', '1')
-            ->where('status', '!=', 'N')
+        $payment = OrderPayment::where('status', '!=', 'N')
+            ->whereIn('status', ['1', '2']) 
             ->find($id);
 
-        if (!$order) {
+        if (!$payment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order tidak ditemukan atau sudah divalidasi'
+                'message' => 'Pembayaran tidak ditemukan atau tidak dapat di-reject'
             ], 404);
         }
 
-        // Update status_pembayaran menjadi 0 (Ditolak) atau 1 (Belum bayar)
-        // Kita set menjadi 0 untuk menandakan ditolak oleh finance
+        $payment->update([
+            'status' => '3',
+            'catatan' => $request->catatan,
+        ]);
+
+        $order = OrderCustomer::find($payment->order_id);
         $order->update([
-            'status_pembayaran' => '4', // 4 = Ditolak
+            'status_pembayaran' => '3',
             'update_at' => now(),
         ]);
 
-        // Log activity
-        \Log::info('Finance reject order', [
-            'order_id' => $order->id,
+        \Log::info('Finance reject payment', [
+            'payment_id' => $payment->id,
+            'order_id' => $payment->order_id,
             'finance_user' => auth()->user()->id ?? null,
-            'alasan' => $request->alasan,
+            'catatan' => $request->catatan,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Order ditolak',
+            'message' => 'Pembayaran ditolak',
             'data' => [
-                'id' => $order->id,
-                'status_pembayaran' => $order->status_pembayaran,
-                'alasan' => $request->alasan,
-                'update_at' => $order->update_at,
+                'id' => $payment->id,
+                'status' => $payment->status,
+                'catatan' => $request->catatan,
             ]
         ]);
     }
 
-    /**
-     * Statistik order validasi
-     */
+
     public function statistics()
     {
-        $totalMenungguValidasi = OrderCustomer::where('status_pembayaran', '1')
-            ->where('status', '!=', 'N')
+        $totalMenungguValidasi = OrderPayment::where('status', '1')
             ->count();
 
-        $totalSudahDiapprove = OrderCustomer::where('status_pembayaran', '3')
-            ->where('status', '!=', 'N')
+        $totalSudahDiapprove = OrderPayment::where('status', '2')
             ->count();
 
-        $totalDitolak = OrderCustomer::where('status_pembayaran', '0')
-            ->where('status', '!=', 'N')
+        $totalDitolak = OrderPayment::where('status', '3')
             ->count();
 
-        $totalNilaiMenunggu = OrderCustomer::where('status_pembayaran', '1')
-            ->where('status', '!=', 'N')
-            ->get()
-            ->sum(function($order) {
-                return (float) ($order->total_harga ?? 0);
-            });
+        $totalNilaiMenunggu = OrderPayment::where('status', '1')
+            ->sum('amount');
 
         return response()->json([
             'success' => true,
@@ -238,7 +265,7 @@ class OrderValidationController extends Controller
                 'menunggu_validasi' => $totalMenungguValidasi,
                 'sudah_diapprove' => $totalSudahDiapprove,
                 'ditolak' => $totalDitolak,
-                'total_nilai_menunggu' => (int) $totalNilaiMenunggu,
+                'total_nilai_menunggu' => (float) $totalNilaiMenunggu,
                 'total_nilai_menunggu_formatted' => 'Rp ' . number_format($totalNilaiMenunggu, 0, ',', '.'),
             ]
         ]);

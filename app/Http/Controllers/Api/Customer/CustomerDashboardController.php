@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use App\Models\OrderCustomer;
 use App\Models\Produk;
 use App\Models\Customer;
@@ -34,7 +35,7 @@ class CustomerDashboardController extends Controller
             }
         ])
         ->where('customer', $customer->id)
-        ->where('status_order', '2') // Order yang sudah dibayar
+        // ->where('status_order', '2') 
         ->where('status', '!=', 'N') // Status tidak nonaktif
         ->orderBy('create_at', 'desc')
         ->get();
@@ -84,6 +85,8 @@ class CustomerDashboardController extends Controller
                 'total_harga_formatted' => 'Rp ' . number_format($order->total_harga, 0, ',', '.'),
                 'tanggal_order' => $order->create_at ? $order->create_at->format('d/m/Y H:i') : null,
                 'tanggal_order_raw' => $order->create_at,
+                'status_pembayaran' => $order->status_pembayaran,
+                'status_order' => $order->status_order,
             ];
 
             // Jika seminar, tambahkan info webinar
@@ -112,6 +115,21 @@ class CustomerDashboardController extends Controller
         $totalOrder = $allOrders->count();
         $totalAktif = $ordersAktif->count();
 
+        // Generate MemberID dari create_at (format: 2025010100001 = tahun, bulan, tanggal, no urut)
+        $memberID = $this->generateMemberID($customer);
+
+        // Tentukan keanggotaan (basic, bronze, silver, gold, platinum, diamond)
+        // Cek apakah field keanggotaan ada di database
+        $keanggotaan = 'basic'; // Default
+        if (isset($customer->keanggotaan) && !empty($customer->keanggotaan)) {
+            $keanggotaan = $customer->keanggotaan;
+        }
+        
+        // Validasi keanggotaan
+        if (!in_array($keanggotaan, ['basic', 'bronze', 'silver', 'gold', 'platinum', 'diamond'])) {
+            $keanggotaan = 'basic';
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -122,6 +140,8 @@ class CustomerDashboardController extends Controller
                     'email' => $customer->email,
                     'wa' => $customer->wa,
                     'status' => $customer->status,
+                    'memberID' => $memberID,
+                    'keanggotaan' => $keanggotaan,
                 ],
                 'statistik' => [
                     'total_order' => $totalOrder,
@@ -134,21 +154,31 @@ class CustomerDashboardController extends Controller
 
     public function store(Request $request)
     {
-
         $idCustomer = auth('customer')->user();
+        
         $validator = Validator::make($request->all(), [
-            // 'nama' => 'required|string|max:255',
-            // 'email' => 'required|email|unique:customer,email',
-            'password' => 'required|min:6',
+            'nama_panggilan' => 'nullable|string|max:255',
+            'instagram' => 'nullable|string|max:255',
+            'profesi' => 'nullable|string|max:255',
+            'pendapatan_bln' => 'nullable|numeric',
+            'industri_pekerjaan' => 'nullable|string|max:255',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'tanggal_lahir' => 'nullable|date',
+            'alamat' => 'nullable|string',
+            'wa' => 'nullable|string|max:20',
+            'password' => 'nullable|min:6',
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $customer = Customer::findOrFail($idCustomer->id);
 
-        $customer->update([
+        $updateData = [
             'nama_panggilan' => $request->nama_panggilan,
             'instagram' => $request->instagram,
             'profesi' => $request->profesi,
@@ -156,21 +186,55 @@ class CustomerDashboardController extends Controller
             'industri_pekerjaan' => $request->industri_pekerjaan,
             'jenis_kelamin' => $request->jenis_kelamin,
             'tanggal_lahir' => $request->tanggal_lahir,
-            'password' => bcrypt($request->password),
             'alamat' => $request->alamat,
+            'wa' => $request->wa,
             'update_at' => now(),
-        ]);
+        ];
 
+        // Update password hanya jika diisi
         if ($request->filled('password')) {
-            $customer->update([
-                'password' => Hash::make($request->password),
-            ]);
+            $updateData['password'] = Hash::make($request->password);
         }
+
+        $customer->update($updateData);
 
         return response()->json([
             'success' => true,
-            'message' => 'Customer berhasil ditambahkan',
+            'message' => 'Profile berhasil diperbarui',
             'data' => $customer
-        ], 201);
+        ], 200);
     }
+
+    /**
+     * Generate MemberID dari create_at
+     * Format: 2025010100001 (tahun, bulan, tanggal, no urut)
+     */
+    private function generateMemberID($customer)
+    {
+        // Ambil create_at atau gunakan tanggal sekarang
+        $createAt = $customer->create_at ?? now();
+        
+        // Jika create_at adalah string, convert ke Carbon
+        if (is_string($createAt)) {
+            $createAt = \Carbon\Carbon::parse($createAt);
+        }
+        
+        // Format: YYYYMMDD
+        $datePart = $createAt->format('Ymd');
+        
+        // Hitung no urut berdasarkan jumlah customer yang dibuat pada tanggal yang sama
+        $sameDateCustomers = Customer::whereDate('create_at', $createAt->format('Y-m-d'))
+            ->where('id', '<=', $customer->id)
+            ->count();
+        
+        // Format no urut dengan 5 digit (00001)
+        $sequence = str_pad($sameDateCustomers, 5, '0', STR_PAD_LEFT);
+        
+        // Gabungkan: YYYYMMDD + 00001
+        $memberID = $datePart . $sequence;
+        
+        return $memberID;
+    }
+
+ 
 }

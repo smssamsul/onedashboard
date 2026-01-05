@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Api\Sales;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use App\Models\OrderCustomer;
 use App\Models\LogsFollup;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class CustomerController extends Controller
 {
@@ -17,19 +21,49 @@ class CustomerController extends Controller
         $this->middleware('auth:api');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-         $customers = Customer::select(array_diff(
-                    \Schema::getColumnListing('customer'),
-                    ['password','create_at','update_at'] 
-                ))
-                ->where('status', '!=', 'N')
-                ->orderBy('id', 'desc')
-                ->get();
+        $query = Customer::select(array_diff(
+            \Schema::getColumnListing('customer'),
+            ['password','create_at','update_at'] 
+        ))
+        ->where('status', '!=', 'N');
+
+        // Search berdasarkan nama, email, atau WA
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'ILIKE', "%{$search}%")
+                  ->orWhere('email', 'ILIKE', "%{$search}%")
+                  ->orWhere('wa', 'ILIKE', "%{$search}%")
+                  ->orWhere('nama_panggilan', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        // Jika parameter all=true, return semua data tanpa pagination
+        if ($request->has('all') && $request->all == 'true') {
+            $customers = $query->orderBy('id', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $customers,
+                'total' => $customers->count()
+            ]);
+        }
+
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $customers = $query->orderBy('id', 'desc')->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $customers
+            'data' => $customers->items(),
+            'pagination' => [
+                'current_page' => $customers->currentPage(),
+                'last_page' => $customers->lastPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+            ]
         ]);
     }
 
@@ -92,8 +126,13 @@ class CustomerController extends Controller
             'jenis_kelamin' => $request->jenis_kelamin,
             'tanggal_lahir' => $request->tanggal_lahir,
             'alamat' => $request->alamat,
+            'provinsi' => $request->provinsi,
+            'kabupaten' => $request->kabupaten,
+            'kecamatan' => $request->kecamatan,
+            'kode_pos' => $request->kode_pos,
             // 'status_order' => $request->status_order,
             'verifikasi' => '1',
+            'keanggotaan' => 'basic', // Default keanggotaan
             // 'alasan_tertarik' => $request->alasan_tertarik,
             // 'alasan_belum' => $request->alasan_belum,
             // 'harapan' => $request->harapan,
@@ -101,10 +140,14 @@ class CustomerController extends Controller
             'status' => '1'
         ]);
 
+        // Generate memberID setelah customer dibuat
+        $memberID = $this->generateMemberID($customer);
+        $customer->update(['memberID' => $memberID]);
+
         return response()->json([
             'success' => true,
             'message' => 'Customer berhasil ditambahkan',
-            'data' => $customer
+            'data' => $customer->fresh()
         ], 201);
     }
  
@@ -141,7 +184,19 @@ class CustomerController extends Controller
             return response()->json(['message' => 'Customer tidak ditemukan'], 404);
         }
 
-        $customer->update($request->all());
+        // Validasi keanggotaan jika ada
+        $updateData = $request->all();
+        if (isset($updateData['keanggotaan'])) {
+            $validKeanggotaan = ['basic', 'bronze', 'silver', 'gold', 'platinum', 'diamond'];
+            if (!in_array($updateData['keanggotaan'], $validKeanggotaan)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Keanggotaan tidak valid. Pilih: basic, bronze, silver, gold, platinum, atau diamond'
+                ], 422);
+            }
+        }
+
+        $customer->update($updateData);
         $customer->update_at = now();
         $customer->save();
 
@@ -172,6 +227,157 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function importFromExcel(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|mimes:xlsx,xls,csv',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if (!class_exists(IOFactory::class)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Library PhpSpreadsheet belum terpasang. Jalankan: composer require phpoffice/phpspreadsheet',
+            ], 500);
+        }
+
+        $file = $request->file('file');
+
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $sheet       = $spreadsheet->getActiveSheet();
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membaca file Excel: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        $highestRow = $sheet->getHighestRow();
+
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        for ($row = 2; $row <= $highestRow; $row++) {
+            try {
+                $email = trim((string) $sheet->getCell('B' . $row)->getValue());
+
+                $createAtCell   = $sheet->getCell('A' . $row);
+                $nama           = trim((string) $sheet->getCell('C' . $row)->getValue());
+                $namaPanggilan  = trim((string) $sheet->getCell('E' . $row)->getValue());
+                $instagram      = trim((string) $sheet->getCell('F' . $row)->getValue());
+                $genderRaw      = strtolower(trim((string) $sheet->getCell('G' . $row)->getValue()));
+                $tglLahirCell   = $sheet->getCell('H' . $row);
+                $profesi        = trim((string) $sheet->getCell('I' . $row)->getValue());
+                $pendapatanRaw  = trim((string) $sheet->getCell('J' . $row)->getValue());
+                $industri       = trim((string) $sheet->getCell('K' . $row)->getValue());
+                $alamat         = trim((string) $sheet->getCell('L' . $row)->getValue());
+                $riwayatOrder   = trim((string) $sheet->getCell('M' . $row)->getValue());
+                $alasanTertarik = trim((string) $sheet->getCell('N' . $row)->getValue());
+                $alasanBelum    = trim((string) $sheet->getCell('O' . $row)->getValue());
+                $harapan        = trim((string) $sheet->getCell('P' . $row)->getValue());
+                $waRaw          = trim((string) $sheet->getCell('Q' . $row)->getValue());
+
+                // Jika email kosong, generate email dummy supaya tetap bisa disimpan
+                $isDummyEmail = false;
+                if (!$email) {
+                    $email        = $this->generateDummyEmail($waRaw, $row);
+                    $isDummyEmail = true;
+                }
+
+                // create_at dari kolom A (tanggal + jam)
+                $createAt = $this->parseExcelDateTime($createAtCell) ?? now()->format('Y-m-d H:i:s');
+
+                // jenis kelamin
+                $jenisKelamin = null;
+                if (str_contains($genderRaw, 'laki')) {
+                    $jenisKelamin = 'L';
+                } elseif (str_contains($genderRaw, 'perem')) {
+                    $jenisKelamin = 'P';
+                }
+
+                // tanggal lahir dari kolom H (hanya tanggal)
+                $tanggalLahir = $this->parseExcelDate($tglLahirCell);
+
+                // pendapatan bulanan (klasifikasi)
+                $pendapatanBln = $this->normalizeIncome($pendapatanRaw);
+
+                // WA
+                $wa = $waRaw ? $this->formatPhoneNumber($waRaw) : null;
+
+                $data = [
+                    'nama'               => $nama ?: $namaPanggilan ?: $email,
+                    'nama_panggilan'     => $namaPanggilan ?: null,
+                    'instagram'          => $instagram ?: null,
+                    'wa'                 => $wa,
+                    'profesi'            => $profesi ?: null,
+                    'pendapatan_bln'     => $pendapatanBln,
+                    'industri_pekerjaan' => $industri ?: null,
+                    'jenis_kelamin'      => $jenisKelamin,
+                    'tanggal_lahir'      => $tanggalLahir,
+                    'alamat'             => $alamat ?: null,
+                    'status_order'       => $riwayatOrder ?: null,
+                    'alasan_tertarik'    => $alasanTertarik ?: null,
+                    'alasan_belum'       => $alasanBelum ?: null,
+                    'harapan'            => $harapan ?: null,
+                    'verifikasi'         => '1',
+                    'status'             => '1',
+                ];
+
+                $customer = null;
+
+                // Hanya update jika email asli (bukan dummy) dan sudah ada di database
+                if (!$isDummyEmail) {
+                    $customer = Customer::where('email', $email)->first();
+                }
+
+                if ($customer) {
+                    $customer->fill($data);
+                    $customer->update_at = now();
+                    $customer->save();
+                    $updated++;
+                } else {
+                    $data['email']      = $email;
+                    $data['password']   = bcrypt('123456');
+                    $data['create_at']  = $createAt;
+                    $data['keanggotaan'] = 'basic'; // Default keanggotaan
+
+                    $newCustomer = Customer::create($data);
+                    // Generate memberID setelah customer dibuat
+                    $memberID = $this->generateMemberID($newCustomer);
+                    $newCustomer->update(['memberID' => $memberID]);
+                    $created++;
+                }
+            } catch (\Throwable $e) {
+                $skipped++;
+                $errors[] = [
+                    'row'    => $row,
+                    'reason' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Import customer dari Excel selesai',
+            'data'    => [
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors'  => $errors,
+            ],
+        ]);
+    }
+
     private function formatPhoneNumber($phone)
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
@@ -185,6 +391,194 @@ class CustomerController extends Controller
         }
 
         return $phone;
+    }
+
+    private function normalizeIncome(?string $raw): ?string
+    {
+        if (!$raw) {
+            return null;
+        }
+
+        $value = strtoupper(str_replace([' ', 'JT', 'JUTA', 'Jt'], '', $raw));
+
+        // Bentuk standar contoh file: <3, 3-5, 4-8, >15, dll.
+        if (str_starts_with($value, '<')) {
+            return '<5';
+        }
+
+        if (str_starts_with($value, '>')) {
+            $num = (float) ltrim($value, '><= ');
+            if ($num <= 15) {
+                return '16-20';
+            }
+            if ($num <= 50) {
+                return '20-50';
+            }
+            if ($num <= 100) {
+                return '50-100';
+            }
+            return '>100';
+        }
+
+        // Rentang, contoh 3-5, 4-8, 10-15, dll.
+        if (str_contains($value, '-')) {
+            [$min, $max] = array_pad(explode('-', $value, 2), 2, null);
+            $min = (float) $min;
+            $max = (float) $max;
+
+            $avg = ($min + $max) / 2;
+
+            if ($avg < 5) {
+                return '<5';
+            }
+            if ($avg >= 5 && $avg < 10) {
+                return '5-9';
+            }
+            if ($avg >= 10 && $avg <= 15) {
+                return '10-15';
+            }
+            if ($avg > 15 && $avg <= 20) {
+                return '16-20';
+            }
+            if ($avg > 20 && $avg <= 50) {
+                return '20-50';
+            }
+            if ($avg > 50 && $avg <= 100) {
+                return '50-100';
+            }
+
+            return '>100';
+        }
+
+        // Fallback: angka tunggal
+        $num = (float) $value;
+        if ($num < 5) {
+            return '<5';
+        }
+        if ($num >= 5 && $num < 10) {
+            return '5-9';
+        }
+        if ($num >= 10 && $num <= 15) {
+            return '10-15';
+        }
+        if ($num > 15 && $num <= 20) {
+            return '16-20';
+        }
+        if ($num > 20 && $num <= 50) {
+            return '20-50';
+        }
+        if ($num > 50 && $num <= 100) {
+            return '50-100';
+        }
+
+        return '>100';
+    }
+
+    /**
+     * Parse Excel cell (date or datetime) menjadi format Y-m-d H:i:s
+     *
+     * @param Cell|null $cell
+     * @return string|null
+     */
+    private function parseExcelDateTime(?Cell $cell): ?string
+    {
+        if (!$cell) {
+            return null;
+        }
+
+        $value = $cell->getValue();
+
+        // Jika numeric, anggap serial date Excel
+        if (is_numeric($value)) {
+            try {
+                $dt = ExcelDate::excelToDateTimeObject($value);
+                return Carbon::instance($dt)->format('Y-m-d H:i:s');
+            } catch (\Throwable $e) {
+                // fallback ke bawah
+            }
+        }
+
+        // Jika string, gunakan formatted value (contoh: 16/12/2025 11:48:56)
+        $formatted = trim((string) $cell->getFormattedValue());
+        if ($formatted === '') {
+            return null;
+        }
+
+        try {
+            // Coba format d/m/Y H:i:s
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}:\d{2}$/', $formatted)) {
+                return Carbon::createFromFormat('d/m/Y H:i:s', $formatted)->format('Y-m-d H:i:s');
+            }
+
+            // Coba format d/m/Y
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $formatted)) {
+                return Carbon::createFromFormat('d/m/Y', $formatted)->startOfDay()->format('Y-m-d H:i:s');
+            }
+
+            // Fallback generic
+            return Carbon::parse($formatted)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parse Excel cell date menjadi format Y-m-d (untuk tanggal_lahir)
+     *
+     * @param Cell|null $cell
+     * @return string|null
+     */
+    private function parseExcelDate(?Cell $cell): ?string
+    {
+        if (!$cell) {
+            return null;
+        }
+
+        $value = $cell->getValue();
+
+        if (is_numeric($value)) {
+            try {
+                $dt = ExcelDate::excelToDateTimeObject($value);
+                return Carbon::instance($dt)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                // fallback
+            }
+        }
+
+        $formatted = trim((string) $cell->getFormattedValue());
+        if ($formatted === '') {
+            return null;
+        }
+
+        try {
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $formatted)) {
+                return Carbon::createFromFormat('d/m/Y', $formatted)->format('Y-m-d');
+            }
+
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}:\d{2}$/', $formatted)) {
+                return Carbon::createFromFormat('d/m/Y H:i:s', $formatted)->format('Y-m-d');
+            }
+
+            return Carbon::parse($formatted)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Generate email dummy yang valid & unik untuk data tanpa email
+     */
+    private function generateDummyEmail(?string $waRaw, int $row): string
+    {
+        // Gunakan WA sebagai bagian dari username jika ada
+        $wa = preg_replace('/[^0-9]/', '', (string) $waRaw);
+        if ($wa) {
+            $username = 'noemail_' . substr($wa, -8);
+        } else {
+            $username = 'noemail_row' . $row . '_' . uniqid();
+        }
+
+        return $username . '@dummy.onedashboard.local';
     }
 
     public function riwayat_order(Request $request, $id)
@@ -238,6 +632,37 @@ class CustomerController extends Controller
             'total' => $followups->count(),
             'data' => $followups
         ]);
+    }
+
+    /**
+     * Generate MemberID dari create_at
+     * Format: 2025010100001 (tahun, bulan, tanggal, no urut)
+     */
+    private function generateMemberID($customer)
+    {
+        // Ambil create_at atau gunakan tanggal sekarang
+        $createAt = $customer->create_at ?? now();
+        
+        // Jika create_at adalah string, convert ke Carbon
+        if (is_string($createAt)) {
+            $createAt = Carbon::parse($createAt);
+        }
+        
+        // Format: YYYYMMDD
+        $datePart = $createAt->format('Ymd');
+        
+        // Hitung no urut berdasarkan jumlah customer yang dibuat pada tanggal yang sama
+        $sameDateCustomers = Customer::whereDate('create_at', $createAt->format('Y-m-d'))
+            ->where('id', '<=', $customer->id)
+            ->count();
+        
+        // Format no urut dengan 5 digit (00001)
+        $sequence = str_pad($sameDateCustomers, 5, '0', STR_PAD_LEFT);
+        
+        // Gabungkan: YYYYMMDD + 00001
+        $memberID = $datePart . $sequence;
+        
+        return $memberID;
     }
 }
 

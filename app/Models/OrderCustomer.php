@@ -34,6 +34,7 @@ class OrderCustomer extends Model
         'status_pembayaran',
         'status_order',
         'custom_value',
+        'catatan',
     ];
 
     public $timestamps = false;
@@ -47,5 +48,10 @@ class OrderCustomer extends Model
      public function customer_rel()
     {
         return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+
+    public function order_payment_rel()
+    {
+        return $this->hasMany(OrderPayment::class, 'order_id', 'id');
     }
 }

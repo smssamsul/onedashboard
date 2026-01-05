@@ -64,6 +64,10 @@
 @endpush
 
 @section('content')
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0;">Marketing Dashboard</h2>
+        <button class="btn btn-primary" onclick="openCheckInModal()" style="background: var(--primary); padding: 0.625rem 1.25rem; border-radius: var(--radius-sm); border: none; color: white; cursor: pointer; font-weight: 500;">+ Check In</button>
+    </div>
     <div class="card-grid" style="margin-bottom: 1.5rem;">
         <div class="stat-card">
             <div class="stat-icon" style="background: #FFE4E6; color: #F43F5E;">
@@ -380,7 +384,10 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         loadDashboardData();
+        initCheckIn();
     });
 </script>
+
+@include('hr.checkin-component')
 @endpush
 

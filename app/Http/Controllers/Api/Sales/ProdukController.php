@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Sales;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
+use App\Models\Webinar;
+use App\Services\ZoomService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +21,6 @@ class ProdukController extends Controller
     public function index()
     {
 
-        // $tanggal = $request->query('tanggal');
 
         $query = Produk::with([
             'kategori_rel:id,nama',
@@ -40,45 +41,6 @@ class ProdukController extends Controller
   
     public function store(Request $request)
     {
-        // Log request store produk
-        $logData = [
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'user_id' => auth()->user()->user,
-            'request_data' => $request->except(['header', 'gambar', 'testimoni']), // Exclude file untuk menghindari log yang terlalu besar
-            'header_file' => $request->hasFile('header') ? [
-                'name' => $request->file('header')->getClientOriginalName(),
-                'size' => $request->file('header')->getSize(),
-                'mime_type' => $request->file('header')->getMimeType(),
-            ] : null,
-            'gambar_files' => $request->has('gambar') ? collect($request->gambar)->map(function($img) {
-                if (isset($img['file'])) {
-                    return [
-                        'name' => $img['file']->getClientOriginalName(),
-                        'size' => $img['file']->getSize(),
-                        'mime_type' => $img['file']->getMimeType(),
-                        'caption' => $img['caption'] ?? null,
-                    ];
-                }
-                return null;
-            })->filter()->toArray() : null,
-            'testimoni_files' => $request->has('testimoni') ? collect($request->testimoni)->map(function($testi) {
-                if (isset($testi['gambar'])) {
-                    return [
-                        'name' => $testi['gambar']->getClientOriginalName(),
-                        'size' => $testi['gambar']->getSize(),
-                        'mime_type' => $testi['gambar']->getMimeType(),
-                        'nama' => $testi['nama'] ?? null,
-                    ];
-                }
-                return null;
-            })->filter()->toArray() : null,
-            'timestamp' => now()->toDateTimeString(),
-        ];
-
-        Log::info('Store Produk Request', $logData);
 
         $jsonFields = [
             'assign',
@@ -193,6 +155,48 @@ class ProdukController extends Controller
             'video' => json_encode($request->video ?? []),
             ]);
 
+
+        if($produk){
+            $token = ZoomService::getAccessToken();
+
+        
+            $zoomResponse = Http::withToken($token)->post('https://api.zoom.us/v2/users/me/meetings', [
+                'topic' => $request->topic,
+                'type' => 2, // scheduled meeting
+                'start_time' => date('Y-m-d\TH:i:s', strtotime($request->start_time)),
+                'duration' => 60,
+                'timezone' => 'Asia/Jakarta',
+                'settings' => [
+                    'join_before_host' => $request->input('join_before_host', true),
+                    'host_video' => $request->input('host_video', true),
+                    'participant_video' => $request->input('participant_video', true),
+                    'mute_upon_entry' => $request->input('mute_upon_entry', true),
+                    'waiting_room' => $request->input('waiting_room', true),
+                ],
+            ]);
+
+            if ($zoomResponse->failed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal membuat meeting di Zoom',
+                    'error' => $zoomResponse->json(),
+                ], 500);
+            }
+
+            $data = $zoomResponse->json();
+
+            $webinar = Webinar::create([
+                'produk' => $request->produk,
+                'meeting_id' => $data['id'],
+                'join_url' => $data['join_url'],
+                'start_url' => $data['start_url'],
+                'password' => $data['password'] ?? null,
+                'start_time' => $request->start_time,
+                'duration' => $request->duration,
+                ]);
+        }
+        
+
         return response()->json([
             'success' => true,
             'message' => 'Produk berhasil dibuat',
@@ -212,7 +216,7 @@ class ProdukController extends Controller
         ->where('id', $id)
         ->orderBy('create_at', 'desc');
 
-        $produk = $query->orderBy('create_at', 'desc')->get();
+        $produk = $query->orderBy('create_at', 'desc')->first();
 
         if (!$produk) {
             return response()->json([

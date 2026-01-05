@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - One Dashboard</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -14,22 +14,29 @@
         }
 
         :root {
-            --orange-soft: #fed7aa;
-            --orange-light: #fb923c;
-            --orange: #f97316;
-            --orange-dark: #ea580c;
-            --bg-gradient: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%);
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.18);
-            --text-primary: #1c1917;
-            --text-secondary: #78716c;
-            --shadow-sm: 0 2px 8px rgba(249, 115, 22, 0.08);
-            --shadow-md: 0 8px 24px rgba(249, 115, 22, 0.12);
-            --shadow-lg: 0 16px 48px rgba(249, 115, 22, 0.16);
+            --primary: #1e3a5f;
+            --primary-dark: #152a45;
+            --primary-light: #2d4a6f;
+            --accent: #14b8a6;
+            --accent-light: #5eead4;
+            --accent-lighter: #ccfbf1;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #ccfbf1 100%);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(30, 58, 95, 0.1);
+            --text-primary: #1e293b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-gradient);
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
@@ -60,7 +67,7 @@
         .bg-shape-1 {
             width: 400px;
             height: 400px;
-            background: var(--orange);
+            background: var(--primary);
             top: -200px;
             right: -200px;
             animation-delay: 0s;
@@ -69,7 +76,7 @@
         .bg-shape-2 {
             width: 300px;
             height: 300px;
-            background: var(--orange-light);
+            background: var(--accent);
             bottom: -150px;
             left: -150px;
             animation-delay: 5s;
@@ -78,7 +85,7 @@
         .bg-shape-3 {
             width: 200px;
             height: 200px;
-            background: var(--orange-soft);
+            background: var(--accent-light);
             top: 50%;
             left: 10%;
             animation-delay: 10s;
@@ -128,7 +135,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--orange) 0%, var(--orange-light) 50%, var(--orange) 100%);
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 50%, var(--primary) 100%);
             background-size: 200% 100%;
             animation: shimmer 3s ease-in-out infinite;
         }
@@ -147,7 +154,7 @@
             width: 80px;
             height: 80px;
             margin: 0 auto 1.5rem;
-            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             border-radius: 20px;
             display: flex;
             align-items: center;
@@ -172,7 +179,7 @@
             font-weight: 800;
             color: var(--text-primary);
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--orange-dark) 0%, var(--orange) 100%);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -217,26 +224,26 @@
         .form-group input {
             width: 100%;
             padding: 0.875rem 1rem 0.875rem 3rem;
-            border: 2px solid rgba(249, 115, 22, 0.1);
+            border: 2px solid var(--border);
             border-radius: 12px;
             font-size: 0.95rem;
             outline: none;
-            background: rgba(255, 255, 255, 0.8);
+            background: var(--surface);
             color: var(--text-primary);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: inherit;
         }
 
         .form-group input:focus {
-            border-color: var(--orange);
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+            border-color: var(--accent);
+            background: var(--surface);
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
             transform: translateY(-2px);
         }
 
         .form-group input:focus + .input-icon,
         .form-group input:not(:placeholder-shown) + .input-icon {
-            color: var(--orange);
+            color: var(--accent);
         }
 
         .form-group input::placeholder {
@@ -247,7 +254,7 @@
         .login-btn {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border: none;
             color: white;
             border-radius: 12px;
@@ -275,6 +282,7 @@
         .login-btn:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
         }
 
         .login-btn:hover::before {
@@ -332,7 +340,7 @@
         .loading {
             display: none;
             text-align: center;
-            color: var(--orange);
+            color: var(--accent);
             margin-top: 1rem;
             font-size: 0.9rem;
             font-weight: 600;
@@ -361,14 +369,14 @@
         }
 
         .footer-text a {
-            color: var(--orange);
+            color: var(--accent);
             text-decoration: none;
             font-weight: 600;
             transition: color 0.3s ease;
         }
 
         .footer-text a:hover {
-            color: var(--orange-dark);
+            color: var(--primary);
         }
 
         @media (max-width: 640px) {
@@ -515,9 +523,43 @@
                     successMessage.textContent = 'Login berhasil! Mengalihkan...';
                     successMessage.classList.add('show');
 
+                    // Redirect based on user level and divisi
+                    let redirectUrl = '/user/dashboard';
+                    const userLevel = data.user?.level;
+                    const userDivisi = data.user?.divisi;
+
+                    // Super Admin level 1 -> admin dashboard
+                    if (userDivisi == '1' || userDivisi == 1) {
+                        redirectUrl = '/admin/dashboard';
+                    }
+                    // HR divisi 5 -> HR dashboard
+                    else if (userDivisi == '5' || userDivisi == 5) {
+                        redirectUrl = '/hr/dashboard';
+                    }
+                    // Finance divisi 4 -> finance dashboard
+                    else if (userDivisi == '4' || userDivisi == 4) {
+                        redirectUrl = '/finance/dashboard';
+                    }
+                    // Sales divisi 3 level 1 -> sales dashboard
+                    else if (userDivisi == '3' && (userLevel == '1' || userLevel == 1)) {
+                        redirectUrl = '/sales/dashboard';
+                    }
+                    // Sales divisi 3 level 2 -> sales dashboard biasa
+                    else if (userDivisi == '3' && (userLevel == '2' || userLevel == 2)) {
+                        redirectUrl = '/sales/dashboard-sales';
+                    }
+                    // Marketing divisi 6 -> marketing dashboard
+                    else if (userDivisi == '6' || userDivisi == 6) {
+                        redirectUrl = '/marketing/dashboard';
+                    }
+                    // User biasa -> user dashboard
+                    else {
+                        redirectUrl = '/user/dashboard';
+                    }
+
                     // Redirect after 1 second
                     setTimeout(() => {
-                        window.location.href = '/sales/dashboard';
+                        window.location.href = redirectUrl;
                     }, 1000);
                 } else {
                     // Show error message

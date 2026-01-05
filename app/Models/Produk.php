@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasActivityLog;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class Produk extends Model
 {
@@ -37,12 +39,12 @@ class Produk extends Model
         'gtm',
         'video',
         'trainer',
-        
     ];
 
     public $timestamps = false;
 
-    // Supaya kolom 'gambar' otomatis dikonversi ke array saat diakses
+    protected $appends = ['assign_users'];
+
     protected $casts = [
         'gambar'    => 'array',
         'assign' => 'array',
@@ -55,13 +57,12 @@ class Produk extends Model
         'video' => 'array',
     ];
 
-     public function kategori_rel()
+    public function kategori_rel()
     {
         return $this->belongsTo(KategoriProduk::class, 'kategori', 'id');
     }
 
-    
-     public function user_rel()
+    public function user_rel()
     {
         return $this->belongsTo(User::class, 'user_input', 'id');
     }
@@ -76,5 +77,76 @@ class Produk extends Model
         return $this->hasOne(Webinar::class, 'produk', 'id');
     }
 
+    public function getAssignUsersAttribute()
+    {
+        if (!$this->id) {
+            return [];
+        }
+
+        try {
+            $rawAssign = $this->attributes['assign'] ?? null;
+            
+            if ($rawAssign === null) {
+                $rawAssign = DB::table('produk')
+                    ->where('id', $this->id)
+                    ->value('assign');
+            }
+
+            if (empty($rawAssign)) {
+                return [];
+            }
+
+            $assignArray = null;
+            
+            if (is_string($rawAssign)) {
+                $decoded = json_decode($rawAssign, true);
+                
+                if (is_string($decoded)) {
+                    $decoded = json_decode($decoded, true);
+                }
+                
+                if (is_array($decoded)) {
+                    $assignArray = $decoded;
+                }
+            } elseif (is_array($rawAssign)) {
+                $assignArray = $rawAssign;
+            }
+            
+            if (!is_array($assignArray) || empty($assignArray)) {
+                return [];
+            }
+
+            $userIds = [];
+            foreach ($assignArray as $id) {
+                $intId = (int)$id;
+                if ($intId > 0) {
+                    $userIds[] = $intId;
+                }
+            }
+
+            if (empty($userIds)) {
+                return [];
+            }
+
+            $users = User::whereIn('id', $userIds)
+                ->select('id', 'nama', 'email')
+                ->get();
+
+            if ($users->isEmpty()) {
+                return [];
+            }
+
+            return $users->map(function($user) {
+                return [
+                    'id' => (int)$user->id,
+                    'nama' => $user->nama ?? '',
+                    'email' => $user->email ?? '',
+                ];
+            })->values()->toArray();
+
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
 
 }

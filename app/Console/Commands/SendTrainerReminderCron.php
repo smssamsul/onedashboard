@@ -69,13 +69,11 @@ class SendTrainerReminderCron extends Command
                 continue;
             }
 
-            // Ambil template type 11 untuk produk ini
             $template = TemplateFollup::where('produk_id', $produk->id)
                 ->where('type', 11)
                 ->where('status', '!=', 'N')
                 ->first();
 
-            // Jika tidak ada template type 11, skip produk ini
             if (!$template) {
                 $this->warn("Template follup type 11 tidak ditemukan untuk produk {$produk->nama}");
                 Log::channel('followup')->warning("Template type 11 tidak ditemukan untuk reminder trainer", [
@@ -85,7 +83,7 @@ class SendTrainerReminderCron extends Command
                 continue;
             }
 
-            // Hitung jadwal kirim berdasarkan event template & tanggal_event produk
+
             try {
                 [$hariPart, $jamPart] = explode('-', $template->event);
                 $jumlahHari = (int) str_replace('d', '', strtolower($hariPart));
@@ -111,7 +109,6 @@ class SendTrainerReminderCron extends Command
 
             $eventDate = Carbon::parse($produk->tanggal_event);
 
-            // Jika tanggal event sudah lewat (hari event sudah selesai), tidak perlu reminder lagi
             if ($eventDate->endOfDay()->lt(now())) {
                 Log::channel('followup')->info("Lewati reminder trainer karena tanggal_event sudah lewat", [
                     'produk_id'    => $produk->id,
@@ -126,11 +123,9 @@ class SendTrainerReminderCron extends Command
                 ->setTimeFromTimeString($jamKirim);
 
             if (Carbon::now()->lt($targetTime)) {
-                // Belum waktunya kirim reminder
                 continue;
             }
 
-            // Data untuk render template
             $data = [
                 'trainer_name' => $produk->trainer_rel->nama ?? '',
                 'product_name' => $produk->nama ?? '',

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.hr')
 
 @section('title', 'HR Dashboard')
 @section('page_title', 'Dashboard HR')
@@ -60,10 +60,131 @@
     .sidebar-link.active::before {
         background: linear-gradient(180deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
     }
+
+    .attendance-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+
+    .attendance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .attendance-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        background: var(--bg);
+        border-radius: var(--radius-sm);
+    }
+
+    .attendance-time {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .attendance-time-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .attendance-time-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .attendance-status {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .status-hadir {
+        background: #D1FAE5;
+        color: #059669;
+    }
+
+    .status-telat {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+
+    .status-belum {
+        background: #E5E7EB;
+        color: #6B7280;
+    }
+
+    .attendance-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        flex: 1;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-primary:disabled {
+        background: var(--border);
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
 </style>
 @endpush
 
 @section('content')
+    <h2 style="margin-bottom: 1.5rem;">HR Dashboard</h2>
+
+    <!-- Attendance Card -->
+    <div class="attendance-card">
+        <div class="attendance-header">
+            <h3 style="margin: 0;">Absensi Hari Ini</h3>
+            <span class="attendance-status" id="attendanceStatusBadge">-</span>
+        </div>
+        <div class="attendance-info">
+            <div class="attendance-time">
+                <span class="attendance-time-label">Check In</span>
+                <span class="attendance-time-value" id="checkInTime">-</span>
+            </div>
+            <div class="attendance-time">
+                <span class="attendance-time-label">Check Out</span>
+                <span class="attendance-time-value" id="checkOutTime">-</span>
+            </div>
+        </div>
+        <div class="attendance-actions">
+            <button class="btn btn-primary" id="checkInBtn" onclick="openCheckInModal()">Check In</button>
+            <button class="btn btn-primary" id="checkOutBtn" onclick="openCheckOutModal()" disabled>Check Out</button>
+        </div>
+    </div>
+
     <div class="card-grid" style="margin-bottom: 1.5rem;">
         <div class="stat-card">
             <div class="stat-icon" style="background: #F3E8FF; color: #8B5CF6;">
@@ -180,6 +301,34 @@
     let chartAbsensi = null;
     let chartRekrutmen = null;
 
+    // Helper function untuk mendapatkan tanggal lokal Indonesia (format YYYY-MM-DD)
+    function getTodayIndonesia() {
+        const now = new Date();
+        
+        // Gunakan timezone Asia/Jakarta (WIB - UTC+7)
+        // Jika browser tidak support Intl, fallback ke manual calculation
+        try {
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            return formatter.format(now);
+        } catch (e) {
+            // Fallback: konversi manual ke WIB (UTC+7)
+            const offset = 7; // WIB (Western Indonesian Time)
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const indonesiaTime = new Date(utc + (3600000 * offset));
+            
+            const year = indonesiaTime.getFullYear();
+            const month = String(indonesiaTime.getMonth() + 1).padStart(2, '0');
+            const day = String(indonesiaTime.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        }
+    }
+
     async function loadDashboardData() {
         try {
             const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -237,10 +386,114 @@
                     updateKaryawanTable(data.karyawan_terbaru);
                 }
             }
+
+            // Load today's attendance - menggunakan waktu lokal Indonesia
+            const today = getTodayIndonesia();
+            const attendanceResponse = await fetch(`/api/hr/absensi/by-current-user?tanggal=${today}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (attendanceResponse.ok) {
+                const attendanceResult = await attendanceResponse.json();
+                if (attendanceResult.success && attendanceResult.data && attendanceResult.data.length > 0) {
+                    const todayAttendance = attendanceResult.data[0];
+                    updateAttendanceCard(todayAttendance);
+                } else {
+                    // No attendance today
+                    updateAttendanceCard(null);
+                }
+            } else {
+                updateAttendanceCard(null);
+            }
         } catch (error) {
             console.error('Error loading dashboard:', error);
         }
     }
+
+    function updateAttendanceCard(attendance) {
+        const checkInTimeEl = document.getElementById('checkInTime');
+        const checkOutTimeEl = document.getElementById('checkOutTime');
+        const statusBadgeEl = document.getElementById('attendanceStatusBadge');
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+
+        if (!attendance) {
+            // Belum check in
+            checkInTimeEl.textContent = '-';
+            checkOutTimeEl.textContent = '-';
+            statusBadgeEl.textContent = 'Belum Check In';
+            statusBadgeEl.className = 'attendance-status status-belum';
+            checkInBtn.disabled = false;
+            checkOutBtn.disabled = true;
+        } else if (attendance.check_in && !attendance.check_out) {
+            // Sudah check in, belum check out
+            checkInTimeEl.textContent = attendance.check_in || '-';
+            checkOutTimeEl.textContent = '-';
+            
+            // Determine status (Hadir/Telat)
+            const status = attendance.status_absensi || 'Hadir';
+            statusBadgeEl.textContent = status;
+            statusBadgeEl.className = status === 'Telat' ? 'attendance-status status-telat' : 'attendance-status status-hadir';
+            
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = false;
+        } else if (attendance.check_out) {
+            // Sudah check out
+            checkInTimeEl.textContent = attendance.check_in || '-';
+            checkOutTimeEl.textContent = attendance.check_out || '-';
+            
+            // Determine status (Hadir/Telat)
+            const status = attendance.status_absensi || 'Hadir';
+            statusBadgeEl.textContent = status;
+            statusBadgeEl.className = status === 'Telat' ? 'attendance-status status-telat' : 'attendance-status status-hadir';
+            
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = true;
+        }
+    }
+
+    async function openCheckOutModal() {
+        try {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // Get today's attendance ID - menggunakan waktu lokal Indonesia
+            const today = getTodayIndonesia();
+            const attendanceResponse = await fetch(`/api/hr/absensi/by-current-user?tanggal=${today}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (attendanceResponse.ok) {
+                const attendanceResult = await attendanceResponse.json();
+                if (attendanceResult.success && attendanceResult.data && attendanceResult.data.length > 0) {
+                    const todayAttendance = attendanceResult.data[0];
+                    if (todayAttendance.check_in && !todayAttendance.check_out) {
+                        // Open check out modal from checkin-component
+                        if (typeof openCheckOutModalFromAbsensi === 'function') {
+                            openCheckOutModalFromAbsensi(todayAttendance.id);
+                        } else {
+                            // Fallback: redirect to absensi page
+                            window.location.href = '{{ route('hr.absensi') }}';
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error opening check out modal:', error);
+        }
+    }
+
+    // Make function available globally
+    window.openCheckOutModal = openCheckOutModal;
 
     function updateChartAbsensi(data) {
         const canvas = document.getElementById('chartAbsensi');
@@ -358,7 +611,10 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         loadDashboardData();
+        initCheckIn();
     });
 </script>
+
+@include('hr.checkin-component')
 @endpush
 

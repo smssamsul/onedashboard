@@ -35,6 +35,13 @@ class Customer extends Authenticatable implements JWTSubject
         'harapan',
         'create_at',
         'update_at',
+        'memberID',
+        'keanggotaan',
+        'provinsi',
+        'kabupaten',
+        'kecamatan',
+        'sapaan',
+        'kode_pos',
         'status'
     ];
 
