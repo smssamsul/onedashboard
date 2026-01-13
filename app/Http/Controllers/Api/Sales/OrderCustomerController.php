@@ -6,13 +6,16 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderCustomer;
 use App\Models\Customer;
+use App\Models\ProdukBundling;
 use App\Models\Produk;
 use App\Models\TemplateFollup;
 use App\Models\LogsFollup;
 use App\Models\OtpCus;
 use App\Models\OrderPayment;
+use App\Models\Sales;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use App\Helpers\TemplateHelper;
 use Carbon\Carbon;
 
@@ -24,13 +27,33 @@ class OrderCustomerController extends Controller
     {
          $query = OrderCustomer::with([
             'produk_rel:id,nama',
-            'customer_rel:id,nama,wa',
-            'order_payment_rel:id,order_id,amount,status,payment_method,payment_type,payment_ke,tanggal,bukti_pembayaran,create_at'
+            'customer_rel:id,nama,wa,sales_id',
+            'customer_rel.sales_rel:id,nama',
+            'order_payment_rel:id,order_id,amount,status,payment_method,payment_type,payment_ke,tanggal,bukti_pembayaran,create_at',
+            'bundling_rel:id,produk,nama,harga,status'
         ])->withSum([
             'order_payment_rel as total_paid' => function($query) {
                 $query->where('status', '=', '2');
             }
         ], 'amount');
+        
+        // Filter berdasarkan search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('customer_rel', function($customerQuery) use ($search) {
+                    $customerQuery->where('nama', 'like', '%' . $search . '%')
+                                 ->orWhere('wa', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('produk_rel', function($produkQuery) use ($search) {
+                    $produkQuery->where('nama', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('customer_rel.sales_rel', function($salesQuery) use ($search) {
+                    $salesQuery->where('nama', 'like', '%' . $search . '%');
+                })
+                ->orWhere('id', 'like', '%' . $search . '%');
+            });
+        }
         
         $query->orderBy('create_at', 'desc');
 
@@ -41,6 +64,24 @@ class OrderCustomerController extends Controller
         foreach ($ordersData as $order) {
             $order->total_paid = (float) ($order->total_paid ?? 0);
             $order->remaining = max(0, (float) ($order->total_harga ?? 0) - $order->total_paid);
+            
+            // Pastikan status_order dan status_pembayaran selalu ada
+            if (!isset($order->status_order)) {
+                $order->status_order = null;
+            }
+            if (!isset($order->status_pembayaran)) {
+                $order->status_pembayaran = null;
+            }
+            
+            // Tambahkan nama sales ke dalam customer_rel
+            if ($order->customer_rel) {
+                if ($order->customer_rel->sales_rel) {
+                    $order->customer_rel->sales_nama = $order->customer_rel->sales_rel->nama ?? null;
+                } else {
+                    $order->customer_rel->sales_nama = null;
+                }
+            }
+
         }
 
         return response()->json([
@@ -101,14 +142,15 @@ class OrderCustomerController extends Controller
 
         $query = OrderCustomer::with([
             'produk_rel:id,nama',
-            'customer_rel:id,nama,wa'
+            'customer_rel:id,nama,wa',
+            'bundling_rel:id,produk,nama,harga,status'
         ])->withSum([
             'order_payment_rel as total_paid' => function($query) {
                 $query->where('status', '!=', 'N');
             }
         ], 'amount')
         ->where('id', $id)
-        ->first();        
+        ->first();
 
         return response()->json([
             'success' => true,
@@ -237,19 +279,46 @@ class OrderCustomerController extends Controller
             $customer = $existingCustomer;
         } else {
 
+            // Get sales_id berdasarkan urutan dan last_update_lead (round-robin)
+            $sales_id = $this->getNextSalesId();
+
             $customer = Customer::create([
                 'nama'      => $request->nama,
+                'sales_id'  => $sales_id,
                 'email'     => $request->email,
                 'alamat'    => $request->alamat,
                 'wa'        => $wa,
                 'password'  => bcrypt("123456"),
                 'status'    => '1',
                 'status_order' => json_encode([$request->produk]),
+                'keanggotaan' => 'basic',
+                'provinsi' => $request->provinsi,
+                'kabupaten' => $request->kabupaten,
+                'kecamatan' => $request->kecamatan,
+                'kode_pos' => $request->kode_pos,
                 'create_at' => now(),
             ]);
+
+            // Generate memberID setelah customer dibuat
+            $memberID = $this->generateMemberID($customer);
+            $customer->update(['memberID' => $memberID]);
         }
 
         $statusPembayaran = $request->status_pembayaran ?? '0';
+
+        // Process bundling - simpan hanya ID bundling (integer, foreign key)
+        $bundlingId = null;
+        if ($request->has('bundling')) {
+            if (is_numeric($request->bundling)) {
+                $bundlingId = (int) $request->bundling;
+            } elseif (is_array($request->bundling) && isset($request->bundling['id'])) {
+                $bundlingId = (int) $request->bundling['id'];
+            } elseif (is_array($request->bundling) && count($request->bundling) > 0) {
+                // Jika array, ambil ID pertama
+                $firstItem = $request->bundling[0];
+                $bundlingId = is_array($firstItem) && isset($firstItem['id']) ? (int) $firstItem['id'] : (is_numeric($firstItem) ? (int) $firstItem : null);
+            }
+        }
 
         $order = OrderCustomer::create([
             'customer' => $customer->id,
@@ -264,6 +333,7 @@ class OrderCustomerController extends Controller
             'status_order' => '1',
             'create_at' => now(),
             'custom_value'  => json_encode($customValue), 
+            'bundling' => $bundlingId,
             'status' => '1',
             'status_pembayaran' => $statusPembayaran,
         ]);
@@ -321,7 +391,8 @@ class OrderCustomerController extends Controller
         // $deviceKey    = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
 
         // Kirim notifikasi order (template followup)
-        $woowaKey = env('WOOWA_KEY');
+        // Ambil woowa_key dari sales yang terkait dengan customer
+        $woowaKey = $this->getWoowaKeyFromSales($customer);
 
         $templateFollup = TemplateFollup::where('produk_id', $request->produk)
                                 ->where('type', '5')
@@ -450,6 +521,9 @@ class OrderCustomerController extends Controller
         $customerId = $request->customer;
 
         if (!$customerId) {
+            // Get sales_id berdasarkan urutan dan last_update_lead (round-robin)
+            $sales_id = $this->getNextSalesId();
+            
             $wa = $this->formatPhoneNumber($request->wa);
             $customer = Customer::create([
                 'nama'      => $request->nama,
@@ -465,6 +539,7 @@ class OrderCustomerController extends Controller
                 'password'  => bcrypt("123456"),
                 'keanggotaan' => 'basic', // Default keanggotaan
                 'create_at' => now(),
+                'sales_id' => $request->sales_id ?? $sales_id,
             ]);
 
             // Generate memberID setelah customer dibuat
@@ -487,6 +562,20 @@ class OrderCustomerController extends Controller
             }
         }
 
+        // Process bundling - simpan hanya ID bundling (integer, foreign key)
+        $bundlingId = null;
+        if ($request->has('bundling')) {
+            if (is_numeric($request->bundling)) {
+                $bundlingId = (int) $request->bundling;
+            } elseif (is_array($request->bundling) && isset($request->bundling['id'])) {
+                $bundlingId = (int) $request->bundling['id'];
+            } elseif (is_array($request->bundling) && count($request->bundling) > 0) {
+                // Jika array, ambil ID pertama
+                $firstItem = $request->bundling[0];
+                $bundlingId = is_array($firstItem) && isset($firstItem['id']) ? (int) $firstItem['id'] : (is_numeric($firstItem) ? (int) $firstItem : null);
+            }
+        }
+
         $orderData = [
             'customer'      => $customerId,
             'produk'        => $request->produk,
@@ -500,6 +589,7 @@ class OrderCustomerController extends Controller
             'create_at'     => now(),
             'status'        => '1',
             'custom_value'  => json_encode($customValue),
+            'bundling'      => $bundlingId,
         ];
 
         $order = OrderCustomer::create($orderData);
@@ -508,16 +598,15 @@ class OrderCustomerController extends Controller
 
         if($request->notif)
         {
-            // Kode Quods (LAMA - DIKOMENTAR)
-            // $token = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
-            // $deviceKey    = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
+      
 
       
             if (!$dataCustomer && $customerId) {
                 $dataCustomer = Customer::where('id', $customerId)->first();
             }
 
-            $woowaKey = env('WOOWA_KEY');
+            // Ambil woowa_key dari sales yang terkait dengan customer
+            $woowaKey = $this->getWoowaKeyFromSales($dataCustomer);
 
             $templateFollup = TemplateFollup::where('produk_id', $request->produk)
                                     ->where('type', '5')
@@ -710,7 +799,8 @@ class OrderCustomerController extends Controller
                     ? TemplateHelper::render($templateFollup->text, $dataText)
                     : "Halo {$customer->nama}, pembayaran untuk {$produk->nama} telah kami terima. Terima kasih 🙏";
 
-                $woowaKey = env('WOOWA_KEY');
+                // Ambil woowa_key dari sales yang terkait dengan customer
+                $woowaKey = $this->getWoowaKeyFromSales($customer);
 
                 $response = Http::asJson()
                     ->withHeaders([
@@ -804,7 +894,7 @@ class OrderCustomerController extends Controller
 
     /**
      * Generate MemberID dari create_at
-     * Format: 2025010100001 (tahun, bulan, tanggal, no urut)
+     * Format: 2025010100001 (tahun, bulan, tanggal, no urut random)
      */
     private function generateMemberID($customer)
     {
@@ -819,18 +909,336 @@ class OrderCustomerController extends Controller
         // Format: YYYYMMDD
         $datePart = $createAt->format('Ymd');
         
-        // Hitung no urut berdasarkan jumlah customer yang dibuat pada tanggal yang sama
-        $sameDateCustomers = Customer::whereDate('create_at', $createAt->format('Y-m-d'))
-            ->where('id', '<=', $customer->id)
-            ->count();
+        // Generate random sequence (5 digit: 00001-99999)
+        $maxAttempts = 100; // Maksimal percobaan untuk menghindari infinite loop
+        $attempts = 0;
         
-        // Format no urut dengan 5 digit (00001)
-        $sequence = str_pad($sameDateCustomers, 5, '0', STR_PAD_LEFT);
-        
-        // Gabungkan: YYYYMMDD + 00001
-        $memberID = $datePart . $sequence;
+        do {
+            // Generate random number antara 1-99999
+            $randomSequence = rand(1, 99999);
+            $sequence = str_pad($randomSequence, 5, '0', STR_PAD_LEFT);
+            
+            // Gabungkan: YYYYMMDD + random sequence
+            $memberID = $datePart . $sequence;
+            
+            // Cek apakah memberID sudah ada
+            $exists = Customer::where('memberID', $memberID)
+                ->where('id', '!=', $customer->id ?? null)
+                ->exists();
+            
+            $attempts++;
+            
+            // Jika sudah mencoba terlalu banyak, gunakan timestamp sebagai fallback
+            if ($attempts >= $maxAttempts) {
+                $sequence = str_pad(substr(time(), -5), 5, '0', STR_PAD_LEFT);
+                $memberID = $datePart . $sequence;
+                break;
+            }
+        } while ($exists);
         
         return $memberID;
+    }
+
+    
+    private function getNextSalesId()
+    {
+        $salesList = Sales::orderBy('urutan', 'asc')
+            ->orderByRaw('CASE WHEN last_update_lead IS NULL THEN 0 ELSE 1 END') // Null dulu
+            ->orderBy('last_update_lead', 'asc') 
+            ->get();
+
+       $selectedSales = $salesList->first();
+
+        $selectedSales->update([
+            'last_update_lead' => now()->format('Y-m-d H:i:s'),
+            'update_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        return $selectedSales->user_id;
+    }
+
+    /**
+     * Ambil woowa_key dari sales berdasarkan customer
+     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     */
+    private function getWoowaKeyFromSales($customer)
+    {
+        if (!$customer || !$customer->sales_id) {
+            return env('WOOWA_KEY');
+        }
+
+        $sales = Sales::where('user_id', $customer->sales_id)->first();
+        
+        if ($sales && $sales->woowa_key) {
+            return $sales->woowa_key;
+        }
+
+        // Fallback ke env jika tidak ditemukan
+        return env('WOOWA_KEY');
+    }
+
+    /**
+     * Ambil order untuk sales berdasarkan sales_id
+     */
+    public function ordersForSales(Request $request)
+    {
+        $userLogin = auth('api')->user();
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user || $user->divisi != '3' || $user->level != '2') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        // Ambil order berdasarkan sales_id melalui customer
+        $query = OrderCustomer::with([
+            'produk_rel:id,nama',
+            'customer_rel:id,nama,email,wa,pendapatan_bln',
+        ])
+        ->whereHas('customer_rel', function($q) use ($user) {
+            $q->where('sales_id', $user->id)
+              ->where('status', '!=', 'N');
+        })
+        ->where('status', '!=', 'N');
+
+        // Filter berdasarkan search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('customer_rel', function($customerQuery) use ($search) {
+                    $customerQuery->where('nama', 'like', '%' . $search . '%')
+                                 ->orWhere('email', 'like', '%' . $search . '%')
+                                 ->orWhere('wa', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('produk_rel', function($produkQuery) use ($search) {
+                    $produkQuery->where('nama', 'like', '%' . $search . '%');
+                });
+            });
+        }
+
+        // Filter berdasarkan status_order
+        if ($request->has('status') && $request->status) {
+            $query->where('status_order', $request->status);
+        }
+
+        // Filter berdasarkan status_pembayaran
+        if ($request->has('status_pembayaran') && $request->status_pembayaran !== '') {
+            $query->where('status_pembayaran', $request->status_pembayaran);
+        }
+
+        $perPage = $request->get('per_page', 15);
+        $orders = $query->orderBy('create_at', 'desc')
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders->items(),
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ]
+        ]);
+    }
+
+    /**
+     * Broadcast pesan WhatsApp untuk multiple orders
+     */
+    public function broadcastOrders(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'message' => 'required|string',
+            'status_order' => 'nullable|string',
+            'status_pembayaran' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $userLogin = auth('api')->user();
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user || $user->divisi != '3' || $user->level != '2') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        // Ambil order berdasarkan sales_id
+        $query = OrderCustomer::with('customer_rel')
+            ->whereHas('customer_rel', function($q) use ($user) {
+                $q->where('sales_id', $user->id)
+                  ->where('status', '!=', 'N');
+            })
+            ->where('status', '!=', 'N')
+            ->whereHas('customer_rel', function($q) {
+                $q->whereNotNull('wa')
+                  ->where('wa', '!=', '');
+            });
+
+        if ($request->has('status_order') && $request->status_order !== null && $request->status_order !== '') {
+            $query->where('status_order', $request->status_order);
+        }
+
+        if ($request->has('status_pembayaran') && $request->status_pembayaran !== null && $request->status_pembayaran !== '') {
+            $query->where('status_pembayaran', $request->status_pembayaran);
+        }
+
+        $orders = $query->get();
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada order yang sesuai dengan filter atau customer tidak memiliki nomor WhatsApp'
+            ], 404);
+        }
+
+        $sentCount = 0;
+        $failedCount = 0;
+
+        foreach ($orders as $order) {
+            if (!$order->customer_rel || !$order->customer_rel->wa) {
+                $failedCount++;
+                continue;
+            }
+
+            try {
+                $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel);
+
+                $response = Http::asJson()
+                    ->withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json'
+                    ])
+                    ->post('https://notifapi.com/send_message', [
+                        'phone_no' => $order->customer_rel->wa,
+                        'key' => $woowaKey,
+                        'message' => $request->message,
+                    ]);
+
+                if ($response->successful()) {
+                    $sentCount++;
+                } else {
+                    $failedCount++;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Gagal kirim broadcast order', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage()
+                ]);
+                $failedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Broadcast selesai',
+            'data' => [
+                'total_orders' => $orders->count(),
+                'sent' => $sentCount,
+                'failed' => $failedCount
+            ]
+        ]);
+    }
+
+    /**
+     * Send WhatsApp from Order
+     */
+    public function sendWhatsApp(Request $request, $orderId)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $order = OrderCustomer::with('customer_rel')->find($orderId);
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tidak ditemukan'
+            ], 404);
+        }
+
+        if (!$order->customer_rel || !$order->customer_rel->wa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer tidak memiliki nomor WhatsApp'
+            ], 400);
+        }
+
+        $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel);
+        
+        if (!$woowaKey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Konfigurasi WhatsApp tidak ditemukan'
+            ], 500);
+        }
+
+        try {
+            $response = Http::asJson()
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])
+                ->post('https://notifapi.com/send_message', [
+                    'phone_no' => $order->customer_rel->wa,
+                    'key' => $woowaKey,
+                    'message' => $request->message,
+                ]);
+
+            if ($response->successful()) {
+                // Create follow up order
+                $userId = Auth::id();
+                
+                \App\Models\FollowUpOrder::create([
+                    'order_id' => $order->id,
+                    'follow_up_date' => now()->format('Y-m-d H:i:s'),
+                    'channel' => 'WhatsApp',
+                    'note' => $request->message,
+                    'type' => 'whatsapp_out',
+                    'status' => '1',
+                    'create_by' => $userId,
+                    'create_at' => now()->format('Y-m-d H:i:s'),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pesan WhatsApp berhasil dikirim',
+                    'data' => $response->json()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengirim pesan WhatsApp',
+                    'error' => $response->json()
+                ], $response->status());
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

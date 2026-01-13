@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\HrKaryawan;
 use App\Models\HrDepartemen;
+use App\Models\Sales;
 use App\Models\User;
 use App\Models\UserLogin;
 use Illuminate\Support\Facades\Validator;
@@ -195,6 +196,25 @@ class HrKaryawanController extends Controller
                 'create_at' => now()->format('Y-m-d H:i:s'),
             ]);
 
+            // Jika departemen = 3 dan jabatan = 2, buat sales otomatis
+            if ($request->departemen == 3 && (int)$request->jabatan == 2) {
+                // Cek apakah sales sudah ada untuk user_id ini
+                $existingSales = Sales::where('user_id', $userId)->first();
+                if (!$existingSales) {
+                    // Hitung urutan berdasarkan jumlah sales yang ada + 1
+                    $urutan = Sales::count() + 1;
+                    
+                    Sales::create([
+                        'user_id' => $userId,
+                        'woowa_key' => null,
+                        'urutan' => (string)$urutan,
+                        'last_update_lead' => null,
+                        'create_at' => now()->format('Y-m-d H:i:s'),
+                        'update_at' => null,
+                    ]);
+                }
+            }
+
             DB::commit();
 
             $karyawan->load(['departemen_rel', 'user_rel']);
@@ -249,6 +269,9 @@ class HrKaryawanController extends Controller
             ], 422);
         }
 
+        $oldDepartemen = $karyawan->departemen;
+        $oldJabatan = $karyawan->jabatan;
+        
         $karyawan->user_id = $request->user ?? $karyawan->user;
         $karyawan->nama = $request->nama;
         $karyawan->jenis_kelamin = $request->jenis_kelamin ?? $karyawan->jenis_kelamin;
@@ -266,6 +289,28 @@ class HrKaryawanController extends Controller
         $karyawan->status = $request->status ?? $karyawan->status;
         $karyawan->update_at = now()->format('Y-m-d H:i:s');
         $karyawan->save();
+
+        // Jika departemen diubah menjadi 3 dan jabatan menjadi 2, buat sales otomatis
+        $newDepartemen = $karyawan->departemen;
+        $newJabatan = $karyawan->jabatan;
+        
+        if ($newDepartemen == 3 && $newJabatan == 2) {
+            // Cek apakah sales sudah ada untuk user_id ini
+            $existingSales = Sales::where('user_id', $karyawan->user_id)->first();
+            if (!$existingSales) {
+                // Hitung urutan berdasarkan jumlah sales yang ada + 1
+                $urutan = Sales::count() + 1;
+                
+                Sales::create([
+                    'user_id' => $karyawan->user_id,
+                    'woowa_key' => null,
+                    'urutan' => (string)$urutan,
+                    'last_update_lead' => null,
+                    'create_at' => now()->format('Y-m-d H:i:s'),
+                    'update_at' => null,
+                ]);
+            }
+        }
 
         $karyawan->load(['departemen_rel', 'user_rel']);
 

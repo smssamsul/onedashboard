@@ -564,6 +564,7 @@ class LeadController extends Controller
 
     public function followToday(Request $request)
     {
+        // Method dinonaktifkan - kembali mengambil data dari leads
         $userLogin = auth('api')->user();
         $userLogin->load('userData');
         $user = $userLogin->userData;
@@ -575,8 +576,9 @@ class LeadController extends Controller
             ], 403);
         }
 
+        // Ambil data dari leads berdasarkan sales_id (seperti sebelumnya)
         $query = Lead::with([
-            'customer_rel:id,nama,email,wa',
+            'customer_rel:id,nama,email,wa,pendapatan_bln',
             'sales_rel:id,nama,level'
         ])
         ->where('sales_id', $user->id)
@@ -585,10 +587,12 @@ class LeadController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->whereHas('customer_rel', function($customerQuery) use ($search) {
-                    $customerQuery->where('nama', 'ILIKE', "%{$search}%");
-                })
-                ->orWhere('lead_label', 'ILIKE', "%{$search}%");
+                $q->where('lead_label', 'like', '%' . $search . '%')
+                  ->orWhereHas('customer_rel', function($customerQuery) use ($search) {
+                      $customerQuery->where('nama', 'like', '%' . $search . '%')
+                                   ->orWhere('email', 'like', '%' . $search . '%')
+                                   ->orWhere('wa', 'like', '%' . $search . '%');
+                  });
             });
         }
 
@@ -597,7 +601,7 @@ class LeadController extends Controller
         }
 
         if ($request->has('lead_label') && $request->lead_label) {
-            $query->where('lead_label', 'ILIKE', '%' . $request->lead_label . '%');
+            $query->where('lead_label', 'like', '%' . $request->lead_label . '%');
         }
 
         $perPage = $request->get('per_page', 15);

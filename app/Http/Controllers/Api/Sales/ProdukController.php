@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
 use App\Models\Webinar;
+use App\Models\ProdukBundling;
 use App\Services\ZoomService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class ProdukController extends Controller
 {
@@ -16,6 +18,101 @@ class ProdukController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api')->except(['showByKode']);;
+    }
+
+    /**
+     * Process landingpage components and upload images
+     */
+    private function processLandingPage($landingpage, $produkId = null)
+    {
+        if (empty($landingpage)) {
+            return null;
+        }
+
+        // Jika landingpage adalah string JSON, decode dulu
+        if (is_string($landingpage)) {
+            $landingpage = json_decode($landingpage, true);
+        }
+
+        if (!is_array($landingpage)) {
+            return is_string($landingpage) ? $landingpage : json_encode($landingpage);
+        }
+
+        $request = request();
+
+        foreach ($landingpage as &$component) {
+            if (!isset($component['type'])) {
+                continue;
+            }
+
+            $type = $component['type'];
+            $componentId = $component['config']['componentId'] ?? null;
+
+            // Process image component
+            if ($type === 'image' && isset($component['content'])) {
+                // Cek apakah ada file upload untuk image ini
+                $fileKey = $componentId ? "landingpage_image_{$componentId}" : null;
+                
+                // Jika src adalah URL atau path yang sudah ada, skip
+                if (isset($component['content']['src']) && 
+                    (strpos($component['content']['src'], 'http') === 0 || 
+                     strpos($component['content']['src'], '/storage/') === 0)) {
+                    continue;
+                }
+
+                if ($fileKey && $request->hasFile($fileKey)) {
+                    $file = $request->file($fileKey);
+                    if ($file && $file->isValid()) {
+                        $path = $file->store("produk/landingpage/{$produkId}/images", 'public');
+                        $component['content']['src'] = $path;
+                    }
+                }
+            }
+
+            // Process image-slider component
+            if ($type === 'image-slider' && isset($component['content']['images']) && is_array($component['content']['images'])) {
+                foreach ($component['content']['images'] as $idx => &$image) {
+                    // Jika src adalah URL atau path yang sudah ada, skip
+                    if (isset($image['src']) && 
+                        (strpos($image['src'], 'http') === 0 || 
+                         strpos($image['src'], '/storage/') === 0)) {
+                        continue;
+                    }
+
+                    $fileKey = $componentId ? "landingpage_slider_{$componentId}_{$idx}" : null;
+                    if ($fileKey && $request->hasFile($fileKey)) {
+                        $file = $request->file($fileKey);
+                        if ($file && $file->isValid()) {
+                            $path = $file->store("produk/landingpage/{$produkId}/slider", 'public');
+                            $image['src'] = $path;
+                        }
+                    }
+                }
+            }
+
+            // Process testimoni component
+            if ($type === 'testimoni' && isset($component['content']['items']) && is_array($component['content']['items'])) {
+                foreach ($component['content']['items'] as $idx => &$testi) {
+                    // Jika gambar adalah URL atau path yang sudah ada, skip
+                    if (isset($testi['gambar']) && 
+                        (strpos($testi['gambar'], 'http') === 0 || 
+                         strpos($testi['gambar'], '/storage/') === 0)) {
+                        continue;
+                    }
+
+                    $fileKey = $componentId ? "landingpage_testimoni_{$componentId}_{$idx}" : null;
+                    if ($fileKey && $request->hasFile($fileKey)) {
+                        $file = $request->file($fileKey);
+                        if ($file && $file->isValid()) {
+                            $path = $file->store("produk/landingpage/{$produkId}/testimoni", 'public');
+                            $testi['gambar'] = $path;
+                        }
+                    }
+                }
+            }
+        }
+
+        return json_encode($landingpage);
     }
   
     public function index()
@@ -51,6 +148,8 @@ class ProdukController extends Controller
             'event_fb_pixel',
             'gtm',
             'video',
+            'bundling',
+            'landingpage',
         ];
 
         foreach ($jsonFields as $field) {
@@ -66,38 +165,42 @@ class ProdukController extends Controller
         $request->validate([
             'kategori' => 'required|integer',
             'nama' => 'required|string|max:255',
-            'header' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'kode' => 'required|string|max:255|unique:produk,kode',
+            'url' => 'nullable|string|max:255',
+            'harga' => 'nullable|string',
+            'jenis_produk' => 'nullable|string|max:20',
+            'isBundling' => 'nullable|boolean',
+            'bundling' => 'nullable|array',
+            'tanggal_event' => 'nullable|date',
+            'assign' => 'nullable|array',
+            'status' => 'nullable|string',
+            'landingpage' => 'nullable|array',
+            'header' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'gambar.*.caption' => 'nullable|string',
-
-             
-            'assign' => 'nullable|array',
-
             'custom_field' => 'nullable|array',
             'custom_field.*.nama_field' => 'required_with:custom_field|string',
             'custom_field.*.urutan' => 'nullable|integer',
-
             'list_point' => 'nullable|array',
             'list_point.*.nama' => 'required_with:list_point|string',
             'list_point.*.urutan' => 'nullable|integer',
-
             'testimoni' => 'nullable|array',
             'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'testimoni.*.nama' => 'nullable|string',
             'testimoni.*.deskripsi' => 'nullable|string',
-
             'fb_pixel' => 'nullable|array',
-
             'event_fb_pixel' => 'nullable|array',
-
             'gtm' => 'nullable|array',
-
             'video' => 'nullable|array',
             'video.*' => 'nullable|string'
         ]);
 
 
-        $headerPath = $request->file('header')->store('produk/header', 'public');
+        // Handle header image (optional now)
+        $headerPath = null;
+        if ($request->hasFile('header')) {
+            $headerPath = $request->file('header')->store('produk/header', 'public');
+        }
 
         $gambarArray = [];
         if ($request->has('gambar')) {
@@ -127,6 +230,23 @@ class ProdukController extends Controller
             }
         }
 
+        // Process bundling - tidak lagi disimpan di field bundling, tapi di table produk_bundling
+        // $bundlingData akan tetap null karena tidak disimpan di field bundling
+        $bundlingData = null;
+
+        // Parse tanggal_event dari ISO format jika perlu
+        $tanggalEvent = null;
+        if ($request->has('tanggal_event') && $request->tanggal_event) {
+            try {
+                // Coba parse dari ISO format (2024-12-15T09:00:00.000Z)
+                $tanggalEvent = \Carbon\Carbon::parse($request->tanggal_event)->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Jika gagal, gunakan value asli
+                $tanggalEvent = $request->tanggal_event;
+            }
+        }
+
+        // Create produk dulu untuk mendapatkan ID (diperlukan untuk upload image dari landingpage)
         $produk = Produk::create([
             'kategori' => $request->kategori,
             'user_input' => auth()->user()->user,
@@ -135,16 +255,16 @@ class ProdukController extends Controller
             'url' => $request->url,
             'header' => $headerPath,
             'harga_coret' => $request->harga_coret,
-            'harga_asli' => $request->harga_asli,
+            'harga_asli' => $request->harga ?? $request->harga_asli,
+            'jenis_produk' => $request->jenis_produk ?? 'non-fisik',
+            'bundling' => null, // Tidak lagi menyimpan bundling di field ini
             'deskripsi' => $request->deskripsi,
-            'tanggal_event' => $request->tanggal_event,
+            'tanggal_event' => $tanggalEvent,
             'gambar' => json_encode($gambarArray),
             'lainnya' => $request->lainnya,
             'trainer' => $request->trainer,
-            'landingpage' => $request->landingpage,
             'create_at' => now(),
-            'status' => $request->status ?? 1,
-
+            'status' => $request->status ?? '1',
             'assign' => json_encode($request->assign ?? []),
             'custom_field' => json_encode($request->custom_field ?? []),
             'list_point' => json_encode($request->list_point ?? []),
@@ -153,10 +273,31 @@ class ProdukController extends Controller
             'event_fb_pixel' => json_encode($request->event_fb_pixel ?? []),
             'gtm' => json_encode($request->gtm ?? []),
             'video' => json_encode($request->video ?? []),
-            ]);
+        ]);
 
+        // Process landingpage dengan upload images (setelah produk dibuat untuk mendapatkan ID)
+        if ($request->has('landingpage')) {
+            $landingpageData = $this->processLandingPage($request->landingpage, $produk->id);
+            $produk->landingpage = $landingpageData;
+            $produk->save();
+        }
 
-        if($produk){
+        // Process bundling - simpan ke table produk_bundling
+        if ($request->has('bundling') && is_array($request->bundling)) {
+            foreach ($request->bundling as $bundlingItem) {
+                if (isset($bundlingItem['nama']) && isset($bundlingItem['harga'])) {
+                    ProdukBundling::create([
+                        'produk' => $produk->id,
+                        'nama' => $bundlingItem['nama'],
+                        'harga' => $bundlingItem['harga'],
+                        'status' => $bundlingItem['status'] ?? 'A', // Default 'A' jika tidak ada
+                    ]);
+                }
+            }
+        }
+
+        // Input ke Zoom hanya jika kategori produk adalah 2
+        if($produk && $produk->kategori == 2){
             $token = ZoomService::getAccessToken();
 
         
@@ -252,6 +393,8 @@ class ProdukController extends Controller
             'event_fb_pixel',
             'gtm',
             'video',
+            'bundling',
+            'landingpage',
         ];
 
         foreach ($jsonFields as $field) {
@@ -267,24 +410,28 @@ class ProdukController extends Controller
         $request->validate([
             'kategori' => 'nullable|integer',
             'nama' => 'nullable|string|max:255',
+            'kode' => 'nullable|string|max:255|unique:produk,kode,' . $id,
+            'url' => 'nullable|string|max:255',
+            'harga' => 'nullable|string',
+            'jenis_produk' => 'nullable|string|max:20',
+            'isBundling' => 'nullable|boolean',
+            'bundling' => 'nullable|array',
+            'tanggal_event' => 'nullable',
+            'landingpage' => 'nullable|array',
             'header' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'gambar.*.caption' => 'nullable|string',
-
             'assign' => 'nullable|array',
             'custom_field' => 'nullable|array',
             'custom_field.*.nama_field' => 'required_with:custom_field|string',
             'custom_field.*.urutan' => 'nullable|integer',
-
             'list_point' => 'nullable|array',
             'list_point.*.nama' => 'required_with:list_point|string',
             'list_point.*.urutan' => 'nullable|integer',
-
             'testimoni' => 'nullable|array',
             'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'testimoni.*.nama' => 'nullable|string',
             'testimoni.*.deskripsi' => 'nullable|string',
-
             'fb_pixel' => 'nullable|array',
             'event_fb_pixel' => 'nullable|array',
             'gtm' => 'nullable|array',
@@ -331,6 +478,32 @@ class ProdukController extends Controller
             }
         }
 
+        // Process bundling - tidak lagi disimpan di field bundling, tapi di table produk_bundling
+        // Hapus bundling lama jika ada bundling baru
+        if ($request->has('bundling')) {
+            ProdukBundling::where('produk', $id)->delete();
+        }
+
+        // Parse tanggal_event dari ISO format jika perlu
+        $tanggalEvent = $produk->tanggal_event;
+        if ($request->has('tanggal_event') && $request->tanggal_event) {
+            try {
+                $tanggalEvent = \Carbon\Carbon::parse($request->tanggal_event)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $tanggalEvent = $request->tanggal_event;
+            }
+        }
+
+        // Process landingpage dengan upload images
+        $landingpageData = null;
+        if ($request->has('landingpage')) {
+            $landingpageData = $this->processLandingPage($request->landingpage, $produk->id);
+        } else {
+            // Jika tidak ada update, gunakan data lama (pastikan format JSON string)
+            $oldLandingpage = $produk->landingpage;
+            $landingpageData = is_string($oldLandingpage) ? $oldLandingpage : json_encode($oldLandingpage);
+        }
+
         // Update semua kolom
         $produk->update([
             'kategori' => $request->kategori ?? $produk->kategori,
@@ -338,10 +511,12 @@ class ProdukController extends Controller
             'kode' => $request->kode ?? $produk->kode,
             'url' => $request->url ?? $produk->url,
             'harga_coret' => $request->harga_coret ?? $produk->harga_coret,
-            'harga_asli' => $request->harga_asli ?? $produk->harga_asli,
+            'harga_asli' => $request->harga ?? $request->harga_asli ?? $produk->harga_asli,
+            'jenis_produk' => $request->jenis_produk ?? $produk->jenis_produk,
+            'bundling' => null, // Tidak lagi menyimpan bundling di field ini
             'deskripsi' => $request->deskripsi ?? $produk->deskripsi,
-            'tanggal_event' => $request->tanggal_event ?? $produk->tanggal_event,
-            'landingpage' => $request->landingpage ?? $produk->landingpage,
+            'tanggal_event' => $tanggalEvent,
+            'landingpage' => $landingpageData,
             'update_at' => now(),
 
             // Field tambahan (disimpan sebagai JSON)
@@ -354,6 +529,20 @@ class ProdukController extends Controller
             'gtm' => json_encode($request->gtm ?? json_decode($produk->gtm, true) ?? []),
             'video' => json_encode($request->video ?? json_decode($produk->video, true) ?? []),
         ]);
+
+        // Process bundling - simpan ke table produk_bundling
+        if ($request->has('bundling') && is_array($request->bundling)) {
+            foreach ($request->bundling as $bundlingItem) {
+                if (isset($bundlingItem['nama']) && isset($bundlingItem['harga'])) {
+                    ProdukBundling::create([
+                        'produk' => $produk->id,
+                        'nama' => $bundlingItem['nama'],
+                        'harga' => $bundlingItem['harga'],
+                        'status' => $bundlingItem['status'] ?? 'A', // Default 'A' jika tidak ada
+                    ]);
+                }
+            }
+        }
 
         return response()->json([
             'success' => true,

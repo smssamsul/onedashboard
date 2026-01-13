@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\HasActivityLog;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use App\Models\User;
 
 class Customer extends Authenticatable implements JWTSubject
 {
@@ -42,6 +43,7 @@ class Customer extends Authenticatable implements JWTSubject
         'kecamatan',
         'sapaan',
         'kode_pos',
+        'sales_id',
         'status'
     ];
 
@@ -57,6 +59,24 @@ class Customer extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    /**
+     * Relasi ke OrderCustomer
+     */
+    public function orders()
+    {
+        return $this->hasMany(OrderCustomer::class, 'customer', 'id')
+            ->where('status', '!=', 'N')
+            ->orderBy('create_at', 'desc');
+    }
+
+    /**
+     * Relasi ke Sales/User melalui sales_id
+     */
+    public function sales_rel()
+    {
+        return $this->belongsTo(User::class, 'sales_id', 'id');
     }
 
 }

@@ -1011,6 +1011,7 @@
                     <th>Status</th>
                     <th>Assign Sales</th>
                     <th>Minat Produk</th>
+                    <th>Orders</th>
                     <th>Last Contact</th>
                     <th>Next Follow Up</th>
                     <th>Aksi</th>
@@ -1018,7 +1019,7 @@
             </thead>
             <tbody id="leadsTableBody">
                 <tr>
-                    <td colspan="8" class="loading">Memuat data...</td>
+                    <td colspan="9" class="loading">Memuat data...</td>
                 </tr>
             </tbody>
         </table>
@@ -1440,7 +1441,7 @@
         if (label) url += `&lead_label=${encodeURIComponent(label)}`;
 
         const tbody = document.getElementById('leadsTableBody');
-        tbody.innerHTML = '<tr><td colspan="8" class="loading">Memuat data...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="loading">Memuat data...</td></tr>';
 
         try {
             const response = await fetch(url, { headers: getHeaders() });
@@ -1512,6 +1513,20 @@
                             ${lead.sales_rel?.level === '1' ? '<br><small style="color: var(--text-muted); font-size: 0.75rem;">Head Sales</small>' : lead.sales_rel?.level === '2' ? '<br><small style="color: var(--text-muted); font-size: 0.75rem;">Sales</small>' : ''}
                         </td>
                         <td>${lead.minat_produk || '-'}</td>
+                        <td>
+                            ${lead.orders && lead.orders.length > 0 ? `
+                                <select class="order-dropdown" style="width: 100%; padding: 0.375rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; background: var(--surface);">
+                                    <option value="">Pilih Order (${lead.orders.length})</option>
+                                    ${lead.orders.map(order => `
+                                        <option value="${order.id}">
+                                            ${order.produk_rel?.nama || 'Produk #' + order.produk} - 
+                                            Rp ${formatCurrency(order.total_harga || order.harga || 0)} - 
+                                            ${order.status_order || '-'}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            ` : '<span style="color: var(--text-muted);">Tidak ada order</span>'}
+                        </td>
                         <td>${lead.last_contact_at ? formatDate(lead.last_contact_at) : '-'}</td>
                         <td>${lead.next_follow_up_at ? formatDate(lead.next_follow_up_at) : '-'}</td>
                         <td class="table-actions">
@@ -1527,7 +1542,7 @@
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8">
+                        <td colspan="9">
                             <div class="empty-state">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -1544,7 +1559,7 @@
             }
         } catch (error) {
             console.error('Error loading leads:', error);
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Gagal memuat data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Gagal memuat data</td></tr>';
         }
     }
 
@@ -1552,6 +1567,11 @@
     function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // Format Currency
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID').format(amount);
     }
 
     // Render Pagination

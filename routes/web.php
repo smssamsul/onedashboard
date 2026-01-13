@@ -78,6 +78,10 @@ Route::get('/sales/absensi', function () {
     return view('sales.absensi');
 })->name('sales.absensi');
 
+Route::get('/sales/sales-list', function () {
+    return view('sales.sales-list');
+})->name('sales.sales-list');
+
 // HR Routes
 Route::get('/hr/dashboard', function () {
     return view('hr.dashboard');
@@ -176,3 +180,7 @@ Route::get('/admin/customer', function () {
 Route::get('/admin/customer-import', function () {
     return view('admin.customer-import');
 })->name('admin.customer-import');
+
+Route::get('/admin/order', function () {
+    return view('admin.order');
+})->name('admin.order');

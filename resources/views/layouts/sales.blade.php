@@ -41,12 +41,29 @@
                 <!-- Sales Section -->
                 <div class="nav-section">
                     <div class="nav-section-title">Sales</div>
-                    <a href="{{ route('sales.follow-today') }}" class="sidebar-link {{ request()->routeIs('sales.follow-today') ? 'active' : '' }}">
+                    {{-- Menu Follow Hari ini dinonaktifkan sementara --}}
+                    {{-- <a href="{{ route('sales.follow-today') }}" class="sidebar-link {{ request()->routeIs('sales.follow-today') ? 'active' : '' }}">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                             <polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         Follow Hari ini
+                    </a> --}}
+                    <a href="{{ route('sales.order') }}" class="sidebar-link {{ request()->routeIs('sales.order') ? 'active' : '' }}">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Order
+                    </a>
+                    <a href="{{ route('sales.sales-list') }}" class="sidebar-link {{ request()->routeIs('sales.sales-list') ? 'active' : '' }}" id="salesListMenuLink">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Sales List
                     </a>
                 </div>
 
@@ -158,6 +175,20 @@
                         }
                     } else {
                         console.log('Customer menu link not found');
+                    }
+
+                    // Show sales list menu only for head sales (level 1)
+                    const salesListMenuLink = document.getElementById('salesListMenuLink');
+                    if (salesListMenuLink) {
+                        if (userLevel === '1' || userLevel === 1) {
+                            salesListMenuLink.style.display = '';
+                            console.log('Sales List menu shown for head sales');
+                        } else {
+                            salesListMenuLink.style.display = 'none';
+                            console.log('Sales List menu hidden for sales level:', userLevel);
+                        }
+                    } else {
+                        console.log('Sales List menu link not found');
                     }
                 } catch (error) {
                     console.error('Error checking user level:', error);

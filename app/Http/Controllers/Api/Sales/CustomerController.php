@@ -16,7 +16,12 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class CustomerController extends Controller
 {
-      public function __construct()
+    /**
+     * Static variable untuk tracking memberID yang sudah digunakan dalam batch import
+     */
+    private static $usedMemberIDs = [];
+
+    public function __construct()
     {
         $this->middleware('auth:api');
     }
@@ -25,24 +30,49 @@ class CustomerController extends Controller
     {
         $query = Customer::select(array_diff(
             \Schema::getColumnListing('customer'),
-            ['password','create_at','update_at'] 
+            ['password'] 
         ))
         ->where('status', '!=', 'N');
 
-        // Search berdasarkan nama, email, atau WA
+        // Search berdasarkan nama, email, WA, atau memberID
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('nama', 'ILIKE', "%{$search}%")
                   ->orWhere('email', 'ILIKE', "%{$search}%")
                   ->orWhere('wa', 'ILIKE', "%{$search}%")
-                  ->orWhere('nama_panggilan', 'ILIKE', "%{$search}%");
+                  ->orWhere('nama_panggilan', 'ILIKE', "%{$search}%")
+                  ->orWhere('memberID', 'ILIKE', "%{$search}%")
+                  ->orWhere('alamat', 'ILIKE', "%{$search}%");
             });
         }
 
+        // Filter berdasarkan memberID
+        if ($request->has('memberID') && $request->memberID) {
+            $query->where('memberID', 'ILIKE', "%{$request->memberID}%");
+        }
+
+        // Filter berdasarkan keanggotaan
+        if ($request->has('keanggotaan') && $request->keanggotaan) {
+            $query->where('keanggotaan', $request->keanggotaan);
+        }
+
+        // Filter berdasarkan alamat
+        if ($request->has('alamat') && $request->alamat) {
+            $query->where('alamat', 'ILIKE', "%{$request->alamat}%");
+        }
+
+        // Filter berdasarkan tahun (create_at)
+        if ($request->has('tahun') && $request->tahun) {
+            $query->whereYear('create_at', $request->tahun);
+        }
+
+        // Urutkan berdasarkan tahun (create_at) terlebih dahulu, kemudian id
+        $query->orderBy('create_at', 'desc')->orderBy('id', 'desc');
+
         // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
-            $customers = $query->orderBy('id', 'desc')->get();
+            $customers = $query->get();
             
             return response()->json([
                 'success' => true,
@@ -53,7 +83,7 @@ class CustomerController extends Controller
 
         // Pagination
         $perPage = $request->get('per_page', 15);
-        $customers = $query->orderBy('id', 'desc')->paginate($perPage);
+        $customers = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -154,15 +184,13 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-
-        $customers = Customer::select(array_diff(
+        $customer = Customer::select(array_diff(
                     \Schema::getColumnListing('customer'),
                     ['password','create_at','update_at'] 
                 ))
                 ->where('id', $id)
                 ->where('status', '!=', 'N')
-                ->orderBy('id', 'desc')
-                ->get();
+                ->first();
         
 
         if (!$customer) {
@@ -171,7 +199,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $customer
+            'data' => [$customer] // Format array untuk konsistensi dengan index
         ]);
     }
 
@@ -262,6 +290,9 @@ class CustomerController extends Controller
 
         $highestRow = $sheet->getHighestRow();
 
+        // Reset static variable untuk tracking memberID yang sudah digunakan
+        self::$usedMemberIDs = [];
+
         $created = 0;
         $updated = 0;
         $skipped = 0;
@@ -273,6 +304,7 @@ class CustomerController extends Controller
 
                 $createAtCell   = $sheet->getCell('A' . $row);
                 $nama           = trim((string) $sheet->getCell('C' . $row)->getValue());
+                $sapaan         = trim((string) $sheet->getCell('D' . $row)->getValue());
                 $namaPanggilan  = trim((string) $sheet->getCell('E' . $row)->getValue());
                 $instagram      = trim((string) $sheet->getCell('F' . $row)->getValue());
                 $genderRaw      = strtolower(trim((string) $sheet->getCell('G' . $row)->getValue()));
@@ -314,8 +346,15 @@ class CustomerController extends Controller
                 // WA
                 $wa = $waRaw ? $this->formatPhoneNumber($waRaw) : null;
 
+                // Generate memberID berdasarkan kolom A (create_at) sebelum customer dibuat
+                $memberID = $this->generateMemberIDFromDate($createAt);
+
+                // Pastikan sapaan tersimpan jika ada nilainya
+                $sapaanValue = !empty(trim($sapaan)) ? trim($sapaan) : null;
+                
                 $data = [
                     'nama'               => $nama ?: $namaPanggilan ?: $email,
+                    'sapaan'             => $sapaanValue,
                     'nama_panggilan'     => $namaPanggilan ?: null,
                     'instagram'          => $instagram ?: null,
                     'wa'                 => $wa,
@@ -325,6 +364,9 @@ class CustomerController extends Controller
                     'jenis_kelamin'      => $jenisKelamin,
                     'tanggal_lahir'      => $tanggalLahir,
                     'alamat'             => $alamat ?: null,
+                    'provinsi'           => null, // Akan diisi otomatis
+                    'kabupaten'          => null, // Akan diisi otomatis
+                    'kecamatan'          => null, // Akan diisi otomatis
                     'status_order'       => $riwayatOrder ?: null,
                     'alasan_tertarik'    => $alasanTertarik ?: null,
                     'alasan_belum'       => $alasanBelum ?: null,
@@ -350,11 +392,9 @@ class CustomerController extends Controller
                     $data['password']   = bcrypt('123456');
                     $data['create_at']  = $createAt;
                     $data['keanggotaan'] = 'basic'; // Default keanggotaan
+                    $data['memberID']   = $memberID; // Set memberID langsung
 
                     $newCustomer = Customer::create($data);
-                    // Generate memberID setelah customer dibuat
-                    $memberID = $this->generateMemberID($newCustomer);
-                    $newCustomer->update(['memberID' => $memberID]);
                     $created++;
                 }
             } catch (\Throwable $e) {
@@ -648,19 +688,84 @@ class CustomerController extends Controller
             $createAt = Carbon::parse($createAt);
         }
         
+        return $this->generateMemberIDFromDate($createAt, $customer->id ?? null);
+    }
+
+    /**
+     * Generate MemberID dari tanggal (untuk import Excel)
+     * Format: 2025010100001 (tahun, bulan, tanggal, random sequence)
+     */
+    private function generateMemberIDFromDate($createAt, $customerId = null)
+    {
+        // Jika create_at adalah string, convert ke Carbon
+        if (is_string($createAt)) {
+            $createAt = Carbon::parse($createAt);
+        }
+        
         // Format: YYYYMMDD
         $datePart = $createAt->format('Ymd');
         
-        // Hitung no urut berdasarkan jumlah customer yang dibuat pada tanggal yang sama
-        $sameDateCustomers = Customer::whereDate('create_at', $createAt->format('Y-m-d'))
-            ->where('id', '<=', $customer->id)
-            ->count();
+        // Generate random sequence (5 digit: 00001-99999)
+        $maxAttempts = 1000; // Meningkatkan max attempts untuk menghindari konflik
+        $attempts = 0;
         
-        // Format no urut dengan 5 digit (00001)
-        $sequence = str_pad($sameDateCustomers, 5, '0', STR_PAD_LEFT);
+        do {
+            // Generate random number antara 1-99999 menggunakan random_int untuk lebih aman dan random
+            $randomSequence = random_int(1, 99999);
+            
+            // Tambahkan variasi dengan microtime untuk mengurangi kemungkinan duplikasi
+            if ($attempts > 0) {
+                $microtimePart = (int) ((microtime(true) * 10000) % 99999);
+                $randomSequence = (($randomSequence + $microtimePart + $attempts) % 99999) + 1;
+            }
+            
+            $sequence = str_pad($randomSequence, 5, '0', STR_PAD_LEFT);
+            
+            // Gabungkan: YYYYMMDD + random sequence
+            $memberID = $datePart . $sequence;
+            
+            // Cek apakah memberID sudah ada di database
+            $existsInDB = Customer::where('memberID', $memberID)
+                ->when($customerId, function($q) use ($customerId) {
+                    $q->where('id', '!=', $customerId);
+                })
+                ->exists();
+            
+            // Cek juga apakah memberID sudah digunakan dalam batch import ini (static variable)
+            $existsInBatch = in_array($memberID, self::$usedMemberIDs);
+            
+            $exists = $existsInDB || $existsInBatch;
+            
+            $attempts++;
+            
+            // Jika sudah mencoba terlalu banyak, gunakan kombinasi timestamp + random sebagai fallback
+            if ($attempts >= $maxAttempts) {
+                $timestampPart = substr(time(), -4); // 4 digit terakhir timestamp
+                $randomPart = random_int(0, 9); // 1 digit random
+                $sequence = str_pad($timestampPart . $randomPart, 5, '0', STR_PAD_LEFT);
+                $memberID = $datePart . $sequence;
+                
+                // Cek sekali lagi apakah masih ada duplikasi
+                $finalCheck = Customer::where('memberID', $memberID)
+                    ->when($customerId, function($q) use ($customerId) {
+                        $q->where('id', '!=', $customerId);
+                    })
+                    ->exists();
+                
+                if (!$finalCheck && !in_array($memberID, self::$usedMemberIDs)) {
+                    break;
+                }
+                
+                // Jika masih ada duplikasi, gunakan uniqid
+                $uniquePart = substr(str_replace('.', '', uniqid('', true)), -5);
+                $sequence = str_pad($uniquePart, 5, '0', STR_PAD_LEFT);
+                $memberID = $datePart . $sequence;
+                break;
+            }
+        } while ($exists);
         
-        // Gabungkan: YYYYMMDD + 00001
-        $memberID = $datePart . $sequence;
+        // Simpan memberID yang digunakan untuk batch import ini
+        self::$usedMemberIDs[] = $memberID;
         
         return $memberID;
     }

@@ -53,7 +53,7 @@
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         font-size: 0.875rem;
-        width: 280px;
+        width: 200px;
         background: var(--surface);
         transition: all 0.2s;
     }
@@ -245,11 +245,94 @@
         background-repeat: no-repeat;
         background-position: right 0.75rem center;
         background-size: 16px;
+        min-width: 180px;
     }
 
     .filter-select:focus {
         outline: none;
         border-color: var(--accent);
+    }
+
+    /* Freeze column (sticky first column) */
+    .card-table {
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 300px);
+        min-height: 400px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: auto;
+        position: relative;
+        width: 100%;
+        max-height: calc(100vh - 380px);
+        min-height: 300px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Custom scrollbar styling */
+    .table-responsive::-webkit-scrollbar {
+        height: 10px;
+        width: 10px;
+    }
+
+    .table-responsive::-webkit-scrollbar:vertical {
+        width: 10px;
+    }
+
+    .table-responsive::-webkit-scrollbar:horizontal {
+        height: 10px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: var(--bg);
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: var(--text-muted);
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: var(--text);
+    }
+
+    /* Firefox scrollbar */
+    .table-responsive {
+        scrollbar-width: thin;
+        scrollbar-color: var(--text-muted) var(--bg);
+    }
+
+    .table-responsive table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 1200px;
+        table-layout: auto;
+    }
+
+    .table-responsive th:first-child,
+    .table-responsive td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: var(--surface);
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .table-responsive thead th:first-child {
+        z-index: 11;
+        background: var(--bg);
+    }
+
+    .table-responsive tbody tr:hover td:first-child {
+        background: var(--bg);
     }
 
     /* Pagination */
@@ -454,6 +537,24 @@
         <div class="search-input">
             <input type="text" id="searchInput" placeholder="Cari nama, email, atau WA..." />
         </div>
+        <div class="search-input">
+            <input type="text" id="filterMemberID" placeholder="Filter MemberID..." />
+        </div>
+        <div class="search-input">
+            <input type="text" id="filterAlamat" placeholder="Filter Alamat..." />
+        </div>
+        <select class="filter-select" id="filterKeanggotaan">
+            <option value="">Semua Keanggotaan</option>
+            <option value="basic">Basic</option>
+            <option value="bronze">Bronze</option>
+            <option value="silver">Silver</option>
+            <option value="gold">Gold</option>
+            <option value="platinum">Platinum</option>
+            <option value="diamond">Diamond</option>
+        </select>
+        <select class="filter-select" id="filterTahun">
+            <option value="">Semua Tahun</option>
+        </select>
         <select class="filter-select" id="perPageSelect" onchange="changePerPage()">
             <option value="10">10 per halaman</option>
             <option value="15" selected>15 per halaman</option>
@@ -483,8 +584,11 @@
             <thead>
                 <tr>
                     <th>Nama Customer</th>
+                    <th>MemberID</th>
+                    <th>Keanggotaan</th>
                     <th>Email</th>
                     <th>WhatsApp</th>
+                    <th>Alamat</th>
                     <th>Profesi</th>
                     <th>Pendapatan</th>
                     <th>Aksi</th>
@@ -492,7 +596,7 @@
             </thead>
             <tbody id="customerTableBody">
                 <tr>
-                    <td colspan="6" class="loading">Memuat data...</td>
+                    <td colspan="9" class="loading">Memuat data...</td>
                 </tr>
             </tbody>
         </table>
@@ -635,18 +739,37 @@
     function renderCustomers(customers, pagination) {
         const tbody = document.getElementById('customerTableBody');
         if (customers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Tidak ada data customer</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Tidak ada data customer</td></tr>';
             renderPagination(null);
             return;
         }
+        
+        // Fungsi untuk format keanggotaan dengan badge
+        const formatKeanggotaan = (keanggotaan) => {
+            if (!keanggotaan) return '<span style="color: var(--text-muted);">-</span>';
+            const colors = {
+                'basic': '#6b7280',
+                'bronze': '#cd7f32',
+                'silver': '#c0c0c0',
+                'gold': '#ffd700',
+                'platinum': '#e5e4e2',
+                'diamond': '#b9f2ff'
+            };
+            const color = colors[keanggotaan.toLowerCase()] || '#6b7280';
+            return `<span style="display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; background: ${color}; color: ${keanggotaan.toLowerCase() === 'gold' || keanggotaan.toLowerCase() === 'silver' ? '#000' : '#fff'}; font-weight: 500; font-size: 0.75rem; text-transform: capitalize;">${keanggotaan}</span>`;
+        };
+        
         tbody.innerHTML = customers.map(customer => `
             <tr>
                 <td>
                     <strong>${customer.nama || '-'}</strong>
                     ${customer.nama_panggilan ? `<br><small style="color: var(--text-muted);">${customer.nama_panggilan}</small>` : ''}
                 </td>
+                <td><code style="background: var(--surface-secondary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">${customer.memberID || '-'}</code></td>
+                <td>${formatKeanggotaan(customer.keanggotaan)}</td>
                 <td>${customer.email || '-'}</td>
                 <td>${customer.wa || '-'}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${customer.alamat || ''}">${customer.alamat || '-'}</td>
                 <td>${customer.profesi || '-'}</td>
                 <td>${customer.pendapatan_bln || '-'}</td>
                 <td class="table-actions">
@@ -685,13 +808,21 @@
     async function loadCustomers(page = 1) {
         currentPage = page;
         const search = document.getElementById('searchInput').value;
+        const memberID = document.getElementById('filterMemberID').value;
+        const keanggotaan = document.getElementById('filterKeanggotaan').value;
+        const alamat = document.getElementById('filterAlamat').value;
+        const tahun = document.getElementById('filterTahun').value;
         perPage = parseInt(document.getElementById('perPageSelect').value);
         
         let url = `${API_BASE}/customer?page=${page}&per_page=${perPage}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (memberID) url += `&memberID=${encodeURIComponent(memberID)}`;
+        if (keanggotaan) url += `&keanggotaan=${encodeURIComponent(keanggotaan)}`;
+        if (alamat) url += `&alamat=${encodeURIComponent(alamat)}`;
+        if (tahun) url += `&tahun=${encodeURIComponent(tahun)}`;
 
         const tbody = document.getElementById('customerTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">Memuat data...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="loading">Memuat data...</td></tr>';
 
         try {
             const response = await fetch(url, { headers: getHeaders() });
@@ -700,12 +831,12 @@
             if (result.success && result.data && result.data.length > 0) {
                 renderCustomers(result.data, result.pagination);
             } else {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Tidak ada data customer</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Tidak ada data customer</td></tr>';
                 renderPagination(null);
             }
         } catch (error) {
             console.error('Error loading customers:', error);
-            tbody.innerHTML = '<tr><td colspan="6" style="color: var(--danger);">Gagal memuat data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="color: var(--danger);">Gagal memuat data</td></tr>';
         }
     }
 
@@ -868,12 +999,84 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadCustomers();
         
+        // Event listener untuk search input
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 loadCustomers(1);
             }
         });
+
+        // Event listener untuk filter MemberID
+        document.getElementById('filterMemberID').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadCustomers(1);
+            }
+        });
+
+        // Event listener untuk filter Alamat
+        document.getElementById('filterAlamat').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadCustomers(1);
+            }
+        });
+
+        // Event listener untuk filter Keanggotaan
+        document.getElementById('filterKeanggotaan').addEventListener('change', function() {
+            loadCustomers(1);
+        });
+
+        // Event listener untuk filter Tahun
+        document.getElementById('filterTahun').addEventListener('change', function() {
+            loadCustomers(1);
+        });
+
+        // Load tahun yang tersedia
+        loadAvailableYears();
     });
+
+    // Fungsi untuk memuat tahun yang tersedia dari data customer
+    async function loadAvailableYears() {
+        try {
+            const response = await fetch(`${API_BASE}/customer?all=true`, { headers: getHeaders() });
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                // Ambil tahun unik dari create_at
+                const years = new Set();
+                result.data.forEach(customer => {
+                    if (customer.create_at) {
+                        const year = new Date(customer.create_at).getFullYear();
+                        if (year) years.add(year);
+                    }
+                });
+                
+                // Sort tahun dari terbaru ke terlama
+                const sortedYears = Array.from(years).sort((a, b) => b - a);
+                
+                // Populate dropdown
+                const tahunSelect = document.getElementById('filterTahun');
+                const currentValue = tahunSelect.value;
+                
+                // Clear existing options except "Semua Tahun"
+                tahunSelect.innerHTML = '<option value="">Semua Tahun</option>';
+                
+                // Add tahun options
+                sortedYears.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    tahunSelect.appendChild(option);
+                });
+                
+                // Restore selected value if exists
+                if (currentValue) {
+                    tahunSelect.value = currentValue;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading available years:', error);
+        }
+    }
 </script>
 @endpush
 

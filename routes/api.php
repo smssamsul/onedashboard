@@ -24,7 +24,8 @@ use App\Http\Controllers\Api\Sales\{
     MidtransController,
     WebinarController,
     BroadcastController,
-    LeadController
+    LeadController,
+    SalesController
 };
 
 // Admin Controllers
@@ -134,6 +135,13 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/kategori-produk/{id}', [KategoriProdukController::class, 'update']);
         Route::delete('/kategori-produk/{id}', [KategoriProdukController::class, 'destroy']);
 
+        // Sales
+        Route::get('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'index']);
+        Route::get('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'show']);
+        Route::post('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'store']);
+        Route::put('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'update']);
+        Route::delete('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'destroy']);
+
         // Template Followup
         Route::post('/template-follup', [TemplateFollupController::class, 'index']);
         Route::post('/template-follup/store', [TemplateFollupController::class, 'store']);
@@ -145,8 +153,11 @@ Route::middleware('auth:api')->group(function () {
         // Order
         Route::get('/order', [OrderCustomerController::class, 'index']);
         Route::get('/order/statistic', [OrderCustomerController::class, 'statistiOrder']);
-        Route::get('/order/{id}', [OrderCustomerController::class, 'show']);
-        Route::put('/order/{id}', [OrderCustomerController::class, 'update']);
+        Route::get('/order/sales', [OrderCustomerController::class, 'ordersForSales']);
+        Route::post('/order/broadcast', [OrderCustomerController::class, 'broadcastOrders']);
+        Route::post('/order/{id}/send-whatsapp', [OrderCustomerController::class, 'sendWhatsApp'])->where('id', '[0-9]+');
+        Route::get('/order/{id}', [OrderCustomerController::class, 'show'])->where('id', '[0-9]+');
+        Route::put('/order/{id}', [OrderCustomerController::class, 'update'])->where('id', '[0-9]+');
         Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
         Route::post('/order-admin', [OrderCustomerController::class, 'store_admin']);
 
@@ -196,6 +207,16 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'show']);
         Route::put('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'update']);
         Route::delete('/followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'destroy']);
+
+
+        // Follow Up Orders
+        Route::get('/order/{orderId}/followup', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'index'])->where('orderId', '[0-9]+');
+        Route::get('/order-followup', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'list']);
+        Route::get('/order-followup/statistics', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'statistics']);
+        Route::post('/order-followup', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'store']);
+        Route::get('/order-followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'show']);
+        Route::put('/order-followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'update']);
+        Route::delete('/order-followup/{id}', [\App\Http\Controllers\Api\Sales\FollowUpOrderController::class, 'destroy']);
 
         // Aktivitas Leads
         Route::get('/aktivitas/lead/{leadId}', [\App\Http\Controllers\Api\Sales\AktivitasLeadController::class, 'index']);

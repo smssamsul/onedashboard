@@ -14,6 +14,7 @@ class OrderCustomer extends Model
 
       protected $casts = [
         'create_at' => 'datetime',
+        'bundling' => 'integer', // Foreign key ke produk_bundling
     ];
 
     protected $fillable = [
@@ -35,6 +36,7 @@ class OrderCustomer extends Model
         'status_order',
         'custom_value',
         'catatan',
+        'bundling',
     ];
 
     public $timestamps = false;
@@ -53,5 +55,13 @@ class OrderCustomer extends Model
     public function order_payment_rel()
     {
         return $this->hasMany(OrderPayment::class, 'order_id', 'id');
+    }
+
+    /**
+     * Relasi ke ProdukBundling
+     */
+    public function bundling_rel()
+    {
+        return $this->belongsTo(ProdukBundling::class, 'bundling', 'id');
     }
 }

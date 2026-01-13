@@ -23,6 +23,8 @@ class Produk extends Model
         'header',
         'harga_coret',
         'harga_asli',
+        'bundling',
+        'jenis_produk',
         'deskripsi',
         'tanggal_event',
         'gambar',
@@ -57,6 +59,36 @@ class Produk extends Model
         'video' => 'array',
     ];
 
+    // Accessor untuk landingpage - decode JSON jika string
+    public function getLandingpageAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+        
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+        }
+        
+        return $value;
+    }
+
+    // Accessor untuk bundling - decode JSON jika string
+    public function getBundlingAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+        
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+        }
+        
+        return $value;
+    }
+
     public function kategori_rel()
     {
         return $this->belongsTo(KategoriProduk::class, 'kategori', 'id');
@@ -75,6 +107,14 @@ class Produk extends Model
     public function webinar()
     {
         return $this->hasOne(Webinar::class, 'produk', 'id');
+    }
+
+    /**
+     * Relasi ke ProdukBundling
+     */
+    public function bundling_rel()
+    {
+        return $this->hasMany(ProdukBundling::class, 'produk', 'id');
     }
 
     public function getAssignUsersAttribute()
