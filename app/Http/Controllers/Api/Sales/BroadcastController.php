@@ -9,6 +9,7 @@ use App\Models\BroadcastPenerima;
 use App\Models\OrderCustomer;
 use App\Models\Customer;
 use App\Models\Produk;
+use App\Models\Sales;
 use App\Jobs\SendBroadcastJob;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -33,6 +34,64 @@ class BroadcastController extends Controller
                 'success' => true,
                 'message' => 'Data broadcast berhasil diambil',
                 'data' => $broadcasts,
+            ]);
+        }
+
+        // Jika ada page atau per_page, gunakan pagination
+        $perPage = $request->get('per_page', 15);
+        $broadcasts = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data broadcast berhasil diambil',
+            'data' => $broadcasts->items(),
+            'pagination' => [
+                'current_page' => $broadcasts->currentPage(),
+                'last_page' => $broadcasts->lastPage(),
+                'per_page' => $broadcasts->perPage(),
+                'total' => $broadcasts->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Ambil broadcast berdasarkan user_id yang sedang login
+     */
+    public function indexByUser(Request $request)
+    {
+        // Ambil user_id yang sedang login
+        $userId = auth()->user()->user;
+        
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $query = Broadcast::where('create_by', $userId)
+            ->orderBy('create_at', 'desc');
+
+        // Filter berdasarkan status jika ada
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter berdasarkan search (nama broadcast)
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where('nama', 'like', '%' . $search . '%');
+        }
+
+        // Jika tidak ada request page dan per_page, tampilkan semua data
+        if (!$request->has('page') && !$request->has('per_page')) {
+            $broadcasts = $query->get();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Data broadcast berhasil diambil',
+                'data' => $broadcasts,
+                'total' => $broadcasts->count(),
             ]);
         }
 
@@ -114,6 +173,9 @@ class BroadcastController extends Controller
         // Jika jadwalkan, gunakan tanggal_kirim yang diberikan
         $tanggalKirim = $validated['langsung_kirim'] ? null : ($validated['tanggal_kirim'] ?? null);
 
+        // Ambil user_id yang sedang login
+        $userId = auth()->user()->user;
+
         $broadcast = Broadcast::create([
             'nama' => $validated['nama'],
             'pesan' => $validated['pesan'],
@@ -121,6 +183,7 @@ class BroadcastController extends Controller
             'target' => json_encode($validated['target']),
             'total_target' => (string) $totalTarget,
             'status' => $validated['status'] ?? '1',
+            'create_by' => $userId,
             'create_at' => now(),
             'update_at' => now(),
         ]);
@@ -137,8 +200,7 @@ class BroadcastController extends Controller
                 $totalOrders = $orders->count();
 
                 if ($orders->isNotEmpty()) {
-                    $woowaKey = env('WOOWA_KEY');
-                    $userId = auth()->id();
+                    $userId = auth()->user()->user;
 
                     // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
                     // Satu customer hanya dapat 1 pesan per broadcast, ambil order pertama saja
@@ -146,6 +208,10 @@ class BroadcastController extends Controller
 
                     foreach ($uniqueOrdersByCustomer as $order) {
                         try {
+                            // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
+                            $customer = $order->customer_rel ?? Customer::find($order->customer);
+                            $woowaKey = $this->getWoowaKeyFromSales($customer);
+
                             // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
                             SendBroadcastJob::dispatch(
                                 $broadcast->id,
@@ -188,6 +254,187 @@ class BroadcastController extends Controller
                 'sent_to_queue' => $sentCount,
                 'failed' => $failedCount,
                 'total_target' => $totalOrders
+            ]);
+        }
+
+        return response()->json($responseData, 201);
+    }
+
+    /**
+     * Store broadcast dan kirim hanya ke customer dengan sales_id yang sama dengan user yang login
+     */
+    public function storeForMySales(Request $request)
+    {
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
+            'pesan' => 'required|string',
+            'tanggal_kirim' => 'nullable|date',
+            'target' => 'required|array',
+            'target.produk' => 'nullable',
+            'target.status_pembayaran' => 'nullable|string',
+            'target.status_order' => 'nullable|string',
+            'status' => 'nullable|string|max:2',
+            'langsung_kirim' => 'nullable|boolean',
+        ]);
+
+        // Ambil user yang sedang login
+        $userLogin = auth('api')->user();
+        if (!$userLogin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User data tidak ditemukan'
+            ], 404);
+        }
+
+        if (isset($validated['target']['produk']) && !is_array($validated['target']['produk'])) {
+            if (is_numeric($validated['target']['produk'])) {
+                $produkId = (int) $validated['target']['produk'];
+                $exists = Produk::where('id', $produkId)->exists();
+                if (!$exists) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
+                    ], 422);
+                }
+                $validated['target']['produk'] = [$produkId];
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'target.produk harus berupa integer atau array integer'
+                ], 422);
+            }
+        }
+
+        // Validasi array produk jika sudah menjadi array
+        if (isset($validated['target']['produk']) && is_array($validated['target']['produk'])) {
+            foreach ($validated['target']['produk'] as $produkId) {
+                if (!is_numeric($produkId)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'target.produk.* harus berupa integer'
+                    ], 422);
+                }
+                $produkId = (int) $produkId;
+                $exists = Produk::where('id', $produkId)->exists();
+                if (!$exists) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
+                    ], 422);
+                }
+            }
+        }
+
+        // Hitung total target berdasarkan kondisi untuk sales ini
+        $totalTarget = $this->countTargetForSales($validated['target'], $user->id);
+
+        // Jika langsung kirim, set tanggal_kirim ke null (akan dikirim sekarang)
+        // Jika jadwalkan, gunakan tanggal_kirim yang diberikan
+        $tanggalKirim = $validated['langsung_kirim'] ? null : ($validated['tanggal_kirim'] ?? null);
+
+        // Ambil user_id yang sedang login
+        $userId = auth()->user()->user;
+
+        $broadcast = Broadcast::create([
+            'nama' => $validated['nama'],
+            'pesan' => $validated['pesan'],
+            'tanggal_kirim' => $tanggalKirim,
+            'target' => json_encode($validated['target']),
+            'total_target' => (string) $totalTarget,
+            'status' => $validated['status'] ?? '1',
+            'create_by' => $userId,
+            'create_at' => now(),
+            'update_at' => now(),
+        ]);
+
+        // Jika langsung kirim, proses ke queue RabbitMQ
+        $sentCount = 0;
+        $failedCount = 0;
+        $totalOrders = 0;
+        $uniqueCustomersCount = 0;
+        
+        if (!empty($validated['langsung_kirim']) && $validated['langsung_kirim']) {
+            try {
+                // Ambil orders berdasarkan target untuk sales ini saja
+                $orders = $this->getOrdersByTargetForSales($validated['target'], $user->id);
+                $totalOrders = $orders->count();
+
+                if ($orders->isNotEmpty()) {
+                    $userId = auth()->user()->user;
+
+                    // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
+                    // Satu customer hanya dapat 1 pesan per broadcast, ambil order pertama saja
+                    $uniqueOrdersByCustomer = $orders->unique('customer')->values();
+                    $uniqueCustomersCount = $uniqueOrdersByCustomer->count();
+
+                    foreach ($uniqueOrdersByCustomer as $order) {
+                        try {
+                            // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
+                            $customer = $order->customer_rel ?? Customer::find($order->customer);
+                            
+                            // Pastikan customer memiliki sales_id yang sama dengan user yang login
+                            if (!$customer || $customer->sales_id != $user->id) {
+                                continue;
+                            }
+
+                            $woowaKey = $this->getWoowaKeyFromSales($customer);
+
+                            // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
+                            SendBroadcastJob::dispatch(
+                                $broadcast->id,
+                                $broadcast->pesan,
+                                $woowaKey,
+                                $order->id,
+                                $order->customer,
+                                $userId
+                            );
+
+                            $sentCount++;
+                        } catch (\Exception $e) {
+                            Log::error('Gagal dispatch broadcast job saat langsung kirim untuk sales sendiri', [
+                                'broadcast_id' => $broadcast->id,
+                                'order_id' => $order->id,
+                                'customer_id' => $order->customer,
+                                'sales_id' => $user->id,
+                                'error' => $e->getMessage()
+                            ]);
+                            $failedCount++;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error saat proses langsung kirim broadcast untuk sales sendiri', [
+                    'broadcast_id' => $broadcast->id,
+                    'sales_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        $responseData = [
+            'success' => true,
+            'message' => 'Broadcast berhasil dibuat untuk customer sales Anda' . (!empty($validated['langsung_kirim']) && $validated['langsung_kirim'] ? ' dan sedang diproses ke queue' : ''),
+            'data' => $broadcast
+        ];
+
+        // Tambahkan info pengiriman jika langsung kirim
+        if (!empty($validated['langsung_kirim']) && $validated['langsung_kirim']) {
+            $responseData['data'] = array_merge($broadcast->toArray(), [
+                'sales_id' => $user->id,
+                'sent_to_queue' => $sentCount,
+                'failed' => $failedCount,
+                'total_target' => $totalOrders,
+                'unique_customers' => $uniqueCustomersCount
             ]);
         }
 
@@ -328,7 +575,6 @@ class BroadcastController extends Controller
             ], 400);
         }
 
-        $woowaKey = env('WOOWA_KEY');
         $userId = auth()->id(); // User yang mengirim broadcast
         $sentCount = 0;
         $failedCount = 0;
@@ -338,6 +584,10 @@ class BroadcastController extends Controller
 
         foreach ($uniqueOrders as $order) {
             try {
+                // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
+                $customer = $order->customer_rel ?? Customer::find($order->customer);
+                $woowaKey = $this->getWoowaKeyFromSales($customer);
+
                 // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
                 SendBroadcastJob::dispatch(
                     $broadcast->id,
@@ -377,6 +627,20 @@ class BroadcastController extends Controller
     private function countTarget(array $target): int
     {
         $query = OrderCustomer::query();
+        $this->applyTargetConditions($query, $target);
+        return $query->count();
+    }
+
+    /**
+     * Hitung total target berdasarkan kondisi untuk sales tertentu
+     */
+    private function countTargetForSales(array $target, $salesId): int
+    {
+        $query = OrderCustomer::query()
+            ->whereHas('customer_rel', function($q) use ($salesId) {
+                $q->where('sales_id', $salesId)
+                  ->where('status', '!=', 'N');
+            });
         $this->applyTargetConditions($query, $target);
         return $query->count();
     }
@@ -516,6 +780,157 @@ class BroadcastController extends Controller
                 'total' => $penerima->total(),
             ],
         ]);
+    }
+
+   
+    public function sendToMySales(Request $request, $id)
+    {
+        $broadcast = Broadcast::find($id);
+
+        if (!$broadcast) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Broadcast tidak ditemukan'
+            ], 404);
+        }
+
+        if ($broadcast->status == 'N') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Broadcast sudah tidak aktif'
+            ], 400);
+        }
+
+        // Ambil user yang sedang login
+        $userLogin = auth('api')->user();
+        if (!$userLogin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User data tidak ditemukan'
+            ], 404);
+        }
+
+        // Parse target dari JSON
+        $target = is_array($broadcast->target) ? $broadcast->target : json_decode($broadcast->target, true);
+        
+        if (!$target || empty($target)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Target tidak valid'
+            ], 400);
+        }
+
+        // Ambil orders berdasarkan target, tapi filter hanya customer yang sales_id nya sama dengan user yang login
+        $orders = $this->getOrdersByTargetForSales($target, $user->id);
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada order yang sesuai dengan target untuk sales Anda'
+            ], 400);
+        }
+
+        $userId = auth()->id();
+        $sentCount = 0;
+        $failedCount = 0;
+
+        // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
+        $uniqueOrdersByCustomer = $orders->unique('customer')->values();
+
+        foreach ($uniqueOrdersByCustomer as $order) {
+            try {
+                // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
+                $customer = $order->customer_rel ?? Customer::find($order->customer);
+                
+                // Pastikan customer memiliki sales_id yang sama dengan user yang login
+                if (!$customer || $customer->sales_id != $user->id) {
+                    continue;
+                }
+
+                $woowaKey = $this->getWoowaKeyFromSales($customer);
+
+                // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
+                SendBroadcastJob::dispatch(
+                    $broadcast->id,
+                    $broadcast->pesan,
+                    $woowaKey,
+                    $order->id,
+                    $order->customer,
+                    $userId
+                );
+
+                $sentCount++;
+            } catch (\Exception $e) {
+                Log::error('Gagal dispatch broadcast job untuk sales sendiri', [
+                    'broadcast_id' => $broadcast->id,
+                    'order_id' => $order->id,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage()
+                ]);
+                $failedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Broadcast berhasil dikirim ke queue untuk customer sales Anda',
+            'data' => [
+                'broadcast_id' => $broadcast->id,
+                'sales_id' => $user->id,
+                'total_target' => $orders->count(),
+                'unique_customers' => $uniqueOrdersByCustomer->count(),
+                'sent_to_queue' => $sentCount,
+                'failed' => $failedCount
+            ]
+        ]);
+    }
+
+    /**
+     * Ambil orders berdasarkan target conditions untuk sales tertentu
+     */
+    private function getOrdersByTargetForSales(array $target, $salesId)
+    {
+        $query = OrderCustomer::with(['customer_rel', 'produk_rel'])
+            ->where('status', '!=', 'N')
+            ->whereHas('customer_rel', function($q) use ($salesId) {
+                $q->where('sales_id', $salesId)
+                  ->where('status', '!=', 'N');
+            })
+            ->distinct();
+
+        $this->applyTargetConditions($query, $target);
+
+        return $query->get();
+    }
+
+    /**
+     * Ambil woowa_key dari sales berdasarkan customer
+     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     */
+    private function getWoowaKeyFromSales($customer)
+    {
+        if (!$customer || !$customer->sales_id) {
+            return env('WOOWA_KEY');
+        }
+
+        $sales = Sales::where('user_id', $customer->sales_id)->first();
+        
+        if ($sales && $sales->woowa_key) {
+            return $sales->woowa_key;
+        }
+
+        // Fallback ke env jika tidak ditemukan
+        return env('WOOWA_KEY');
     }
 }
 

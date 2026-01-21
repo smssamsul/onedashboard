@@ -9,6 +9,7 @@ use App\Services\ZoomService;
 use App\Http\Controllers\Api\LoginController;
 use App\Http\Controllers\Api\LogoutController;
 use App\Http\Controllers\Api\WhatsAppBotController;
+use App\Http\Controllers\Api\WoowaWebhookController;
 
 // Sales Controllers
 use App\Http\Controllers\Api\Sales\{
@@ -89,6 +90,10 @@ Route::prefix('midtrans')->group(function () {
 Route::post('/whatsapp/webhook', [WhatsAppBotController::class, 'webhook'])
     ->middleware('throttle:60,1');
 
+// Woowa Webhook (Public - untuk menerima data dari Woowa)
+Route::post('/woowa/webhook', [WoowaWebhookController::class, 'handle'])
+    ->middleware('throttle:120,1');
+
 // Test Zoom Token
 Route::get('/test-zoom-token', function () {
     $token = ZoomService::getAccessToken();
@@ -141,6 +146,10 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'store']);
         Route::put('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'update']);
         Route::delete('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'destroy']);
+        
+        // Head Sales - Statistics & Performance
+        Route::get('/statistics', [\App\Http\Controllers\Api\Sales\SalesController::class, 'statistics']);
+        Route::get('/sales-performance/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'performance']);
 
         // Template Followup
         Route::post('/template-follup', [TemplateFollupController::class, 'index']);
@@ -153,10 +162,13 @@ Route::middleware('auth:api')->group(function () {
         // Order
         Route::get('/order', [OrderCustomerController::class, 'index']);
         Route::get('/order/statistic', [OrderCustomerController::class, 'statistiOrder']);
+        Route::get('/order/statistic-per-sales', [OrderCustomerController::class, 'statistiOrderPerSales']);
         Route::get('/order/sales', [OrderCustomerController::class, 'ordersForSales']);
         Route::post('/order/broadcast', [OrderCustomerController::class, 'broadcastOrders']);
         Route::post('/order/{id}/send-whatsapp', [OrderCustomerController::class, 'sendWhatsApp'])->where('id', '[0-9]+');
+        Route::post('/order/{id}/reject', [OrderCustomerController::class, 'reject'])->where('id', '[0-9]+');
         Route::get('/order/{id}', [OrderCustomerController::class, 'show'])->where('id', '[0-9]+');
+        Route::get('/order/{id}/logs-follup', [OrderCustomerController::class, 'showLogsFollup'])->where('id', '[0-9]+');
         Route::put('/order/{id}', [OrderCustomerController::class, 'update'])->where('id', '[0-9]+');
         Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
         Route::post('/order-admin', [OrderCustomerController::class, 'store_admin']);
@@ -177,11 +189,14 @@ Route::middleware('auth:api')->group(function () {
 
         // Broadcast
         Route::get('/broadcast', [BroadcastController::class, 'index']);
+        Route::get('/broadcast/my-broadcast', [BroadcastController::class, 'indexByUser']);
         Route::get('/broadcast/{id}', [BroadcastController::class, 'show']);
         Route::get('/broadcast/{id}/penerima', [BroadcastController::class, 'penerima']);
         Route::post('/broadcast', [BroadcastController::class, 'store']);
+        Route::post('/broadcast/per-sales', [BroadcastController::class, 'storeForMySales']);
         Route::put('/broadcast/{id}', [BroadcastController::class, 'update']);
         Route::delete('/broadcast/{id}', [BroadcastController::class, 'destroy']);
+        Route::post('/broadcast/{id}/send-sales', [BroadcastController::class, 'sendToMySales']);
         Route::post('/broadcast/{id}/send', [BroadcastController::class, 'send']);
 
         // Leads
@@ -310,6 +325,7 @@ Route::prefix('customer')->group(function () {
     Route::middleware('auth:customer')->group(function () {
         Route::get('/dashboard', [CustomerDashboardController::class, 'index']);
         Route::post('/customer', [CustomerDashboardController::class, 'store']);
+        Route::get('/customer/detail', [CustomerDashboardController::class, 'show']);
         Route::get('/debug', function (Request $request) {
             return response()->json([
                 'guard' => 'customer',
@@ -319,6 +335,9 @@ Route::prefix('customer')->group(function () {
         Route::post('/otp/send', [OtpCustomerController::class, 'sendOtp'])->middleware('throttle:otp');
         Route::post('/otp/resend', [OtpCustomerController::class, 'resendOtp'])->middleware('throttle:otp');
         Route::post('/otp/update-wa', [OtpCustomerController::class, 'updatePhoneAndSendOtp'])->middleware('throttle:otp');
+        
+        // Order Customer Routes
+        Route::post('/order/{id}/upload-bukti-pembayaran', [OrderCustomerController::class, 'customerUploadBuktiPembayaran'])->where('id', '[0-9]+');
     });
 });
 

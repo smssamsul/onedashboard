@@ -64,4 +64,12 @@ class OrderCustomer extends Model
     {
         return $this->belongsTo(ProdukBundling::class, 'bundling', 'id');
     }
+
+    /**
+     * Relasi ke LogsFollup
+     */
+    public function logs_follup()
+    {
+        return $this->hasMany(LogsFollup::class, 'order', 'id');
+    }
 }

@@ -184,3 +184,12 @@ Route::get('/admin/customer-import', function () {
 Route::get('/admin/order', function () {
     return view('admin.order');
 })->name('admin.order');
+
+
+Route::get('/debug', function () {
+    return [
+        'is_secure' => request()->isSecure(),
+        'scheme' => request()->getScheme(),
+        'url' => url()->current(),
+    ];
+});

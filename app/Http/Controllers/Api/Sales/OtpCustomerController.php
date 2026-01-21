@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\OtpCus;
 use App\Models\Customer;
+use App\Models\Sales;
 use App\Jobs\SendWhatsAppJob;
 
 class OtpCustomerController extends Controller
@@ -73,8 +74,8 @@ class OtpCustomerController extends Controller
         $nama = $customer->nama ?? 'Kak';
         $message = "Halo {$nama},\n\nKode OTP kamu adalah *{$otpCode}*.\n\nKode ini berlaku selama 5 menit. Jangan bagikan ke siapapun ya 😊";
 
-        // Data untuk Woowa API
-        $woowaKey = env('WOOWA_KEY');
+        // Ambil woowa_key dari sales yang terkait dengan customer
+        $woowaKey = $this->getWoowaKeyFromSales($customer);
 
         try {
             // Kirim via RabbitMQ Queue (asynchronous)
@@ -188,11 +189,11 @@ class OtpCustomerController extends Controller
         } else {
             // Jika belum login, validasi dan ambil dari request
             $request->validate([
-                'customer' => 'required|integer|exists:customers,id',
-                'phone' => 'required|string',
+                'customer_id' => 'required|integer|exists:customer,id',
+                'wa' => 'required|string',
             ]);
-            $customerId = $request->customer;
-            $phone = $request->phone;
+            $customerId = $request->customer_id;
+            $phone = $request->wa;
         }
 
         $customer = Customer::find($customerId);
@@ -215,8 +216,8 @@ class OtpCustomerController extends Controller
             'status' => '1',
         ]);
 
-        // Kirim via Woowa API via Queue
-        $woowaKey = env('WOOWA_KEY');
+        // Ambil woowa_key dari sales yang terkait dengan customer
+        $woowaKey = $this->getWoowaKeyFromSales($customer);
 
         $message = "Hai *{$customer->nama}*,\nKode OTP baru kamu adalah *{$otp}*.\nKode ini berlaku selama 5 menit.";
 
@@ -301,8 +302,8 @@ class OtpCustomerController extends Controller
         $nama = $customer->nama ?? 'Kak';
         $message = "Halo {$nama},\n\nNomor WhatsApp Anda telah diubah.\n\nKode OTP verifikasi kamu adalah *{$otpCode}*.\n\nKode ini berlaku selama 5 menit. Jangan bagikan ke siapapun ya 😊";
 
-        // Data untuk Woowa API
-        $woowaKey = env('WOOWA_KEY');
+        // Ambil woowa_key dari sales yang terkait dengan customer
+        $woowaKey = $this->getWoowaKeyFromSales($customer);
 
         try {
             // Kirim via RabbitMQ Queue (asynchronous)
@@ -355,5 +356,25 @@ class OtpCustomerController extends Controller
         }
 
         return $phone;
+    }
+
+    /**
+     * Ambil woowa_key dari sales berdasarkan customer
+     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     */
+    private function getWoowaKeyFromSales($customer)
+    {
+        if (!$customer || !$customer->sales_id) {
+            return env('WOOWA_KEY');
+        }
+
+        $sales = Sales::where('user_id', $customer->sales_id)->first();
+        
+        if ($sales && $sales->woowa_key) {
+            return $sales->woowa_key;
+        }
+
+        // Fallback ke env jika tidak ditemukan
+        return env('WOOWA_KEY');
     }
 }

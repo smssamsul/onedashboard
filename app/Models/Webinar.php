@@ -20,6 +20,7 @@ class Webinar extends Model
         'start_time',
         'duration',
         'sesi',
+        'topic',
     ];
 
     const CREATED_AT = 'create_at';

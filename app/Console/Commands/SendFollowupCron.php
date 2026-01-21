@@ -9,6 +9,8 @@ use App\Models\Produk;
 use App\Models\OrderCustomer;
 use App\Models\TemplateFollup;
 use App\Models\LogsFollup;
+use App\Models\Customer;
+use App\Models\Sales;
 use App\Helpers\TemplateHelper;
 use Carbon\Carbon;
 
@@ -39,8 +41,6 @@ class SendFollowupCron extends Command
         // Kode Quods (LAMA - DIKOMENTAR)
         // $deviceKey = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
         // $token     = env('QUODS_API_TOKEN', 'kLHLPGydnu219dsc67NFbZbaPwN5ow');
-
-        $woowaKey = env('WOOWA_KEY');
 
         $produkList = Produk::where('status', '1')->get();
 
@@ -114,6 +114,9 @@ class SendFollowupCron extends Command
 
                     $message = TemplateHelper::render($template->text, $data);
 
+                    // Ambil woowa_key dari sales yang terkait dengan customer
+                    $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel);
+
                     if ($debug) {
                         $this->line("[DEBUG] Kirim ke {$order->customer_rel->wa}: {$message}");
                         Log::channel('followup')->debug("DEBUG: Pesan akan dikirim", [
@@ -168,6 +171,8 @@ class SendFollowupCron extends Command
                         LogsFollup::create([
                             'follup'     => $template->id,
                             'customer'   => $order->customer_rel->id,
+                            'order'      => $order->id,
+                            'type'       => $template->type,
                             'keterangan' => $keterangan,
                             'create_at'  => now(),
                             'status'     => $response->successful() ? '1' : '0',
@@ -204,6 +209,8 @@ class SendFollowupCron extends Command
                         LogsFollup::create([
                             'follup'     => $template->id,
                             'customer'   => $order->customer_rel->id,
+                            'order'      => $order->id,
+                            'type'       => $template->type,
                             'keterangan' => $keterangan,
                             'create_at'  => now(),
                             'status'     => '0',
@@ -232,5 +239,25 @@ class SendFollowupCron extends Command
             'duration_seconds' => $duration,
         ]);
         return Command::SUCCESS;
+    }
+
+    /**
+     * Ambil woowa_key dari sales berdasarkan customer
+     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     */
+    private function getWoowaKeyFromSales($customer)
+    {
+        if (!$customer || !$customer->sales_id) {
+            return env('WOOWA_KEY');
+        }
+
+        $sales = Sales::where('user_id', $customer->sales_id)->first();
+        
+        if ($sales && $sales->woowa_key) {
+            return $sales->woowa_key;
+        }
+
+        // Fallback ke env jika tidak ditemukan
+        return env('WOOWA_KEY');
     }
 }

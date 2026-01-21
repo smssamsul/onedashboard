@@ -11,6 +11,7 @@ use App\Services\ZoomService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class ProdukController extends Controller
 {
@@ -18,6 +19,60 @@ class ProdukController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api')->except(['showByKode']);;
+    }
+
+    /**
+     * Convert base64 image to file and save
+     */
+    private function saveBase64Image($base64String, $produkId, $folder = 'images')
+    {
+        if (empty($base64String) || !is_string($base64String)) {
+            return null;
+        }
+        
+        // Deteksi base64 image (format: data:image/png;base64,... atau data:image/webp;base64,...)
+        // Support berbagai format: png, jpeg, jpg, gif, webp, bmp, svg+xml, dll
+        if (preg_match('/^data:image\/(\w+)(?:\+xml)?;base64,/', $base64String, $matches)) {
+            $imageType = strtolower($matches[1]); // png, jpeg, jpg, gif, webp, etc
+            
+            // Normalize image type (jpeg -> jpg)
+            if ($imageType === 'jpeg') {
+                $imageType = 'jpg';
+            }
+            
+            // Extract base64 data (setelah koma)
+            $base64Data = substr($base64String, strpos($base64String, ',') + 1);
+            $imageData = base64_decode($base64Data, true); // strict mode
+            
+            if ($imageData === false) {
+                Log::warning('Failed to decode base64 image', [
+                    'produk_id' => $produkId,
+                    'folder' => $folder,
+                    'image_type' => $imageType
+                ]);
+                return null; // Gagal decode
+            }
+            
+            // Generate unique filename
+            $filename = uniqid() . '_' . time() . '.' . $imageType;
+            $path = "produk/landingpage/{$produkId}/{$folder}/{$filename}";
+            
+            // Simpan file
+            try {
+                Storage::disk('public')->put($path, $imageData);
+                return $path;
+            } catch (\Exception $e) {
+                Log::error('Failed to save base64 image', [
+                    'produk_id' => $produkId,
+                    'folder' => $folder,
+                    'path' => $path,
+                    'error' => $e->getMessage()
+                ]);
+                return null;
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -50,21 +105,50 @@ class ProdukController extends Controller
 
             // Process image component
             if ($type === 'image' && isset($component['content'])) {
-                // Cek apakah ada file upload untuk image ini
-                $fileKey = $componentId ? "landingpage_image_{$componentId}" : null;
+                $oldSrc = $component['content']['src'] ?? null;
                 
-                // Jika src adalah URL atau path yang sudah ada, skip
+                // Cek apakah src adalah base64 image
                 if (isset($component['content']['src']) && 
+                    is_string($component['content']['src']) &&
+                    strpos($component['content']['src'], 'data:image/') === 0) {
+                    // Hapus file lama jika ada (untuk update)
+                    if ($oldSrc && 
+                        strpos($oldSrc, 'data:image/') !== 0 &&
+                        strpos($oldSrc, 'produk/landingpage/') === 0 &&
+                        Storage::disk('public')->exists($oldSrc)) {
+                        Storage::disk('public')->delete($oldSrc);
+                    }
+                    
+                    // Convert base64 ke file
+                    $savedPath = $this->saveBase64Image($component['content']['src'], $produkId, 'images');
+                    if ($savedPath) {
+                        $component['content']['src'] = $savedPath;
+                    }
+                }
+                // Cek apakah ada file upload untuk image ini
+                elseif (isset($component['content']['src']) && 
                     (strpos($component['content']['src'], 'http') === 0 || 
-                     strpos($component['content']['src'], '/storage/') === 0)) {
+                     strpos($component['content']['src'], '/storage/') === 0 ||
+                     strpos($component['content']['src'], 'produk/landingpage/') === 0)) {
+                    // Sudah URL/path yang valid, skip
                     continue;
                 }
-
-                if ($fileKey && $request->hasFile($fileKey)) {
-                    $file = $request->file($fileKey);
-                    if ($file && $file->isValid()) {
-                        $path = $file->store("produk/landingpage/{$produkId}/images", 'public');
-                        $component['content']['src'] = $path;
+                else {
+                    // Cek file upload via form
+                    $fileKey = $componentId ? "landingpage_image_{$componentId}" : null;
+                    if ($fileKey && $request->hasFile($fileKey)) {
+                        // Hapus file lama jika ada (untuk update)
+                        if ($oldSrc && 
+                            strpos($oldSrc, 'produk/landingpage/') === 0 &&
+                            Storage::disk('public')->exists($oldSrc)) {
+                            Storage::disk('public')->delete($oldSrc);
+                        }
+                        
+                        $file = $request->file($fileKey);
+                        if ($file && $file->isValid()) {
+                            $path = $file->store("produk/landingpage/{$produkId}/images", 'public');
+                            $component['content']['src'] = $path;
+                        }
                     }
                 }
             }
@@ -72,19 +156,49 @@ class ProdukController extends Controller
             // Process image-slider component
             if ($type === 'image-slider' && isset($component['content']['images']) && is_array($component['content']['images'])) {
                 foreach ($component['content']['images'] as $idx => &$image) {
-                    // Jika src adalah URL atau path yang sudah ada, skip
+                    $oldSrc = $image['src'] ?? null;
+                    
+                    // Cek apakah src adalah base64 image
                     if (isset($image['src']) && 
+                        is_string($image['src']) &&
+                        strpos($image['src'], 'data:image/') === 0) {
+                        // Hapus file lama jika ada (untuk update)
+                        if ($oldSrc && 
+                            strpos($oldSrc, 'data:image/') !== 0 &&
+                            strpos($oldSrc, 'produk/landingpage/') === 0 &&
+                            Storage::disk('public')->exists($oldSrc)) {
+                            Storage::disk('public')->delete($oldSrc);
+                        }
+                        
+                        // Convert base64 ke file
+                        $savedPath = $this->saveBase64Image($image['src'], $produkId, 'slider');
+                        if ($savedPath) {
+                            $image['src'] = $savedPath;
+                        }
+                    }
+                    // Jika src adalah URL atau path yang sudah ada, skip
+                    elseif (isset($image['src']) && 
                         (strpos($image['src'], 'http') === 0 || 
-                         strpos($image['src'], '/storage/') === 0)) {
+                         strpos($image['src'], '/storage/') === 0 ||
+                         strpos($image['src'], 'produk/landingpage/') === 0)) {
                         continue;
                     }
-
-                    $fileKey = $componentId ? "landingpage_slider_{$componentId}_{$idx}" : null;
-                    if ($fileKey && $request->hasFile($fileKey)) {
-                        $file = $request->file($fileKey);
-                        if ($file && $file->isValid()) {
-                            $path = $file->store("produk/landingpage/{$produkId}/slider", 'public');
-                            $image['src'] = $path;
+                    else {
+                        // Cek file upload via form
+                        $fileKey = $componentId ? "landingpage_slider_{$componentId}_{$idx}" : null;
+                        if ($fileKey && $request->hasFile($fileKey)) {
+                            // Hapus file lama jika ada (untuk update)
+                            if ($oldSrc && 
+                                strpos($oldSrc, 'produk/landingpage/') === 0 &&
+                                Storage::disk('public')->exists($oldSrc)) {
+                                Storage::disk('public')->delete($oldSrc);
+                            }
+                            
+                            $file = $request->file($fileKey);
+                            if ($file && $file->isValid()) {
+                                $path = $file->store("produk/landingpage/{$produkId}/slider", 'public');
+                                $image['src'] = $path;
+                            }
                         }
                     }
                 }
@@ -93,19 +207,49 @@ class ProdukController extends Controller
             // Process testimoni component
             if ($type === 'testimoni' && isset($component['content']['items']) && is_array($component['content']['items'])) {
                 foreach ($component['content']['items'] as $idx => &$testi) {
-                    // Jika gambar adalah URL atau path yang sudah ada, skip
+                    $oldGambar = $testi['gambar'] ?? null;
+                    
+                    // Cek apakah gambar adalah base64 image
                     if (isset($testi['gambar']) && 
+                        is_string($testi['gambar']) &&
+                        strpos($testi['gambar'], 'data:image/') === 0) {
+                        // Hapus file lama jika ada (untuk update)
+                        if ($oldGambar && 
+                            strpos($oldGambar, 'data:image/') !== 0 &&
+                            strpos($oldGambar, 'produk/landingpage/') === 0 &&
+                            Storage::disk('public')->exists($oldGambar)) {
+                            Storage::disk('public')->delete($oldGambar);
+                        }
+                        
+                        // Convert base64 ke file
+                        $savedPath = $this->saveBase64Image($testi['gambar'], $produkId, 'testimoni');
+                        if ($savedPath) {
+                            $testi['gambar'] = $savedPath;
+                        }
+                    }
+                    // Jika gambar adalah URL atau path yang sudah ada, skip
+                    elseif (isset($testi['gambar']) && 
                         (strpos($testi['gambar'], 'http') === 0 || 
-                         strpos($testi['gambar'], '/storage/') === 0)) {
+                         strpos($testi['gambar'], '/storage/') === 0 ||
+                         strpos($testi['gambar'], 'produk/landingpage/') === 0)) {
                         continue;
                     }
-
-                    $fileKey = $componentId ? "landingpage_testimoni_{$componentId}_{$idx}" : null;
-                    if ($fileKey && $request->hasFile($fileKey)) {
-                        $file = $request->file($fileKey);
-                        if ($file && $file->isValid()) {
-                            $path = $file->store("produk/landingpage/{$produkId}/testimoni", 'public');
-                            $testi['gambar'] = $path;
+                    else {
+                        // Cek file upload via form
+                        $fileKey = $componentId ? "landingpage_testimoni_{$componentId}_{$idx}" : null;
+                        if ($fileKey && $request->hasFile($fileKey)) {
+                            // Hapus file lama jika ada (untuk update)
+                            if ($oldGambar && 
+                                strpos($oldGambar, 'produk/landingpage/') === 0 &&
+                                Storage::disk('public')->exists($oldGambar)) {
+                                Storage::disk('public')->delete($oldGambar);
+                            }
+                            
+                            $file = $request->file($fileKey);
+                            if ($file && $file->isValid()) {
+                                $path = $file->store("produk/landingpage/{$produkId}/testimoni", 'public');
+                                $testi['gambar'] = $path;
+                            }
                         }
                     }
                 }
@@ -115,23 +259,45 @@ class ProdukController extends Controller
         return json_encode($landingpage);
     }
   
-    public function index()
+    public function index(Request $request)
     {
-
-
-        $query = Produk::with([
+        $query = Produk::select(array_diff(
+            Schema::getColumnListing('produk'),
+            ['landingpage']
+        ))
+        ->with([
             'kategori_rel:id,nama',
             'user_rel:id,nama',
-            'trainer_rel:id,nama'
+            'trainer_rel:id,nama',
+            'bundling_rel:id,produk,nama,harga,status'
         ])
         ->where('status', '!=', 'N') 
         ->orderBy('create_at', 'desc');
 
-        $produk = $query->orderBy('create_at', 'desc')->get();
+        // Jika parameter all=true, return semua data tanpa pagination
+        if ($request->has('all') && $request->all == 'true') {
+            $produk = $query->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $produk,
+                'total' => $produk->count()
+            ]);
+        }
+
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $produk = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $produk
+            'data' => $produk->items(),
+            'pagination' => [
+                'current_page' => $produk->currentPage(),
+                'last_page' => $produk->lastPage(),
+                'per_page' => $produk->perPage(),
+                'total' => $produk->total(),
+            ]
         ]);
     }
 
@@ -347,11 +513,11 @@ class ProdukController extends Controller
 
     public function show($id)
     {
-
         $query = Produk::with([
             'kategori_rel:id,nama',
             'user_rel:id,nama',
-            'trainer_rel:id,nama'
+            'trainer_rel:id,nama',
+            'bundling_rel:id,produk,nama,harga,status'
         ])
         ->where('status', '!=', 'N') 
         ->where('id', $id)
@@ -633,7 +799,11 @@ class ProdukController extends Controller
     public function showByKode($kode)
     {
         $produk = Produk::where('kode', $kode)
-            ->with(['kategori_rel:id,nama', 'user_rel:id,nama'])
+            ->with([
+                'kategori_rel:id,nama', 
+                'user_rel:id,nama',
+                'bundling_rel:id,produk,nama,harga,status'
+            ])
             ->first();
 
         if (!$produk) {

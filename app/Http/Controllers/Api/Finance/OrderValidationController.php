@@ -6,7 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OrderCustomer;
 use App\Models\OrderPayment;
+use App\Models\Customer;
+use App\Models\Sales;
+use App\Models\Produk;
+use App\Models\TemplateFollup;
+use App\Helpers\TemplateHelper;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 
 class OrderValidationController extends Controller
 {
@@ -154,7 +161,7 @@ class OrderValidationController extends Controller
             'catatan' => $request->catatan ?? $payment->catatan,
         ]);
 
-        $order = OrderCustomer::find($payment->order_id);
+        $order = OrderCustomer::with('customer_rel')->find($payment->order_id);
         if ($order) {
             $totalPaid = OrderPayment::where('order_id', $order->id)
                 ->where('status', '!=', 'N')
@@ -171,6 +178,99 @@ class OrderValidationController extends Controller
                     'update_at' => now(),
                 ]);
             }
+        }
+
+        // Kirim notifikasi WhatsApp ke customer
+        try {
+            if ($order && $order->customer_rel && $order->customer_rel->wa) {
+                $customer = $order->customer_rel;
+                $produk = Produk::find($order->produk);
+
+                // Cari template followup untuk pembayaran berhasil (type 7 atau sesuai kebutuhan)
+                $templateFollup = TemplateFollup::where('produk_id', $order->produk)
+                    ->where('type', '7') // Asumsi type 7 untuk pembayaran berhasil diverifikasi
+                    ->first();
+
+                // Jika tidak ada template, gunakan pesan default
+                if ($templateFollup) {
+                    $dataText = [
+                        'customer_name' => $customer->nama ?? '',
+                        'product_name'  => $produk->nama ?? '',
+                        'order_date'    => $order->create_at ? Carbon::parse($order->create_at)->format('d-m-Y') : now()->format('d-m-Y'),
+                        'order_total'   => number_format($order->total_harga ?? 0, 0, ',', '.'),
+                        'payment_amount' => number_format($payment->amount ?? 0, 0, ',', '.'),
+                        'payment_method' => $payment->payment_method ?? '',
+                        'payment_ke'    => $payment->payment_ke ?? 1,
+                    ];
+
+                    $message = TemplateHelper::render($templateFollup->text, $dataText);
+                } else {
+                    // Pesan default
+                    $message = "Halo {$customer->nama},\n\nTerima kasih! Pembayaran Anda sebesar Rp " . number_format($payment->amount, 0, ',', '.') . " untuk produk {$produk->nama} telah berhasil diverifikasi dan disetujui.\n\nTerima kasih atas kepercayaan Anda 🙏";
+                }
+
+                // Ambil woowa_key dari sales yang terkait dengan customer
+                $woowaKey = $this->getWoowaKeyFromSales($customer);
+
+                \Log::info('Finance approve - Mengirim WhatsApp', [
+                    'payment_id' => $payment->id,
+                    'order_id' => $payment->order_id,
+                    'customer_id' => $customer->id,
+                    'customer_wa' => $customer->wa,
+                    'woowa_key_found' => $woowaKey ? true : false,
+                ]);
+
+                if ($woowaKey) {
+                    $response = Http::asJson()
+                        ->withHeaders([
+                            'Content-Type' => 'application/json',
+                            'Accept' => 'application/json'
+                        ])
+                        ->post('https://notifapi.com/send_message', [
+                            'phone_no' => $customer->wa,
+                            'key'      => $woowaKey,
+                            'message'  => $message,
+                        ]);
+
+                    \Log::info('Finance approve - Response WhatsApp', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                        'http_status' => $response->status(),
+                        'successful' => $response->successful(),
+                        'response' => $response->json(),
+                    ]);
+
+                    if (!$response->successful()) {
+                        \Log::warning('Finance approve - WhatsApp gagal dikirim', [
+                            'payment_id' => $payment->id,
+                            'order_id' => $payment->order_id,
+                            'http_status' => $response->status(),
+                            'response' => $response->json(),
+                        ]);
+                    }
+                } else {
+                    \Log::warning('Finance approve - Woowa Key tidak ditemukan', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                        'customer_id' => $customer->id,
+                        'customer_sales_id' => $customer->sales_id,
+                    ]);
+                }
+            } else {
+                \Log::warning('Finance approve - Customer tidak memiliki nomor WA', [
+                    'payment_id' => $payment->id,
+                    'order_id' => $payment->order_id,
+                    'customer_id' => $order ? $order->customer : null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Finance approve - Exception saat kirim WhatsApp', [
+                'payment_id' => $payment->id,
+                'order_id' => $payment->order_id,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+            ]);
         }
 
         \Log::info('Finance approve payment', [
@@ -269,6 +369,26 @@ class OrderValidationController extends Controller
                 'total_nilai_menunggu_formatted' => 'Rp ' . number_format($totalNilaiMenunggu, 0, ',', '.'),
             ]
         ]);
+    }
+
+    /**
+     * Ambil woowa_key dari sales berdasarkan customer
+     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     */
+    private function getWoowaKeyFromSales($customer)
+    {
+        if (!$customer || !$customer->sales_id) {
+            return env('WOOWA_KEY');
+        }
+
+        $sales = Sales::where('user_id', $customer->sales_id)->first();
+        
+        if ($sales && $sales->woowa_key) {
+            return $sales->woowa_key;
+        }
+
+        // Fallback ke env jika tidak ditemukan
+        return env('WOOWA_KEY');
     }
 }
 

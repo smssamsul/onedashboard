@@ -16,7 +16,7 @@ class CustomerDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $customer = auth('customer')->user();
+        $customer = Customer::find(auth('customer')->user()->id);
 
         // Check jika customer belum diverifikasi (verifikasi = 0)
         if ($customer->verifikasi == 0 || $customer->verifikasi === '0' || $customer->verifikasi === null) {
@@ -115,11 +115,6 @@ class CustomerDashboardController extends Controller
         $totalOrder = $allOrders->count();
         $totalAktif = $ordersAktif->count();
 
-        // Generate MemberID dari create_at (format: 2025010100001 = tahun, bulan, tanggal, no urut)
-        $memberID = $this->generateMemberID($customer);
-
-        // Tentukan keanggotaan (basic, bronze, silver, gold, platinum, diamond)
-        // Cek apakah field keanggotaan ada di database
         $keanggotaan = 'basic'; // Default
         if (isset($customer->keanggotaan) && !empty($customer->keanggotaan)) {
             $keanggotaan = $customer->keanggotaan;
@@ -140,7 +135,7 @@ class CustomerDashboardController extends Controller
                     'email' => $customer->email,
                     'wa' => $customer->wa,
                     'status' => $customer->status,
-                    'memberID' => $memberID,
+                    'memberID' => $customer->memberID,
                     'keanggotaan' => $keanggotaan,
                 ],
                 'statistik' => [
@@ -152,89 +147,167 @@ class CustomerDashboardController extends Controller
         ]);
     }
 
+    /**
+     * Get detail customer
+     */
+    public function show(Request $request)
+    {
+        $customer = Customer::with('sales_rel:id,nama')
+            ->find(auth('customer')->user()->id);
+
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer tidak ditemukan'
+            ], 404);
+        }
+
+     
+
+        // Statistik order
+        $allOrders = OrderCustomer::where('customer', $customer->id)->get();
+        $totalOrder = $allOrders->count();
+        $ordersAktif = OrderCustomer::where('customer', $customer->id)
+            ->where('status', '!=', 'N')
+            ->count();
+        $ordersMenungguValidasi = OrderCustomer::where('customer', $customer->id)
+            ->where('status_pembayaran', '1')
+            ->where('status', '!=', 'N')
+            ->count();
+        $ordersSudahDiapprove = OrderCustomer::where('customer', $customer->id)
+            ->where('status_pembayaran', '2')
+            ->where('status', '!=', 'N')
+            ->count();
+        $ordersDitolak = OrderCustomer::where('customer', $customer->id)
+            ->where('status_pembayaran', '3')
+            ->where('status', '!=', 'N')
+            ->count();
+
+        // Total pembayaran yang sudah diapprove
+        // Cast total_harga ke numeric untuk PostgreSQL
+        $totalPembayaran = OrderCustomer::where('customer', $customer->id)
+            ->where('status_pembayaran', '2')
+            ->where('status', '!=', 'N')
+            ->selectRaw('SUM(CAST(total_harga AS numeric)) as total')
+            ->value('total') ?? 0;
+
+        // Format tanggal
+        $tanggalLahirFormatted = null;
+        if ($customer->tanggal_lahir) {
+            try {
+                $tanggalLahirFormatted = \Carbon\Carbon::parse($customer->tanggal_lahir)->format('d/m/Y');
+            } catch (\Exception $e) {
+                $tanggalLahirFormatted = $customer->tanggal_lahir;
+            }
+        }
+
+        $createAtFormatted = null;
+        if ($customer->create_at) {
+            try {
+                $createAtFormatted = \Carbon\Carbon::parse($customer->create_at)->format('d/m/Y H:i');
+            } catch (\Exception $e) {
+                $createAtFormatted = $customer->create_at;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail customer berhasil diambil',
+            'data' => [
+                'id' => $customer->id,
+                'nama' => $customer->nama,
+                'nama_panggilan' => $customer->nama_panggilan ?? $customer->nama,
+                'email' => $customer->email,
+                'wa' => $customer->wa,
+                'instagram' => $customer->instagram,
+                'profesi' => $customer->profesi,
+                'pendapatan_bln' => $customer->pendapatan_bln,
+                'industri_pekerjaan' => $customer->industri_pekerjaan,
+                'jenis_kelamin' => $customer->jenis_kelamin,
+                'tanggal_lahir' => $customer->tanggal_lahir,
+                'tanggal_lahir_formatted' => $tanggalLahirFormatted,
+                'alamat' => $customer->alamat,
+                'provinsi' => $customer->provinsi,
+                'kabupaten' => $customer->kabupaten,
+                'kecamatan' => $customer->kecamatan,
+                'kode_pos' => $customer->kode_pos,
+                'sapaan' => $customer->sapaan,
+                'status' => $customer->status,
+                'verifikasi' => $customer->verifikasi,
+                'memberID' => $customer->memberID,
+                'keanggotaan' => $customer->keanggotaan,
+                'create_at' => $customer->create_at,
+                'create_at_formatted' => $createAtFormatted,
+                'update_at' => $customer->update_at,
+                'sales' => $customer->sales_rel ? [
+                    'id' => $customer->sales_rel->id,
+                    'nama' => $customer->sales_rel->nama,
+                ] : null,
+                'statistik' => [
+                    'total_order' => $totalOrder,
+                    'order_aktif' => $ordersAktif,
+                    'order_menunggu_validasi' => $ordersMenungguValidasi,
+                    'order_sudah_diapprove' => $ordersSudahDiapprove,
+                    'order_ditolak' => $ordersDitolak,
+                    'total_pembayaran' => (float) $totalPembayaran,
+                    'total_pembayaran_formatted' => 'Rp ' . number_format($totalPembayaran, 0, ',', '.'),
+                ],
+            ]
+        ], 200);
+    }
+
     public function store(Request $request)
     {
         $idCustomer = auth('customer')->user();
         
-        $validator = Validator::make($request->all(), [
-            'nama_panggilan' => 'nullable|string|max:255',
-            'instagram' => 'nullable|string|max:255',
-            'profesi' => 'nullable|string|max:255',
-            'pendapatan_bln' => 'nullable|numeric',
-            'industri_pekerjaan' => 'nullable|string|max:255',
-            'jenis_kelamin' => 'nullable|in:L,P',
-            'tanggal_lahir' => 'nullable|date',
-            'alamat' => 'nullable|string',
-            'wa' => 'nullable|string|max:20',
-            'password' => 'nullable|min:6',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $customer = Customer::findOrFail($idCustomer->id);
 
-        $updateData = [
-            'nama_panggilan' => $request->nama_panggilan,
-            'instagram' => $request->instagram,
-            'profesi' => $request->profesi,
-            'pendapatan_bln' => $request->pendapatan_bln,
-            'industri_pekerjaan' => $request->industri_pekerjaan,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            'wa' => $request->wa,
-            'update_at' => now(),
+        // Daftar field yang diizinkan untuk diupdate
+        $allowedFields = [
+            'nama_panggilan',
+            'instagram',
+            'profesi',
+            'pendapatan_bln',
+            'industri_pekerjaan',
+            'jenis_kelamin',
+            'tanggal_lahir',
+            'alamat',
+            'wa',
+            'provinsi',
+            'kabupaten',
+            'kecamatan',
+            'kode_pos',
+            'sapaan',
         ];
+
+        $updateData = [];
+
+        // Loop melalui field yang diizinkan
+        // Hanya tambahkan ke updateData jika field tersebut ada di request
+        foreach ($allowedFields as $field) {
+            if ($request->has($field)) {
+                $updateData[$field] = $request->input($field);
+            }
+        }
 
         // Update password hanya jika diisi
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
         }
 
-        $customer->update($updateData);
+        // Jika ada data yang akan diupdate, tambahkan update_at
+        if (!empty($updateData)) {
+            $updateData['update_at'] = now();
+            $customer->update($updateData);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Profile berhasil diperbarui',
-            'data' => $customer
+            'data' => $customer->fresh()
         ], 200);
     }
 
-    /**
-     * Generate MemberID dari create_at
-     * Format: 2025010100001 (tahun, bulan, tanggal, no urut)
-     */
-    private function generateMemberID($customer)
-    {
-        // Ambil create_at atau gunakan tanggal sekarang
-        $createAt = $customer->create_at ?? now();
-        
-        // Jika create_at adalah string, convert ke Carbon
-        if (is_string($createAt)) {
-            $createAt = \Carbon\Carbon::parse($createAt);
-        }
-        
-        // Format: YYYYMMDD
-        $datePart = $createAt->format('Ymd');
-        
-        // Hitung no urut berdasarkan jumlah customer yang dibuat pada tanggal yang sama
-        $sameDateCustomers = Customer::whereDate('create_at', $createAt->format('Y-m-d'))
-            ->where('id', '<=', $customer->id)
-            ->count();
-        
-        // Format no urut dengan 5 digit (00001)
-        $sequence = str_pad($sameDateCustomers, 5, '0', STR_PAD_LEFT);
-        
-        // Gabungkan: YYYYMMDD + 00001
-        $memberID = $datePart . $sequence;
-        
-        return $memberID;
-    }
-
+  
  
 }

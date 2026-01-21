@@ -44,14 +44,23 @@ class LogsFollupController extends Controller
         
 
         $logs = LogsFollup::with([
-            'follup_rel:id,nama,event',
+            'follup_rel',
             'customer_rel:id,nama,wa'
-        ])
-        ->when($request->query('customer_id'), fn($q, $id) => $q->where('customer', $id))
-        ->when($request->query('tanggal'), fn($q, $tanggal) => $q->where('create_at', $tanggal))
-        ->when($request->query('event'), fn($q, $event) => $q->whereHas('follup_rel', fn($q2) => $q2->where('event', $event)))
-        ->orderByDesc('create_at')
-        ->get();
+        ]);
+
+        if($request->customer){
+            $logs->where('customer', $request->customer);
+        }
+
+        if($request->tanggal){
+            $logs->where('create_at', $request->tanggal);
+        }
+
+        if($request->event){
+            $logs->whereHas('follup_rel', fn($q) => $q->where('event', $request->event));
+        }
+
+        $logs = $logs->orderByDesc('create_at')->get();
 
         return response()->json([
             'message' => 'Data logs follow up berhasil diambil',

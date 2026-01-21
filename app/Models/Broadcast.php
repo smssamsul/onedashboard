@@ -27,6 +27,7 @@ class Broadcast extends Model
         'status',
         'create_at',
         'update_at',
+        'created_by',
     ];
 
     public $timestamps = false;

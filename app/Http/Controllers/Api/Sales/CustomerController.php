@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Sales;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use App\Models\Sales;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -72,7 +73,12 @@ class CustomerController extends Controller
 
         // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
-            $customers = $query->get();
+            $customers = $query->with('sales_rel:id,nama')->get();
+            
+            // Tambahkan sales_nama ke setiap customer
+            $customers->each(function($customer) {
+                $customer->sales_nama = $customer->sales_rel ? $customer->sales_rel->nama : null;
+            });
             
             return response()->json([
                 'success' => true,
@@ -83,7 +89,12 @@ class CustomerController extends Controller
 
         // Pagination
         $perPage = $request->get('per_page', 15);
-        $customers = $query->paginate($perPage);
+        $customers = $query->with('sales_rel:id,nama')->paginate($perPage);
+
+        // Tambahkan sales_nama ke setiap customer
+        $customers->getCollection()->each(function($customer) {
+            $customer->sales_nama = $customer->sales_rel ? $customer->sales_rel->nama : null;
+        });
 
         return response()->json([
             'success' => true,
@@ -142,6 +153,9 @@ class CustomerController extends Controller
 
         $wa = $this->formatPhoneNumber($request->wa);
 
+        // Jika sales_id tidak diisi, gunakan round-robin
+        $sales_id = !empty($request->sales_id) ? $request->sales_id : $this->getNextSalesId();
+
         $customer = Customer::create([
             'nama' => $request->nama,
             'nama_panggilan' => $request->nama_panggilan,
@@ -167,7 +181,8 @@ class CustomerController extends Controller
             // 'alasan_belum' => $request->alasan_belum,
             // 'harapan' => $request->harapan,
             'create_at' => now(),
-            'status' => '1'
+            'status' => '1',
+            'sales_id' => $sales_id,
         ]);
 
         // Generate memberID setelah customer dibuat
@@ -188,6 +203,7 @@ class CustomerController extends Controller
                     \Schema::getColumnListing('customer'),
                     ['password','create_at','update_at'] 
                 ))
+                ->with('sales_rel:id,nama')
                 ->where('id', $id)
                 ->where('status', '!=', 'N')
                 ->first();
@@ -196,6 +212,9 @@ class CustomerController extends Controller
         if (!$customer) {
             return response()->json(['message' => 'Customer tidak ditemukan'], 404);
         }
+
+        // Tambahkan sales_nama
+        $customer->sales_nama = $customer->sales_rel ? $customer->sales_rel->nama : null;
 
         return response()->json([
             'success' => true,
@@ -393,6 +412,10 @@ class CustomerController extends Controller
                     $data['create_at']  = $createAt;
                     $data['keanggotaan'] = 'basic'; // Default keanggotaan
                     $data['memberID']   = $memberID; // Set memberID langsung
+                    // Jika sales_id tidak diisi, gunakan round-robin
+                    if (empty($data['sales_id'])) {
+                        $data['sales_id'] = $this->getNextSalesId();
+                    }
 
                     $newCustomer = Customer::create($data);
                     $created++;
@@ -768,6 +791,27 @@ class CustomerController extends Controller
         self::$usedMemberIDs[] = $memberID;
         
         return $memberID;
+    }
+
+    /**
+     * Get sales_id berdasarkan urutan dan last_update_lead (round-robin)
+     * Digunakan untuk menetapkan sales secara otomatis jika tidak diisi
+     */
+    private function getNextSalesId()
+    {
+        $salesList = Sales::orderBy('urutan', 'asc')
+            ->orderByRaw('CASE WHEN last_update_lead IS NULL THEN 0 ELSE 1 END') // Null dulu
+            ->orderBy('last_update_lead', 'asc') 
+            ->get();
+
+       $selectedSales = $salesList->first();
+
+        $selectedSales->update([
+            'last_update_lead' => now()->format('Y-m-d H:i:s'),
+            'update_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        return $selectedSales->user_id;
     }
 }
 

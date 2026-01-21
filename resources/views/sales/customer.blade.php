@@ -547,6 +547,7 @@
                     <th>Email</th>
                     <th>WhatsApp</th>
                     <th>Alamat</th>
+                    <th>Sales</th>
                     <th>Profesi</th>
                     <th>Pendapatan</th>
                     <th>Aksi</th>
@@ -554,7 +555,7 @@
             </thead>
             <tbody id="customerTableBody">
                 <tr>
-                    <td colspan="9" class="loading">Memuat data...</td>
+                    <td colspan="10" class="loading">Memuat data...</td>
                 </tr>
             </tbody>
         </table>
@@ -697,7 +698,7 @@
     function renderCustomers(customers, pagination) {
         const tbody = document.getElementById('customerTableBody');
         if (customers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Tidak ada data customer</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Tidak ada data customer</td></tr>';
             renderPagination(null);
             return;
         }
@@ -728,6 +729,7 @@
                 <td>${customer.email || '-'}</td>
                 <td>${customer.wa || '-'}</td>
                 <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${customer.alamat || ''}">${customer.alamat || '-'}</td>
+                <td>${customer.sales_nama || '-'}</td>
                 <td>${customer.profesi || '-'}</td>
                 <td>${customer.pendapatan_bln || '-'}</td>
                 <td class="table-actions">
@@ -780,7 +782,7 @@
         if (tahun) url += `&tahun=${encodeURIComponent(tahun)}`;
 
         const tbody = document.getElementById('customerTableBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="loading">Memuat data...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="loading">Memuat data...</td></tr>';
 
         try {
             const response = await fetch(url, { headers: getHeaders() });
@@ -789,12 +791,12 @@
             if (result.success && result.data && result.data.length > 0) {
                 renderCustomers(result.data, result.pagination);
             } else {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Tidak ada data customer</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Tidak ada data customer</td></tr>';
                 renderPagination(null);
             }
         } catch (error) {
             console.error('Error loading customers:', error);
-            tbody.innerHTML = '<tr><td colspan="9" style="color: var(--danger);">Gagal memuat data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="color: var(--danger);">Gagal memuat data</td></tr>';
         }
     }
 

@@ -20,6 +20,8 @@ class LogsFollup extends Model
         'keterangan',
         'create_at',
         'update_at',
+        'type',
+        'order',
         'status'
     ];
 
@@ -31,5 +33,10 @@ class LogsFollup extends Model
     public function customer_rel()
     {
         return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+
+    public function order_rel()
+    {
+        return $this->belongsTo(OrderCustomer::class, 'order', 'id');
     }
 }

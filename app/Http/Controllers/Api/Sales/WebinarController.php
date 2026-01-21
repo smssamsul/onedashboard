@@ -58,6 +58,7 @@ class WebinarController extends Controller
         // 💾 Simpan ke tabel webinar
         $webinar = Webinar::create([
             'produk' => $request->produk,
+            'topic' => $request->topic,
             'meeting_id' => $data['id'],
             'join_url' => $data['join_url'],
             'start_url' => $data['start_url'],
