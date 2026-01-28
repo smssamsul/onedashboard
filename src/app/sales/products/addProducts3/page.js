@@ -174,6 +174,49 @@ export default function AddProducts3Page() {
   // Refs untuk scroll ke komponen di sidebar
   const componentRefs = useRef({});
 
+  // Auto-set bundling untuk kategori workshop (6)
+  useEffect(() => {
+    if (isWorkshopKategori(pengaturanForm.kategori)) {
+      // Pastikan bundling workshop sudah di-set
+      const workshopBundling = [
+        { nama: "bronze", harga: null },
+        { nama: "silver", harga: null },
+        { nama: "gold", harga: null },
+        { nama: "platinum", harga: null },
+        { nama: "Solitaire", harga: null }
+      ];
+      
+      // Hanya update jika bundling belum sesuai atau isBundling belum true
+      const needsUpdate = !pengaturanForm.isBundling || 
+          !pengaturanForm.bundling || 
+          pengaturanForm.bundling.length !== 5 ||
+          pengaturanForm.bundling.some((item, index) => item.nama !== workshopBundling[index].nama);
+      
+      if (needsUpdate) {
+        setPengaturanForm((prev) => ({
+          ...prev,
+          isBundling: true,
+          bundling: workshopBundling
+        }));
+      }
+    } else if (pengaturanForm.isBundling && pengaturanForm.bundling && pengaturanForm.bundling.length === 5) {
+      // Reset bundling jika kategori bukan workshop dan bundling masih workshop bundling
+      const isWorkshopBundling = pengaturanForm.bundling[0]?.nama === "bronze" &&
+                                  pengaturanForm.bundling[1]?.nama === "silver" &&
+                                  pengaturanForm.bundling[2]?.nama === "gold" &&
+                                  pengaturanForm.bundling[3]?.nama === "platinum" &&
+                                  pengaturanForm.bundling[4]?.nama === "Solitaire";
+      
+      if (isWorkshopBundling) {
+        setPengaturanForm((prev) => ({
+          ...prev,
+          isBundling: false,
+          bundling: []
+        }));
+      }
+    }
+  }, [pengaturanForm.kategori]);
+
   // Close background color picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1986,6 +2029,11 @@ export default function AddProducts3Page() {
   };
 
 
+  // Helper function untuk check apakah kategori adalah workshop (6)
+  const isWorkshopKategori = (kategori) => {
+    return kategori === "6" || kategori === 6 || Number(kategori) === 6;
+  };
+
   // Handler untuk update form pengaturan
   const handlePengaturanChange = (key, value) => {
     if (key === "nama") {
@@ -3240,8 +3288,35 @@ export default function AddProducts3Page() {
                         const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
                           ? String(selectedValue)
                           : null;
-                        handlePengaturanChange("kategori", finalValue);
+                        
                         setProductKategori(finalValue ? Number(finalValue) : null);
+                        
+                        // Update kategori dan auto-set bundling untuk kategori workshop (6) dalam satu state update
+                        setPengaturanForm((prev) => {
+                          const updated = { ...prev, kategori: finalValue };
+                          
+                          // Auto-set bundling untuk kategori workshop (6)
+                          if (isWorkshopKategori(finalValue)) {
+                            const workshopBundling = [
+                              { nama: "bronze", harga: null },
+                              { nama: "silver", harga: null },
+                              { nama: "gold", harga: null },
+                              { nama: "platinum", harga: null },
+                              { nama: "Solitaire", harga: null }
+                            ];
+                            updated.isBundling = true;
+                            updated.bundling = workshopBundling;
+                          } else {
+                            // Reset bundling jika kategori bukan workshop
+                            // Hanya reset jika sebelumnya adalah workshop
+                            if (isWorkshopKategori(prev.kategori)) {
+                              updated.isBundling = false;
+                              updated.bundling = [];
+                            }
+                          }
+                          
+                          return updated;
+                        });
                       }}
                       placeholder="Pilih Kategori"
                       showClear
@@ -3326,21 +3401,23 @@ export default function AddProducts3Page() {
                     />
                   </div>
 
-                  {/* Checkbox Bundling */}
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={pengaturanForm.isBundling || false}
-                        onChange={(e) => handlePengaturanChange("isBundling", e.target.checked)}
-                        style={{ width: "18px", height: "18px", cursor: "pointer" }}
-                      />
-                      <span>Bundling</span>
-                    </label>
-                  </div>
+                  {/* Checkbox Bundling - Hidden jika kategori workshop */}
+                  {!isWorkshopKategori(pengaturanForm.kategori) && (
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={pengaturanForm.isBundling || false}
+                          onChange={(e) => handlePengaturanChange("isBundling", e.target.checked)}
+                          style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                        />
+                        <span>Bundling</span>
+                      </label>
+                    </div>
+                  )}
 
-                  {/* Form Bundling */}
-                  {pengaturanForm.isBundling && (
+                  {/* Form Bundling - Tampil jika isBundling true atau kategori workshop */}
+                  {(pengaturanForm.isBundling || isWorkshopKategori(pengaturanForm.kategori)) && (
                     <div className="pengaturan-form-group" style={{ marginTop: "16px" }}>
                       <label className="pengaturan-label" style={{ marginBottom: "12px" }}>Daftar Bundling</label>
                       {(pengaturanForm.bundling || []).map((item, index) => (
@@ -3356,6 +3433,8 @@ export default function AddProducts3Page() {
                                 handlePengaturanChange("bundling", newBundling);
                               }}
                               placeholder="Masukkan nama bundling"
+                              disabled={isWorkshopKategori(pengaturanForm.kategori)}
+                              style={isWorkshopKategori(pengaturanForm.kategori) ? { background: "#f9fafb", cursor: "not-allowed" } : {}}
                             />
                           </div>
                           <div className="pengaturan-form-group">
@@ -3375,46 +3454,50 @@ export default function AddProducts3Page() {
                               useGrouping={true}
                             />
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newBundling = (pengaturanForm.bundling || []).filter((_, i) => i !== index);
-                              handlePengaturanChange("bundling", newBundling);
-                            }}
-                            style={{
-                              marginTop: "8px",
-                              padding: "6px 12px",
-                              backgroundColor: "#ef4444",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                              fontSize: "12px"
-                            }}
-                          >
-                            Hapus
-                          </button>
+                          {!isWorkshopKategori(pengaturanForm.kategori) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newBundling = (pengaturanForm.bundling || []).filter((_, i) => i !== index);
+                                handlePengaturanChange("bundling", newBundling);
+                              }}
+                              style={{
+                                marginTop: "8px",
+                                padding: "6px 12px",
+                                backgroundColor: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "12px"
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          )}
                         </div>
                       ))}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newBundling = [...(pengaturanForm.bundling || []), { nama: "", harga: null }];
-                          handlePengaturanChange("bundling", newBundling);
-                        }}
-                        style={{
-                          padding: "10px 16px",
-                          backgroundColor: "#F1A124",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: "500"
-                        }}
-                      >
-                        + Tambah Bundling
-                      </button>
+                      {pengaturanForm.kategori !== "6" && pengaturanForm.kategori !== 6 && Number(pengaturanForm.kategori) !== 6 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newBundling = [...(pengaturanForm.bundling || []), { nama: "", harga: null }];
+                            handlePengaturanChange("bundling", newBundling);
+                          }}
+                          style={{
+                            padding: "10px 16px",
+                            backgroundColor: "#F1A124",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "500"
+                          }}
+                        >
+                          + Tambah Bundling
+                        </button>
+                      )}
                     </div>
                   )}
 
