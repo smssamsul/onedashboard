@@ -37,7 +37,7 @@ export async function POST(request) {
       // Tambahkan default nilai untuk field opsional jika ada
       ...(body.down_payment !== undefined && body.down_payment !== null ? { down_payment: String(body.down_payment) } : {}),
       ...(body.status_pembayaran !== undefined && body.status_pembayaran !== null ? { status_pembayaran: Number(body.status_pembayaran) } : {}),
-      ...(body.bundling_id ? { bundling_id: body.bundling_id } : {}) // Forward bundling_id
+      bundling: body.bundling !== undefined ? String(body.bundling) : "",
     };
 
     // Proxy ke backend

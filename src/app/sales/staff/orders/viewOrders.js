@@ -100,7 +100,10 @@ const getFollowupStatusBadge = (status) => {
   return { label: "Pending", className: "badge-warning" };
 };
 
-export default function ViewOrders({ order, onClose }) {
+export default function ViewOrders({ order: initialOrder, onClose }) {
+  const [order, setOrder] = useState(initialOrder);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
   if (!order) return null;
 
   const [activeTab, setActiveTab] = useState("detail");
@@ -112,6 +115,37 @@ export default function ViewOrders({ order, onClose }) {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsError, setLogsError] = useState("");
   const [showUpdate, setShowUpdate] = useState(false);
+
+  // Fetch Full Order Details (to get bundling_rel if missing)
+  const fetchOrderDetails = useCallback(async () => {
+    if (!order?.id) return;
+    setLoadingOrder(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sales/order/${order.id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        // Handle if data is array or object
+        const fullOrder = Array.isArray(json.data) ? json.data[0] : json.data;
+        if (fullOrder) {
+          setOrder(fullOrder);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching full order:", err);
+    } finally {
+      setLoadingOrder(false);
+    }
+  }, [order?.id]);
+
+  useEffect(() => {
+    fetchOrderDetails();
+  }, [fetchOrderDetails]);
 
   // Payment History State
   const [paymentHistoryData, setPaymentHistoryData] = useState(null);
@@ -281,12 +315,32 @@ export default function ViewOrders({ order, onClose }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 <div>
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Produk</h4>
-                  <p style={{ fontSize: '1rem', fontWeight: 500, color: '#1e293b' }}>{order.produk_rel?.nama || "-"}</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 500, color: '#1e293b', marginBottom: '1.5rem' }}>{order.produk_rel?.nama || "-"}</p>
 
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>Status Order</h4>
+                  {/* Penanganan Bundling: Meniru gaya Admin agar pasti tampil */}
                   {(() => {
-                    const statusVal = String(order.status);
-                    const statusInfo = STATUS_ORDER_MAP[statusVal] || { label: "Pending", class: "pending" };
+                    const b = order.bundling_rel;
+                    const bName = b?.nama || (Array.isArray(b) && b[0]?.nama) || order.bundling_nama;
+
+                    if (!bName && !order.bundling && !loadingOrder) return <div style={{ marginBottom: '1.5rem' }}></div>;
+
+                    return (
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Paket Bundling</h4>
+                        <p style={{ fontSize: '1rem', fontWeight: 500, color: '#1e293b' }}>
+                          {bName || (loadingOrder ? "Memuat nama paket..." : ("ID: " + order.bundling))}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+
+
+
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Status Order</h4>
+                  {(() => {
+                    const statusVal = String(order.status_order ?? order.status ?? "1");
+                    const statusInfo = STATUS_ORDER_MAP[statusVal] || STATUS_ORDER_MAP["1"];
                     return (
                       <span className={`orders-status-badge orders-status-badge--${statusInfo.class}`}>
                         {statusInfo.label.toUpperCase()}
@@ -320,31 +374,7 @@ export default function ViewOrders({ order, onClose }) {
                 </div>
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => setShowUpdate(true)}
-                  className="orders-btn-update"
-                  style={{
-                    padding: "0.75rem 1.5rem",
-                    background: "linear-gradient(135deg, #ff6c00 0%, #ee6000 100%)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    fontWeight: "600",
-                    fontSize: "0.95rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    boxShadow: "0 4px 12px rgba(255, 108, 0, 0.2)",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  <i className="pi pi-pencil"></i>
-                  Update / Konfirmasi
-                </button>
-              </div>
+              {/* ACTION BUTTONS REMOVED FROM DETAIL TAB */}
             </div>
           )}
 

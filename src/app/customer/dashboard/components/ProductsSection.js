@@ -7,16 +7,33 @@ export default function ProductsSection({ products, isLoading, onProductClick })
   const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const [itemsPerSlide, setItemsPerSlide] = useState(4);
+
   useEffect(() => {
-    if (products.length <= 4) return;
-    
-    const totalSlides = Math.ceil(products.length / 4);
+    const updateItemsPerSlide = () => {
+      if (window.innerWidth < 640) setItemsPerSlide(1);
+      else if (window.innerWidth < 1024) setItemsPerSlide(2);
+      else setItemsPerSlide(4);
+    };
+
+    updateItemsPerSlide();
+    window.addEventListener("resize", updateItemsPerSlide);
+    return () => window.removeEventListener("resize", updateItemsPerSlide);
+  }, []);
+
+  useEffect(() => {
+    if (products.length <= itemsPerSlide) {
+      setCurrentSlide(0);
+      return;
+    }
+
+    const totalSlides = Math.ceil(products.length / itemsPerSlide);
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [products]);
+  }, [products, itemsPerSlide]);
 
   const formatPrice = (price) => {
     if (!price) return "Rp 0";
@@ -48,7 +65,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
               .replace(/[^a-z0-9 -]/g, "")
               .replace(/\s+/g, "-")
               .replace(/-+/g, "-");
-          
+
           let kodeProduk = product.kode || (product.url ? product.url.replace(/^\//, '') : null);
           if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
             kodeProduk = generateSlug(product.nama);
@@ -81,7 +98,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
               .replace(/[^a-z0-9 -]/g, "")
               .replace(/\s+/g, "-")
               .replace(/-+/g, "-");
-          
+
           let kodeProduk = product.kode || (product.url ? product.url.replace(/^\//, '') : null);
           if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
             kodeProduk = generateSlug(product.nama);
@@ -105,7 +122,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
           } else if (videoId.includes('youtu.be/')) {
             videoId = videoId.split('youtu.be/')[1]?.split('?')[0];
           }
-          
+
           // Buka halaman dengan YouTube embed
           router.push(`/customer/ecourse/${product.order_id || product.id}?video=${videoId}`);
         } else {
@@ -118,7 +135,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
               .replace(/[^a-z0-9 -]/g, "")
               .replace(/\s+/g, "-")
               .replace(/-+/g, "-");
-          
+
           let kodeProduk = product.kode || (product.url ? product.url.replace(/^\//, '') : null);
           if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
             kodeProduk = generateSlug(product.nama);
@@ -146,7 +163,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
               .replace(/[^a-z0-9 -]/g, "")
               .replace(/\s+/g, "-")
               .replace(/-+/g, "-");
-          
+
           let kodeProduk = product.kode || (product.url ? product.url.replace(/^\//, '') : null);
           if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
             kodeProduk = generateSlug(product.nama);
@@ -171,7 +188,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
             .replace(/[^a-z0-9 -]/g, "")
             .replace(/\s+/g, "-")
             .replace(/-+/g, "-");
-        
+
         let kodeProduk = product.kode || (product.url ? product.url.replace(/^\//, '') : null);
         if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
           kodeProduk = generateSlug(product.nama);
@@ -208,19 +225,19 @@ export default function ProductsSection({ products, isLoading, onProductClick })
           <h2>Produk Lainnya</h2>
           <p>Jelajahi produk dan paket menarik lainnya untuk Anda</p>
         </div>
-        <button 
+        <button
           className="products-section__view-all"
           onClick={() => window.open('/', '_blank')}
         >
           Lihat Semua
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
       <div className="products-carousel-wrapper">
-        <div 
+        <div
           className="products-carousel-track"
           style={{
             transform: `translateX(-${currentSlide * 100}%)`,
@@ -244,12 +261,12 @@ export default function ProductsSection({ products, isLoading, onProductClick })
                   style={{ display: product.header ? "none" : "flex" }}
                 >
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M9 9H15V15H9V9Z" stroke="currentColor" strokeWidth="2"/>
+                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+                    <path d="M9 9H15V15H9V9Z" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </div>
               </div>
-              
+
               <div className="product-carousel-card__body">
                 <div className="product-carousel-card__category">
                   {product.kategori_rel?.nama || "Produk"}
@@ -267,7 +284,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
                   {(() => {
                     const kategoriId = product.kategori_rel?.id || product.kategori_id || product.kategori;
                     const kategoriIdNum = Number(kategoriId);
-                    
+
                     switch (kategoriIdNum) {
                       case 1: return "Akses Ebook";
                       case 2: return "Join Webinar";
@@ -280,7 +297,7 @@ export default function ProductsSection({ products, isLoading, onProductClick })
                     }
                   })()}
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               </div>
@@ -289,9 +306,9 @@ export default function ProductsSection({ products, isLoading, onProductClick })
         </div>
       </div>
 
-      {products.length > 4 && (
+      {products.length > itemsPerSlide && (
         <div className="products-carousel-indicators">
-          {Array.from({ length: Math.ceil(products.length / 4) }).map((_, index) => (
+          {Array.from({ length: Math.ceil(products.length / itemsPerSlide) }).map((_, index) => (
             <button
               key={index}
               className={`products-carousel-indicator ${currentSlide === index ? 'active' : ''}`}

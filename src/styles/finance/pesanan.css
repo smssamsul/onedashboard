@@ -1,6 +1,6 @@
-:root, body 
-{
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+:root,
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* ===========================
@@ -44,8 +44,8 @@ body {
   padding: 1rem 1.2rem;
   margin-bottom: 1rem;
   margin-right: 20px;
-margin-left: 275px;
-margin-top: 20px;
+  margin-left: 275px;
+  margin-top: 20px;
 }
 
 .admin-title {
@@ -118,7 +118,7 @@ margin-top: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
 }
 
-.data-card > :last-child {
+.data-card> :last-child {
   justify-self: end;
 }
 
@@ -159,6 +159,7 @@ margin-top: 20px;
   background: #E0E7FF;
   color: #1D4ED8;
 }
+
 .btn-edit:hover {
   background: #C7D2FE;
 }
@@ -167,6 +168,7 @@ margin-top: 20px;
   background: #FEE2E2;
   color: #DC2626;
 }
+
 .btn-delete:hover {
   background: #FCA5A5;
 }
@@ -203,10 +205,13 @@ margin-top: 20px;
 .data-card {
   font-size: clamp(0.8rem, 0.9vw, 0.9rem);
 }
+
 .admin-followup-page .field-header,
 .admin-followup-page .data-card {
-  grid-template-columns: 60px 1fr 120px; /* Kolom No - Event/Text - Actions */
+  grid-template-columns: 60px 1fr 120px;
+  /* Kolom No - Event/Text - Actions */
 }
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -243,6 +248,7 @@ margin-top: 20px;
   background-color: #fee2e2;
   color: #991b1b;
 }
+
 /* ========== TABLE STYLES ========== */
 .admin-header-actions {
   display: flex;
@@ -252,7 +258,8 @@ margin-top: 20px;
 
 .search-input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db; /* abu-abu netral (setara Tailwind gray-300) */
+  border: 1px solid #d1d5db;
+  /* abu-abu netral (setara Tailwind gray-300) */
   border-radius: 8px;
   font-size: 0.9rem;
   flex: 1;
@@ -300,9 +307,11 @@ margin-top: 20px;
 /* Style Orders*/
 .orders-container {
   width: 100%;
-  max-width: 1225px; /* biar ngikut lebar admin-header */
+  max-width: 1225px;
+  /* biar ngikut lebar admin-header */
   margin: 0 auto;
-  display: block; /* ← INI KUNCI */
+  display: block;
+  /* ← INI KUNCI */
   align-items: flex-start;
   margin-left: 0rem;
   gap: 1.2rem;
@@ -316,48 +325,48 @@ margin-top: 20px;
   max-width: 100%;
   background: transparent;
   border-radius: 8px;
-  height: flex; /* batas tinggi area tabel */
+  height: flex;
+  /* batas tinggi area tabel */
   position: relative;
-overflow-y: auto;
-margin-right: 20px;
-margin-left: 275px;
-margin-top: 20px;
+  overflow-y: auto;
+  margin-right: 20px;
+  margin-left: 275px;
+  margin-top: 20px;
 }
+
 .table-scroll {
   width: 100%;
   height: 100%;
-  overflow-x: auto; /* scroll horizontal */
-  overflow-y: auto; /* scroll vertical */
+  overflow-x: auto;
+  /* scroll horizontal */
+  overflow-y: auto;
+  /* scroll vertical */
   white-space: nowrap;
-  scrollbar-width: thin; /* firefox */
+  scrollbar-width: thin;
+  /* firefox */
   scrollbar-color: #d1d5db transparent;
 }
+
 /* buat Chrome & Edge scrollbar */
 .table-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
+
 .table-scroll::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-radius: 4px;
 }
+
 .table-scroll::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
 /* header */
 .order-header {
   display: grid;
   grid-template-columns:
-    35px
-    130px
-    280px
-    90px
-    110px
-    140px
-    100px
-    140px
-    130px
-    100px;
+    35px 130px 280px 90px 110px 140px 100px 140px 130px 100px;
   min-width: 1235px;
   background: var(--gray-bg);
   font-weight: 600;
@@ -400,16 +409,7 @@ margin-top: 20px;
 .order-row {
   display: grid;
   grid-template-columns:
-    35px
-    130px
-    280px
-    90px
-    110px
-    140px
-    100px
-    140px
-    130px
-    100px;
+    35px 130px 280px 90px 110px 140px 100px 140px 130px 100px;
   min-width: 1235px;
   background: #fff;
   border-radius: 8px;
@@ -417,7 +417,7 @@ margin-top: 20px;
   padding: 0.45rem 0.6rem;
   font-size: 0.8rem;
   line-height: 1.4;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -426,18 +426,24 @@ margin-top: 20px;
 /* Biar summary card kesamping */
 .order-summary {
   display: flex;
-  flex-direction: row;  /* ← dari column jadi row */
+  flex-direction: row;
+  /* ← dari column jadi row */
   gap: 0.8rem;
-  margin-left: 275px;  /* biar sejajar dengan table */
+  margin-left: 275px;
+  /* biar sejajar dengan table */
   margin-top: 20px;
 }
 
 
 /* Biar tiap card ukurannya seragam */
 .summary-card {
-  background: #fff; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
   flex: 1;
-  min-width: 150px; /* biar gak terlalu kecil kalau layar sempit */
+  min-width: 150px;
+  /* biar gak terlalu kecil kalau layar sempit */
 }
 
 
@@ -520,14 +526,17 @@ margin-top: 20px;
   background-color: #fef2f2;
   color: #b91c1c;
 }
+
 .status-badge.Paid {
   background-color: #dcfce7;
   color: #166534;
 }
+
 .status-badge.Sukses {
   background-color: #e0f2fe;
   color: #0369a1;
 }
+
 .status-badge.Gagal {
   background-color: #fee2e2;
   color: #991b1b;
@@ -537,6 +546,7 @@ margin-top: 20px;
 .order-row div:nth-child(7) {
   font-weight: 500;
 }
+
 .order-row div:nth-child(7)::before {
   content: "#";
   color: #9ca3af;
@@ -598,7 +608,7 @@ margin-top: 20px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -623,15 +633,28 @@ margin-top: 20px;
   background: #f3f4f6;
 }
 
-.action-menu button:nth-child(1) { color: #2563EB; }   /* View */
-.action-menu button:nth-child(2) { color: #16A34A; }   /* Update */
-.action-menu button:nth-child(3) { color: #DC2626; }   /* Delete */
+.action-menu button:nth-child(1) {
+  color: #2563EB;
+}
+
+/* View */
+.action-menu button:nth-child(2) {
+  color: #16A34A;
+}
+
+/* Update */
+.action-menu button:nth-child(3) {
+  color: #DC2626;
+}
+
+/* Delete */
 
 @keyframes menuPop {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(5px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -754,14 +777,17 @@ margin-top: 20px;
   background-color: #fef2f2;
   color: #b91c1c;
 }
+
 .status-badge.Paid {
   background-color: #dcfce7;
   color: #166534;
 }
+
 .status-badge.Sukses {
   background-color: #e0f2fe;
   color: #0369a1;
 }
+
 .status-badge.Gagal {
   background-color: #fee2e2;
   color: #991b1b;
@@ -793,6 +819,7 @@ margin-top: 20px;
     opacity: 0;
     transform: scale(0.95) translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -803,6 +830,7 @@ margin-top: 20px;
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -879,8 +907,10 @@ body:has(.update-modal-overlay) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.2rem 2rem;
-  overflow-y: auto; /* ✅ Scroll isi kalau terlalu tinggi */
-  flex: 1; /* ✅ Biar body fleksibel, footer tetap di bawah */
+  overflow-y: auto;
+  /* ✅ Scroll isi kalau terlalu tinggi */
+  flex: 1;
+  /* ✅ Biar body fleksibel, footer tetap di bawah */
 }
 
 .update-section {
@@ -963,6 +993,7 @@ body:has(.update-modal-overlay) {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -974,6 +1005,7 @@ body:has(.update-modal-overlay) {
     grid-template-columns: 1fr;
   }
 }
+
 /* Overlay background */
 .delete-modal-overlay {
   position: fixed;
@@ -1084,11 +1116,13 @@ body:has(.update-modal-overlay) {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .pagination {
   margin-top: 1rem;
   display: flex;
@@ -1098,7 +1132,7 @@ body:has(.update-modal-overlay) {
   background: #fff;
   padding: 0.75rem 1.25rem;
   border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .pagination button {
@@ -1120,6 +1154,7 @@ body:has(.update-modal-overlay) {
   font-size: 0.9rem;
   color: #374151;
 }
+
 .checkbox-group {
   display: flex;
   align-items: center;
@@ -1149,23 +1184,28 @@ body:has(.update-modal-overlay) {
   z-index: 9999;
   animation: slideDown 0.4s ease, fadeOut 0.4s ease 2s forwards;
 }
+
 .toast-error {
   background: #ef4444;
 }
+
 .toast-warning {
   background: #facc15;
   color: #473a00;
 }
+
 @keyframes slideDown {
   from {
     opacity: 0;
     transform: translate(-50%, -20px);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0);
   }
 }
+
 @keyframes fadeOut {
   to {
     opacity: 0;
@@ -1184,34 +1224,41 @@ body:has(.update-modal-overlay) {
   align-items: flex-start;
   padding-top: 6vh;
   z-index: 10000;
-  overflow: hidden !important; /* Tidak ada scrollbar di overlay - force */
+  overflow: hidden !important;
+  /* Tidak ada scrollbar di overlay - force */
 }
 
 .orders-modal-card {
   width: 100%;
-  max-width: 650px; /* Diperkecil dari 960px */
+  max-width: 650px;
+  /* Diperkecil dari 960px */
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  overflow: hidden !important; /* Tidak ada scrollbar di card - force */
+  overflow: hidden !important;
+  /* Tidak ada scrollbar di card - force */
   display: flex;
   flex-direction: column;
-  max-height: 85vh; /* Batasi tinggi maksimal */
+  max-height: 85vh;
+  /* Batasi tinggi maksimal */
   margin: auto;
 }
 
 .orders-modal-header {
-  padding: 1rem 1.25rem; /* Diperkecil dari 1.5rem 1.75rem */
+  padding: 1rem 1.25rem;
+  /* Diperkecil dari 1.5rem 1.75rem */
   border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  flex-shrink: 0; /* Header tidak shrink */
+  flex-shrink: 0;
+  /* Header tidak shrink */
 }
 
 .orders-modal-header h2 {
-  font-size: 1.1rem; /* Diperkecil */
+  font-size: 1.1rem;
+  /* Diperkecil */
   font-weight: 600;
   color: #111827;
   margin: 0;
@@ -1220,14 +1267,16 @@ body:has(.update-modal-overlay) {
 .orders-modal-eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.7rem; /* Diperkecil */
+  font-size: 0.7rem;
+  /* Diperkecil */
   color: #94a3b8;
   font-weight: 600;
   margin: 0 0 0.2rem;
 }
 
 .orders-modal-close {
-  width: 32px; /* Diperkecil dari 40px */
+  width: 32px;
+  /* Diperkecil dari 40px */
   height: 32px;
   border-radius: 50%;
   border: none;
@@ -1247,14 +1296,18 @@ body:has(.update-modal-overlay) {
 }
 
 .orders-modal-body {
-  padding: 1rem 1.25rem; /* Diperkecil dari 1.5rem 1.75rem */
+  padding: 1rem 1.25rem;
+  /* Diperkecil dari 1.5rem 1.75rem */
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-y: auto; /* Hanya body yang scrollable */
+  overflow-y: auto;
+  /* Hanya body yang scrollable */
   overflow-x: hidden;
-  flex: 1; /* Ambil sisa ruang */
-  min-height: 0; /* Penting untuk flex scroll */
+  flex: 1;
+  /* Ambil sisa ruang */
+  min-height: 0;
+  /* Penting untuk flex scroll */
 }
 
 /* Pastikan detail-list tidak membuat scrollbar sendiri */
@@ -1370,9 +1423,11 @@ body:has(.update-modal-overlay) {
   display: flex;
   justify-content: flex-end;
   gap: 0.65rem;
-  padding: 0.75rem 1.25rem; /* Diperkecil */
+  padding: 0.75rem 1.25rem;
+  /* Diperkecil */
   border-top: 1px solid #e5e7eb;
-  flex-shrink: 0; /* Footer tidak shrink */
+  flex-shrink: 0;
+  /* Footer tidak shrink */
 }
 
 .orders-btn {
@@ -1433,43 +1488,79 @@ body:has(.update-modal-overlay) {
 }
 
 @media (max-width: 640px) {
-  .orders-modal-card {
-    border-radius: 16px;
+  .orders-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
   }
+
+  .orders-modal-card {
+    width: 100%;
+    height: 90vh;
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .orders-modal-header {
+    padding: 1.25rem 1.5rem;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .orders-modal-header h2 {
+    font-size: 1.25rem;
+  }
+
   .orders-modal-body {
     padding: 1.25rem;
   }
+
   .orders-section {
     padding: 1rem;
+    border-radius: 12px;
   }
-  .orders-modal-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+
   .orders-modal-footer {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 1.25rem;
+    flex-direction: column-reverse;
+    /* Put primary action on top of cancel */
+    gap: 0.75rem;
   }
+
   .orders-btn {
     width: 100%;
-    text-align: center;
+    padding: 0.85rem;
+    font-size: 1rem;
   }
 }
 
-        @media (max-width: 1024px){
-.admin-header{
-margin-right: 0px;
-margin-left: 0px;
-margin-top: 20px;
-}
-.data-list-wrapper {
-margin-right: 0px;
-margin-left: 0px;
-margin-top: 20px;
-}
-.order-summary {
-margin-right: 0px;
-margin-left: 0px;
-margin-top: 20px;
-}
+@media (max-width: 1024px) {
+  .admin-header {
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 20px;
+  }
+
+  .data-list-wrapper {
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 20px;
+  }
+
+  .order-summary {
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 20px;
+  }
 }

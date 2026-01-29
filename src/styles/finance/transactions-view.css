@@ -93,13 +93,33 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .detail-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem 0;
+  }
+
   .detail-label {
     font-size: 0.75rem;
-    min-width: 140px;
+    min-width: auto;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-colon {
+    display: none;
   }
 
   .detail-value {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .detail-section-title {
+    font-size: 0.875rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+    color: #64748b;
   }
 }
-

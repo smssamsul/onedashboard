@@ -754,24 +754,50 @@ export default function UpdateCustomerModal({
 
         /* Responsive */
         @media (max-width: 640px) {
+          .customer-modal-overlay {
+            padding: 0;
+            align-items: flex-end;
+          }
+
           .customer-modal {
             width: 100%;
-            max-height: 100vh;
-            border-radius: 0;
+            height: 95vh;
+            max-height: 95vh;
+            border-radius: 20px 20px 0 0;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
           }
 
           .customer-modal__header,
           .customer-modal__body,
           .customer-modal__footer {
-            padding: 1.25rem;
+            padding: 1.25rem 1rem;
+          }
+
+          .customer-modal__header h2 {
+            font-size: 1.25rem;
           }
 
           .customer-grid {
             grid-template-columns: 1fr;
+            gap: 1rem;
           }
 
           .customer-grid__full {
             grid-column: 1;
+          }
+
+          .customer-btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+          }
+
+          .customer-modal__footer {
+            flex-direction: column-reverse;
           }
         }
       `}</style>

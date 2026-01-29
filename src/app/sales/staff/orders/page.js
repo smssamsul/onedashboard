@@ -1519,13 +1519,20 @@ export default function DaftarPesanan() {
                                           </td>
                                           <td style={{ padding: '12px 16px', color: '#64748b' }}>{formatDateOnly(innerOrder.tanggal || innerOrder.create_at)}</td>
                                           <td style={{ padding: '12px 16px', color: '#334155' }}>
-                                            <span
-                                              onClick={() => handleView(innerOrder)}
-                                              style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                                              className="hover:text-blue-600"
-                                            >
-                                              {innerOrder.produk_rel?.nama || '-'}
-                                            </span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                              <span
+                                                onClick={() => handleView(innerOrder)}
+                                                style={{ cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem', fontWeight: 500 }}
+                                                className="hover:text-blue-600"
+                                              >
+                                                {innerOrder.produk_rel?.nama || '-'}
+                                              </span>
+                                              {innerOrder.bundling_rel && (
+                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                  Paket: {innerOrder.bundling_rel.nama}
+                                                </span>
+                                              )}
+                                            </div>
                                           </td>
 
                                           <td style={{ padding: '12px 16px' }}>

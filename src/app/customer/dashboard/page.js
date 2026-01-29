@@ -150,46 +150,34 @@ export default function DashboardPage() {
   };
 
   const handleContinuePayment = async (order) => {
-    // Ambil data dari localStorage sebagai prioritas jika ada matching orderId
-    const storedOrderData = localStorage.getItem("customer_order_data");
-    let localPaymentMethod = null;
-
-    if (storedOrderData) {
-      try {
-        const parsed = JSON.parse(storedOrderData);
-        if (String(parsed.orderId) === String(order.id)) {
-          localPaymentMethod = parsed.paymentMethod;
-        }
-      } catch (e) {
-        console.error("Error parsing stored order data", e);
-      }
-    }
-
-    const { title: productName, total_harga: totalHarga, id: orderId } = order;
-    // Gunakan paymentMethod dari order (DB) atau fallback ke localPaymentMethod (localStorage)
-    const rawPaymentMethod = order.paymentMethod || localPaymentMethod || order.metode_bayar || "manual";
+    // Ambil paymentMethod dari objek order (yang sudah di-adapt dengan prioritas API)
+    const rawPaymentMethod = order.metode_bayar || order.paymentMethod || "manual";
     const paymentMethod = String(rawPaymentMethod).toLowerCase();
 
-    // Jika metode pembayaran adalah E-Payment (ewallet, cc, va), panggil Midtrans
-    if (paymentMethod === "ewallet" || paymentMethod === "cc" || paymentMethod === "va" || paymentMethod === "midtrans") {
-      // Ambil data customer dari session sebagai fallback
+    const productName = order.title || order.produk_nama || "Produk";
+    const orderId = order.id;
+    const totalHarga = order.total_harga || order.total || "0";
+
+    console.log("[DASHBOARD] Processing payment:", { orderId, paymentMethod, productName });
+
+    // Jika metode pembayaran adalah E-Payment
+    const isEpayment = ["ewallet", "cc", "va", "midtrans"].includes(paymentMethod);
+
+    if (isEpayment) {
       const session = getCustomerSession();
       const finalNama = customerInfo?.nama || customerInfo?.nama_lengkap || session?.user?.nama || "";
       const finalEmail = customerInfo?.email || session?.user?.email || "";
 
-      // Validasi data yang diperlukan
       if (!finalNama || !finalEmail) {
-        toast.error("Data customer tidak lengkap. Silakan lengkapi profil Anda terlebih dahulu.");
+        toast.error("Data profil tidak lengkap untuk pembayaran online.");
         setShowUpdateModal(true);
         setUpdateModalReason("data");
         return;
       }
 
-      // Parse total harga
       let amount = 0;
       if (typeof totalHarga === "string") {
-        const numericValue = totalHarga.replace(/\D/g, "");
-        amount = parseInt(numericValue, 10) || 0;
+        amount = parseInt(totalHarga.replace(/\D/g, ""), 10) || 0;
       } else {
         amount = parseInt(totalHarga, 10) || 0;
       }
@@ -203,80 +191,60 @@ export default function DashboardPage() {
         setPaymentLoading(true);
 
         // Tentukan endpoint berdasarkan metode pembayaran
-        let endpoint = "";
+        let endpoint = "/api/midtrans/create-snap-va";
         if (paymentMethod === "ewallet") {
           endpoint = "/api/midtrans/create-snap-ewallet";
         } else if (paymentMethod === "cc") {
           endpoint = "/api/midtrans/create-snap-cc";
-        } else {
-          // Default ke VA untuk va, midtrans, dll
-          endpoint = "/api/midtrans/create-snap-va";
         }
 
-        console.log("[DASHBOARD] Calling Midtrans API:", {
-          endpoint,
-          name: finalNama,
-          email: finalEmail,
-          amount,
-          product_name: productName,
-          order_id: orderId,
-        });
+        console.log("[DASHBOARD] Triggering API:", { endpoint, orderId });
 
-        // Panggil API Midtrans
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: finalNama,
             email: finalEmail,
-            amount: amount,
+            amount,
             product_name: productName,
             order_id: orderId,
           }),
         });
 
         const data = await response.json();
-        console.log("[DASHBOARD] Midtrans response:", data);
 
-        if (data.success === true && data.redirect_url) {
-          if (orderId) {
-            sessionStorage.setItem("midtrans_order_id", String(orderId));
+        if (data.success && data.redirect_url) {
+          // Simpan order IDs untuk sesi ini
+          sessionStorage.setItem("midtrans_order_id", String(orderId));
+          if (data.order_id) {
+            sessionStorage.setItem("midtrans_order_id_midtrans", data.order_id);
           }
           if (data.snap_token) {
             sessionStorage.setItem("midtrans_snap_token", data.snap_token);
           }
 
-          toast.success("Halaman pembayaran Midtrans dibuka...");
+          toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
           window.open(data.redirect_url, "_blank");
         } else {
-          toast.error(data.message || "Gagal membuat transaksi pembayaran");
-          // Fallback
-          const query = new URLSearchParams({
-            product: productName || "",
-            harga: totalHarga || "0",
-            via: "manual",
-            sumber: "dashboard",
-          });
-          router.push(`/payment?${query.toString()}`);
+          toast.error(data.message || "Gagal membuat sesi pembayaran online.");
+          // Fallback manual
+          router.push(`/payment?product=${encodeURIComponent(productName)}&harga=${amount}&via=manual&order_id=${orderId}&sumber=dashboard`);
         }
       } catch (error) {
-        console.error("[DASHBOARD] Error calling Midtrans:", error);
-        toast.error("Terjadi kesalahan saat memproses pembayaran.");
+        console.error("[DASHBOARD] Midtrans error:", error);
+        toast.error("Terjadi kesalahan sistem pembayaran.");
       } finally {
         setPaymentLoading(false);
       }
     } else {
-      // Manual transfer
-      const query = new URLSearchParams({
-        product: productName || "",
-        harga: totalHarga || "0",
-        via: "manual",
-        sumber: "dashboard",
-        order_id: orderId || "",
-      });
-      router.push(`/payment?${query.toString()}`);
+      // Manual Transfer
+      const amountValue = typeof totalHarga === "string"
+        ? totalHarga.replace(/\D/g, "")
+        : totalHarga;
+
+      console.log("[DASHBOARD] Redirecting to Manual Transfer");
+      router.push(`/payment?product=${encodeURIComponent(productName)}&harga=${amountValue}&via=manual&order_id=${orderId}&sumber=dashboard`);
     }
   };
 

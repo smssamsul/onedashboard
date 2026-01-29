@@ -179,6 +179,13 @@ export default function ViewOrders({ order, onClose }) {
                 <span className="detail-colon">:</span>
                 <span className="detail-value">{order.produk_rel?.nama || "-"}</span>
               </div>
+              {order.bundling_rel && (
+                <div className="detail-item">
+                  <span className="detail-label">Paket Bundling</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{order.bundling_rel.nama}</span>
+                </div>
+              )}
               <div className="detail-item">
                 <span className="detail-label">Harga</span>
                 <span className="detail-colon">:</span>

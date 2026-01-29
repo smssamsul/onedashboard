@@ -538,6 +538,13 @@ export default function UpdateOrders({ order, onClose, onSave }) {
                         "-"}
                     </span>
                   </div>
+                  {order.bundling_rel && (
+                    <div className="detail-item">
+                      <span className="detail-label">Paket Bundling</span>
+                      <span className="detail-colon">:</span>
+                      <span className="detail-value">{order.bundling_rel.nama}</span>
+                    </div>
+                  )}
                   <div className="detail-item">
                     <span className="detail-label">Tanggal</span>
                     <span className="detail-colon">:</span>

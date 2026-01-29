@@ -20,6 +20,12 @@ export default function CustomerLayout({ children }) {
   const [customerInfo, setCustomerInfo] = useState(null);
   const [fullUserInfo, setFullUserInfo] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    // Close mobile menu when route changes
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     console.log("🔵 [CUSTOMER_LAYOUT] Checking authentication...");
@@ -139,7 +145,7 @@ export default function CustomerLayout({ children }) {
           <img src="/assets/logo.png" alt="Ternak Properti" />
         </div>
 
-        <nav className="customer-navbar__nav">
+        <nav className={`customer-navbar__nav ${mobileMenuOpen ? "mobile-open" : ""}`}>
           {navLinks.map((link) => {
             const isActive = pathname === link.href ||
               (link.href === "/customer/dashboard/payment" && pathname?.includes("/payment"));
@@ -195,6 +201,16 @@ export default function CustomerLayout({ children }) {
               </div>
             )}
           </div>
+
+          <button
+            className={`customer-navbar__hamburger ${mobileMenuOpen ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
       </header>
 

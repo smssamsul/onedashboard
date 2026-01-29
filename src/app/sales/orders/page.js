@@ -1437,8 +1437,13 @@ export default function DaftarPesanan() {
 
                         {/* Product - Widened */}
                         <td className="col-product">
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                            <span style={{ fontSize: "0.875rem", color: "#111827" }}>{produkNama}</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <span style={{ fontSize: "0.875rem", fontWeight: "500", color: "#111827" }}>{produkNama}</span>
+                            {order.bundling_rel && (
+                              <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                Paket: {order.bundling_rel.nama}
+                              </span>
+                            )}
                           </div>
                         </td>
 

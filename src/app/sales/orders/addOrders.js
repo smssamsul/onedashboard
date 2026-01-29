@@ -449,15 +449,40 @@ export default function AddOrders({ onClose, onAdd }) {
     //   return;
     // }
 
+    // Extract bundling ID correctly if selected
+    let bundleId = "";
+    if (formData.bundling) {
+      // Find the ID from selectedProduct's bundling list
+      let bundlingList = [];
+      if (Array.isArray(selectedProduct?.bundling_rel)) bundlingList = selectedProduct.bundling_rel;
+      else if (selectedProduct?.bundling) {
+        if (typeof selectedProduct.bundling === 'string') {
+          try { bundlingList = JSON.parse(selectedProduct.bundling); } catch (e) { }
+        } else if (Array.isArray(selectedProduct.bundling)) bundlingList = selectedProduct.bundling;
+      }
+
+      // If formData.bundling is an ID, use it. If it's a value from the select, it should already be the ID.
+      bundleId = formData.bundling;
+    }
+
     const payload = {
-      ...formData,
-      alamat_customer: finalAlamat,
-      alamat: finalAlamat, // Same as customer address
+      nama: formData.nama,
+      wa: formData.wa,
+      email: formData.email,
+      alamat: finalAlamat || null,
+      provinsi: formData.provinsi || null,
+      kabupaten: formData.kabupaten || null,
+      kecamatan: formData.kecamatan || null,
+      kode_pos: formData.kode_pos || null,
+      produk: parseInt(formData.produk, 10),
       harga: String(parseCurrency(formData.harga) || "0"),
       ongkir: String(parseCurrency(formData.ongkir) || "0"),
       total_harga: String(parseCurrency(formData.total_harga) || "0"),
+      metode_bayar: "va",
+      sumber: formData.sumber || "manual",
+      custom_value: [],
+      bundling: bundleId ? String(bundleId) : "",
       status_pembayaran: formData.status_pembayaran === 4 ? 4 : (formData.status_pembayaran === null ? null : 0),
-      bundling: formData.bundling ? String(formData.bundling) : null,
     };
 
     console.log("[ADD_ORDERS] Payload sebelum kirim:", JSON.stringify(payload, null, 2));
