@@ -138,13 +138,13 @@ body {
    ============================================ */
 .dashboard-summary-horizontal {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
 }
 
 @media (max-width: 1400px) {
   .dashboard-summary-horizontal {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -230,12 +230,12 @@ body {
 }
 
 .summary-card__value {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: var(--font-bold);
   color: var(--dash-text-dark);
   margin: 0;
   line-height: var(--leading-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
