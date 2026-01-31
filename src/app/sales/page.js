@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { getOrders } from "@/lib/sales/orders";
 import dynamic from "next/dynamic";
+import ProductPerformanceAll from "@/components/sales/ProductPerformanceAll";
+import axios from "axios";
 
 // Lazy load heavy components
 const LazyChart = dynamic(
@@ -224,7 +226,13 @@ export default function Dashboard() {
   // State for Sales Statistics
   const [salesStatistics, setSalesStatistics] = useState([]);
   const [loadingStatistics, setLoadingStatistics] = useState(true);
+  const [activeStaffId, setActiveStaffId] = useState(null);
   const [periodInfo, setPeriodInfo] = useState(null);
+
+  // State for Global Product Statistics (Statistics-All)
+  const [productStatsAll, setProductStatsAll] = useState([]);
+  const [productSummaryAll, setProductSummaryAll] = useState(null);
+  const [loadingProdAll, setLoadingProdAll] = useState(true);
 
   // State for Recent Activity Lists
   const [recentOrders, setRecentOrders] = useState([]);
@@ -310,6 +318,9 @@ export default function Dashboard() {
       const json = await response.json();
       if (json.success && json.data?.statistics) {
         setSalesStatistics(json.data.statistics);
+        if (json.data.statistics.length > 0) {
+          setActiveStaffId(json.data.statistics[0].sales_id);
+        }
         if (json.data.period) setPeriodInfo(json.data.period);
       }
     } catch (err) {
@@ -322,6 +333,29 @@ export default function Dashboard() {
   useEffect(() => {
     loadSalesStatistics();
   }, [loadSalesStatistics]);
+
+  // Load Global Product Statistics (All Staff)
+  const loadGlobalProductStats = useCallback(async () => {
+    setLoadingProdAll(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/sales/dashboard/produk-statistics-all", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setProductStatsAll(response.data.data.produk_statistics || []);
+        setProductSummaryAll(response.data.data.summary || null);
+      }
+    } catch (err) {
+      console.error("Error loading global product stats:", err);
+    } finally {
+      setLoadingProdAll(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadGlobalProductStats();
+  }, [loadGlobalProductStats]);
 
   // Scroll effect untuk staff cards
   useEffect(() => {
@@ -387,6 +421,12 @@ export default function Dashboard() {
           </div>
         </section>
 
+        <ProductPerformanceAll
+          productStats={productStatsAll}
+          productSummary={productSummaryAll}
+          loading={loadingProdAll}
+        />
+
         <section className="dashboard-staff-section">
           <div className="dashboard-staff-layout">
             <article className="panel panel--staff">
@@ -404,130 +444,237 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="staff-cards-container">
-                {loadingStatistics ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading data performa sales...</div>
-                ) : salesStatistics.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Belum ada data sales.</div>
-                ) : (
-                  salesStatistics.map((staff, index) => (
-                    <article
-                      ref={(el) => (staffCardsRef.current[index] = el)}
-                      className="staff-card"
-                      key={staff.sales_id || index}
-                      data-index={index}
-                    >
-                      <div className="staff-card__header">
-                        <div className="staff-card__avatar">
-                          <User size={24} />
-                        </div>
-                        <div className="staff-card__header-info">
-                          <h4 className="staff-card__name">{staff.sales_nama}</h4>
-                          <p className="staff-card__role">
-                            {staff.sales_level === "2" ? "Sales Representative" : "Sales Staff"}
-                          </p>
-                          {staff.sales_email && (
-                            <p className="staff-card__email" style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                              {staff.sales_email}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+              <div className="staff-performance-tabs">
+                {/* Tab Navigation */}
+                <div className="staff-tabs-nav">
+                  {loadingStatistics ? (
+                    <div style={{ padding: '0.5rem', color: '#64748b' }}>Loading tabs...</div>
+                  ) : (
+                    salesStatistics.map((staff) => (
+                      <button
+                        key={staff.sales_id}
+                        className={`staff-tab-btn ${activeStaffId === staff.sales_id ? 'active' : ''}`}
+                        onClick={() => setActiveStaffId(staff.sales_id)}
+                      >
+                        <User size={14} />
+                        <span>{staff.sales_nama}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
 
-                      <div className="staff-card__stats">
-                        {/* Customer Stats */}
-                        <div className="staff-card__stat-row">
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Total Customers</p>
-                            <p className="staff-card__stat-value">{staff.customers?.total ?? 0}</p>
-                          </div>
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">New (This Period)</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <p className="staff-card__stat-value">{staff.customers?.new_this_period ?? 0}</p>
-                              {staff.customers?.growth !== 0 && (
-                                <span style={{
-                                  fontSize: '0.75rem',
-                                  color: staff.customers?.growth > 0 ? '#10b981' : '#ef4444',
-                                  fontWeight: 500
-                                }}>
-                                  {staff.customers?.growth_formatted}
-                                </span>
+                {/* Tab Content (The Card) */}
+                <div className="staff-tabs-content">
+                  {loadingStatistics ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading performa sales...</div>
+                  ) : salesStatistics.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Belum ada data sales.</div>
+                  ) : (
+                    salesStatistics
+                      .filter(s => s.sales_id === activeStaffId)
+                      .map((staff, index) => (
+                        <article
+                          className="staff-card visible"
+                          key={staff.sales_id || index}
+                        >
+                          <div className="staff-card__header">
+                            <div className="staff-card__avatar">
+                              <User size={24} />
+                            </div>
+                            <div className="staff-card__header-info">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <h4 className="staff-card__name">{staff.sales_nama}</h4>
+                                  <p className="staff-card__role">
+                                    {staff.sales_level === "2" ? "Sales Representative" : "Sales Staff"}
+                                  </p>
+                                </div>
+                                <div className="conversion-badge">
+                                  <Percent size={12} />
+                                  <span>{staff.conversion_rates?.customer_to_order_formatted ?? "0%"} Rate</span>
+                                </div>
+                              </div>
+                              {staff.sales_email && (
+                                <p className="staff-card__email" style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                                  {staff.sales_email}
+                                </p>
                               )}
                             </div>
                           </div>
-                        </div>
 
-                        {/* Order Stats */}
-                        <div className="staff-card__stat-row">
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Total Orders</p>
-                            <p className="staff-card__stat-value">{staff.orders?.total ?? 0}</p>
-                          </div>
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Orders (This Period)</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <p className="staff-card__stat-value">{staff.orders?.this_period ?? 0}</p>
-                              {staff.orders?.growth !== 0 && (
-                                <span style={{
-                                  fontSize: '0.75rem',
-                                  color: staff.orders?.growth > 0 ? '#10b981' : '#ef4444',
-                                  fontWeight: 500
-                                }}>
-                                  {staff.orders?.growth_formatted}
-                                </span>
-                              )}
+                          <div className="staff-card__stats">
+                            {/* row 1 */}
+                            <div className="staff-card__stat-row">
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Total Customers</p>
+                                <p className="staff-card__stat-value">{staff.customers?.total ?? 0}</p>
+                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Overall</p>
+                              </div>
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">New leads</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <p className="staff-card__stat-value">{staff.customers?.new_this_period ?? 0}</p>
+                                  {staff.customers?.growth !== 0 && (
+                                    <span className={`growth-indicator ${staff.customers?.growth > 0 ? 'up' : 'down'}`}>
+                                      {staff.customers?.growth_formatted}
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>This Period</p>
+                              </div>
+                            </div>
+
+                            {/* row 2 */}
+                            <div className="staff-card__stat-row">
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Total Orders</p>
+                                <p className="staff-card__stat-value">{staff.orders?.total ?? 0}</p>
+                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Overall</p>
+                              </div>
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Orders</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <p className="staff-card__stat-value">{staff.orders?.this_period ?? 0}</p>
+                                  {staff.orders?.growth !== 0 && (
+                                    <span className={`growth-indicator ${staff.orders?.growth > 0 ? 'up' : 'down'}`}>
+                                      {staff.orders?.growth_formatted}
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>This Period</p>
+                              </div>
+                            </div>
+
+                            {/* row 3 */}
+                            <div className="staff-card__stat-row">
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Total Revenue</p>
+                                <p className="staff-card__stat-value highlight">
+                                  {staff.revenue?.total_formatted ?? "Rp 0"}
+                                </p>
+                              </div>
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Revenue</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                  <p className="staff-card__stat-value" style={{ color: '#059669' }}>
+                                    {staff.revenue?.this_period_formatted ?? "Rp 0"}
+                                  </p>
+                                  {staff.revenue?.growth !== 0 && (
+                                    <span className={`growth-indicator small ${staff.revenue?.growth > 0 ? 'up' : 'down'}`}>
+                                      {staff.revenue?.growth_formatted} vs prev
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* row 4 */}
+                            <div className="staff-card__stat-row">
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">AVG ORDER VALUE</p>
+                                <p className="staff-card__stat-value">
+                                  {staff.average_order_value?.this_period_formatted ?? "Rp 0"}
+                                </p>
+                              </div>
+                              <div className="staff-card__stat">
+                                <p className="staff-card__stat-label">Last Activity</p>
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+                                  Active {periodInfo ? 'this month' : 'now'}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Revenue Stats */}
-                        <div className="staff-card__stat-row">
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Total Revenue</p>
-                            <p className="staff-card__stat-value" style={{ fontSize: '0.9rem' }}>
-                              {staff.revenue?.total_formatted ?? "Rp 0"}
-                            </p>
-                          </div>
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Revenue (This Period)</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                              <p className="staff-card__stat-value" style={{ fontSize: '0.9rem' }}>
-                                {staff.revenue?.this_period_formatted ?? "Rp 0"}
-                              </p>
-                              {staff.revenue?.growth !== 0 && (
-                                <span style={{
-                                  fontSize: '0.75rem',
-                                  color: staff.revenue?.growth > 0 ? '#10b981' : '#ef4444',
-                                  fontWeight: 500
-                                }}>
-                                  {staff.revenue?.growth_formatted} vs prev
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Efficiency Stats */}
-                        <div className="staff-card__stat-row">
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Conversion Rate</p>
-                            <p className="staff-card__stat-value">
-                              {staff.conversion_rates?.customer_to_order_formatted ?? "0%"}
-                            </p>
-                          </div>
-                          <div className="staff-card__stat">
-                            <p className="staff-card__stat-label">Avg Order Value</p>
-                            <p className="staff-card__stat-value" style={{ fontSize: '0.9rem' }}>
-                              {staff.average_order_value?.this_period_formatted ?? "Rp 0"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  ))
-                )}
+                        </article>
+                      ))
+                  )}
+                </div>
               </div>
+
+              <style jsx>{`
+                .staff-performance-tabs {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 1.5rem;
+                  margin-top: 1rem;
+                }
+                .staff-tabs-nav {
+                  display: flex;
+                  gap: 0.5rem;
+                  overflow-x: auto;
+                  padding-bottom: 0.5rem;
+                  border-bottom: 1px solid #f1f5f9;
+                }
+                .staff-tabs-nav::-webkit-scrollbar {
+                  height: 4px;
+                }
+                .staff-tabs-nav::-webkit-scrollbar-thumb {
+                  background: #e2e8f0;
+                  border-radius: 10px;
+                }
+                .staff-tab-btn {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  padding: 8px 16px;
+                  background: #f8fafc;
+                  border: 1px solid #e2e8f0;
+                  border-radius: 10px;
+                  color: #64748b;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                  cursor: pointer;
+                  white-space: nowrap;
+                  transition: all 0.2s;
+                }
+                .staff-tab-btn:hover {
+                  background: #f1f5f9;
+                  border-color: #cbd5e1;
+                }
+                .staff-tab-btn.active {
+                  background: #f97316;
+                  border-color: #f97316;
+                  color: #fff;
+                  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+                }
+                .staff-tabs-content {
+                  animation: fadeIn 0.3s ease;
+                }
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(10px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                .staff-card {
+                  border: none !important;
+                  box-shadow: none !important;
+                  padding: 0 !important;
+                  background: transparent !important;
+                }
+                .growth-indicator {
+                  font-size: 0.75rem;
+                  font-weight: 700;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                }
+                .growth-indicator.up { background: #dcfce7; color: #15803d; }
+                .growth-indicator.down { background: #fef2f2; color: #b91c1c; }
+                .growth-indicator.small { font-size: 0.65rem; }
+                .conversion-badge {
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  background: #eff6ff;
+                  color: #3b82f6;
+                  padding: 4px 8px;
+                  border-radius: 6px;
+                  font-size: 0.7rem;
+                  font-weight: 700;
+                }
+                .staff-card__stat-value.highlight {
+                  color: #1e293b;
+                  font-size: 1.1rem;
+                  font-weight: 800;
+                }
+              `}</style>
             </article>
 
             <article className="panel panel--revenue">
