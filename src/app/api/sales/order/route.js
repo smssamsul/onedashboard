@@ -11,16 +11,27 @@ export async function GET(request) {
     const perPage = searchParams.get('per_page') || '15';
     const search = searchParams.get('search') || '';
 
-    // Handle multiple values for filters
-    const statusOrder = searchParams.getAll('status_order');
-    const statusPembayaran = searchParams.getAll('status_pembayaran');
-    const produkIds = searchParams.getAll('produk_id');
+    // Handle multiple values for filters (support both key and key[] formats)
+    const statusOrder = [
+      ...searchParams.getAll('status_order'),
+      ...searchParams.getAll('status_order[]')
+    ];
+    const statusPembayaran = [
+      ...searchParams.getAll('status_pembayaran'),
+      ...searchParams.getAll('status_pembayaran[]')
+    ];
+    const produkIds = [
+      ...searchParams.getAll('produk_id'),
+      ...searchParams.getAll('produk_id[]')
+    ];
 
     const sumber = searchParams.get('sumber') || '';
     const tanggalFrom = searchParams.get('tanggal_from') || '';
     const tanggalTo = searchParams.get('tanggal_to') || '';
     const waktuPembayaranFrom = searchParams.get('waktu_pembayaran_from') || '';
     const waktuPembayaranTo = searchParams.get('waktu_pembayaran_to') || '';
+
+    const utmFilterCols = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
 
     // Build backend URL with query parameters
     let backendUrl = `${BACKEND_URL}/api/sales/order?page=${page}&per_page=${perPage}`;
@@ -34,15 +45,20 @@ export async function GET(request) {
     }
 
     // Append multiple values
-    statusOrder.forEach(val => backendUrl += `&status_order=${encodeURIComponent(val)}`);
-    statusPembayaran.forEach(val => backendUrl += `&status_pembayaran=${encodeURIComponent(val)}`);
-    produkIds.forEach(val => backendUrl += `&produk_id=${encodeURIComponent(val)}`);
+    statusOrder.forEach(val => backendUrl += `&status_order[]=${encodeURIComponent(val)}`);
+    statusPembayaran.forEach(val => backendUrl += `&status_pembayaran[]=${encodeURIComponent(val)}`);
+    produkIds.forEach(val => backendUrl += `&produk_id[]=${encodeURIComponent(val)}`);
 
     if (sumber) backendUrl += `&sumber=${encodeURIComponent(sumber)}`;
     if (tanggalFrom) backendUrl += `&tanggal_from=${encodeURIComponent(tanggalFrom)}`;
     if (tanggalTo) backendUrl += `&tanggal_to=${encodeURIComponent(tanggalTo)}`;
     if (waktuPembayaranFrom) backendUrl += `&waktu_pembayaran_from=${encodeURIComponent(waktuPembayaranFrom)}`;
     if (waktuPembayaranTo) backendUrl += `&waktu_pembayaran_to=${encodeURIComponent(waktuPembayaranTo)}`;
+    utmFilterCols.forEach((col) => {
+      searchParams.getAll(`${col}[]`).forEach((v) => {
+        backendUrl += `&${encodeURIComponent(col)}[]=${encodeURIComponent(v)}`;
+      });
+    });
 
     console.log("🔍 Fetching orders from:", backendUrl);
     console.log("🔑 Auth header present:", !!authHeader);

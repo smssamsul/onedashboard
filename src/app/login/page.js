@@ -187,9 +187,12 @@ function LoginPageContent() {
         localStorage.setItem('level', data.user?.level || '');
 
         // ✅ Simpan cookie yang bisa dibaca middleware (token berlaku 1 hari)
+        // ✅ FIX: Pastikan divisi di-set sebagai string untuk konsistensi
+        const userDivisiStr = String(data.user?.divisi || '');
+        const userLevelStr = String(data.user?.level || '');
         document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
-        document.cookie = `user_divisi=${data.user?.divisi || ''}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
-        document.cookie = `user_level=${data.user?.level || ''}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+        document.cookie = `user_divisi=${userDivisiStr}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+        document.cookie = `user_level=${userLevelStr}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
 
         // Get route based on division and level
         const targetRoute = getDivisionHome(data.user?.divisi, data.user?.level);
@@ -202,9 +205,12 @@ function LoginPageContent() {
         localStorage.setItem('division', data.user?.divisi || '');
         localStorage.setItem('level', data.user?.level || '');
 
+        // ✅ FIX: Pastikan divisi di-set sebagai string untuk konsistensi
+        const userDivisiStr = String(data.user?.divisi || '');
+        const userLevelStr = String(data.user?.level || '');
         document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
-        document.cookie = `user_divisi=${data.user?.divisi || ''}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
-        document.cookie = `user_level=${data.user?.level || ''}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+        document.cookie = `user_divisi=${userDivisiStr}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+        document.cookie = `user_level=${userLevelStr}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
 
         // Get route based on division and level
         const targetRoute = getDivisionHome(data.user?.divisi, data.user?.level);

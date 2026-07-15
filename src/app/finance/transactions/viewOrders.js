@@ -210,6 +210,13 @@ export default function ViewOrders({ order, onClose }) {
                   <span className="detail-colon">:</span>
                   <span className="detail-value">{orderData.customer?.wa || "-"}</span>
                 </div>
+                {orderData.customer?.wa2 && (
+                  <div className="detail-item">
+                    <span className="detail-label">No. WhatsApp 2</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{orderData.customer.wa2}</span>
+                  </div>
+                )}
                 <div className="detail-item">
                   <span className="detail-label">Alamat</span>
                   <span className="detail-colon">:</span>
@@ -253,6 +260,16 @@ export default function ViewOrders({ order, onClose }) {
                   <span className="detail-label">ID Validasi</span>
                   <span className="detail-colon">:</span>
                   <span className="detail-value">#{orderData.id || "-"}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Nama Pengirim</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{orderData.nama_pengirim || "-"}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">No. Rek Pengirim</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{orderData.no_rek_pengirim || "-"}</span>
                 </div>
                 <div className="detail-item">
                   <span className="detail-label">Jumlah Pembayaran</span>

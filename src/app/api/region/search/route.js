@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server';
 import districtData from '@/data/indonesia-districts.json';
 
+/** CORS headers agar bisa diakses dari domain lain (ternakproperti.com → app.ternakproperti.com) */
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+/** Preflight request (OPTIONS) */
+export async function OPTIONS() {
+    return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
 
     if (!query || query.length < 3) {
-        return NextResponse.json({ success: true, data: [] });
+        return NextResponse.json({ success: true, data: [] }, { headers: corsHeaders });
     }
 
     const lowerTerm = query.toLowerCase();
@@ -26,5 +38,5 @@ export async function GET(request) {
         kecamatan: item.kecamatan
     }));
 
-    return NextResponse.json({ success: true, data: results });
+    return NextResponse.json({ success: true, data: results }, { headers: corsHeaders });
 }

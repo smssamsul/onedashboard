@@ -38,6 +38,8 @@ import { getCustomerSession } from "@/lib/customerAuth";
 const initialFormState = {
   nama_panggilan: "",
   sapaan: "",
+  wa: "",
+  wa2: "",
   instagram: "",
   profesi: "",
   pendapatan_bln: "",
@@ -71,6 +73,18 @@ const SECTION_CONFIG = [
           { value: "Kak", label: "Kak" },
         ],
         required: true,
+      },
+      {
+        name: "wa",
+        label: "WhatsApp",
+        placeholder: "Contoh: 081234567890",
+        required: true,
+      },
+      {
+        name: "wa2",
+        label: "WhatsApp 2 (Opsional)",
+        placeholder: "Contoh: 081234567890",
+        required: false,
       },
       {
         name: "instagram",
@@ -207,6 +221,8 @@ export default function UpdateCustomerModal({
           ...prev,
           nama_panggilan: user.nama_panggilan || user.nama || prev.nama_panggilan,
           sapaan: user.sapaan || prev.sapaan,
+          wa: user.wa || prev.wa,
+          wa2: user.wa2 || prev.wa2,
           instagram: user.instagram || prev.instagram,
           profesi: user.profesi || prev.profesi,
           pendapatan_bln: user.pendapatan_bln || prev.pendapatan_bln,

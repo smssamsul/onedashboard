@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { getProvinces, getCities, getDistricts } from "@/utils/shippingService";
 
+/** Pencarian kecamatan: hit ke app.ternakproperti.com (CORS enabled di API route) */
+function regionSearchUrl(q) {
+    const query = `?q=${encodeURIComponent(q)}`;
+    return `https://app.ternakproperti.com/api/region/search${query}`;
+}
+
 /**
  * useAddressData
  * Mengelola data wilayah (Provinsi, Kota, Kecamatan) dan fitur pencarian wilayah.
@@ -124,10 +130,10 @@ export function useAddressData() {
         searchTimeout.current = setTimeout(async () => {
             setLoadingDistrictSearch(true);
             try {
-                const res = await fetch(`/api/region/search?q=${encodeURIComponent(term)}`);
+                const res = await fetch(regionSearchUrl(term));
                 const data = await res.json();
 
-                if (data.success) {
+                if (data.success && Array.isArray(data.data)) {
                     setDistrictSearchResults(data.data);
                     setShowDistrictResults(true);
                 } else {

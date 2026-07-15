@@ -17,6 +17,8 @@ export async function POST(request) {
       );
     }
 
+    const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+
     // Siapkan payload sesuai format backend
     const payload = {
       nama: String(body.nama),
@@ -39,6 +41,12 @@ export async function POST(request) {
       ...(body.status_pembayaran !== undefined && body.status_pembayaran !== null ? { status_pembayaran: Number(body.status_pembayaran) } : {}),
       bundling: body.bundling !== undefined ? String(body.bundling) : "",
     };
+
+    utmKeys.forEach((k) => {
+      if (body[k] != null && String(body[k]).trim() !== '') {
+        payload[k] = String(body[k]).trim();
+      }
+    });
 
     // Proxy ke backend
     // Timeout 15 detik untuk menghindari hang

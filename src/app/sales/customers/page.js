@@ -38,6 +38,8 @@ function useDebouncedValue(value, delay = 500) {
   return debounced;
 }
 
+const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100];
+
 export default function AdminCustomerPage() {
   const router = useRouter();
   // Pagination state dengan fallback pagination
@@ -46,7 +48,8 @@ export default function AdminCustomerPage() {
   const [hasMore, setHasMore] = useState(true); // penentu masih ada halaman berikutnya
   const [loading, setLoading] = useState(false);
   const [paginationInfo, setPaginationInfo] = useState(null); // Store pagination info from backend
-  const perPage = 15; // Data per halaman
+  const [summaryInfo, setSummaryInfo] = useState(null); // Store summary info from backend
+  const [perPage, setPerPage] = useState(15); // Data per halaman
 
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, 500); // Debounce 500ms
@@ -76,14 +79,31 @@ export default function AdminCustomerPage() {
     jenis_kelamin: "all",
     sales_id: salesFilter, // Add sales_id filter
     search: debouncedSearch.trim() || null,
+    all: false, // Gunakan pagination
   }), [verifikasiFilter, salesFilter, debouncedSearch]);
 
   // Memoize summary statistics untuk performa
   const summaryStats = useMemo(() => {
+    if (summaryInfo) {
+      return {
+        verified: summaryInfo.verified || 0,
+        unverified: summaryInfo.unverified || 0,
+        membershipCounts: summaryInfo.membership || {}
+      };
+    }
+
     const verified = customers.filter((c) => c.verifikasi === "1" || c.verifikasi === true).length;
     const unverified = customers.filter((c) => c.verifikasi !== "1" && c.verifikasi !== true).length;
-    return { verified, unverified };
-  }, [customers]);
+
+    // Membership counts (local fallback)
+    const membershipCounts = customers.reduce((acc, c) => {
+      const type = c.keanggotaan || 'basic';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    return { verified, unverified, membershipCounts };
+  }, [customers, summaryInfo]);
 
   const [userMap, setUserMap] = useState(new Map());
 
@@ -237,6 +257,13 @@ export default function AdminCustomerPage() {
           } else {
             setHasMore(true); // masih ada halaman berikutnya
           }
+        }
+
+        // Simpan summary info jika tersedia
+        if (result.summary) {
+          setSummaryInfo(result.summary);
+        } else {
+          setSummaryInfo(null);
         }
       } else {
         // Jika response tidak sesuai format yang diharapkan
@@ -392,7 +419,8 @@ export default function AdminCustomerPage() {
   return (
     <Layout title="Manage Customers">
       <div className="dashboard-shell customers-shell table-shell">
-        <section className="dashboard-summary customers-summary">
+        <section className="dashboard-summary customers-summary" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', width: '100%', marginBottom: '1.5rem' }}>
+          {/* Main Stats Card */}
           <article className="summary-card summary-card--combined summary-card--three-cols">
             <div className="summary-card__column">
               <div className={`summary-card__icon accent-orange`}>
@@ -428,6 +456,24 @@ export default function AdminCustomerPage() {
               </div>
             </div>
           </article>
+
+          {/* Membership Breakdown Card */}
+          {/* <article className="summary-card summary-card--combined summary-card--five-cols" style={{ gridTemplateColumns: '1fr auto 1fr auto 1fr auto 1fr auto 1fr' }}>
+            {['platinum', 'gold', 'silver', 'bronze', 'basic'].map((level, idx, arr) => (
+              <div key={level} style={{ display: 'contents' }}>
+                <div className="summary-card__column">
+                  <div className={`summary-card__icon membership-tag--${level}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>{level.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <p className="summary-card__label">{level}</p>
+                    <p className="summary-card__value">{summaryStats.membershipCounts[level] || 0}</p>
+                  </div>
+                </div>
+                {idx < arr.length - 1 && <div className="summary-card__divider"></div>}
+              </div>
+            ))}
+          </article> */}
         </section>
         <section className="dashboard-hero customers-hero">
           <div className="customers-toolbar">
@@ -507,7 +553,7 @@ export default function AdminCustomerPage() {
           <div className="panel__header">
             <div>
               <p className="panel__eyebrow">Directory</p>
-              <h3 className="panel__title">Customer roster</h3>
+              <h3 className="panel__title">Daftar Customer</h3>
             </div>
             <div className="customers-toolbar-buttons">
               <button
@@ -564,7 +610,38 @@ export default function AdminCustomerPage() {
                     <tr key={cust.id || `${cust.email}-${i}`}>
                       {/* Sticky 1: Member ID */}
                       <td className="sticky-left-1" style={{ fontWeight: 500 }}>
-                        {cust.memberID || "-"}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span>{cust.memberID || "-"}</span>
+                          {cust.keanggotaan && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '0.25rem',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                backgroundColor:
+                                  cust.keanggotaan === 'bronze' ? '#fef3c7' :
+                                    cust.keanggotaan === 'silver' ? '#f3f4f6' :
+                                      cust.keanggotaan === 'gold' ? '#fef9c3' :
+                                        cust.keanggotaan === 'platinum' ? '#e0e7ff' : '#f3f4f6',
+                                color:
+                                  cust.keanggotaan === 'bronze' ? '#92400e' :
+                                    cust.keanggotaan === 'silver' ? '#4b5563' :
+                                      cust.keanggotaan === 'gold' ? '#ca8a04' :
+                                        cust.keanggotaan === 'platinum' ? '#4338ca' : '#6b7280',
+                                border: `1px solid ${cust.keanggotaan === 'bronze' ? '#fbbf24' :
+                                  cust.keanggotaan === 'silver' ? '#9ca3af' :
+                                    cust.keanggotaan === 'gold' ? '#eab308' :
+                                      cust.keanggotaan === 'platinum' ? '#6366f1' : '#d1d5db'
+                                  }`
+                              }}
+                            >
+                              {cust.keanggotaan}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Sticky 2: Nama */}
@@ -585,20 +662,37 @@ export default function AdminCustomerPage() {
                       <td>{cust.email || "-"}</td>
 
                       <td>
-                        {cust.wa ? (
-                          <a
-                            href={`https://wa.me/${cust.wa.replace(/[^0-9]/g, "").replace(/^0/, "62")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#25D366', textDecoration: 'none' }}
-                            title={`Chat WhatsApp ${cust.wa}`}
-                          >
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                            </svg>
-                            <span>{cust.wa}</span>
-                          </a>
-                        ) : "-"}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {cust.wa ? (
+                            <a
+                              href={`https://wa.me/${cust.wa.replace(/[^0-9]/g, "").replace(/^0/, "62")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#25D366', textDecoration: 'none' }}
+                              title={`Chat WhatsApp ${cust.wa}`}
+                            >
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                              </svg>
+                              <span>{cust.wa}</span>
+                            </a>
+                          ) : "-"}
+
+                          {cust.wa2 && (
+                            <a
+                              href={`https://wa.me/${cust.wa2.replace(/[^0-9]/g, "").replace(/^0/, "62")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#25D366', textDecoration: 'none' }}
+                              title={`Chat WhatsApp ${cust.wa2}`}
+                            >
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                              </svg>
+                              <span>{cust.wa2}</span>
+                            </a>
+                          )}
+                        </div>
                       </td>
 
                       <td>
@@ -635,82 +729,50 @@ export default function AdminCustomerPage() {
               </tbody>
             </table>
           </div>
-
-          {/* Pagination dengan Next/Previous Button */}
-          <div className="customers-pagination" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", padding: "1.5rem", flexWrap: "wrap" }}>
-            {/* Previous Button */}
-            <button
-              className="customers-pagination__btn"
-              onClick={handlePrevPage}
-              disabled={page === 1 || loading}
-              aria-label="Previous page"
-              style={{
-                padding: "0.75rem 1rem",
-                minWidth: "100px",
-                background: page === 1 || loading ? "#e5e7eb" : "#f1a124",
-                color: page === 1 || loading ? "#9ca3af" : "#fff",
-                border: "none",
-                borderRadius: "0.5rem",
-                cursor: page === 1 || loading ? "not-allowed" : "pointer",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-            >
-              <i className="pi pi-chevron-left" />
-              Previous
-            </button>
-
-            {/* Page Info */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontSize: "0.95rem",
-              color: "var(--dash-text)",
-              fontWeight: 500
-            }}>
-              {loading ? (
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <i className="pi pi-spin pi-spinner" />
-                  Loading...
-                </span>
-              ) : (
-                <span>
-                  Page {paginationInfo?.current_page || page} of {paginationInfo?.last_page || "?"}
-                  {paginationInfo?.total && ` (${paginationInfo.total} total)`}
-                </span>
-              )}
+          <div className="customers-pagination-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0 1rem', paddingBottom: '1rem' }}>
+            <div className="per-page-selector" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Tampilkan:</span>
+              <select 
+                value={perPage} 
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{ 
+                  padding: '4px 8px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #d1d5db',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#fff'
+                }}
+              >
+                {PER_PAGE_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt} Data</option>
+                ))}
+              </select>
             </div>
 
-            {/* Next Button */}
-            <button
-              className="customers-pagination__btn"
-              onClick={handleNextPage}
-              disabled={!hasMore || loading}
-              aria-label="Next page"
-              style={{
-                padding: "0.75rem 1rem",
-                minWidth: "100px",
-                background: !hasMore || loading ? "#e5e7eb" : "#f1a124",
-                color: !hasMore || loading ? "#9ca3af" : "#fff",
-                border: "none",
-                borderRadius: "0.5rem",
-                cursor: !hasMore || loading ? "not-allowed" : "pointer",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Next
-              <i className="pi pi-chevron-right" />
-            </button>
+            <div className="customers-pagination" style={{ margin: 0, padding: 0 }}>
+              <button
+                className="customers-pagination__btn"
+                onClick={handlePrevPage}
+                disabled={page <= 1 || loading}
+              >
+                <i className="pi pi-chevron-left" />
+              </button>
+              <span className="customers-pagination__info">
+                Page {page} {paginationInfo?.last_page ? `of ${paginationInfo.last_page} (${paginationInfo.total} total)` : ''}
+              </span>
+              <button
+                className="customers-pagination__btn"
+                onClick={handleNextPage}
+                disabled={!hasMore || loading}
+              >
+                <i className="pi pi-chevron-right" />
+              </button>
+            </div>
           </div>
         </section>
 

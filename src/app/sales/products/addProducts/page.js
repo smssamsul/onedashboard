@@ -66,6 +66,9 @@ export default function Page() {
   const defaultForm = {
   id: null,
   kategori: null, // Changed from "" to null to fix validation
+  kota: "",
+  tempat: "",
+  alamat: "",
   nama: "",
   url: "",
   kode: "",
@@ -193,6 +196,13 @@ const [submitProgress, setSubmitProgress] = useState("");
     // 1. BASIC FIELDS
     // ============================
     formData.append("kategori", String(kategoriId));
+    
+    if (kategoriId === 3) {
+      formData.append("kota", form.kota || "");
+      formData.append("tempat", form.tempat || "");
+      formData.append("alamat", form.alamat || "");
+    }
+
     formData.append("nama", form.nama || "");
     formData.append("kode", kode);
     formData.append("url", "/" + kode);
@@ -920,6 +930,46 @@ useEffect(() => {
             )}
           </div>
 
+          {/* LOKASI (KHUSUS SEMINAR / KATEGORI == "3") */}
+          {form.kategori === "3" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-field-group">
+                <label className="form-label">
+                  Kota (Contoh: Medan) <span className="required">*</span>
+                </label>
+                <InputText
+                  className="w-full form-input"
+                  value={form.kota || ""}
+                  onChange={(e) => handleChange("kota", e.target.value)}
+                  placeholder="Masukkan nama kota"
+                />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">
+                  Tempat (Contoh: AIHO Hotel) <span className="required">*</span>
+                </label>
+                <InputText
+                  className="w-full form-input"
+                  value={form.tempat || ""}
+                  onChange={(e) => handleChange("tempat", e.target.value)}
+                  placeholder="Masukkan nama tempat/gedung"
+                />
+              </div>
+              <div className="form-field-group md:col-span-2">
+                <label className="form-label">
+                  Alamat Lengkap <span className="required">*</span>
+                </label>
+                <InputTextarea
+                  className="w-full form-input"
+                  value={form.alamat || ""}
+                  onChange={(e) => handleChange("alamat", e.target.value)}
+                  placeholder="Masukkan alamat lengkap lokasi acara"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
           {/* KODE & URL */}
           <div className="grid grid-cols-2 gap-4">
             <div className="form-field-group">
@@ -1033,18 +1083,100 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* TANGGAL EVENT */}
-          <div className="form-field-group">
-            <label className="form-label">
-              Tanggal Event
-            </label>
-            <Calendar
-              className="w-full form-input"
-              showTime
-              value={form.tanggal_event ? new Date(form.tanggal_event) : null}
-              onChange={(e) => handleChange("tanggal_event", e.value)}
-              placeholder="Pilih tanggal event"
-            />
+          {/* JADWAL PRODUK (MULTIPLE) */}
+          <div className="form-field-group" style={{ marginTop: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>
+                Jadwal Produk (Multiple)
+              </label>
+              <Button
+                type="button"
+                icon="pi pi-plus"
+                label="Tambah Jadwal"
+                className="p-button-outlined p-button-sm"
+                onClick={() => addArray("jadwal", { nama_jadwal: "", waktu_mulai: null, waktu_selesai: null, kuota: null, status: "A" })}
+              />
+            </div>
+            
+            <div className="jadwal-list-container">
+              {form.jadwal && form.jadwal.map((j, i) => (
+                <div key={i} className="gallery-item-card" style={{ marginBottom: "1rem", border: "1px solid #e2e8f0", padding: "1rem", borderRadius: "8px" }}>
+                  <div className="gallery-item-header" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+                    <span className="gallery-item-number" style={{ fontWeight: 600 }}>Jadwal {i + 1}</span>
+                    <Button
+                      type="button"
+                      icon="pi pi-trash"
+                      severity="danger"
+                      className="p-button-danger p-button-sm"
+                      onClick={() => removeArray("jadwal", i)}
+                    />
+                  </div>
+                  <div className="gallery-item-content">
+                    <div className="form-field-group">
+                      <label className="form-label-small">Nama Jadwal <span className="required">*</span></label>
+                      <InputText
+                        className="w-full form-input"
+                        value={j.nama_jadwal}
+                        onChange={(e) => updateArrayItem("jadwal", i, "nama_jadwal", e.target.value)}
+                        placeholder="Contoh: Batch 1, Sesi Pagi, dll"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="form-field-group">
+                        <label className="form-label-small">Waktu Mulai <span className="required">*</span></label>
+                        <Calendar
+                          className="w-full form-input"
+                          value={j.waktu_mulai}
+                          showTime
+                          hourFormat="24"
+                          onChange={(e) => updateArrayItem("jadwal", i, "waktu_mulai", e.value)}
+                          placeholder="Mulai"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label-small">Waktu Selesai <span className="required">*</span></label>
+                        <Calendar
+                          className="w-full form-input"
+                          value={j.waktu_selesai}
+                          showTime
+                          hourFormat="24"
+                          onChange={(e) => updateArrayItem("jadwal", i, "waktu_selesai", e.value)}
+                          placeholder="Selesai"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="form-field-group">
+                        <label className="form-label-small">Kuota <span className="required">*</span></label>
+                        <InputNumber
+                          className="w-full form-input"
+                          value={j.kuota}
+                          onValueChange={(e) => updateArrayItem("jadwal", i, "kuota", e.value)}
+                          placeholder="Jumlah kuota"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label-small">Status <span className="required">*</span></label>
+                        <Dropdown
+                          className="w-full form-input"
+                          value={j.status || "A"}
+                          options={[
+                            { label: "Aktif", value: "A" },
+                            { label: "Non-Aktif", value: "N" }
+                          ]}
+                          onChange={(e) => updateArrayItem("jadwal", i, "status", e.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!form.jadwal || form.jadwal.length === 0) && (
+                <div className="empty-state-card" style={{ textAlign: "center", padding: "2rem", border: "2px dashed #e2e8f0", borderRadius: "8px", color: "#64748b" }}>
+                  <p>Belum ada jadwal. Klik tombol "Tambah Jadwal" untuk menambahkan.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* LANDING PAGE TYPE */}

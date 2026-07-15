@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
+import BiteshipOrderTrackingPanel from "@/components/BiteshipOrderTrackingPanel";
 
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", class: "unpaid" },
@@ -123,6 +124,12 @@ export default function ViewOrders({ order, onClose }) {
   const buktiUrl = buildImageUrl(buktiPembayaranPath);
   const waktuPembayaran = getWaktuPembayaran(order);
 
+  const hasCodResi = order.order_resi && Array.isArray(order.order_resi) && order.order_resi.some(r => {
+    const meta = r.meta;
+    const metaObj = typeof meta === 'string' ? JSON.parse(meta) : meta;
+    return metaObj?.cod_ongkir === true || metaObj?.cod_ongkir === 1 || metaObj?.cod_ongkir === "true";
+  });
+
   const handleImageClick = (imageUrl) => {
     if (imageUrl) {
       setSelectedImageUrl(imageUrl);
@@ -135,9 +142,12 @@ export default function ViewOrders({ order, onClose }) {
     setSelectedImageUrl(null);
   };
 
+  const statusOrderValue = String(order.status_order ?? order.status ?? "1");
+  const statusOrderInfo = STATUS_ORDER_MAP[statusOrderValue] || STATUS_ORDER_MAP["1"];
+
   return (
     <div className="modal-overlay">
-      <div className="modal-card">
+      <div className="modal-card modal-card--fullscreen">
         {/* HEADER */}
         <div className="modal-header">
           <h2>Detail Pesanan</h2>
@@ -149,142 +159,169 @@ export default function ViewOrders({ order, onClose }) {
         {/* BODY */}
         <div className="modal-body">
           <div className="detail-list">
-            {/* Informasi Pelanggan */}
-            <div className="detail-section">
-              <h4 className="detail-section-title">Informasi Pelanggan</h4>
-              <div className="detail-item">
-                <span className="detail-label">Nama</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.customer_rel?.nama || "-"}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">No. WhatsApp</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.customer_rel?.wa || "-"}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Alamat</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.alamat || "-"}</span>
-              </div>
-            </div>
-
-            <div className="detail-section-divider"></div>
-
-            {/* Detail Produk */}
-            <div className="detail-section">
-              <h4 className="detail-section-title">Detail Produk</h4>
-              <div className="detail-item">
-                <span className="detail-label">Nama Produk</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.produk_rel?.nama || "-"}</span>
-              </div>
-              {order.bundling_rel && (
-                <div className="detail-item">
-                  <span className="detail-label">Paket Bundling</span>
-                  <span className="detail-colon">:</span>
-                  <span className="detail-value">{order.bundling_rel.nama}</span>
+            <div style={{ background: '#f8fafc', padding: '1.25rem 1.5rem', borderRadius: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ marginBottom: '0.25rem', fontWeight: 700, fontSize: '1.1rem', color: '#1e293b' }}>
+                    {order.customer_rel?.nama || "-"}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div>WhatsApp: {order.customer_rel?.wa || "-"}</div>
+                    <div>Order: <span style={{ fontFamily: 'ui-monospace, monospace' }}>{order.kode_order || `#${order.id}`}</span></div>
+                  </div>
                 </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">Harga</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">Rp {Number(order.harga || 0).toLocaleString("id-ID")}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Ongkir</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">Rp {Number(order.ongkir || 0).toLocaleString("id-ID")}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Total Harga</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">Rp {Number(order.total_harga || 0).toLocaleString("id-ID")}</span>
-              </div>
-            </div>
-
-            <div className="detail-section-divider"></div>
-
-            {/* Informasi Pembayaran */}
-            <div className="detail-section">
-              <h4 className="detail-section-title">Informasi Pembayaran</h4>
-              <div className="detail-item">
-                <span className="detail-label">Status Pembayaran</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span className={`orders-status-badge orders-status-badge--${statusOrderInfo.class}`}>
+                    {statusOrderInfo.label.toUpperCase()}
+                  </span>
                   <span className={`orders-status-badge orders-status-badge--${statusPembayaranInfo?.class || 'default'}`}>
                     {statusPembayaranInfo?.label || order.status_pembayaran}
                   </span>
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Metode Pembayaran</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.metode_bayar || "-"}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Waktu Pembayaran</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{waktuPembayaran || "-"}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Bukti Pembayaran</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">
-                  {buktiUrl ? (
-                    <img
-                      src={buktiUrl}
-                      alt={`Bukti Pembayaran ${order.customer_rel?.nama || "-"}`}
-                      onClick={() => handleImageClick(buktiUrl)}
-                      style={{
-                        maxWidth: 150,
-                        maxHeight: 120,
-                        objectFit: "cover",
-                        marginTop: 4,
-                        borderRadius: 6,
-                        border: "1px solid #e5e7eb",
-                        cursor: "pointer",
-                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        console.error("Gagal memuat gambar:", buktiUrl);
-                      }}
-                    />
-                  ) : (
-                    "-"
-                  )}
-                </span>
+                </div>
               </div>
             </div>
 
-            <div className="detail-section-divider"></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div>
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Pelanggan</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">Nama</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.customer_rel?.nama || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">WhatsApp</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.customer_rel?.wa || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Alamat</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.alamat || "-"}</span>
+                  </div>
+                </div>
 
-            {/* Informasi Tambahan */}
-            <div className="detail-section">
-              <h4 className="detail-section-title">Informasi Tambahan</h4>
-              <div className="detail-item">
-                <span className="detail-label">Tanggal Pesanan</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.tanggal || "-"}</span>
+                <div className="detail-section-divider"></div>
+
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Produk</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">Nama Produk</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.produk_rel?.nama || "-"}</span>
+                  </div>
+                  {order.bundling_rel && (
+                    <div className="detail-item">
+                      <span className="detail-label">Paket Bundling</span>
+                      <span className="detail-colon">:</span>
+                      <span className="detail-value">{order.bundling_rel.nama}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="detail-section-divider"></div>
+
+                <div className="detail-section">
+                  <h4 className="detail-section-title">UTM</h4>
+                  {[
+                    { key: "utm_source", label: "UTM Source" },
+                    { key: "utm_medium", label: "UTM Medium" },
+                    { key: "utm_campaign", label: "UTM Campaign" },
+                    { key: "utm_term", label: "UTM Term" },
+                    { key: "utm_content", label: "UTM Content" },
+                  ].map(({ key, label }) => (
+                    <div className="detail-item" key={key}>
+                      <span className="detail-label">{label}</span>
+                      <span className="detail-colon">:</span>
+                      <span className="detail-value">{order[key] && String(order[key]).trim() ? order[key] : "-"}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">Sumber Pesanan</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">{order.sumber || "-"}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Order ID</span>
-                <span className="detail-colon">:</span>
-                <span className="detail-value">#{order.id}</span>
+
+              <div>
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Ringkasan</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">Tanggal Pesanan</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.tanggal || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Sumber</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.sumber || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Harga</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">Rp {Number(order.harga || 0).toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Ongkir</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">
+                      Rp {Number(order.ongkir || 0).toLocaleString("id-ID")}
+                      {hasCodResi && <span style={{ color: "#d97706", fontWeight: 700, marginLeft: 6 }}>(COD)</span>}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Total</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">Rp {Number(order.total_harga || 0).toLocaleString("id-ID")}</span>
+                  </div>
+                </div>
+
+                <div className="detail-section-divider"></div>
+
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Pembayaran</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">Metode</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.metode_bayar || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Waktu Pembayaran</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{waktuPembayaran || "-"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Bukti Pembayaran</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">
+                      {buktiUrl ? (
+                        <img
+                          src={buktiUrl}
+                          alt={`Bukti Pembayaran ${order.customer_rel?.nama || "-"}`}
+                          onClick={() => handleImageClick(buktiUrl)}
+                          style={{
+                            maxWidth: 170,
+                            maxHeight: 130,
+                            objectFit: "cover",
+                            marginTop: 4,
+                            borderRadius: 8,
+                            border: "1px solid #e5e7eb",
+                            cursor: "pointer",
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                            console.error("Gagal memuat gambar:", buktiUrl);
+                          }}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="detail-section-divider"></div>
+
+                <div className="detail-section">
+                  <BiteshipOrderTrackingPanel order={order} />
+                </div>
               </div>
             </div>
           </div>

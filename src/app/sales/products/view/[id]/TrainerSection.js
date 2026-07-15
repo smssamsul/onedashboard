@@ -29,7 +29,8 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentTrainer, setCurrentTrainer] = useState(null);
-  
+  const [feeTrainerPct, setFeeTrainerPct] = useState("");
+
   // Followup state for Trainer (type 11)
   const [followupText, setFollowupText] = useState("");
   const [followupEvent, setFollowupEvent] = useState("1d-09:00");
@@ -233,6 +234,12 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
         setSelectedTrainer("");
         setCurrentTrainer(null);
       }
+      const fee = product.fee_trainer;
+      if (fee !== undefined && fee !== null && fee !== "") {
+        setFeeTrainerPct(String(fee));
+      } else {
+        setFeeTrainerPct("");
+      }
     }
   }, [product, trainers]);
 
@@ -260,13 +267,18 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
         },
         body: JSON.stringify({
           trainer: Number(selectedTrainer),
+          fee_trainer: (() => {
+            if (feeTrainerPct === "" || feeTrainerPct === null) return null;
+            const n = Number(feeTrainerPct);
+            if (!Number.isFinite(n)) return null;
+            return Math.min(100, Math.max(0, n));
+          })(),
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        // Handle specific error about trainer_rel
         const errorMessage = data.message || data.error || "Gagal mengupdate trainer";
         if (errorMessage.includes("trainer_rel") || errorMessage.includes("undefined relationship")) {
           // Error dari backend - relationship tidak didefinisikan
@@ -354,6 +366,7 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
         },
         body: JSON.stringify({
           trainer: null,
+          fee_trainer: null,
         }),
       });
 
@@ -373,6 +386,7 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
       // Clear selection
       setSelectedTrainer("");
       setCurrentTrainer(null);
+      setFeeTrainerPct("");
     } catch (error) {
       console.error("❌ [TRAINER] Error removing trainer:", error);
       toast.error(error.message || "Gagal menghapus trainer");
@@ -405,6 +419,13 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
                 {currentTrainer.email && (
                   <span className="trainer-email">{currentTrainer.email}</span>
                 )}
+                {product?.fee_trainer != null &&
+                  product.fee_trainer !== "" &&
+                  Number(product.fee_trainer) > 0 && (
+                    <span className="trainer-fee-badge">
+                      Fee trainer: {Number(product.fee_trainer)}%
+                    </span>
+                  )}
               </div>
             </div>
           )}
@@ -425,6 +446,21 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label>
+              Fee trainer (%)
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                placeholder="0"
+                value={feeTrainerPct}
+                onChange={(e) => setFeeTrainerPct(e.target.value)}
+                className="trainer-fee-input"
+              />
+              <span className="trainer-fee-hint">Persentase dari revenue order (total harga).</span>
             </label>
 
             {trainers.length === 0 && (
@@ -464,6 +500,9 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
           <h3>Followup Text untuk Trainer</h3>
           <p className="trainer-followup-subtitle">
             Template pesan yang akan dikirim otomatis ke trainer
+          </p>
+          <p className="trainer-followup-subtitle" style={{ marginTop: 6 }}>
+            Reminder akan dikirim kepada trainer <strong>setiap hari</strong> selama <strong>H-{scheduleDay}</strong> sesuai event yang di setting.
           </p>
         </div>
 
@@ -658,6 +697,13 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
           color: #6b7280;
         }
 
+        .trainer-fee-badge {
+          font-size: 13px;
+          font-weight: 600;
+          color: #0369a1;
+          margin-top: 4px;
+        }
+
         .trainer-form {
           display: flex;
           flex-direction: column;
@@ -686,6 +732,26 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
           outline: none;
           border-color: #2563eb;
           box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .trainer-fee-input {
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 12px 14px;
+          font-size: 14px;
+          max-width: 160px;
+        }
+
+        .trainer-fee-input:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .trainer-fee-hint {
+          font-weight: 400;
+          font-size: 12px;
+          color: #6b7280;
         }
 
         .trainer-empty {

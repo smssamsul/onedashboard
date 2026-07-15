@@ -2,7 +2,18 @@
 
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function FormComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, productKategori, isExpanded, onToggleExpand }) {
+export default function FormComponent({
+  data = {},
+  onUpdate,
+  onMoveUp,
+  onMoveDown,
+  onDelete,
+  index,
+  productKategori,
+  isExpanded,
+  onToggleExpand,
+  isRequired = false,
+}) {
   return (
     <ComponentWrapper
       title="Form Pemesanan"
@@ -10,15 +21,14 @@ export default function FormComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
-      isRequired={true}
+      isRequired={isRequired}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
     >
       <div className="form-component-content">
-        {/* Informasi Dasar Form - Selalu ada */}
         <div className="form-section-divider">
           <h4 className="form-section-title">Informasi Dasar Form Pemesanan</h4>
-          <p className="form-section-desc">Form ini akan selalu muncul di preview</p>
+          <p className="form-section-desc">Form ini muncul di preview selama blok ini ada di halaman</p>
         </div>
 
         <div className="form-info-box">

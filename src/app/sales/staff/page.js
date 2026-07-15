@@ -9,6 +9,7 @@ import SummaryStats from "@/components/salesStaff/SummaryStats";
 import ProductPerformance from "@/components/salesStaff/ProductPerformance";
 import RecentOrders from "@/components/salesStaff/RecentOrders";
 import FollowUpActivity from "@/components/salesStaff/FollowUpActivity";
+import AttendanceCard from "@/components/AttendanceCard";
 import { getOrderStatisticPerSales } from "@/lib/sales/orders";
 import axios from "axios";
 
@@ -160,6 +161,7 @@ export default function Dashboard() {
   return (
     <Layout title="Dashboard" aboveContent={<GreetingBanner />}>
       <div className="dashboard-shell">
+        <AttendanceCard />
 
         {/* 1. Summary Cards (Total Revenue, Orders, etc) */}
         <SummaryStats

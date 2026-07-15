@@ -128,7 +128,7 @@ export default function PaymentHistoryModal({ orderId, isOpen, onClose }) {
                   color: "#111827",
                 }}
               >
-                Data Pembayaran Order #{paymentHistoryData?.order?.id || orderId || "-"}
+                Data Pembayaran Order {paymentHistoryData?.order?.kode_order || `#${paymentHistoryData?.order?.id || orderId || "-"}`}
               </h2>
             </div>
             <button

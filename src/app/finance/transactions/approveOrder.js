@@ -132,8 +132,9 @@ export default function ApproveOrder({ order, onClose, onApprove }) {
     try {
       if (onApprove) {
         await onApprove(order);
+      } else {
+        onClose();
       }
-      onClose();
     } catch (error) {
       console.error("Error approving order:", error);
     } finally {
@@ -239,7 +240,7 @@ export default function ApproveOrder({ order, onClose, onApprove }) {
                     <div className="detail-item">
                       <span className="detail-label">Order ID</span>
                       <span className="detail-colon">:</span>
-                      <span className="detail-value">#{orderData.order_id || "-"}</span>
+                      <span className="detail-value">{orderData.order?.kode_order || `#${orderData.order_id || "-"}`}</span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Jumlah Pembayaran</span>
@@ -315,7 +316,7 @@ export default function ApproveOrder({ order, onClose, onApprove }) {
                     <div className="detail-item">
                       <span className="detail-label">Order ID</span>
                       <span className="detail-colon">:</span>
-                      <span className="detail-value">#{orderData.order_id || "-"}</span>
+                      <span className="detail-value">{orderData.order?.kode_order || `#${orderData.order_id || "-"}`}</span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Jumlah Pembayaran</span>

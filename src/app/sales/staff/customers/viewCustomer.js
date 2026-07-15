@@ -246,6 +246,14 @@ export default function ViewCustomerModal({ customer, onClose, onEdit, onDelete 
                 <span className="detail-value">{formatValue(customer.wa)}</span>
               </div>
 
+              {customer.wa2 && (
+                <div className="detail-item">
+                  <span className="detail-label">No. HP 2</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{formatValue(customer.wa2)}</span>
+                </div>
+              )}
+
               <div className="detail-item">
                 <span className="detail-label">Nama Panggilan</span>
                 <span className="detail-colon">:</span>

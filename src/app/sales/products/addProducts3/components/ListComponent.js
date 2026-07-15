@@ -105,6 +105,7 @@ const presetColors = [
 // ListItemEditor Component - Tiptap editor for each list item
 function ListItemEditor({ itemIndex, content, onUpdate, onEditorReady }) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       UnderlineExtension,
@@ -791,12 +792,22 @@ export default function ListComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
         {/* Judul Komponen */}
         <div className="form-field-group">
           <label className="form-label-small">Judul Komponen</label>
-          <InputText
-            value={componentTitle || ""}
-            onChange={(e) => handleChange("componentTitle", e.target.value)}
-            placeholder="List"
-            className="w-full form-input"
-          />
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <InputText
+              value={componentTitle || ""}
+              onChange={(e) => handleChange("componentTitle", e.target.value)}
+              placeholder="List"
+              className="w-full form-input"
+              style={{ flex: 1 }}
+            />
+            <input
+              type="color"
+              value={data.titleColor || "#000000"}
+              onChange={(e) => handleChange("titleColor", e.target.value)}
+              style={{ width: "40px", height: "40px", padding: "0", border: "1px solid #e5e7eb", borderRadius: "6px", cursor: "pointer", background: "none" }}
+              title="Warna Judul"
+            />
+          </div>
         </div>
 
         {items.map((item, i) => {
@@ -1383,7 +1394,7 @@ export default function ListComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingTop}
                       onValueChange={(e) => handleChange("paddingTop", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -1396,7 +1407,7 @@ export default function ListComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingRight}
                       onValueChange={(e) => handleChange("paddingRight", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -1409,7 +1420,7 @@ export default function ListComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingBottom}
                       onValueChange={(e) => handleChange("paddingBottom", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -1422,7 +1433,7 @@ export default function ListComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingLeft}
                       onValueChange={(e) => handleChange("paddingLeft", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />

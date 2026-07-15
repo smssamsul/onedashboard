@@ -13,9 +13,11 @@ import {
   ArrowUp, ArrowDown, ArrowUpCircle, ArrowDownCircle, PlayCircle,
   PauseCircle, StopCircle, Radio, Square, Hexagon, Triangle,
   AlertCircle, Info, HelpCircle as HelpCircleIcon, Ban, Shield, Key, Unlock,
-  Clock, Users, Tag, Upload, Globe, Share2, Code, MapPin, Calendar as CalendarIcon
+  Clock, Users, Tag, Upload, Globe, Share2, Code, MapPin, Calendar as CalendarIcon,
+  Smartphone, Tablet, Laptop, MousePointerClick
 } from "lucide-react";
 import { InputText } from "primereact/inputtext";
+import { Button } from "primereact/button";
 import { InputTextarea } from "primereact/inputtextarea";
 import { InputSwitch } from "primereact/inputswitch";
 import { Dropdown } from "primereact/dropdown";
@@ -53,6 +55,7 @@ import "primereact/resources/themes/lara-light-amber/theme.css";
 import "primereact/resources/primereact.min.css";
 import "@/styles/sales/add-products3.css";
 import "@/styles/ongkir.css";
+import { buildLandingButtonInlineStyle } from "@/lib/landingPageButtonStyle";
 
 // Komponen yang tersedia
 const COMPONENT_CATEGORIES = {
@@ -63,6 +66,7 @@ const COMPONENT_CATEGORIES = {
       { id: "image", name: "Gambar", icon: ImageIcon, color: "#6b7280" },
       { id: "youtube", name: "Video", icon: Youtube, color: "#6b7280" },
       { id: "section", name: "Section", icon: Layout, color: "#6b7280" },
+      { id: "button", name: "Tombol", icon: MousePointerClick, color: "#6b7280" },
     ]
   },
   formPemesanan: {
@@ -82,13 +86,15 @@ const COMPONENT_CATEGORIES = {
 export default function AddProducts3Page() {
   const router = useRouter();
   const [showComponentModal, setShowComponentModal] = useState(false);
+  /** Simulasi lebar preview: mobile | tablet | laptop */
+  const [previewDevice, setPreviewDevice] = useState("laptop");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [blocks, setBlocks] = useState([]);
   // Default expanded untuk semua komponen - gunakan Set untuk track collapsed blocks
   const [collapsedBlockIds, setCollapsedBlockIds] = useState(new Set());
   const [testimoniIndices, setTestimoniIndices] = useState({});
   const [productKategori, setProductKategori] = useState(null); // Untuk menentukan kategori produk
-  const [activeTab, setActiveTab] = useState("konten"); // State untuk tab aktif
+  const [activeTab, setActiveTab] = useState("pengaturan"); // State untuk tab aktif
   const [selectedBundling, setSelectedBundling] = useState(null); // State untuk bundling yang dipilih
 
   // State untuk form wilayah (produk non-fisik) - HANYA NAMA, BUKAN ID
@@ -98,6 +104,52 @@ export default function AddProducts3Page() {
     kecamatan: "", // Nama kecamatan (string)
     kode_pos: "" // Kode pos (string)
   });
+
+  // Ref untuk input file import template
+  const importFileInputRef = useRef(null);
+
+  // Export Template ke file JSON
+  const handleExportTemplate = () => {
+    try {
+      const templateData = JSON.stringify(blocks, null, 2);
+      const blob = new Blob([templateData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `landingpage-template-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Template JSON berhasil didownload!");
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Gagal export template");
+    }
+  };
+
+  // Import Template dari file JSON
+  const handleImportTemplateFile = async (e) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const parsedData = JSON.parse(text);
+      if (!Array.isArray(parsedData)) {
+        toast.error("Format JSON tidak valid (harus array blocks)!");
+        return;
+      }
+      setBlocks(parsedData);
+      toast.success("Template berhasil diimport dari file!");
+    } catch (err) {
+      console.error("Import file error:", err);
+      toast.error("Gagal import: JSON tidak valid");
+    } finally {
+      if (importFileInputRef.current) {
+        importFileInputRef.current.value = "";
+      }
+    }
+  };
 
   // State untuk cascading dropdown (internal - untuk fetch)
   const [regionData, setRegionData] = useState({
@@ -134,9 +186,14 @@ export default function AddProducts3Page() {
     jenis_produk: "fisik", // "fisik" atau "non-fisik"
     isBundling: false,
     bundling: [], // Array of { nama: string, harga: number }
-    tanggal_event: null,
     assign: [],
+    jadwal: [], // [{ nama_jadwal, waktu_mulai, waktu_selesai, kuota, status }]
+    tampil_jadwal: true, // Tampilkan di Jadwal
     background_color: "#ffffff", // Default putih
+    /** Jarak vertikal antar blok komponen di preview & halaman produk (px) */
+    preview_component_gap: 24,
+    /** Jarak bawah antar paragraf di komponen teks / rich text (px) */
+    preview_text_paragraph_gap: 8,
     page_title: "", // Custom page title
     // SEO & Meta
     tags: [],
@@ -162,12 +219,23 @@ export default function AddProducts3Page() {
     google_gtm: "",
     // Other
     custom_head_script: "",
-    enable_custom_head_script: false
+    enable_custom_head_script: false,
+    payment_methods: {
+      manual: true,
+      ewallet: true,
+      cc: true,
+      va: true
+    }
   });
 
   // State untuk options dropdown
   const [kategoriOptions, setKategoriOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
+
+  // Master Meta Pixel (PixelMeta dari backend)
+  const [metaPixelOptions, setMetaPixelOptions] = useState([]);
+  const [isLoadingMetaPixel, setIsLoadingMetaPixel] = useState(false);
+  const [isCreatingMetaPixel, setIsCreatingMetaPixel] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const bgColorPickerRef = useRef(null);
   const calendarRef = useRef(null);
@@ -185,13 +253,13 @@ export default function AddProducts3Page() {
         { nama: "platinum", harga: null },
         { nama: "Solitaire", harga: null }
       ];
-      
+
       // Hanya update jika bundling belum sesuai atau isBundling belum true
-      const needsUpdate = !pengaturanForm.isBundling || 
-          !pengaturanForm.bundling || 
-          pengaturanForm.bundling.length !== 5 ||
-          pengaturanForm.bundling.some((item, index) => item.nama !== workshopBundling[index].nama);
-      
+      const needsUpdate = !pengaturanForm.isBundling ||
+        !pengaturanForm.bundling ||
+        pengaturanForm.bundling.length !== 5 ||
+        pengaturanForm.bundling.some((item, index) => item.nama !== workshopBundling[index].nama);
+
       if (needsUpdate) {
         setPengaturanForm((prev) => ({
           ...prev,
@@ -202,11 +270,11 @@ export default function AddProducts3Page() {
     } else if (pengaturanForm.isBundling && pengaturanForm.bundling && pengaturanForm.bundling.length === 5) {
       // Reset bundling jika kategori bukan workshop dan bundling masih workshop bundling
       const isWorkshopBundling = pengaturanForm.bundling[0]?.nama === "bronze" &&
-                                  pengaturanForm.bundling[1]?.nama === "silver" &&
-                                  pengaturanForm.bundling[2]?.nama === "gold" &&
-                                  pengaturanForm.bundling[3]?.nama === "platinum" &&
-                                  pengaturanForm.bundling[4]?.nama === "Solitaire";
-      
+        pengaturanForm.bundling[1]?.nama === "silver" &&
+        pengaturanForm.bundling[2]?.nama === "gold" &&
+        pengaturanForm.bundling[3]?.nama === "platinum" &&
+        pengaturanForm.bundling[4]?.nama === "Solitaire";
+
       if (isWorkshopBundling) {
         setPengaturanForm((prev) => ({
           ...prev,
@@ -259,7 +327,14 @@ export default function AddProducts3Page() {
   // Default data untuk setiap komponen
   const getDefaultData = (componentId) => {
     const defaults = {
-      text: { content: "<p></p>" },
+      text: {
+        content: "<p></p>",
+        lineHeight: 1.5,
+        letterSpacing: 0,
+        wordSpacing: 0,
+        marginTop: 0,
+        marginBottom: 0,
+      },
       image: { src: "", alt: "", caption: "" },
       video: { items: [] },
       testimoni: { items: [] },
@@ -281,7 +356,19 @@ export default function AddProducts3Page() {
         subtext: "Jangan tunda lagi, amankan kursi Anda sebelum kuota habis.",
         highlightText: "Daftar sekarang sebelum kehabisan."
       },
-      button: { text: "Klik Disini", link: "#", style: "primary" },
+      button: {
+        text: "Klik Disini",
+        link: "#",
+        style: "primary",
+        sizePreset: "default",
+        fontSize: null,
+        paddingX: null,
+        paddingY: null,
+        backgroundColor: "",
+        textColor: "",
+        borderRadius: null,
+        fullWidth: false,
+      },
       embed: { code: "" },
       section: {
         children: [], // Array of block IDs that are children of this section
@@ -429,11 +516,6 @@ export default function AddProducts3Page() {
 
   // Handler untuk delete block
   const deleteBlock = (blockId) => {
-    const block = blocks.find(b => b.id === blockId);
-    if (block && block.type === "form") {
-      alert("Form Pemesanan tidak bisa dihapus");
-      return;
-    }
     setBlocks(blocks.filter(b => b.id !== blockId));
   };
 
@@ -473,6 +555,7 @@ export default function AddProducts3Page() {
 
     const commonProps = {
       data: block.data,
+      allBlocks: blocks,
       onUpdate: (newData) => handleUpdateBlock(block.id, newData),
       blockId: block.id,
       index: index,
@@ -484,7 +567,6 @@ export default function AddProducts3Page() {
         console.log('[renderComponent] onToggleExpand callback called for block:', block.id);
         handleToggleExpand(block.id);
       },
-      isRequired: block.type === "form", // Form tidak bisa dihapus
     };
 
     switch (block.type) {
@@ -584,7 +666,7 @@ export default function AddProducts3Page() {
       case "text":
         const textData = blockToRender.data || {};
         const textStyles = {
-          lineHeight: textData.lineHeight || 1.5,
+          lineHeight: Number.isFinite(Number(textData.lineHeight)) ? Number(textData.lineHeight) : 1.5,
           fontFamily: textData.fontFamily && textData.fontFamily !== "Page Font"
             ? textData.fontFamily
             : "inherit",
@@ -598,6 +680,7 @@ export default function AddProducts3Page() {
           textDecoration: textData.textDecoration || "none",
           textTransform: textData.textTransform || "none",
           letterSpacing: textData.letterSpacing ? `${textData.letterSpacing}px` : "0px",
+          wordSpacing: Number.isFinite(Number(textData.wordSpacing)) ? `${Number(textData.wordSpacing)}px` : "0px",
           padding: textData.backgroundColor && textData.backgroundColor !== "transparent" ? "8px 12px" : "0",
           borderRadius: textData.backgroundColor && textData.backgroundColor !== "transparent" ? "4px" : "0",
         };
@@ -647,8 +730,11 @@ export default function AddProducts3Page() {
               ...textPaddingStyle,
               display: "block",
               width: "100%",
+              marginTop: `${Number(textData.marginTop) || 0}px`,
+              marginBottom: `${Number(textData.marginBottom) || 0}px`,
               // ✅ FIX: fontFamily must NOT use !important in React style object
-              fontFamily: formattedFont
+              fontFamily: formattedFont,
+              ["--preview-text-paragraph-gap"]: `${Number(pengaturanForm.preview_text_paragraph_gap ?? 8)}px`,
             }}
             dangerouslySetInnerHTML={{ __html: richContent }}
           />
@@ -984,7 +1070,7 @@ export default function AddProducts3Page() {
                 <h3 className="preview-list-title" style={{
                   fontSize: "18px",
                   fontWeight: "600",
-                  color: "#000000",
+                  color: blockToRender.data?.titleColor || "#000000",
                   margin: "0 0 8px 0"
                 }}>{listTitle}</h3>
                 <div className="preview-list-header-line"></div>
@@ -1192,7 +1278,7 @@ export default function AddProducts3Page() {
               )}
 
               {/* Form Pemesanan */}
-              <section className="preview-form-section compact-form-section" aria-label="Order form" style={{ marginBottom: "24px" }}>
+              <section id="form-pemesanan" className="preview-form-section compact-form-section" aria-label="Order form" style={{ marginBottom: "24px" }}>
                 <h2 className="compact-form-title" style={{
                   fontSize: "18px",
                   fontWeight: "600",
@@ -1524,13 +1610,67 @@ export default function AddProducts3Page() {
             </div>
           </div>
         );
-      case "button":
+      case "button": {
         const buttonData = blockToRender.data || {};
-        return (
-          <button className={`preview-button preview-button-${buttonData.style || 'primary'}`}>
+        const preset = buttonData.style || "primary";
+        const btnInline = buildLandingButtonInlineStyle(buttonData);
+
+        const isAnchor = buttonData.link && buttonData.link.startsWith('#');
+
+        const handleClick = (e) => {
+          if (buttonData.fbPixelEvent) {
+            console.log(`[Preview] Trigger Facebook Pixel Event: ${buttonData.fbPixelEvent}`);
+          }
+          if (isAnchor) {
+            e.preventDefault();
+            const targetId = buttonData.link.substring(1);
+            const element = document.getElementById(targetId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          } else if (buttonData.link && buttonData.link !== '#') {
+            window.open(buttonData.link, '_blank');
+          }
+        };
+
+        const buttonElement = (
+          <button
+            type="button"
+            className={`preview-button preview-button-${preset}`}
+            style={btnInline}
+            onClick={handleClick}
+          >
             {buttonData.text || "Klik Disini"}
           </button>
         );
+
+        if (buttonData.fixedBottom) {
+          // Di builder preview: kembalikan placeholder transparan (tombol sesungguhnya
+          // dirender di luar loop via fixedBottomBlocks agar sticky di bawah frame)
+          return (
+            <div
+              style={{
+                height: 0,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+              }}
+              data-fixed-bottom-placeholder="true"
+            />
+          );
+        }
+
+        return (
+          <div
+            style={{
+              width: "100%",
+              textAlign: "center",
+              boxSizing: "border-box",
+            }}
+          >
+            {buttonElement}
+          </div>
+        );
+      }
       case "html":
         return <div dangerouslySetInnerHTML={{ __html: blockToRender.data?.code || "" }} />;
       case "embed":
@@ -1584,9 +1724,9 @@ export default function AddProducts3Page() {
         const sectionData = blockToRender.data || {};
         const sectionContainerStyle = blockToRender.style?.container || {};
         const sectionStyles = {
-          marginRight: `${sectionContainerStyle.margin?.right || sectionContainerStyle.marginRight || sectionData.marginRight || 0}px`,
-          marginLeft: `${sectionContainerStyle.margin?.left || sectionContainerStyle.marginLeft || sectionData.marginLeft || 0}px`,
-          marginBottom: `${sectionContainerStyle.margin?.bottom || sectionContainerStyle.marginBottom || sectionContainerStyle.marginBetween || sectionData.marginBetween || 16}px`,
+          marginRight: `${sectionContainerStyle.margin?.right ?? sectionContainerStyle.marginRight ?? sectionData.marginRight ?? 0}px`,
+          marginLeft: `${sectionContainerStyle.margin?.left ?? sectionContainerStyle.marginLeft ?? sectionData.marginLeft ?? 0}px`,
+          marginBottom: `${sectionContainerStyle.margin?.bottom ?? sectionContainerStyle.marginBottom ?? sectionContainerStyle.marginBetween ?? sectionData.marginBetween ?? 0}px`,
           border: sectionContainerStyle.border?.width
             ? `${sectionContainerStyle.border.width}px ${sectionContainerStyle.border.style || 'solid'} ${sectionContainerStyle.border.color || "#000000"}`
             : (sectionData.border ? `${sectionData.border}px solid ${sectionData.borderColor || "#000000"}` : "none"),
@@ -1596,8 +1736,8 @@ export default function AddProducts3Page() {
           display: "block",
           width: "100%",
           padding: sectionContainerStyle.padding
-            ? `${sectionContainerStyle.padding.top || 0}px ${sectionContainerStyle.padding.right || 0}px ${sectionContainerStyle.padding.bottom || 0}px ${sectionContainerStyle.padding.left || 0}px`
-            : (sectionData.padding || "16px"),
+            ? `${sectionContainerStyle.padding.top ?? 0}px ${sectionContainerStyle.padding.right ?? 0}px ${sectionContainerStyle.padding.bottom ?? 0}px ${sectionContainerStyle.padding.left ?? 0}px`
+            : (sectionData.padding !== undefined ? sectionData.padding : "0px"),
         };
 
         return (
@@ -1984,12 +2124,87 @@ export default function AddProducts3Page() {
           }))
           : [];
         setUserOptions(salesOpts);
+        // Fetch Meta Pixel list
+        try {
+          setIsLoadingMetaPixel(true);
+          const pixelRes = await fetch("/api/sales/pixel-meta/public", { headers });
+          if (pixelRes.ok) {
+            const pixelData = await pixelRes.json();
+            if (pixelData.success && Array.isArray(pixelData.data)) {
+              const pixelOpts = pixelData.data.map(p => ({
+                label: p.nama || p.pixel || `Pixel ${p.id}`,
+                value: p.id
+              }));
+              setMetaPixelOptions(pixelOpts);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching Meta Pixel:", err);
+        } finally {
+          setIsLoadingMetaPixel(false);
+        }
+
       } catch (err) {
         console.error("Error fetching initial data:", err);
       }
     }
     fetchInitialData();
   }, []);
+
+  // Buat Meta Pixel baru via backend dan tambahkan ke list
+  const handleCreateMetaPixel = async () => {
+    const pixel = window.prompt("Masukkan ID Meta Pixel (Facebook Pixel ID) baru:");
+    if (!pixel) return;
+
+    // Bisa juga meminta nama, tapi untuk simplifikasi kita auto-generate nama
+    const nama = window.prompt("Masukkan Nama untuk Meta Pixel ini:", `Pixel ${pixel.substring(0, 5)}`);
+    if (!nama) return;
+
+    setIsCreatingMetaPixel(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/sales/pixel-meta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nama: nama,
+          pixel: pixel,
+          conversion_api_token: null,
+          kode_testing: null
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.message || "Gagal membuat Meta Pixel baru");
+        return;
+      }
+
+      const createdPixel = data.data;
+      const newOption = {
+        label: createdPixel.nama || createdPixel.pixel,
+        value: createdPixel.id
+      };
+
+      setMetaPixelOptions(prev => [...prev, newOption]);
+      
+      // Auto-select the newly created pixel
+      const current = pengaturanForm.facebook_pixels || [];
+      if (!current.includes(createdPixel.id)) {
+        handlePengaturanChange("facebook_pixels", [...current, createdPixel.id]);
+      }
+
+      alert("Meta Pixel berhasil dibuat dan ditambahkan ke Facebook Pixels.");
+    } catch (err) {
+      console.error("Error creating Meta Pixel:", err);
+      alert("Terjadi kesalahan saat membuat Meta Pixel baru");
+    } finally {
+      setIsCreatingMetaPixel(false);
+    }
+  };
 
   // Fungsi untuk generate kode dari nama (slugify) - Single source of truth
   const formatSlug = (text) => {
@@ -2159,12 +2374,13 @@ export default function AddProducts3Page() {
             fontFamily: data.fontFamily && data.fontFamily !== "Page Font" ? data.fontFamily : "Inter, sans-serif",
             color: data.textColor || "#1a1a1a",
             align: data.textAlign || "left",
-            lineHeight: data.lineHeight || 1.8,
+            lineHeight: Number.isFinite(Number(data.lineHeight)) ? Number(data.lineHeight) : 1.5,
             fontWeight: data.fontWeight || "normal",
             fontStyle: data.fontStyle || "normal",
             textDecoration: data.textDecoration || "none",
             textTransform: data.textTransform || "none",
             letterSpacing: data.letterSpacing || 0,
+            wordSpacing: data.wordSpacing ?? 0,
             backgroundColor: data.backgroundColor || "transparent"
           },
           container: {
@@ -2175,9 +2391,9 @@ export default function AddProducts3Page() {
               left: data.paddingLeft || 0
             },
             margin: {
-              top: 0,
+              top: data.marginTop ?? 0,
               right: 0,
-              bottom: 0,
+              bottom: data.marginBottom ?? 0,
               left: 0
             },
             background: {
@@ -2506,35 +2722,59 @@ export default function AddProducts3Page() {
         };
         break;
 
-      case "button":
+      case "button": {
+        const sizePreset = data.sizePreset || "default";
+        const customBg = typeof data.backgroundColor === "string" ? data.backgroundColor.trim() : "";
+        const customTc = typeof data.textColor === "string" ? data.textColor.trim() : "";
+        const br = Number(data.borderRadius);
+        const fs = Number(data.fontSize);
+        const px = Number(data.paddingX);
+        const py = Number(data.paddingY);
+
         content = {
           text: data.text || "Klik Disini",
-          link: data.link || "#"
+          link: data.link || "#",
+          fbPixelEvent: data.fbPixelEvent || "",
+          style: data.style || "primary",
+          sizePreset,
+          ...(Number.isFinite(fs) ? { fontSize: fs } : {}),
+          ...(Number.isFinite(px) ? { paddingX: px } : {}),
+          ...(Number.isFinite(py) ? { paddingY: py } : {}),
+          ...(customBg ? { backgroundColor: customBg } : {}),
+          ...(customTc ? { textColor: customTc } : {}),
+          ...(Number.isFinite(br) ? { borderRadius: br } : {}),
+          fullWidth: Boolean(data.fullWidth),
+          fixedBottom: Boolean(data.fixedBottom),
         };
+
         style = {
           button: {
             style: data.style || "primary",
-            backgroundColor: "#ff6c00",
-            textColor: "#ffffff",
+            backgroundColor: customBg || "#ff6c00",
+            textColor: customTc || "#ffffff",
             hoverColor: "#c85400",
-            fontSize: 18,
+            fontSize: Number.isFinite(fs) ? fs : 18,
             fontWeight: "600",
-            borderRadius: "8px",
+            borderRadius: Number.isFinite(br) ? `${br}px` : "8px",
             padding: {
-              top: 16,
-              right: 32,
-              bottom: 16,
-              left: 32
+              top: Number.isFinite(py) ? py : 16,
+              right: Number.isFinite(px) ? px : 32,
+              bottom: Number.isFinite(py) ? py : 16,
+              left: Number.isFinite(px) ? px : 32,
             },
             shadow: "0 4px 12px rgba(255, 108, 0, 0.3)",
-            alignment: "center"
-          }
+            alignment: data.fullWidth ? "stretch" : "center",
+            fullWidth: Boolean(data.fullWidth),
+            fixedBottom: Boolean(data.fixedBottom),
+            sizePreset,
+          },
         };
         config = {
           componentId: data.componentId || block.config?.componentId || `button-${Date.now()}`,
           ...(parentId ? { parentId } : {}) // ✅ TAMBAHKAN parentId untuk button
         };
         break;
+      }
 
       case "html":
         content = {
@@ -2748,6 +2988,7 @@ export default function AddProducts3Page() {
     return analytics;
   };
 
+
   // Transformasi custom scripts
   const transformCustomScripts = () => {
     const templates = [];
@@ -2900,6 +3141,8 @@ export default function AddProducts3Page() {
     const settingsObject = {
       type: "settings",
       background_color: pengaturanForm.background_color || "#ffffff",
+      preview_component_gap: Number(pengaturanForm.preview_component_gap ?? 24),
+      preview_text_paragraph_gap: Number(pengaturanForm.preview_text_paragraph_gap ?? 8),
       page_title: pengaturanForm.page_title || "",
       tags: pengaturanForm.tags || [],
       seo_title: pengaturanForm.seo_title || "",
@@ -2912,6 +3155,12 @@ export default function AddProducts3Page() {
       disable_rightclick: pengaturanForm.disable_rightclick || false,
       html_language: pengaturanForm.html_language || "id",
       disable_custom_font: pengaturanForm.disable_custom_font || false,
+      payment_methods: pengaturanForm.payment_methods || {
+        manual: true,
+        ewallet: true,
+        cc: true,
+        va: true
+      },
       analytics,
       customScripts,
       form,
@@ -2937,7 +3186,16 @@ export default function AddProducts3Page() {
       tanggal_event: formattedDate,
       assign: pengaturanForm.assign,
       status: "1",
-      landingpage: landingpageArray
+      fb_pixel: pengaturanForm.facebook_pixels || [],
+      jadwal: pengaturanForm.jadwal || [],
+      tampil_jadwal: pengaturanForm.tampil_jadwal ?? true,
+      landingpage: landingpageArray,
+      // LOKASI
+      ...(String(pengaturanForm.kategori) === "3" ? {
+        kota: pengaturanForm.kota || "",
+        tempat: pengaturanForm.tempat || "",
+        alamat: pengaturanForm.alamat || "",
+      } : {})
     };
 
     try {
@@ -3019,6 +3277,8 @@ export default function AddProducts3Page() {
     const settingsObject = {
       type: "settings",
       background_color: pengaturanForm.background_color || "#ffffff",
+      preview_component_gap: Number(pengaturanForm.preview_component_gap ?? 24),
+      preview_text_paragraph_gap: Number(pengaturanForm.preview_text_paragraph_gap ?? 8),
       page_title: pengaturanForm.page_title || "",
       tags: pengaturanForm.tags || [],
       seo_title: pengaturanForm.seo_title || "",
@@ -3056,7 +3316,16 @@ export default function AddProducts3Page() {
       tanggal_event: formattedDate,
       assign: pengaturanForm.assign || [],
       status: "0", // ✅ DRAFT STATUS (bukan "1" untuk publish)
-      landingpage: landingpageArray
+      fb_pixel: pengaturanForm.facebook_pixels || [],
+      jadwal: pengaturanForm.jadwal || [],
+      tampil_jadwal: pengaturanForm.tampil_jadwal ?? true,
+      landingpage: landingpageArray,
+      // LOKASI
+      ...(String(pengaturanForm.kategori) === "3" ? {
+        kota: pengaturanForm.kota || "",
+        tempat: pengaturanForm.tempat || "",
+        alamat: pengaturanForm.alamat || "",
+      } : {})
     };
 
     try {
@@ -3169,14 +3438,41 @@ export default function AddProducts3Page() {
           <ArrowLeft size={18} />
           <span>Back to Products</span>
         </button>
-        <button
-          className={`save-publish-btn ${isSaving ? 'btn-loading' : ''}`}
-          onClick={handleSaveAndPublish}
-          aria-label="Simpan dan Publish"
-          disabled={isSaving}
-        >
-          <span>{isSaving ? "Menyimpan..." : "Simpan dan Publish"}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={handleImportTemplateFile}
+          />
+          <button
+            className="action-btn-secondary"
+            onClick={() => importFileInputRef.current?.click()}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+            title="Import Template dari file JSON"
+          >
+            <Upload size={16} />
+            <span>Import</span>
+          </button>
+          <button
+            className="action-btn-secondary"
+            onClick={handleExportTemplate}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+            title="Download Template JSON"
+          >
+            <Code size={16} />
+            <span>Export</span>
+          </button>
+          <button
+            className={`save-publish-btn ${isSaving ? 'btn-loading' : ''}`}
+            onClick={handleSaveAndPublish}
+            aria-label="Simpan dan Publish"
+            disabled={isSaving}
+          >
+            <span>{isSaving ? "Menyimpan..." : "Simpan dan Publish"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -3186,16 +3482,16 @@ export default function AddProducts3Page() {
           {/* Tabs */}
           <div className="sidebar-tabs">
             <button
-              className={`sidebar-tab ${activeTab === "konten" ? "active" : ""}`}
-              onClick={() => setActiveTab("konten")}
-            >
-              Konten
-            </button>
-            <button
               className={`sidebar-tab ${activeTab === "pengaturan" ? "active" : ""}`}
               onClick={() => setActiveTab("pengaturan")}
             >
               Pengaturan
+            </button>
+            <button
+              className={`sidebar-tab ${activeTab === "konten" ? "active" : ""}`}
+              onClick={() => setActiveTab("konten")}
+            >
+              Konten
             </button>
           </div>
 
@@ -3288,13 +3584,13 @@ export default function AddProducts3Page() {
                         const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
                           ? String(selectedValue)
                           : null;
-                        
+
                         setProductKategori(finalValue ? Number(finalValue) : null);
-                        
+
                         // Update kategori dan auto-set bundling untuk kategori workshop (6) dalam satu state update
                         setPengaturanForm((prev) => {
                           const updated = { ...prev, kategori: finalValue };
-                          
+
                           // Auto-set bundling untuk kategori workshop (6)
                           if (isWorkshopKategori(finalValue)) {
                             const workshopBundling = [
@@ -3314,7 +3610,7 @@ export default function AddProducts3Page() {
                               updated.bundling = [];
                             }
                           }
-                          
+
                           return updated;
                         });
                       }}
@@ -3329,6 +3625,46 @@ export default function AddProducts3Page() {
                       </small>
                     )}
                   </div>
+
+                  {/* LOKASI (KHUSUS SEMINAR / KATEGORI == "3") */}
+                  {pengaturanForm.kategori === "3" && (
+                    <>
+                      <div className="form-field-group">
+                        <label className="form-label">
+                          Kota (Contoh: Medan) <span className="required">*</span>
+                        </label>
+                        <InputText
+                          className="w-full form-input"
+                          value={pengaturanForm.kota || ""}
+                          onChange={(e) => handlePengaturanChange("kota", e.target.value)}
+                          placeholder="Masukkan nama kota"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label">
+                          Tempat (Contoh: AIHO Hotel) <span className="required">*</span>
+                        </label>
+                        <InputText
+                          className="w-full form-input"
+                          value={pengaturanForm.tempat || ""}
+                          onChange={(e) => handlePengaturanChange("tempat", e.target.value)}
+                          placeholder="Masukkan nama tempat/gedung"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label">
+                          Alamat Lengkap <span className="required">*</span>
+                        </label>
+                        <InputTextarea
+                          className="w-full form-input"
+                          value={pengaturanForm.alamat || ""}
+                          onChange={(e) => handlePengaturanChange("alamat", e.target.value)}
+                          placeholder="Masukkan alamat lengkap lokasi acara"
+                          rows={3}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div className="pengaturan-form-group">
                     <label className="pengaturan-label">Kode Produk</label>
@@ -3501,453 +3837,587 @@ export default function AddProducts3Page() {
                     </div>
                   )}
 
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label">Tanggal Event</label>
-                    <Calendar
-                      ref={calendarRef}
-                      className="pengaturan-input"
-                      value={pengaturanForm.tanggal_event}
-                      onChange={(e) => handlePengaturanChange("tanggal_event", e.value)}
-                      placeholder="Pilih tanggal dan jam event"
-                      showIcon
-                      showTime
-                      hourFormat="24"
-                      dateFormat="dd/mm/yy"
-                      timeOnly={false}
-                      showSeconds={false}
-                      showButtonBar
-                      footerTemplate={() => (
-                        <div style={{
-                          padding: '12px',
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          borderTop: '1px solid #eee',
-                          gap: '8px'
-                        }}>
-                          <button
-                            type="button"
-                            onClick={() => calendarRef.current?.hide()}
-                            style={{
-                              backgroundColor: '#F1A124',
-                              color: 'white',
-                              border: 'none',
-                              padding: '8px 16px',
-                              borderRadius: '6px',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Ok
-                          </button>
-                        </div>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Penanggung Jawab */}
-                <div className="pengaturan-section">
-                  <div className="form-field-group">
-                    <label className="form-label">
-                      Penanggung Jawab (Assign By) <span className="required">*</span>
-                    </label>
-                    <MultiSelect
-                      className="w-full form-input"
-                      value={pengaturanForm.assign}
-                      options={userOptions}
-                      onChange={(e) => handlePengaturanChange("assign", e.value || [])}
-                      placeholder="Pilih penanggung jawab produk"
-                      display="chip"
-                      showClear
-                      filter
-                      filterPlaceholder="Cari user..."
-                    />
-                    <p className="field-hint">Pilih user yang bertanggung jawab menangani produk ini</p>
-                  </div>
-                </div>
-
-                {/* Divider untuk memisahkan settingan produk dengan settingan landing page */}
-                <div style={{
-                  margin: "32px 0",
-                  borderTop: "2px solid #e5e7eb",
-                  paddingTop: "24px"
-                }}>
-                  <div style={{
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    color: "#6b7280",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    marginBottom: "16px"
-                  }}>
-                    Pengaturan Landing Page
-                  </div>
-                </div>
-
-                {/* Page Title - SEO Meta Tag */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">SEO & Meta</h3>
-                  <p className="pengaturan-section-description">Pengaturan untuk SEO dan meta tag halaman - Optimalkan untuk Google, DuckDuckGo, dan semua search engine</p>
-
-                  <div className="pengaturan-form-group">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <label className="pengaturan-label">
-                        Page Title (Browser Tab Title) <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
+                  {/* JADWAL PRODUK */}
+                  <div className="pengaturan-form-group" style={{ marginTop: "1rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <label className="pengaturan-label" style={{ marginBottom: 0 }}>
+                        Jadwal Produk
                       </label>
-                      <span style={{
-                        fontSize: "12px",
-                        color: (pengaturanForm.page_title || "").length > 60 ? "#ef4444" : (pengaturanForm.page_title || "").length >= 50 ? "#10b981" : "#6b7280",
-                        fontWeight: "500"
-                      }}>
-                        {(pengaturanForm.page_title || "").length}/60 karakter
-                      </span>
+                      <Button
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Tambah"
+                        className="p-button-outlined p-button-xs"
+                        style={{ fontSize: '12px', padding: '4px 8px' }}
+                        onClick={() => {
+                          const newJadwal = [...(pengaturanForm.jadwal || []), { nama_jadwal: "", waktu_mulai: null, waktu_selesai: null, kuota: 9999, status: "A" }];
+                          handlePengaturanChange("jadwal", newJadwal);
+                        }}
+                      />
                     </div>
-                    <InputText
-                      className="pengaturan-input"
-                      value={pengaturanForm.page_title || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.length <= 60) {
-                          handlePengaturanChange("page_title", value);
-                        }
-                      }}
-                      placeholder="Contoh: BANDUNG - Seminar Ternak Properti | Daftar Sekarang"
-                      maxLength={60}
-                    />
-                    <small className="pengaturan-hint" style={{
-                      color: (pengaturanForm.page_title || "").length > 60 ? "#ef4444" : "#6b7280",
-                      display: "block",
-                      marginTop: "4px"
-                    }}>
-                      {pengaturanForm.page_title && pengaturanForm.page_title.length > 60 ? (
-                        <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 60 karakter. Optimal: 50-60 karakter.</span>
-                      ) : pengaturanForm.page_title && pengaturanForm.page_title.length < 50 ? (
-                        <span>💡 Tips: Panjang optimal 50-60 karakter untuk tampil sempurna di Google Search Results. Judul ini akan muncul di browser tab dan hasil pencarian Google, DuckDuckGo, dan semua search engine.</span>
-                      ) : (
-                        <span>✅ Panjang optimal! Judul ini akan muncul di browser tab dan hasil pencarian Google, DuckDuckGo, dan semua search engine. Jika kosong, akan menggunakan nama produk.</span>
-                      )}
-                    </small>
-                  </div>
-                </div>
 
-                {/* Background Color */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">Tampilan</h3>
-                  <p className="pengaturan-section-description">Pengaturan tampilan halaman landing page</p>
+                    <div className="jadwal-list-builder" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {(pengaturanForm.jadwal || []).map((j, i) => (
+                        <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px', background: '#f9fafb' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#374151' }}>Jadwal {i + 1}</span>
+                          </div>
 
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label">
-                      Background Color
-                    </label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className="pengaturan-form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Nama Jadwal</label>
+                              <InputText
+                                className="pengaturan-input p-inputtext-sm"
+                                value={j.nama_jadwal}
+                                onChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].nama_jadwal = e.target.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                placeholder="Nama Jadwal (e.g. Batch 1)"
+                                style={{ fontSize: '13px' }}
+                              />
+                            </div>
 
-                    {/* Modern Background Color Picker */}
-                    <div className="modern-bg-color-picker" ref={bgColorPickerRef}>
-                      {/* Current Color Preview */}
-                      <div
-                        className="modern-bg-color-preview"
-                        style={{ backgroundColor: pengaturanForm.background_color || "#ffffff" }}
-                        onClick={() => setShowBgColorPicker(!showBgColorPicker)}
-                      >
-                        <div className="modern-bg-color-preview-inner">
-                          <span className="modern-bg-color-hex">
-                            {pengaturanForm.background_color || "#ffffff"}
-                          </span>
-                          <ChevronDown size={16} />
+                            <div className="pengaturan-form-group" style={{ marginBottom: '8px' }}>
+                              <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Mulai</label>
+                              <Calendar
+                                className="p-inputtext-sm"
+                                value={j.waktu_mulai}
+                                showTime
+                                hourFormat="24"
+                                onChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].waktu_mulai = e.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                placeholder="Pilih Tanggal & Waktu"
+                                style={{ width: '100%' }}
+                                inputStyle={{ fontSize: '12px' }}
+                                showButtonBar
+                                footerTemplate={() => (
+                                  <div style={{ padding: '8px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #eee' }}>
+                                    <Button
+                                      label="OK"
+                                      className="p-button-sm"
+                                      style={{ backgroundColor: '#F1A124', border: 'none' }}
+                                      onClick={() => {
+                                        document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              />
+                            </div>
+
+                            <Button
+                              type="button"
+                              label="Hapus Jadwal"
+                              icon="pi pi-trash"
+                              className="p-button-danger p-button-text p-button-sm"
+                              style={{ color: '#ef4444', fontSize: '12px', padding: '4px 0', justifyContent: 'flex-start' }}
+                              onClick={() => {
+                                const newJadwal = pengaturanForm.jadwal.filter((_, idx) => idx !== i);
+                                handlePengaturanChange("jadwal", newJadwal);
+                              }}
+                            />
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Munculkan di Jadwal */}
+                  <div className="pengaturan-section">
+                    <div className="form-field-group">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <label className="form-label" style={{ marginBottom: "4px" }}>
+                            Munculkan di Jadwal?
+                          </label>
+                          <p className="field-hint" style={{ marginTop: 0 }}>
+                            Aktifkan jika produk ini ingin ditampilkan di halaman Jadwal Seminar.
+                          </p>
+                        </div>
+                        <InputSwitch
+                          checked={pengaturanForm.tampil_jadwal ?? true}
+                          onChange={(e) => handlePengaturanChange("tampil_jadwal", e.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Penanggung Jawab */}
+                  <div className="pengaturan-section">
+                    <div className="form-field-group">
+                      <label className="form-label">
+                        Penanggung Jawab (Assign By) <span className="required">*</span>
+                      </label>
+                      <MultiSelect
+                        className="w-full form-input"
+                        value={pengaturanForm.assign}
+                        options={userOptions}
+                        onChange={(e) => handlePengaturanChange("assign", e.value || [])}
+                        placeholder="Pilih penanggung jawab produk"
+                        display="chip"
+                        showClear
+                        filter
+                        filterPlaceholder="Cari user..."
+                      />
+                      <p className="field-hint">Pilih user yang bertanggung jawab menangani produk ini</p>
+                    </div>
+                  </div>
+
+                  {/* Custom Payment Methods */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Opsi Metode Pembayaran</h3>
+                    <p className="pengaturan-section-description">Pilih metode pembayaran apa saja yang akan aktif dan ditampilkan pada landing page ini.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
+                        <input
+                          type="checkbox"
+                          checked={pengaturanForm.payment_methods?.manual ?? true}
+                          onChange={(e) => handlePengaturanChange("payment_methods", { ...(pengaturanForm.payment_methods || { manual: true, ewallet: true, cc: true, va: true }), manual: e.target.checked })}
+                          style={{ width: "16px", height: "16px" }}
+                        />
+                        <span>Bank Transfer (Manual)</span>
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
+                        <input
+                          type="checkbox"
+                          checked={pengaturanForm.payment_methods?.ewallet ?? true}
+                          onChange={(e) => handlePengaturanChange("payment_methods", { ...(pengaturanForm.payment_methods || { manual: true, ewallet: true, cc: true, va: true }), ewallet: e.target.checked })}
+                          style={{ width: "16px", height: "16px" }}
+                        />
+                        <span>E-Payment (QRIS, DANA, OVO, dll)</span>
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
+                        <input
+                          type="checkbox"
+                          checked={pengaturanForm.payment_methods?.cc ?? true}
+                          onChange={(e) => handlePengaturanChange("payment_methods", { ...(pengaturanForm.payment_methods || { manual: true, ewallet: true, cc: true, va: true }), cc: e.target.checked })}
+                          style={{ width: "16px", height: "16px" }}
+                        />
+                        <span>Credit / Debit Card</span>
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "14px" }}>
+                        <input
+                          type="checkbox"
+                          checked={pengaturanForm.payment_methods?.va ?? true}
+                          onChange={(e) => handlePengaturanChange("payment_methods", { ...(pengaturanForm.payment_methods || { manual: true, ewallet: true, cc: true, va: true }), va: e.target.checked })}
+                          style={{ width: "16px", height: "16px" }}
+                        />
+                        <span>Virtual Account</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Divider untuk memisahkan settingan produk dengan settingan landing page */}
+                  <div style={{
+                    margin: "32px 0",
+                    borderTop: "2px solid #e5e7eb",
+                    paddingTop: "24px"
+                  }}>
+                    <div style={{
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      color: "#6b7280",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      marginBottom: "16px"
+                    }}>
+                      Pengaturan Landing Page
+                    </div>
+                  </div>
+
+                  {/* Page Title - SEO Meta Tag */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">SEO & Meta</h3>
+                    <p className="pengaturan-section-description">Pengaturan untuk SEO dan meta tag halaman - Optimalkan untuk Google, DuckDuckGo, dan semua search engine</p>
+
+                    <div className="pengaturan-form-group">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <label className="pengaturan-label">
+                          Page Title (Browser Tab Title) <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
+                        </label>
+                        <span style={{
+                          fontSize: "12px",
+                          color: (pengaturanForm.page_title || "").length > 60 ? "#ef4444" : (pengaturanForm.page_title || "").length >= 50 ? "#10b981" : "#6b7280",
+                          fontWeight: "500"
+                        }}>
+                          {(pengaturanForm.page_title || "").length}/60 karakter
+                        </span>
+                      </div>
+                      <InputText
+                        className="pengaturan-input"
+                        value={pengaturanForm.page_title || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 60) {
+                            handlePengaturanChange("page_title", value);
+                          }
+                        }}
+                        placeholder="Contoh: BANDUNG - Seminar Ternak Properti | Daftar Sekarang"
+                        maxLength={60}
+                      />
+                      <small className="pengaturan-hint" style={{
+                        color: (pengaturanForm.page_title || "").length > 60 ? "#ef4444" : "#6b7280",
+                        display: "block",
+                        marginTop: "4px"
+                      }}>
+                        {pengaturanForm.page_title && pengaturanForm.page_title.length > 60 ? (
+                          <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 60 karakter. Optimal: 50-60 karakter.</span>
+                        ) : pengaturanForm.page_title && pengaturanForm.page_title.length < 50 ? (
+                          <span>💡 Tips: Panjang optimal 50-60 karakter untuk tampil sempurna di Google Search Results. Judul ini akan muncul di browser tab dan hasil pencarian Google, DuckDuckGo, dan semua search engine.</span>
+                        ) : (
+                          <span>✅ Panjang optimal! Judul ini akan muncul di browser tab dan hasil pencarian Google, DuckDuckGo, dan semua search engine. Jika kosong, akan menggunakan nama produk.</span>
+                        )}
+                      </small>
+                    </div>
+                  </div>
+
+                  {/* Background Color */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Tampilan</h3>
+                    <p className="pengaturan-section-description">Pengaturan tampilan halaman landing page</p>
+
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label">
+                        Background Color
+                      </label>
+
+                      {/* Modern Background Color Picker */}
+                      <div className="modern-bg-color-picker" ref={bgColorPickerRef}>
+                        {/* Current Color Preview */}
+                        <div
+                          className="modern-bg-color-preview"
+                          style={{ backgroundColor: pengaturanForm.background_color || "#ffffff" }}
+                          onClick={() => setShowBgColorPicker(!showBgColorPicker)}
+                        >
+                          <div className="modern-bg-color-preview-inner">
+                            <span className="modern-bg-color-hex">
+                              {pengaturanForm.background_color || "#ffffff"}
+                            </span>
+                            <ChevronDown size={16} />
+                          </div>
+                        </div>
+
+                        {/* Color Picker Dropdown */}
+                        {showBgColorPicker && (
+                          <div className="modern-bg-color-picker-popup">
+                            <div className="modern-bg-color-header">
+                              <span>Pilih Warna Background</span>
+                              <button
+                                className="modern-bg-color-close"
+                                onClick={() => setShowBgColorPicker(false)}
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+
+                            {/* Preset Colors Grid */}
+                            <div className="modern-bg-color-presets">
+                              <div className="modern-bg-color-presets-label">Warna Cepat</div>
+                              <div className="modern-bg-color-presets-grid">
+                                {presetBgColors.map((color, idx) => (
+                                  <button
+                                    key={idx}
+                                    className={`modern-bg-color-preset-item ${(pengaturanForm.background_color || "#ffffff") === color.value ? "selected" : ""
+                                      }`}
+                                    style={{ backgroundColor: color.value }}
+                                    onClick={() => {
+                                      handlePengaturanChange("background_color", color.value);
+                                      setShowBgColorPicker(false);
+                                    }}
+                                    title={color.name}
+                                  >
+                                    {(pengaturanForm.background_color || "#ffffff") === color.value && (
+                                      <div className="modern-bg-color-check">✓</div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="modern-bg-color-divider"></div>
+
+                            {/* Custom Color Picker */}
+                            <div className="modern-bg-color-custom">
+                              <div className="modern-bg-color-custom-label">Warna Kustom</div>
+                              <div className="modern-bg-color-custom-picker">
+                                <input
+                                  type="color"
+                                  value={pengaturanForm.background_color || "#ffffff"}
+                                  onChange={(e) => handlePengaturanChange("background_color", e.target.value)}
+                                  className="modern-bg-color-input"
+                                />
+                                <InputText
+                                  className="pengaturan-input"
+                                  value={pengaturanForm.background_color || "#ffffff"}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^#[0-9A-Fa-f]{0,6}$/.test(value) || value === "") {
+                                      handlePengaturanChange("background_color", value || "#ffffff");
+                                    }
+                                  }}
+                                  placeholder="#ffffff"
+                                  style={{ flex: 1, fontFamily: "monospace" }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Color Picker Dropdown */}
-                      {showBgColorPicker && (
-                        <div className="modern-bg-color-picker-popup">
-                          <div className="modern-bg-color-header">
-                            <span>Pilih Warna Background</span>
-                            <button
-                              className="modern-bg-color-close"
-                              onClick={() => setShowBgColorPicker(false)}
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          {/* Preset Colors Grid */}
-                          <div className="modern-bg-color-presets">
-                            <div className="modern-bg-color-presets-label">Warna Cepat</div>
-                            <div className="modern-bg-color-presets-grid">
-                              {presetBgColors.map((color, idx) => (
-                                <button
-                                  key={idx}
-                                  className={`modern-bg-color-preset-item ${(pengaturanForm.background_color || "#ffffff") === color.value ? "selected" : ""
-                                    }`}
-                                  style={{ backgroundColor: color.value }}
-                                  onClick={() => {
-                                    handlePengaturanChange("background_color", color.value);
-                                    setShowBgColorPicker(false);
-                                  }}
-                                  title={color.name}
-                                >
-                                  {(pengaturanForm.background_color || "#ffffff") === color.value && (
-                                    <div className="modern-bg-color-check">✓</div>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="modern-bg-color-divider"></div>
-
-                          {/* Custom Color Picker */}
-                          <div className="modern-bg-color-custom">
-                            <div className="modern-bg-color-custom-label">Warna Kustom</div>
-                            <div className="modern-bg-color-custom-picker">
-                              <input
-                                type="color"
-                                value={pengaturanForm.background_color || "#ffffff"}
-                                onChange={(e) => handlePengaturanChange("background_color", e.target.value)}
-                                className="modern-bg-color-input"
-                              />
-                              <InputText
-                                className="pengaturan-input"
-                                value={pengaturanForm.background_color || "#ffffff"}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (/^#[0-9A-Fa-f]{0,6}$/.test(value) || value === "") {
-                                    handlePengaturanChange("background_color", value || "#ffffff");
-                                  }
-                                }}
-                                placeholder="#ffffff"
-                                style={{ flex: 1, fontFamily: "monospace" }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <small className="pengaturan-hint">Pilih warna background untuk halaman landing page</small>
                     </div>
 
-                    <small className="pengaturan-hint">Pilih warna background untuk halaman landing page</small>
+                    <div className="pengaturan-form-group" style={{ marginTop: "20px" }}>
+                      <label className="pengaturan-label">Jarak antar komponen (px)</label>
+                      <InputNumber
+                        className="pengaturan-input"
+                        value={pengaturanForm.preview_component_gap ?? 24}
+                        onValueChange={(e) => handlePengaturanChange("preview_component_gap", e.value != null ? e.value : 24)}
+                        min={0}
+                        max={120}
+                      />
+                      <small className="pengaturan-hint">Jarak vertikal antara blok di preview dan di halaman produk publik</small>
+                    </div>
+
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label">Jarak antar paragraf teks (px)</label>
+                      <InputNumber
+                        className="pengaturan-input"
+                        value={pengaturanForm.preview_text_paragraph_gap ?? 8}
+                        onValueChange={(e) => handlePengaturanChange("preview_text_paragraph_gap", e.value != null ? e.value : 8)}
+                        min={0}
+                        max={64}
+                      />
+                      <small className="pengaturan-hint">Jarak antar paragraf pada komponen Teks (rich text)</small>
+                    </div>
                   </div>
-                </div>
 
-                {/* Tags Section */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">Tags</h3>
-                  <div className="pengaturan-form-group">
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                      <Tag size={16} color="#F1A124" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newTags = [...(pengaturanForm.tags || []), ""];
-                          handlePengaturanChange("tags", newTags);
-                        }}
-                        style={{
-                          color: "#F1A124",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: "500",
-                          padding: 0
-                        }}
-                      >
-                        Add Tag
-                      </button>
-                    </div>
-                    {(pengaturanForm.tags || []).map((tag, index) => (
-                      <div key={index} style={{ marginBottom: "8px", display: "flex", gap: "8px" }}>
-                        <InputText
-                          className="pengaturan-input"
-                          value={tag}
-                          onChange={(e) => {
-                            const newTags = [...(pengaturanForm.tags || [])];
-                            newTags[index] = e.target.value;
-                            handlePengaturanChange("tags", newTags);
-                          }}
-                          placeholder="Masukkan tag"
-                          style={{ flex: 1 }}
-                        />
+                  {/* Tags Section */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Tags</h3>
+                    <div className="pengaturan-form-group">
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                        <Tag size={16} color="#F1A124" />
                         <button
                           type="button"
                           onClick={() => {
-                            const newTags = (pengaturanForm.tags || []).filter((_, i) => i !== index);
+                            const newTags = [...(pengaturanForm.tags || []), ""];
                             handlePengaturanChange("tags", newTags);
                           }}
                           style={{
-                            padding: "8px 12px",
-                            backgroundColor: "#ef4444",
-                            color: "white",
+                            color: "#F1A124",
+                            background: "none",
                             border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer"
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "500",
+                            padding: 0
                           }}
                         >
-                          <X size={14} />
+                          Add Tag
                         </button>
                       </div>
-                    ))}
+                      {(pengaturanForm.tags || []).map((tag, index) => (
+                        <div key={index} style={{ marginBottom: "8px", display: "flex", gap: "8px" }}>
+                          <InputText
+                            className="pengaturan-input"
+                            value={tag}
+                            onChange={(e) => {
+                              const newTags = [...(pengaturanForm.tags || [])];
+                              newTags[index] = e.target.value;
+                              handlePengaturanChange("tags", newTags);
+                            }}
+                            placeholder="Masukkan tag"
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTags = (pengaturanForm.tags || []).filter((_, i) => i !== index);
+                              handlePengaturanChange("tags", newTags);
+                            }}
+                            style={{
+                              padding: "8px 12px",
+                              backgroundColor: "#ef4444",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* SEO Metadata Section */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">Pengaturan SEO Metadata</h3>
-                  <p className="pengaturan-section-description" style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px" }}>
-                    Optimalkan untuk Google, DuckDuckGo, Bing, dan semua search engine. Field ini akan digunakan sebagai meta tags di HTML untuk meningkatkan ranking di hasil pencarian.
-                  </p>
+                  {/* SEO Metadata Section */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Pengaturan SEO Metadata</h3>
+                    <p className="pengaturan-section-description" style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px" }}>
+                      Optimalkan untuk Google, DuckDuckGo, Bing, dan semua search engine. Field ini akan digunakan sebagai meta tags di HTML untuk meningkatkan ranking di hasil pencarian.
+                    </p>
 
-                  <div className="pengaturan-form-group">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <label className="pengaturan-label">
-                        Judul Tag (SEO Title) <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
-                      </label>
-                      <span style={{
-                        fontSize: "12px",
-                        color: (pengaturanForm.seo_title || "").length > 60 ? "#ef4444" : (pengaturanForm.seo_title || "").length >= 50 ? "#10b981" : "#6b7280",
-                        fontWeight: "500"
+                    <div className="pengaturan-form-group">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <label className="pengaturan-label">
+                          Judul Tag (SEO Title) <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
+                        </label>
+                        <span style={{
+                          fontSize: "12px",
+                          color: (pengaturanForm.seo_title || "").length > 60 ? "#ef4444" : (pengaturanForm.seo_title || "").length >= 50 ? "#10b981" : "#6b7280",
+                          fontWeight: "500"
+                        }}>
+                          {(pengaturanForm.seo_title || "").length}/60 karakter
+                        </span>
+                      </div>
+                      <InputText
+                        className="pengaturan-input"
+                        value={pengaturanForm.seo_title || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 60) {
+                            handlePengaturanChange("seo_title", value);
+                          }
+                        }}
+                        placeholder="Contoh: Seminar Ternak Properti Bandung 2024 - Daftar Sekarang"
+                        maxLength={60}
+                      />
+                      <small className="pengaturan-hint" style={{
+                        color: (pengaturanForm.seo_title || "").length > 60 ? "#ef4444" : "#6b7280",
+                        display: "block",
+                        marginTop: "4px"
                       }}>
-                        {(pengaturanForm.seo_title || "").length}/60 karakter
-                      </span>
+                        {pengaturanForm.seo_title && pengaturanForm.seo_title.length > 60 ? (
+                          <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 60 karakter. Optimal: 50-60 karakter.</span>
+                        ) : pengaturanForm.seo_title && pengaturanForm.seo_title.length < 50 ? (
+                          <span>💡 Tips: Panjang optimal 50-60 karakter. Gunakan kata kunci utama di awal. Judul ini akan muncul sebagai &lt;title&gt; tag di HTML dan digunakan oleh semua search engine untuk indexing.</span>
+                        ) : (
+                          <span>✅ Panjang optimal! Judul ini akan muncul sebagai &lt;title&gt; tag di HTML dan digunakan oleh Google, DuckDuckGo, Bing, dan semua search engine untuk indexing dan ranking.</span>
+                        )}
+                      </small>
                     </div>
-                    <InputText
-                      className="pengaturan-input"
-                      value={pengaturanForm.seo_title || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.length <= 60) {
-                          handlePengaturanChange("seo_title", value);
-                        }
-                      }}
-                      placeholder="Contoh: Seminar Ternak Properti Bandung 2024 - Daftar Sekarang"
-                      maxLength={60}
-                    />
-                    <small className="pengaturan-hint" style={{
-                      color: (pengaturanForm.seo_title || "").length > 60 ? "#ef4444" : "#6b7280",
-                      display: "block",
-                      marginTop: "4px"
-                    }}>
-                      {pengaturanForm.seo_title && pengaturanForm.seo_title.length > 60 ? (
-                        <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 60 karakter. Optimal: 50-60 karakter.</span>
-                      ) : pengaturanForm.seo_title && pengaturanForm.seo_title.length < 50 ? (
-                        <span>💡 Tips: Panjang optimal 50-60 karakter. Gunakan kata kunci utama di awal. Judul ini akan muncul sebagai &lt;title&gt; tag di HTML dan digunakan oleh semua search engine untuk indexing.</span>
-                      ) : (
-                        <span>✅ Panjang optimal! Judul ini akan muncul sebagai &lt;title&gt; tag di HTML dan digunakan oleh Google, DuckDuckGo, Bing, dan semua search engine untuk indexing dan ranking.</span>
-                      )}
-                    </small>
-                  </div>
 
-                  <div className="pengaturan-form-group">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <label className="pengaturan-label">
-                        Meta Description <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
-                      </label>
-                      <span style={{
-                        fontSize: "12px",
-                        color: (pengaturanForm.meta_description || "").length > 160 ? "#ef4444" : (pengaturanForm.meta_description || "").length >= 150 ? "#10b981" : "#6b7280",
-                        fontWeight: "500"
+                    <div className="pengaturan-form-group">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <label className="pengaturan-label">
+                          Meta Description <span style={{ color: "#F1A124", fontSize: "12px" }}>⭐ SEO Critical</span>
+                        </label>
+                        <span style={{
+                          fontSize: "12px",
+                          color: (pengaturanForm.meta_description || "").length > 160 ? "#ef4444" : (pengaturanForm.meta_description || "").length >= 150 ? "#10b981" : "#6b7280",
+                          fontWeight: "500"
+                        }}>
+                          {(pengaturanForm.meta_description || "").length}/160 karakter
+                        </span>
+                      </div>
+                      <InputTextarea
+                        className="pengaturan-input"
+                        value={pengaturanForm.meta_description || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 160) {
+                            handlePengaturanChange("meta_description", value);
+                          }
+                        }}
+                        placeholder="Contoh: Daftar Seminar Ternak Properti di Bandung 2024. Pelajari strategi investasi properti terbaik dari para ahli. Harga spesial, tempat terbatas!"
+                        rows={4}
+                        style={{ resize: "vertical" }}
+                        maxLength={160}
+                      />
+                      <small className="pengaturan-hint" style={{
+                        color: (pengaturanForm.meta_description || "").length > 160 ? "#ef4444" : "#6b7280",
+                        display: "block",
+                        marginTop: "4px"
                       }}>
-                        {(pengaturanForm.meta_description || "").length}/160 karakter
-                      </span>
+                        {pengaturanForm.meta_description && pengaturanForm.meta_description.length > 160 ? (
+                          <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 160 karakter. Optimal: 150-160 karakter.</span>
+                        ) : pengaturanForm.meta_description && pengaturanForm.meta_description.length < 150 ? (
+                          <span>💡 Tips: Panjang optimal 150-160 karakter. Gunakan kalimat yang menarik dengan call-to-action. Deskripsi ini akan muncul di hasil pencarian Google, DuckDuckGo, dan semua search engine sebagai snippet.</span>
+                        ) : (
+                          <span>✅ Panjang optimal! Deskripsi ini akan muncul di hasil pencarian Google, DuckDuckGo, Bing, dan semua search engine sebagai snippet. Buat deskripsi yang menarik dan informatif untuk meningkatkan click-through rate.</span>
+                        )}
+                      </small>
                     </div>
-                    <InputTextarea
-                      className="pengaturan-input"
-                      value={pengaturanForm.meta_description || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.length <= 160) {
-                          handlePengaturanChange("meta_description", value);
-                        }
-                      }}
-                      placeholder="Contoh: Daftar Seminar Ternak Properti di Bandung 2024. Pelajari strategi investasi properti terbaik dari para ahli. Harga spesial, tempat terbatas!"
-                      rows={4}
-                      style={{ resize: "vertical" }}
-                      maxLength={160}
-                    />
-                    <small className="pengaturan-hint" style={{
-                      color: (pengaturanForm.meta_description || "").length > 160 ? "#ef4444" : "#6b7280",
-                      display: "block",
-                      marginTop: "4px"
-                    }}>
-                      {pengaturanForm.meta_description && pengaturanForm.meta_description.length > 160 ? (
-                        <span style={{ color: "#ef4444" }}>⚠️ Terlalu panjang! Google akan memotong di 160 karakter. Optimal: 150-160 karakter.</span>
-                      ) : pengaturanForm.meta_description && pengaturanForm.meta_description.length < 150 ? (
-                        <span>💡 Tips: Panjang optimal 150-160 karakter. Gunakan kalimat yang menarik dengan call-to-action. Deskripsi ini akan muncul di hasil pencarian Google, DuckDuckGo, dan semua search engine sebagai snippet.</span>
-                      ) : (
-                        <span>✅ Panjang optimal! Deskripsi ini akan muncul di hasil pencarian Google, DuckDuckGo, Bing, dan semua search engine sebagai snippet. Buat deskripsi yang menarik dan informatif untuk meningkatkan click-through rate.</span>
+
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label">Upload Meta Gambar</label>
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              handlePengaturanChange("meta_image", event.target.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="component-file-input"
+                        id="meta-image-upload"
+                      />
+                      <label htmlFor="meta-image-upload" className="meta-upload-label">
+                        <ImageIcon size={32} color="#F1A124" />
+                        <span>Upload Meta Gambar</span>
+                        <small>.jpg, .jpeg, .png, .webp</small>
+                      </label>
+                      {pengaturanForm.meta_image && (
+                        <div style={{ marginTop: "8px" }}>
+                          <img src={pengaturanForm.meta_image} alt="Meta preview" style={{ maxWidth: "100%", borderRadius: "6px", maxHeight: "200px" }} />
+                        </div>
                       )}
-                    </small>
+                    </div>
                   </div>
 
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label">Upload Meta Gambar</label>
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            handlePengaturanChange("meta_image", event.target.result);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="component-file-input"
-                      id="meta-image-upload"
-                    />
-                    <label htmlFor="meta-image-upload" className="meta-upload-label">
-                      <ImageIcon size={32} color="#F1A124" />
-                      <span>Upload Meta Gambar</span>
-                      <small>.jpg, .jpeg, .png, .webp</small>
-                    </label>
-                    {pengaturanForm.meta_image && (
-                      <div style={{ marginTop: "8px" }}>
-                        <img src={pengaturanForm.meta_image} alt="Meta preview" style={{ maxWidth: "100%", borderRadius: "6px", maxHeight: "200px" }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  {/* Preview Sections */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Pratinjau</h3>
 
-                {/* Preview Sections */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">Pratinjau</h3>
-
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label" style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>Pratinjau di Google Search</label>
-                    <div style={{
-                      padding: "16px",
-                      backgroundColor: "#f9fafb",
-                      borderRadius: "8px",
-                      border: "1px solid #e5e7eb"
-                    }}>
-                      <div style={{ fontSize: "20px", color: "#F1A124", marginBottom: "4px", fontWeight: "400" }}>
-                        {pengaturanForm.seo_title || "Produk Baru"}
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label" style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>Pratinjau di Google Search</label>
+                      <div style={{
+                        padding: "16px",
+                        backgroundColor: "#f9fafb",
+                        borderRadius: "8px",
+                        border: "1px solid #e5e7eb"
+                      }}>
+                        <div style={{ fontSize: "20px", color: "#F1A124", marginBottom: "4px", fontWeight: "400" }}>
+                          {pengaturanForm.seo_title || "Produk Baru"}
+                        </div>
+                        <div style={{ fontSize: "14px", color: "#006621" }}>
+                          {pengaturanForm.kode ? `https://app.ternakproperti.com/product/${pengaturanForm.kode}` : "https://app.ternakproperti.com/product/landing-page-baru"}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "14px", color: "#006621" }}>
-                        {pengaturanForm.kode ? `https://app.ternakproperti.com/product/${pengaturanForm.kode}` : "https://app.ternakproperti.com/product/landing-page-baru"}
+                    </div>
+
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label" style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>Pratinjau di Sosial Media</label>
+                      <div style={{
+                        padding: "16px",
+                        backgroundColor: "#f9fafb",
+                        borderRadius: "8px",
+                        border: "1px solid #e5e7eb"
+                      }}>
+                        <div style={{ fontSize: "16px", color: "#1f2937", marginBottom: "4px", fontWeight: "500" }}>
+                          {pengaturanForm.seo_title || "Produk Baru"}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                          {pengaturanForm.kode ? `https://app.ternakproperti.com/product/${pengaturanForm.kode}` : "https://app.ternakproperti.com/product/landing-page-baru"}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label" style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>Pratinjau di Sosial Media</label>
-                    <div style={{
-                      padding: "16px",
-                      backgroundColor: "#f9fafb",
-                      borderRadius: "8px",
-                      border: "1px solid #e5e7eb"
-                    }}>
-                      <div style={{ fontSize: "16px", color: "#1f2937", marginBottom: "4px", fontWeight: "500" }}>
-                        {pengaturanForm.seo_title || "Produk Baru"}
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                        {pengaturanForm.kode ? `https://app.ternakproperti.com/product/${pengaturanForm.kode}` : "https://app.ternakproperti.com/product/landing-page-baru"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-
-                {/* Loading Logo Section - KOMENTAR DULU
+                  {/* Loading Logo Section - KOMENTAR DULU
                 <div className="pengaturan-section">
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                     <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Loading Logo</h3>
@@ -3984,11 +4454,11 @@ export default function AddProducts3Page() {
                 </div>
                 */}
 
-                {/* Settings Toggles */}
-                <div className="pengaturan-section">
-                  <h3 className="pengaturan-section-title">Pengaturan</h3>
+                  {/* Settings Toggles */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Pengaturan</h3>
 
-                  {/* Matikan Search Engine Crawler - KOMENTAR DULU 
+                    {/* Matikan Search Engine Crawler - KOMENTAR DULU 
                   <div className="pengaturan-form-group">
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -4003,20 +4473,20 @@ export default function AddProducts3Page() {
                   </div>
                   */}
 
-                  <div className="pengaturan-form-group">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <label className="pengaturan-label" style={{ margin: 0 }}>Matikan Fungsi Klik Kanan</label>
-                        <Info size={16} color="#6b7280" />
+                    <div className="pengaturan-form-group">
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <label className="pengaturan-label" style={{ margin: 0 }}>Matikan Fungsi Klik Kanan</label>
+                          <Info size={16} color="#6b7280" />
+                        </div>
+                        <InputSwitch
+                          checked={pengaturanForm.disable_rightclick || false}
+                          onChange={(e) => handlePengaturanChange("disable_rightclick", e.value)}
+                        />
                       </div>
-                      <InputSwitch
-                        checked={pengaturanForm.disable_rightclick || false}
-                        onChange={(e) => handlePengaturanChange("disable_rightclick", e.value)}
-                      />
                     </div>
-                  </div>
 
-                  {/* HTML Language - KOMENTAR DULU
+                    {/* HTML Language - KOMENTAR DULU
                   <div className="pengaturan-form-group">
                     <label className="pengaturan-label">HTML Language</label>
                     <Dropdown
@@ -4033,9 +4503,9 @@ export default function AddProducts3Page() {
                     />
                   </div>
                   */}
-                </div>
+                  </div>
 
-                {/* Speed Boost Section - KOMENTAR DULU
+                  {/* Speed Boost Section - KOMENTAR DULU
                 <div className="pengaturan-section">
                   <h3 className="pengaturan-section-title">Speed Boost</h3>
 
@@ -4044,516 +4514,411 @@ export default function AddProducts3Page() {
                       <label className="pengaturan-label" style={{ margin: 0 }}>Matikan Custom Font</label>
                       <InputSwitch
                         checked={pengaturanForm.disable_custom_font || false}
-                        onChange={(e) => handlePengaturanChange("disable_custom_font", e.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-                */}
-
-                {/* Analytics - Facebook */}
-                <div className="pengaturan-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Facebook</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newPixels = [...(pengaturanForm.facebook_pixels || []), ""];
-                        handlePengaturanChange("facebook_pixels", newPixels);
-                      }}
-                      style={{
-                        color: "#F1A124",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        padding: 0
-                      }}
-                    >
-                      + Tambah
-                    </button>
-                  </div>
-
-                  {(pengaturanForm.facebook_pixels || []).map((pixel, index) => (
-                    <div key={index} className="pengaturan-form-group" style={{ marginBottom: "16px", padding: "16px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                        <label className="pengaturan-label" style={{ margin: 0 }}>Facebook Pixel ID</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newPixels = (pengaturanForm.facebook_pixels || []).filter((_, i) => i !== index);
-                            handlePengaturanChange("facebook_pixels", newPixels);
-                          }}
-                          style={{
-                            padding: "4px 8px",
-                            backgroundColor: "#ef4444",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "12px"
-                          }}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                      <InputText
-                        className="pengaturan-input"
-                        value={pixel}
-                        onChange={(e) => {
-                          const newPixels = [...(pengaturanForm.facebook_pixels || [])];
-                          newPixels[index] = e.target.value;
-                          handlePengaturanChange("facebook_pixels", newPixels);
-                        }}
-                        placeholder="Masukkan Facebook Pixel ID"
-                      />
-
-                      <div style={{ marginTop: "12px" }}>
-                        <label className="pengaturan-label" style={{ fontSize: "14px", marginBottom: "8px" }}>Events Saat Landing Page Terbuka</label>
-                        <Chips
-                          value={pengaturanForm.facebook_events?.[index] || []}
-                          onChange={(e) => {
-                            const newEvents = [...(pengaturanForm.facebook_events || [])];
-                            newEvents[index] = e.value || [];
-                            handlePengaturanChange("facebook_events", newEvents);
-                          }}
-                          placeholder="Tambahkan event (contoh: ViewContent)"
-                          className="pengaturan-input"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Analytics - TikTok */}
-                <div className="pengaturan-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 className="pengaturan-section-title" style={{ margin: 0 }}>TikTok</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newPixels = [...(pengaturanForm.tiktok_pixels || []), ""];
-                        handlePengaturanChange("tiktok_pixels", newPixels);
-                      }}
-                      style={{
-                        color: "#F1A124",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        padding: 0
-                      }}
-                    >
-                      + Tambah
-                    </button>
-                  </div>
-
-                  {(pengaturanForm.tiktok_pixels || []).map((pixel, index) => (
-                    <div key={index} className="pengaturan-form-group" style={{ marginBottom: "16px", padding: "16px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                        <label className="pengaturan-label" style={{ margin: 0 }}>TikTok Pixel ID</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newPixels = (pengaturanForm.tiktok_pixels || []).filter((_, i) => i !== index);
-                            handlePengaturanChange("tiktok_pixels", newPixels);
-                          }}
-                          style={{
-                            padding: "4px 8px",
-                            backgroundColor: "#ef4444",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "12px"
-                          }}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                      <InputText
-                        className="pengaturan-input"
-                        value={pixel}
-                        onChange={(e) => {
-                          const newPixels = [...(pengaturanForm.tiktok_pixels || [])];
-                          newPixels[index] = e.target.value;
-                          handlePengaturanChange("tiktok_pixels", newPixels);
-                        }}
-                        placeholder="Masukkan TikTok Pixel ID"
-                      />
-
-                      <div style={{ marginTop: "12px" }}>
-                        <label className="pengaturan-label" style={{ fontSize: "14px", marginBottom: "8px" }}>Events Saat Landing Page Terbuka</label>
-                        <Chips
-                          value={pengaturanForm.tiktok_events?.[index] || []}
-                          onChange={(e) => {
-                            const newEvents = [...(pengaturanForm.tiktok_events || [])];
-                            newEvents[index] = e.value || [];
-                            handlePengaturanChange("tiktok_events", newEvents);
-                          }}
-                          placeholder="Tambahkan event (contoh: ViewContent)"
-                          className="pengaturan-input"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Analytics - Google */}
-                <div className="pengaturan-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Google</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handlePengaturanChange("google_gtm", "");
-                      }}
-                      style={{
-                        color: "#F1A124",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        padding: 0
-                      }}
-                    >
-                      + Tambah
-                    </button>
-                  </div>
-
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label">Google Tag Manager</label>
-                    <Dropdown
-                      className="pengaturan-input"
-                      value={pengaturanForm.google_gtm || ""}
-                      options={[
-                        { label: "Tidak menggunakan GTM", value: "" },
-                        { label: "GTM-XXXXXXX", value: "GTM-XXXXXXX" }
-                      ]}
-                      onChange={(e) => handlePengaturanChange("google_gtm", e.value)}
-                      placeholder="Tidak menggunakan GTM"
-                    />
-                  </div>
-                </div>
-
-                {/* Share Access - KOMENTAR DULU
-                <div className="pengaturan-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Share Access</h3>
-                    <button
-                      type="button"
-                      style={{
-                        color: "#F1A124",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        padding: 0
-                      }}
-                    >
-                      Open
-                    </button>
-                  </div>
-                  <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "12px" }}>
-                    You can share access to this page to advertisers or store managers, allowing them to edit this page.
-                  </p>
-                  <div style={{
-                    padding: "12px",
-                    backgroundColor: "#f9fafb",
-                    borderRadius: "6px",
-                    border: "1px solid #e5e7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                  }}>
-                    <AlertCircle size={16} color="#6b7280" />
-                    <span style={{ fontSize: "14px", color: "#6b7280" }}>This page hasn't been shared to anyone.</span>
-                  </div>
-                </div>
-                */}
-
-                {/* Custom Head Script - KOMENTAR DULU
-                <div className="pengaturan-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Custom Head Script</h3>
-                    <InputSwitch
-                      checked={pengaturanForm.enable_custom_head_script || false}
-                      onChange={(e) => handlePengaturanChange("enable_custom_head_script", e.value)}
-                    />
-                  </div>
-                  {pengaturanForm.enable_custom_head_script && (
+                        onChange={(e) => handlePengaturanChange("disable                  {/* Analytics - Facebook */}
+                  <div className="pengaturan-section">
+                    <h3 className="pengaturan-section-title">Facebook</h3>
+                    
                     <div className="pengaturan-form-group">
-                      <InputTextarea
-                        className="pengaturan-input"
-                        value={pengaturanForm.custom_head_script || ""}
-                        onChange={(e) => handlePengaturanChange("custom_head_script", e.target.value)}
-                        placeholder="Masukkan Script"
-                        rows={8}
-                        style={{ resize: "vertical", fontFamily: "monospace", fontSize: "12px" }}
+                      <label className="pengaturan-label">Meta Pixel (Facebook Pixel ID)</label>
+                      <MultiSelect
+                        className="w-full form-input"
+                        value={
+                          Array.isArray(pengaturanForm.facebook_pixels)
+                            ? pengaturanForm.facebook_pixels.filter(Boolean)
+                            : []
+                        }
+                        options={metaPixelOptions}
+                        onChange={(e) =>
+                          handlePengaturanChange(
+                            "facebook_pixels",
+                            e.value || []
+                          )
+                        }
+                        placeholder={
+                          isLoadingMetaPixel
+                            ? "Memuat daftar Meta Pixel..."
+                            : "Pilih Meta Pixel untuk produk ini"
+                        }
+                        display="chip"
+                        showClear
+                        filter
+                        filterPlaceholder="Cari Meta Pixel..."
+                        optionLabel="label"
+                        optionValue="value"
                       />
                     </div>
-                  )}
+                  </div>
+
+
+                  {/* Analytics - Google */}
+                  <div className="pengaturan-section">
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                      <h3 className="pengaturan-section-title" style={{ margin: 0 }}>Google</h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handlePengaturanChange("google_gtm", "");
+                        }}
+                        style={{
+                          color: "#F1A124",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: "500",
+                          padding: 0
+                        }}
+                      >
+                        + Tambah
+                      </button>
+                    </div>
+
+                    <div className="pengaturan-form-group">
+                      <label className="pengaturan-label">Google Tag Manager</label>
+                      <Dropdown
+                        className="pengaturan-input"
+                        value={pengaturanForm.google_gtm || ""}
+                        options={[
+                          { label: "Tidak menggunakan GTM", value: "" },
+                          { label: "GTM-XXXXXXX", value: "GTM-XXXXXXX" }
+                        ]}
+                        onChange={(e) => handlePengaturanChange("google_gtm", e.value)}
+                        placeholder="Tidak menggunakan GTM"
+                      />
+                    </div>
+                  </div>
+
                 </div>
-                */}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Canvas - Preview */}
-        <div className="page-builder-canvas">
-          <div
-            className="canvas-wrapper"
-            style={{
-              backgroundColor: pengaturanForm.background_color || "#ffffff"
-            }}
-          >
-            {/* Logo - Hardcode di bagian atas center */}
-            <div className="canvas-logo-wrapper">
-              <img
-                src="/assets/logo.png"
-                alt="Logo"
-                className="canvas-logo"
-              />
-            </div>
-
-            {/* Content Area */}
-            <div className="canvas-content-area">
-              {/* Placeholder jika belum ada komponen */}
-              {blocks.length === 0 && !pengaturanForm.nama && (
-                <div className="canvas-empty">
-                  <p>Klik "Tambah Komponen Baru" untuk memulai</p>
-                </div>
-              )}
-
-              {/* Preview komponen - hanya render blocks NON-CHILD */}
-              {/* ✅ RULE: Child component TIDAK BOLEH dirender oleh root renderer */}
-              {/* ✅ Hanya section yang boleh render child blocks */}
-              {/* ✅ FIX UTAMA: Filter blocks yang punya parentId - TIDAK BOLEH dirender di root */}
-              {blocks
-                .filter(block => {
-                  if (!block || !block.type) return false;
-
-                  // ✅ ARSITEKTUR BENAR: Hanya child yang di-skip (bukan section)
-                  // Section boleh punya parentId jika nested, tapi child tidak boleh dirender di root
-                  if (block.parentId && block.type !== 'section') {
-                    return false;
-                  }
-
-                  return true;
-                })
-                .map((block) => (
-                  <div
-                    key={block.id}
-                    className="canvas-preview-block"
-                    onClick={() => {
-                      // Scroll ke komponen di sidebar
-                      const componentElement = componentRefs.current[block.id];
-                      if (componentElement) {
-                        componentElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                        // Expand komponen jika collapsed
-                        if (collapsedBlockIds.has(block.id)) {
-                          handleToggleExpand(block.id);
-                        }
-                      }
-                    }}
-                    style={{ cursor: "pointer" }}
-                    title="Klik untuk scroll ke komponen di sidebar"
+          {/* Right Canvas - Preview + simulasi perangkat */}
+          <div className="page-builder-canvas">
+            <div className="preview-device-toolbar">
+              <span className="preview-device-toolbar-label">Simulasi tampilan</span>
+              <div className="preview-device-tabs" role="tablist" aria-label="Ukuran preview landing page">
+                {[
+                  { id: "mobile", label: "Mobile", Icon: Smartphone },
+                  { id: "tablet", label: "Tablet", Icon: Tablet },
+                  { id: "laptop", label: "Laptop", Icon: Laptop },
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={previewDevice === id}
+                    className={`preview-device-tab ${previewDevice === id ? "is-active" : ""}`}
+                    onClick={() => setPreviewDevice(id)}
                   >
-                    {renderPreview(block)}
-                  </div>
+                    <Icon size={16} aria-hidden />
+                    {label}
+                  </button>
                 ))}
+              </div>
+            </div>
+            <div className="preview-device-stage">
+              <div className={`preview-device-frame preview-device-frame--${previewDevice}`}>
+                <div
+                  className="canvas-wrapper"
+                  style={{
+                    backgroundColor: pengaturanForm.background_color || "#ffffff"
+                  }}
+                >
+                  {/* Logo - Hardcode di bagian atas center */}
+                  <div className="canvas-logo-wrapper">
+                    <img
+                      src="/assets/logo.png"
+                      alt="Logo"
+                      className="canvas-logo"
+                    />
+                  </div>
+
+                  {/* Content Area */}
+                  <div
+                    className="canvas-content-area"
+                    style={{
+                      gap: `${Number(pengaturanForm.preview_component_gap ?? 24)}px`,
+                    }}
+                  >
+                    {/* Placeholder jika belum ada komponen */}
+                    {blocks.length === 0 && !pengaturanForm.nama && (
+                      <div className="canvas-empty">
+                        <p>Klik "Tambah Komponen Baru" untuk memulai</p>
+                      </div>
+                    )}
+
+                    {/* Preview komponen - hanya render blocks NON-CHILD */}
+                    {/* ✅ RULE: Child component TIDAK BOLEH dirender oleh root renderer */}
+                    {/* ✅ Hanya section yang boleh render child blocks */}
+                    {/* ✅ FIX UTAMA: Filter blocks yang punya parentId - TIDAK BOLEH dirender di root */}
+                    {blocks
+                      .filter(block => {
+                        if (!block || !block.type) return false;
+
+                        // ✅ ARSITEKTUR BENAR: Hanya child yang di-skip (bukan section)
+                        // Section boleh punya parentId jika nested, tapi child tidak boleh dirender di root
+                        if (block.parentId && block.type !== 'section') {
+                          return false;
+                        }
+
+                        return true;
+                      })
+                      .map((block) => (
+                        <div
+                          key={block.id}
+                          className="canvas-preview-block"
+                          onClick={() => {
+                            // Scroll ke komponen di sidebar
+                            const componentElement = componentRefs.current[block.id];
+                            if (componentElement) {
+                              componentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                              // Expand komponen jika collapsed
+                              if (collapsedBlockIds.has(block.id)) {
+                                handleToggleExpand(block.id);
+                              }
+                            }
+                          }}
+                          style={{ cursor: "pointer" }}
+                          title="Klik untuk scroll ke komponen di sidebar"
+                        >
+                          {renderPreview(block)}
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Fixed-bottom buttons: dirender di dalam preview-device-frame */}
+                  {/* Menggunakan position absolute agar selalu menempel di bawah frame */}
+                </div>
+
+                {/* Fixed-bottom buttons: absolute di dalam .preview-device-frame */}
+                {blocks
+                  .filter(block => block?.type === 'button' && block?.data?.fixedBottom && !block?.parentId)
+                  .map(block => {
+                    const bd = block.data || {};
+                    const btnInline = buildLandingButtonInlineStyle(bd);
+                    const preset = bd.style || 'primary';
+                    return (
+                    <div
+                      key={`fixed-${block.id}`}
+                      style={{
+                        position: 'sticky',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 200,
+                        padding: 0,
+                        boxSizing: 'border-box',
+                        textAlign: 'center',
+                        pointerEvents: 'auto',
+                      }}
+                      onClick={() => {
+                        const componentElement = componentRefs.current[block.id];
+                        if (componentElement) {
+                          componentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          if (collapsedBlockIds.has(block.id)) handleToggleExpand(block.id);
+                        }
+                      }}
+                      title="Klik untuk scroll ke komponen di sidebar"
+                    >
+                      <button
+                        type="button"
+                        className={`preview-button preview-button-${preset}`}
+                        style={{ ...btnInline, borderRadius: 0, width: '100%', margin: 0 }}
+                      >
+                        {bd.text || 'Klik Disini'}
+                      </button>
+                    </div>
+                    );
+                  })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Component Selection Modal - Simple */}
-      {showComponentModal && (
-        <div className="simple-modal-overlay" onClick={() => setShowComponentModal(false)}>
-          <div className="simple-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="simple-modal-header">
-              <h2 className="simple-modal-title">Pilih Komponen</h2>
-              <button
-                className="simple-modal-close"
-                onClick={() => setShowComponentModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
+        {/* Component Selection Modal - Simple */}
+        {showComponentModal && (
+          <div className="simple-modal-overlay" onClick={() => setShowComponentModal(false)}>
+            <div className="simple-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="simple-modal-header">
+                <h2 className="simple-modal-title">Pilih Komponen</h2>
+                <button
+                  className="simple-modal-close"
+                  onClick={() => setShowComponentModal(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-            {/* Content */}
-            <div className="simple-modal-content">
-              {renderComponentGrid()}
-            </div>
+              {/* Content */}
+              <div className="simple-modal-content">
+                {renderComponentGrid()}
+              </div>
 
-            {/* Footer */}
-            <div className="simple-modal-footer">
-              <button
-                className="simple-modal-cancel"
-                onClick={() => setShowComponentModal(false)}
-              >
-                Cancel
-              </button>
+              {/* Footer */}
+              <div className="simple-modal-footer">
+                <button
+                  className="simple-modal-cancel"
+                  onClick={() => setShowComponentModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal Konfirmasi Exit */}
-      {showExitModal && (
-        <div
-          className="exit-confirm-modal-overlay"
-          onClick={(e) => {
-            // Tutup modal jika klik di overlay (bukan di modal content)
-            if (e.target === e.currentTarget) {
-              setShowExitModal(false);
-            }
-          }}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-          }}
-        >
+        {/* Modal Konfirmasi Exit */}
+        {showExitModal && (
           <div
-            className="exit-confirm-modal"
-            onClick={(e) => e.stopPropagation()}
+            className="exit-confirm-modal-overlay"
+            onClick={(e) => {
+              // Tutup modal jika klik di overlay (bukan di modal content)
+              if (e.target === e.currentTarget) {
+                setShowExitModal(false);
+              }
+            }}
             style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "400px",
-              width: "90%",
-              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
-              position: "relative",
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
             }}
           >
-            {/* Header dengan X button */}
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "16px",
-            }}>
-              <h3 style={{
-                margin: 0,
-                fontSize: "18px",
-                fontWeight: 600,
-                color: "#111827",
+            <div
+              className="exit-confirm-modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: "12px",
+                padding: "24px",
+                maxWidth: "400px",
+                width: "90%",
+                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
+                position: "relative",
+              }}
+            >
+              {/* Header dengan X button */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
               }}>
-                Yakin Exit?
-              </h3>
-              <button
-                onClick={() => setShowExitModal(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#6b7280",
-                  transition: "color 0.2s",
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = "#111827"}
-                onMouseLeave={(e) => e.currentTarget.style.color = "#6b7280"}
-                aria-label="Close modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "#111827",
+                }}>
+                  Yakin Exit?
+                </h3>
+                <button
+                  onClick={() => setShowExitModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#6b7280",
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#111827"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#6b7280"}
+                  aria-label="Close modal"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-            {/* Text "Save dulu lah!" */}
-            <p style={{
-              margin: "0 0 24px 0",
-              fontSize: "14px",
-              color: "#6b7280",
-              lineHeight: 1.5,
-            }}>
-              Save dulu lah!
-            </p>
+              {/* Text "Save dulu lah!" */}
+              <p style={{
+                margin: "0 0 24px 0",
+                fontSize: "14px",
+                color: "#6b7280",
+                lineHeight: 1.5,
+              }}>
+                Save dulu lah!
+              </p>
 
-            {/* Button Actions */}
-            <div style={{
-              display: "flex",
-              gap: "12px",
-              justifyContent: "flex-end",
-            }}>
-              <button
-                onClick={handleExitWithoutSave}
-                disabled={isSaving}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f3f4f6",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                  transition: "all 0.2s",
-                  opacity: isSaving ? 0.6 : 1,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSaving) {
-                    e.currentTarget.style.backgroundColor = "#e5e7eb";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSaving) {
-                    e.currentTarget.style.backgroundColor = "#f3f4f6";
-                  }
-                }}
-              >
-                Exit
-              </button>
-              <button
-                onClick={handleSaveDraft}
-                disabled={isSaving}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#F1A124",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                  transition: "all 0.2s",
-                  opacity: isSaving ? 0.6 : 1,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSaving) {
-                    e.currentTarget.style.backgroundColor = "#d68910";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSaving) {
-                    e.currentTarget.style.backgroundColor = "#F1A124";
-                  }
-                }}
-              >
-                {isSaving ? "Menyimpan..." : "Save"}
-              </button>
+              {/* Button Actions */}
+              <div style={{
+                display: "flex",
+                gap: "12px",
+                justifyContent: "flex-end",
+              }}>
+                <button
+                  onClick={handleExitWithoutSave}
+                  disabled={isSaving}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#f3f4f6",
+                    color: "#374151",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    cursor: isSaving ? "not-allowed" : "pointer",
+                    transition: "all 0.2s",
+                    opacity: isSaving ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSaving) {
+                      e.currentTarget.style.backgroundColor = "#e5e7eb";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSaving) {
+                      e.currentTarget.style.backgroundColor = "#f3f4f6";
+                    }
+                  }}
+                >
+                  Exit
+                </button>
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#F1A124",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    cursor: isSaving ? "not-allowed" : "pointer",
+                    transition: "all 0.2s",
+                    opacity: isSaving ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSaving) {
+                      e.currentTarget.style.backgroundColor = "#d68910";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSaving) {
+                      e.currentTarget.style.backgroundColor = "#F1A124";
+                    }
+                  }}
+                >
+                  {isSaving ? "Menyimpan..." : "Save"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+      );
 }
 

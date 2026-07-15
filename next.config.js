@@ -25,6 +25,18 @@ const nextConfig = {
   // Turbopack config to silence warning
   turbopack: {},
 
+  // Webpack configuration to handle WebSocket HMR
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      // Suppress WebSocket connection errors in development
+      config.ignoreWarnings = [
+        { module: /node_modules/ },
+        { message: /WebSocket connection/i },
+      ];
+    }
+    return config;
+  },
+
   async rewrites() {
     // Backend URL - Menggunakan environment variable
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";

@@ -28,9 +28,16 @@ export default function AddOrders({ onClose, onAdd }) {
     sumber: "",
     notif: true,
     status_pembayaran: null, // null/0 untuk Full, 4 untuk Bertahap
+    // UTM fields
+    utm_source: "",
+    utm_medium: "",
+    utm_campaign: "",
+    utm_term: "",
+    utm_content: "",
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null); // To store full product object for bundling check
+  const [showUtm, setShowUtm] = useState(false); // Toggle UTM section
 
   const [showCustomerForm, setShowCustomerForm] = useState(false); // Default hidden
 
@@ -345,7 +352,8 @@ export default function AddOrders({ onClose, onAdd }) {
       const fullProd = res?.success ? (Array.isArray(res.data) ? res.data[0] : res.data) : prod;
 
       const currentProd = fullProd || prod;
-      const hargaValue = Number(currentProd.harga) || 0;
+      // Gunakan harga_asli jika ada, fallback ke harga
+      const hargaValue = Number(currentProd.harga_asli || currentProd.harga) || 0;
       const ongkirValue = parseCurrency(formData.ongkir || "");
 
       setSelectedProduct(currentProd);
@@ -354,23 +362,24 @@ export default function AddOrders({ onClose, onAdd }) {
         ...prev,
         produk: currentProd.id,
         bundling: "", // Reset bundling when product changes
-        harga: hargaValue ? formatCurrency(hargaValue) : "",
-        total_harga: (hargaValue + ongkirValue) > 0 ? formatCurrency(hargaValue + ongkirValue) : "",
+        harga: formatCurrency(hargaValue),
+        total_harga: formatCurrency(hargaValue + ongkirValue),
       }));
       setProductSearch(currentProd.nama);
       setProductResults([]);
     } catch (err) {
       console.error("Error fetching product details:", err);
       // Fallback to basic product data if fetch fails
-      const hargaValue = Number(prod.harga) || 0;
+      // Gunakan harga_asli jika ada, fallback ke harga
+      const hargaValue = Number(prod.harga_asli || prod.harga) || 0;
       const ongkirValue = parseCurrency(formData.ongkir || "");
       setSelectedProduct(prod);
       setFormData((prev) => ({
         ...prev,
         produk: prod.id,
         bundling: "",
-        harga: hargaValue ? formatCurrency(hargaValue) : "",
-        total_harga: (hargaValue + ongkirValue) > 0 ? formatCurrency(hargaValue + ongkirValue) : "",
+        harga: formatCurrency(hargaValue),
+        total_harga: formatCurrency(hargaValue + ongkirValue),
       }));
       setProductSearch(prod.nama);
       setProductResults([]);
@@ -411,6 +420,42 @@ export default function AddOrders({ onClose, onAdd }) {
       setFormData({
         ...formData,
         [name]: formattedValue,
+        total_harga: total > 0 ? formatCurrency(total) : "",
+      });
+    } else if (name === "bundling") {
+      // Handle bundling selection
+      let bundlingList = [];
+      if (Array.isArray(selectedProduct?.bundling_rel)) {
+        bundlingList = selectedProduct.bundling_rel;
+      } else if (selectedProduct?.bundling) {
+        if (typeof selectedProduct.bundling === 'string') {
+          try { bundlingList = JSON.parse(selectedProduct.bundling); } catch (e) { bundlingList = []; }
+        } else if (Array.isArray(selectedProduct.bundling)) {
+          bundlingList = selectedProduct.bundling;
+        }
+      }
+
+      let hargaValue = 0;
+      if (value && bundlingList.length > 0) {
+        // Cari bundling yang dipilih berdasarkan ID atau nama
+        const selectedBundling = bundlingList.find(b => 
+          String(b.id) === String(value) || String(b.nama) === String(value)
+        );
+        if (selectedBundling) {
+          hargaValue = Number(selectedBundling.harga) || 0;
+        }
+      } else {
+        // Jika bundling dihapus, kembali ke harga_asli produk
+        hargaValue = Number(selectedProduct?.harga_asli || selectedProduct?.harga) || 0;
+      }
+
+      const ongkirValue = parseCurrency(formData.ongkir || "");
+      const total = hargaValue + ongkirValue;
+
+      setFormData({
+        ...formData,
+        bundling: value || "",
+        harga: formatCurrency(hargaValue),
         total_harga: total > 0 ? formatCurrency(total) : "",
       });
     } else if (type === "checkbox") {
@@ -483,6 +528,12 @@ export default function AddOrders({ onClose, onAdd }) {
       custom_value: [],
       bundling: bundleId ? String(bundleId) : "",
       status_pembayaran: formData.status_pembayaran === 4 ? 4 : (formData.status_pembayaran === null ? null : 0),
+      // UTM fields
+      utm_source: formData.utm_source || "",
+      utm_medium: formData.utm_medium || "",
+      utm_campaign: formData.utm_campaign || "",
+      utm_term: formData.utm_term || "",
+      utm_content: formData.utm_content || "",
     };
 
     console.log("[ADD_ORDERS] Payload sebelum kirim:", JSON.stringify(payload, null, 2));
@@ -555,10 +606,17 @@ export default function AddOrders({ onClose, onAdd }) {
                     <h4>Data Customer</h4>
                     <p>Temukan customer atau tambah data baru.</p>
                   </div>
+                  {!hasSelectedCustomer && !showCustomerForm && (
+                    <button
+                      type="button"
+                      className="orders-header-btn"
+                      onClick={() => setShowCustomerForm(true)}
+                    >
+                      <i className="pi pi-plus" style={{ marginRight: "4px", fontSize: "11px" }}></i>
+                      Tambah Customer
+                    </button>
+                  )}
                   {hasSelectedCustomer && !showCustomerForm && (
-                    // Tombol Ganti Customer hanya muncul jika sudah ada yang dipilih daN tidak sedang edit form
-                    // Tapi sebenarnya Reset lebih cocok jika user ingin membatalkan pilihan total
-                    // di sini kita ikuti logic "Change Customer" = Reset
                     <button
                       type="button"
                       className="orders-link-btn"
@@ -997,6 +1055,81 @@ export default function AddOrders({ onClose, onAdd }) {
                   </select>
                 </label>
 
+                {/* UTM Section */}
+                <div className="utm-section" style={{ marginTop: "16px" }}>
+                  <button
+                    type="button"
+                    className="utm-toggle-btn"
+                    onClick={() => setShowUtm(!showUtm)}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <i className={`pi ${showUtm ? 'pi-chevron-down' : 'pi-chevron-right'}`} style={{ fontSize: "12px" }}></i>
+                      UTM Tracking
+                    </span>
+                    {(formData.utm_source || formData.utm_medium || formData.utm_campaign || formData.utm_term || formData.utm_content) && (
+                      <span className="utm-badge">Active</span>
+                    )}
+                  </button>
+                  {showUtm && (
+                    <div className="utm-fields">
+                      <div className="orders-dual-grid">
+                        <label className="orders-field">
+                          UTM Source
+                          <input
+                            type="text"
+                            name="utm_source"
+                            value={formData.utm_source}
+                            onChange={handleChange}
+                            placeholder="google, facebook, instagram..."
+                          />
+                        </label>
+                        <label className="orders-field">
+                          UTM Medium
+                          <input
+                            type="text"
+                            name="utm_medium"
+                            value={formData.utm_medium}
+                            onChange={handleChange}
+                            placeholder="cpc, email, social..."
+                          />
+                        </label>
+                      </div>
+                      <label className="orders-field">
+                        UTM Campaign
+                        <input
+                          type="text"
+                          name="utm_campaign"
+                          value={formData.utm_campaign}
+                          onChange={handleChange}
+                          placeholder="promo_ramadhan, launch_2026..."
+                        />
+                      </label>
+                      <div className="orders-dual-grid">
+                        <label className="orders-field">
+                          UTM Term
+                          <input
+                            type="text"
+                            name="utm_term"
+                            value={formData.utm_term}
+                            onChange={handleChange}
+                            placeholder="keyword..."
+                          />
+                        </label>
+                        <label className="orders-field">
+                          UTM Content
+                          <input
+                            type="text"
+                            name="utm_content"
+                            value={formData.utm_content}
+                            onChange={handleChange}
+                            placeholder="banner_top, link_bio..."
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Form Pembayaran */}
                 <div className="orders-field" style={{ marginTop: "16px" }}>
                   <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "#374151" }}>
@@ -1104,6 +1237,30 @@ export default function AddOrders({ onClose, onAdd }) {
         .orders-link-btn:hover {
           color: #c85400;
           opacity: 0.8;
+        }
+        .orders-header-btn {
+          border: none;
+          border-radius: 0.4rem;
+          padding: 0.35rem 0.7rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          white-space: nowrap;
+          background: #f1a124;
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(241, 161, 36, 0.2);
+        }
+        .orders-header-btn:hover {
+          background: #c85400;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(241, 161, 36, 0.35);
+        }
+        .orders-header-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(241, 161, 36, 0.25);
         }
         .orders-empty-state {
           background: #fef3c7;
@@ -1222,6 +1379,44 @@ export default function AddOrders({ onClose, onAdd }) {
         .orders-radio-option:has(input[type="radio"]:checked) {
           border-color: #c85400;
           background: #fff7ed;
+        }
+        .utm-section {
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        .utm-toggle-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 14px;
+          border: none;
+          background: #f9fafb;
+          color: #374151;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .utm-toggle-btn:hover {
+          background: #f3f4f6;
+        }
+        .utm-badge {
+          font-size: 11px;
+          font-weight: 600;
+          background: #dbeafe;
+          color: #1d4ed8;
+          padding: 2px 8px;
+          border-radius: 9999px;
+        }
+        .utm-fields {
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          border-top: 1px solid #e5e7eb;
+          background: #fff;
         }
         @media (max-width: 640px) {
           .orders-section--customer,

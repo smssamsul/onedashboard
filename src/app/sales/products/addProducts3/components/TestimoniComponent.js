@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
+import { convertToWebp } from "@/lib/image";
 import { InputText } from "primereact/inputtext";
 import { InputSwitch } from "primereact/inputswitch";
 import { Button } from "primereact/button";
@@ -27,6 +28,7 @@ import { FontSize } from './extensions/FontSize';
 // TestimoniItemEditor Component - Tiptap editor for each testimonial item
 function TestimoniItemEditor({ itemIndex, content, onUpdate, onEditorReady }) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       UnderlineExtension,
@@ -143,14 +145,20 @@ export default function TestimoniComponent({ data = {}, onUpdate, onMoveUp, onMo
   };
 
 
-  const handleFileChange = (index, e) => {
+  const handleFileChange = async (index, e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        updateTestimoni(index, "gambar", event.target.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        updateTestimoni(index, "gambar", webpDataUrl);
+      } catch (err) {
+        console.error("Failed to convert testimoni image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          updateTestimoni(index, "gambar", event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

@@ -4,6 +4,7 @@ import "@/styles/sales/dashboard-premium.css";
 import Layout from "@/components/Layout";
 import DashboardTabs from "@/components/DashboardTabs";
 import GreetingBanner from "@/components/GreetingBanner";
+import AttendanceCard from "@/components/AttendanceCard";
 import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import {
   TrendingUp,
@@ -317,6 +318,7 @@ export default function Dashboard() {
       <div className="dashboard-shell">
         <DashboardTabs tabs={tabs} activeKey={activeDivision} onChange={setActiveDivision} />
         {error && <div className="dashboard-alert">{error}</div>}
+        <AttendanceCard />
         <section className="dashboard-hero">
           <div className="dashboard-hero__copy">
             <p className="dashboard-hero__eyebrow">Performance</p>

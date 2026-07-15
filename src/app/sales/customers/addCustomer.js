@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "@/styles/sales/customer.css";
 import { toastSuccess, toastError } from "@/lib/toast";
 
@@ -14,6 +14,7 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
     sapaan: "",
     email: "",
     wa: "",
+    wa2: "",
     instagram: "",
     profesi: "",
     pendapatan_bln: "",
@@ -23,10 +24,12 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
     provinsi: "",
     kabupaten: "",
     kecamatan: "",
-    kode_pos: ""
+    kode_pos: "",
+    sales_id: ""
   });
 
   const [loading, setLoading] = useState(false);
+  const [salesList, setSalesList] = useState([]);
 
   // Search Region State
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +37,27 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
   const [showResults, setShowResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeout = useRef(null);
+
+  // Fetch sales list on mount
+  useEffect(() => {
+    const fetchSalesList = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BASE_URL}/sales/sales-list`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          setSalesList(data.data);
+        }
+      } catch (err) {
+        // Silent error
+      }
+    };
+    fetchSalesList();
+  }, []);
 
   const validatePhone = (phone) => {
     const digitsOnly = phone.replace(/\D/g, "");
@@ -162,7 +186,7 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
       <div className="modal-card">
         {/* HEADER */}
         <div className="modal-header">
-          <h2>Tambah Customer Baru</h2>
+          <h2>Tambah Customer </h2>
           <button className="modal-close" onClick={onClose}>
             <i className="pi pi-times"></i>
           </button>
@@ -287,6 +311,16 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
             </div>
 
             <div className="form-group">
+              <label>WA 2 (Opsional)</label>
+              <input
+                name="wa2"
+                value={formData.wa2}
+                onChange={handleChange}
+                placeholder="cth: 081234567890"
+              />
+            </div>
+
+            <div className="form-group">
               <label>Instagram</label>
               <input
                 name="instagram"
@@ -336,6 +370,23 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
               </select>
             </div>
 
+            <div className="form-group">
+              <label>Sales</label>
+              <select
+                name="sales_id"
+                value={formData.sales_id}
+                onChange={handleChange}
+                style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px" }}
+              >
+                <option value="">Pilih Sales (opsional)</option>
+                {salesList.map((sales) => (
+                  <option key={sales.user_rel.id} value={sales.user_rel.id}>
+                    {sales.user_rel.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="form-group full-width">
               <label>Tanggal Lahir</label>
               <input
@@ -346,6 +397,8 @@ export default function AddCustomerModal({ onClose, onSuccess }) {
                 style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px" }}
               />
             </div>
+
+            
           </form>
         </div>
 

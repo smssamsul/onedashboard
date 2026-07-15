@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { buildImageUrl } from "@/lib/image";
 
-export default function ImageSliderPreview({ data = {} }) {
+export default function ImageSliderPreview({ data = {}, isLandingPage = false }) {
   const images = data.images || [];
   const sliderType = data.sliderType || "gallery";
   const autoslide = data.autoslide || false;
@@ -124,7 +124,7 @@ export default function ImageSliderPreview({ data = {} }) {
         {sliderType === "banner" && currentImage.link ? (
           <a href={currentImage.link} style={{ display: "block", width: "100%", height: "100%" }}>
             <img
-              src={buildImageUrl(currentImage.src)}
+              src={buildImageUrl(currentImage.src, isLandingPage)}
               alt={currentImage.alt || ""}
               style={{
                 width: "100%",
@@ -136,7 +136,7 @@ export default function ImageSliderPreview({ data = {} }) {
           </a>
         ) : (
           <img
-            src={buildImageUrl(currentImage.src)}
+            src={buildImageUrl(currentImage.src, isLandingPage)}
             alt={currentImage.alt || ""}
             style={{
               width: "100%",

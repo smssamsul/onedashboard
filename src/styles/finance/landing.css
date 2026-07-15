@@ -1278,6 +1278,8 @@ body {
   .preview-video iframe {
     width: 100%;
     max-width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
   }
 
   .talent-banner-img {
@@ -1303,6 +1305,11 @@ body {
 
   .compact-form-section {
     margin: 40px 0;
+  }
+
+  .compact-form-card {
+    padding: 0 !important;
+    border: none !important;
   }
 
   .payment-section {

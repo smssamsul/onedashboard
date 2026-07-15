@@ -4,6 +4,7 @@ import "@/styles/sales/dashboard-premium.css";
 import "@/styles/finance/dashboard-premium.css";
 import Layout from "@/components/Layout";
 import GreetingBanner from "@/components/GreetingBanner";
+import AttendanceCard from "@/components/AttendanceCard";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   TrendingUp,
@@ -231,6 +232,7 @@ export default function FinanceDashboard() {
     <Layout title="Dashboard | Finance Panel" aboveContent={<GreetingBanner />}>
       <div className="dashboard-shell">
         {error && <div className="dashboard-alert">{error}</div>}
+        <AttendanceCard />
 
         <section className="financial-snapshot-section">
           <div className="financial-grid">

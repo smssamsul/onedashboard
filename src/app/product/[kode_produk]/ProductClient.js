@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import Script from "next/script";
 import "@/styles/sales/add-products3.css";
+import { buildLandingButtonInlineStyle } from "@/lib/landingPageButtonStyle";
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -36,23 +38,54 @@ import { useShippingCalculator } from "./hooks/useShippingCalculator";
 import { usePriceCalculator } from "./hooks/usePriceCalculator";
 import { useProductForm } from "./hooks/useProductForm";
 
+/** Query string UTM standar untuk dilampirkan ke order. */
+const UTM_QUERY_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+
+function ClientPortal({ children }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || typeof document === 'undefined') return children;
+  return createPortal(children, document.body);
+}
+
 // FAQ Component & Countdown Component (Keep as is)
 function FAQItem({ question, answer }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="faq-item">
+    <div style={{ marginBottom: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }} className="faq-item">
       <button
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 'clamp(16px, 4vw, 24px) clamp(18px, 4vw, 28px)',
+          backgroundColor: '#fff',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontSize: 'clamp(15px, 4.2vw, 20px)',
+          fontWeight: '600',
+          color: '#111827',
+          transition: 'background-color 0.2s ease',
+        }}
         className="faq-question"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
       >
         <span>{question}</span>
-        <span className="faq-icon">{isOpen ? "−" : "+"}</span>
+        <span style={{ fontSize: 'clamp(22px, 5vw, 28px)', marginLeft: '16px', flexShrink: 0, color: '#F1A124' }} className="faq-icon">{isOpen ? "−" : "+"}</span>
       </button>
       {isOpen && (
-        <div className="faq-answer">
-          <p>{answer}</p>
+        <div style={{
+          padding: '0 clamp(18px, 4vw, 28px) clamp(18px, 4vw, 28px) clamp(18px, 4vw, 28px)',
+          backgroundColor: '#fff',
+          fontSize: 'clamp(14px, 3.8vw, 17px)',
+          lineHeight: '1.7',
+          color: '#4B5563'
+        }} className="faq-answer">
+          <p style={{ margin: 0 }}>{answer}</p>
         </div>
       )}
     </div>
@@ -364,6 +397,121 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
   const sumber = searchParams.get("utm_sumber") || "website";
 
+  const utmFromQuery = useMemo(() => {
+    const o = {};
+    UTM_QUERY_KEYS.forEach((k) => {
+      const v = searchParams.get(k);
+      if (v != null && String(v).trim() !== "") o[k] = String(v).trim();
+    });
+    return o;
+  }, [searchParams]);
+
+  // ✅ Helper: Facebook Pixel tracking (safe guard for missing fbq)
+  const trackFacebookEvent = (eventName, params = {}) => {
+    if (typeof window === "undefined") return;
+
+    // Ambil pixel ID secara aman dan dinamis untuk menghindari issue scoping
+    const getFreshPixelIds = () => {
+      const settingsObj = landingpage && Array.isArray(landingpage)
+        ? landingpage.find(item => item.type === 'settings')
+        : null;
+      if (!settingsObj) return [];
+
+      const anal = settingsObj?.analytics || {};
+      const analFb = anal.facebook || {};
+      const analFbPixels = Array.isArray(analFb.pixels) ? analFb.pixels : [];
+
+      let pIds = [];
+      if (Array.isArray(settingsObj?.facebook_pixels)) {
+        pIds = settingsObj.facebook_pixels;
+      } else if (typeof settingsObj?.facebook_pixels === 'string') {
+        pIds = settingsObj.facebook_pixels.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      if (pIds.length === 0 && analFbPixels.length > 0) {
+        pIds = analFbPixels.map(p => p && (p.id || p.pixel || p.pixel_id)).filter(Boolean);
+      }
+
+      // ✅ TERBARU: Ambil dari pixel_list (relasi ke pixel_meta) jika ada
+      if (productData?.pixel_list && Array.isArray(productData.pixel_list) && productData.pixel_list.length > 0) {
+        pIds = productData.pixel_list.map((p) => p.pixel).filter(Boolean);
+      }
+
+      return pIds;
+    };
+
+    const pixelIdsToLog = getFreshPixelIds();
+
+    if (typeof window.fbq !== "function") {
+      // Log kegagalan karena fbq tidak terdefinisi (misal adblocker aktif)
+      if (pixelIdsToLog.length > 0) {
+        pixelIdsToLog.forEach(pid => {
+          fetch('/api/pixel-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: null,
+              produk_id: productData?.id || null,
+              pixel_id: pid,
+              event_name: eventName,
+              source: 'landing_page',
+              status: '0',
+              payload: { error: "fbq is not a function (blocked or not loaded)", params }
+            })
+          }).catch(e => console.error('[FB PIXEL LOG] Failed to send landing crosscheck log:', e));
+        });
+      }
+      return;
+    }
+
+    try {
+      window.fbq("track", eventName, params);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[FB PIXEL EVENT]", eventName, params);
+      }
+
+      // Log sukses ke backend
+      if (pixelIdsToLog.length > 0) {
+        pixelIdsToLog.forEach(pid => {
+          fetch('/api/pixel-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: null,
+              produk_id: productData?.id || null,
+              pixel_id: pid,
+              event_name: eventName,
+              source: 'landing_page',
+              status: '1',
+              payload: params
+            })
+          }).catch(e => console.error('[FB PIXEL LOG] Failed to send landing crosscheck log:', e));
+        });
+      }
+    } catch (e) {
+      console.error("[FB PIXEL] Error triggering event:", eventName, e);
+
+      // Log error tracking ke backend
+      if (pixelIdsToLog.length > 0) {
+        pixelIdsToLog.forEach(pid => {
+          fetch('/api/pixel-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: null,
+              produk_id: productData?.id || null,
+              pixel_id: pid,
+              event_name: eventName,
+              source: 'landing_page',
+              status: '0',
+              payload: { error: e.message, params }
+            })
+          }).catch(e => console.error('[FB PIXEL LOG] Failed to send landing crosscheck log:', e));
+        });
+      }
+    }
+  };
+
   // Data State - Mulai dengan null untuk menjamin kesegaran
   const [productData, setProductData] = useState(null);
   const [landingpage, setLandingpage] = useState(null);
@@ -429,6 +577,8 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             kategori_rel: data.kategori_rel,
             isBundling: (bundlingData && bundlingData.length > 0) || false,
             bundling: bundlingData,
+            pixel_list: data.pixel_list || [],
+            jadwal: data.jadwal_rel || data.jadwal || [],
           });
 
           // 3. Process Landingpage Array
@@ -444,6 +594,14 @@ function ProductClient({ initialProductData, initialLandingPage }) {
           }
 
           console.log('[CLIENT-FETCH] Data Berhasil di-update (Fresh)!');
+
+          // ✅ Facebook Pixel: Track Landing Page View ketika data produk berhasil dimuat
+          trackFacebookEvent("ViewContent", {
+            content_name: data.nama || "Product",
+            content_category: data.kategori_rel?.nama || "Product",
+            value: data.harga || 0,
+            currency: "IDR",
+          });
         } else {
           toast.error("Produk tidak ditemukan");
         }
@@ -478,7 +636,10 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
         if (result.success) {
           // Update state internal dengan data paling fresh
-          setProductData(result.data);
+          setProductData({
+            ...result.data,
+            jadwal: result.data.jadwal_rel || result.data.jadwal || []
+          });
           setLandingpage(result.landingpage);
           console.log('[LIVE-SYNC] Data berhasil di-update secara instan di browser!');
         } else {
@@ -527,6 +688,27 @@ function ProductClient({ initialProductData, initialLandingPage }) {
     selectShippingService
   } = useShippingCalculator();
 
+  // Courier options - 12 opsi sesuai ketentuan
+  const couriers = [
+    { value: "jne", label: "JNE" },
+    { value: "sicepat", label: "SiCepat" },
+    { value: "jnt", label: "JNT" },
+    { value: "ninja", label: "Ninja Express" },
+    { value: "anteraja", label: "AnterAja" },
+    { value: "tiki", label: "TIKI" },
+    { value: "pos", label: "POS Indonesia" },
+    { value: "lion", label: "Lion Parcel" },
+    { value: "wahana", label: "Wahana" },
+    { value: "ide", label: "IDE" },
+    { value: "sap", label: "SAP Express" },
+    { value: "ncs", label: "NCS" },
+  ];
+
+  // Derived settings
+  const settings = landingpage && Array.isArray(landingpage)
+    ? landingpage.find(item => item.type === 'settings')
+    : null;
+
   // 3. Form Logic (Orchestrator)
   const {
     customerForm, setCustomerForm,
@@ -542,8 +724,23 @@ function ProductClient({ initialProductData, initialLandingPage }) {
     productData,
     shippingState: { ongkir, ongkirInfo },
     addressState: { selectedWilayahIds },
-    sumber
+    sumber,
+    utmParams: utmFromQuery,
+    fbPixel: settings?.analytics?.facebook?.pixels, // Sesuai info user: landingpage.analytics.facebook.pixels
   });
+
+  // Set default payment method if available methods change
+  useEffect(() => {
+    if (!paymentMethod && settings && settings.payment_methods) {
+      if (settings.payment_methods.manual !== false) setPaymentMethod("manual");
+      else if (settings.payment_methods.ewallet !== false) setPaymentMethod("ewallet");
+      else if (settings.payment_methods.cc !== false) setPaymentMethod("cc");
+      else if (settings.payment_methods.va !== false) setPaymentMethod("va");
+    } else if (!paymentMethod && settings && !settings.payment_methods) {
+      // Fallback for legacy products that don't have this field yet
+      setPaymentMethod("manual");
+    }
+  }, [settings, paymentMethod, setPaymentMethod]);
 
   // 4. Price Calculation Logic
   const {
@@ -558,11 +755,72 @@ function ProductClient({ initialProductData, initialLandingPage }) {
   // Wrapper for 'isKategoriBuku' (hook returns callback, we can assign it)
   const isKategoriBuku = _isKategoriBuku;
 
+  // Handle payment method change + Facebook Pixel AddPaymentInfo
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
+
+    // Trigger Facebook Pixel AddPaymentInfo event ketika user memilih metode pembayaran
+    trackFacebookEvent("AddPaymentInfo", {
+      payment_method: method,
+      content_name: productData?.nama || "Product",
+      value: calculateTotal || 0,
+      currency: "IDR",
+    });
+  };
+
+  /** Pilih bundling di landing + Pixel AddPaymentInfo (value = harga paket + ongkir jika kategori buku). */
+  const handleBundlingSelect = (index) => {
+    if (selectedBundling === index) return;
+    setSelectedBundling(index);
+
+    const bundlingData =
+      productData?.bundling && Array.isArray(productData.bundling) ? productData.bundling : [];
+    const item = bundlingData[index];
+    if (!item) return;
+
+    const parsePrice = (price) => {
+      if (!price) return 0;
+      if (typeof price === "number") return price;
+      return parseInt(String(price).replace(/[^\d]/g, ""), 10) || 0;
+    };
+    const basePrice = parsePrice(item.harga);
+    const shippingCost = productKategoriId === 4 ? (ongkir || 0) : 0;
+    const value = basePrice + shippingCost;
+
+
+  };
+
   // Wrapper for handleSubmit to inject calculated price values
   const handleSubmit = async () => {
+    const bundlingData = productData?.bundling && Array.isArray(productData.bundling) ? productData.bundling : [];
+    const item = selectedBundling !== null ? bundlingData[selectedBundling] : null;
+
+    const parsePrice = (price) => {
+      if (!price) return 0;
+      if (typeof price === "number") return price;
+      return parseInt(String(price).replace(/[^\d]/g, ""), 10) || 0;
+    };
+
+    const basePriceValue = item ? parsePrice(item.harga) : parsePrice(productData?.harga || 0);
+    const shippingCost = productKategoriId === 4 ? (ongkir || 0) : 0;
+    const finalValue = basePriceValue + shippingCost;
+
+    const contentName = item?.nama
+      ? `${productData?.nama || "Product"} — ${item.nama}`
+      : productData?.nama || "Product";
+
+    trackFacebookEvent("AddPaymentInfo", {
+      ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+      content_name: contentName,
+      content_category: productData?.kategori_rel?.nama || "Product",
+      value: calculateTotal || finalValue || 0,
+      currency: "IDR",
+    });
+
+    // Panggil form submission yang sebenarnya agar order bisa dibuat
     await _handleSubmit({
-      totalHarga: calculateTotal,
-      hargaProduk: basePrice,
+      totalHarga: calculateTotal || finalValue || 0,
+      hargaProduk: basePriceValue,
       isKategoriBuku: isKategoriBuku()
     });
   };
@@ -733,6 +991,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
     if (styleText.textDecoration !== undefined) textStyles.textDecoration = styleText.textDecoration;
     if (styleText.textTransform !== undefined) textStyles.textTransform = styleText.textTransform;
     if (styleText.letterSpacing !== undefined) textStyles.letterSpacing = `${styleText.letterSpacing}px`;
+    if (styleText.wordSpacing !== undefined) textStyles.wordSpacing = `${styleText.wordSpacing}px`;
     if (styleText.backgroundColor !== undefined) {
       textStyles.backgroundColor = styleText.backgroundColor !== "transparent" ? styleText.backgroundColor : "transparent";
     }
@@ -832,13 +1091,18 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       content: content?.html || content || "",
       textColor: style?.text?.color || "#000000",
       fontFamily: textStylesFromBackend.fontFamily || "Inter, sans-serif", // ✅ Default "Inter, sans-serif" sama dengan addProducts3
-      lineHeight: style?.text?.lineHeight || 1.5,
+      lineHeight: Number.isFinite(Number(style?.text?.lineHeight))
+        ? Number(style.text.lineHeight)
+        : 1.5,
       textAlign: textStylesFromBackend.textAlign || "left",
       fontWeight: style?.text?.fontWeight || "normal",
       fontStyle: style?.text?.fontStyle || "normal",
       textDecoration: style?.text?.textDecoration || "none",
       textTransform: style?.text?.textTransform || "none",
       letterSpacing: style?.text?.letterSpacing || 0,
+      wordSpacing: style?.text?.wordSpacing ?? 0,
+      marginTop: style?.container?.margin?.top ?? style?.container?.marginTop ?? 0,
+      marginBottom: style?.container?.margin?.bottom ?? style?.container?.marginBottom ?? 0,
       backgroundColor: style?.text?.backgroundColor || "transparent",
       paragraphStyle: config?.tag || config?.paragraphStyle || "div",
       bgType: style?.text?.background?.type || style?.text?.bgType || "none",
@@ -901,6 +1165,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
           textDecoration: textStylesFromBackend.textDecoration ?? textData.textDecoration ?? "none",
           textTransform: textStylesFromBackend.textTransform ?? textData.textTransform ?? "none",
           letterSpacing: textStylesFromBackend.letterSpacing ?? (textData.letterSpacing ? `${textData.letterSpacing}px` : "0px"),
+          wordSpacing: textStylesFromBackend.wordSpacing ?? (Number.isFinite(Number(textData.wordSpacing)) ? `${Number(textData.wordSpacing)}px` : "0px"),
           padding: textData.backgroundColor && textData.backgroundColor !== "transparent" ? "8px 12px" : "0",
           borderRadius: textData.backgroundColor && textData.backgroundColor !== "transparent" ? "4px" : "0",
         };
@@ -942,7 +1207,10 @@ function ProductClient({ initialProductData, initialLandingPage }) {
               ...textBackgroundStyle,
               ...textPaddingStyle,
               display: "block",
-              width: "100%"
+              width: "100%",
+              marginTop: `${Number(textData.marginTop) || 0}px`,
+              marginBottom: `${Number(textData.marginBottom) || 0}px`,
+              ["--preview-text-paragraph-gap"]: `${Number(settings?.preview_text_paragraph_gap ?? 8)}px`,
             }}
             dangerouslySetInnerHTML={{ __html: cleanedContent }}
           />
@@ -1044,7 +1312,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
           <div style={imageContainerStyle}>
             <div style={imageWrapperStyle}>
               <Image
-                src={buildImageUrl(imageData.src)}
+                src={buildImageUrl(imageData.src, true)}
                 alt={imageData.alt || ""}
                 width={625}
                 height={625}
@@ -1189,7 +1457,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                           {item.gambar ? (
                             <div className="testi-avatar-wrapper-new">
                               <Image
-                                src={buildImageUrl(item.gambar)}
+                                src={buildImageUrl(item.gambar, true)}
                                 alt={`Foto ${item.nama}`}
                                 width={48}
                                 height={48}
@@ -1317,7 +1585,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                 <h3 className="preview-list-title" style={{
                   fontSize: "18px",
                   fontWeight: "600",
-                  color: "#000000",
+                  color: content?.titleColor || config?.titleColor || "#000000",
                   margin: "0 0 8px 0"
                 }}>{listTitle}</h3>
                 <div className="preview-list-header-line"></div>
@@ -1394,17 +1662,19 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
         // Helper untuk mendapatkan nama dari ID
         const getProvinceName = (id) => {
-          const province = wilayahData.provinces.find(p => p.id === Number(id));
+          const province = wilayahData.provinces.find((p) => String(p.id) === String(id));
           return province?.name || "";
         };
 
         const getCityName = (id) => {
-          const city = wilayahData.cities.find(c => c.id === Number(id));
+          const city = wilayahData.cities.find((c) => String(c.id) === String(id));
           return city?.name || "";
         };
 
         const getDistrictName = (id) => {
-          const district = wilayahData.districts.find(d => d.district_id === Number(id) || d.id === Number(id));
+          const district = wilayahData.districts.find(
+            (d) => String(d.district_id) === String(id) || String(d.id) === String(id)
+          );
           return district?.name || "";
         };
 
@@ -1414,9 +1684,9 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         const isBundling = bundlingData && bundlingData.length > 0;
 
         return (
-          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+          <div id="form-pemesanan" style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             {/* ✅ Card besar yang merangkum semua form */}
-            <div style={{
+            <div className="form-outer-card" style={{
               backgroundColor: "#ffffff",
               borderRadius: "12px",
               padding: "24px",
@@ -1476,9 +1746,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                         <button
                           key={index}
                           type="button"
-                          onClick={() => {
-                            setSelectedBundling(index);
-                          }}
+                          onClick={() => handleBundlingSelect(index)}
                           style={{
                             flex: "1 1 calc(33.333% - 8px)",
                             minWidth: "200px",
@@ -1529,24 +1797,24 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
               {/* Section: Lengkapi Data */}
               <section className="preview-form-section compact-form-section" aria-label="Order form" style={{ marginBottom: "24px" }}>
-                <h2 className="compact-form-title" style={{ fontSize: "18px", fontWeight: "600", color: "#000000", marginBottom: "16px" }}>
+                {/* <h2 className="compact-form-title" style={{ fontSize: "18px", fontWeight: "600", color: "#000000", marginBottom: "16px" }}>
                   Lengkapi Data:
-                </h2>
+                </h2> */}
                 <div className="compact-form-card">
 
 
                   <div className="compact-field">
-                    <label className="compact-label">Nama Lengkap <span className="required">*</span></label>
+                    {/* <label className="compact-label">Nama Lengkap <span className="required">*</span></label> */}
                     <input
                       type="text"
-                      placeholder="Contoh: Krisdayanti"
+                      placeholder="Nama Lengkap"
                       className="compact-input"
                       value={customerForm.nama}
                       onChange={(e) => setCustomerForm({ ...customerForm, nama: e.target.value })}
                     />
                   </div>
                   <div className="compact-field">
-                    <label className="compact-label">No. WhatsApp <span className="required">*</span></label>
+                    {/* <label className="compact-label">No. WhatsApp <span className="required">*</span></label> */}
                     <div className="wa-input-wrapper">
                       <div className="wa-prefix">
                         <span className="flag">🇮🇩</span>
@@ -1554,7 +1822,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       </div>
                       <input
                         type="tel"
-                        placeholder="812345678"
+                        placeholder="No. WA Aktif"
                         className="compact-input wa-input"
                         value={customerForm.wa.replace(/^(\+62|62|0)/, '')}
                         onChange={(e) => {
@@ -1570,10 +1838,10 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                     )}
                   </div>
                   <div className="compact-field">
-                    <label className="compact-label">Email <span className="required">*</span></label>
+                    {/* <label className="compact-label">Email <span className="required">*</span></label> */}
                     <input
                       type="email"
-                      placeholder="email@example.com"
+                      placeholder="Email"
                       className="compact-input"
                       value={customerForm.email}
                       onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
@@ -1591,7 +1859,19 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                     /* === FORM PRODUK FISIK (LENGKAP: PROV -> KOTA -> KEC -> KODEPOS) === */
                     <>
                       <div className="compact-field">
-                        <label className="compact-label">Provinsi <span className="required">*</span></label>
+                        {/* <label className="compact-label">Detail Alamat <span className="required">*</span></label> */}
+                        <textarea
+                          placeholder="Detail Alamat *"
+                          className="compact-input"
+                          rows={3}
+                          value={customerForm.alamat}
+                          onChange={(e) => setCustomerForm({ ...customerForm, alamat: e.target.value })}
+                          style={{ resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div className="compact-field">
+                        {/* <label className="compact-label">Provinsi <span className="required">*</span></label> */}
                         <select
                           className="compact-input"
                           value={selectedWilayahIds.provinceId}
@@ -1623,7 +1903,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       </div>
 
                       <div className="compact-field">
-                        <label className="compact-label">Kabupaten/Kota <span className="required">*</span></label>
+                        {/* <label className="compact-label">Kabupaten/Kota <span className="required">*</span></label> */}
                         <select
                           className="compact-input"
                           value={selectedWilayahIds.cityId}
@@ -1655,7 +1935,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       </div>
 
                       <div className="compact-field" style={{ position: 'relative' }}>
-                        <label className="compact-label">Kecamatan <span className="required">*</span></label>
+                        {/* <label className="compact-label">Kecamatan <span className="required">*</span></label> */}
                         <select
                           className="compact-input"
                           value={selectedWilayahIds.districtId}
@@ -1687,10 +1967,10 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       </div>
 
                       <div className="compact-field">
-                        <label className="compact-label">Kode Pos <span className="required">*</span></label>
+                        {/* <label className="compact-label">Kode Pos <span className="required">*</span></label> */}
                         <input
                           type="text"
-                          placeholder="Contoh: 12120"
+                          placeholder="Kode Pos *"
                           className="compact-input"
                           value={formWilayah.kode_pos}
                           onChange={(e) => {
@@ -1708,12 +1988,12 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                   ) : (
                     /* === FORM PRODUK NON-FISIK (HANYA SEARCH KECAMATAN) - UPGRADED DESIGN === */
                     <div className="compact-field" style={{ position: 'relative', zIndex: 40 }}>
-                      <label className="compact-label">Kecamatan <span className="required">*</span></label>
+                      {/* <label className="compact-label">Kecamatan <span className="required">*</span></label> */}
                       <div className="search-input-wrapper" style={{ position: 'relative' }}>
                         <input
                           type="text"
                           className="compact-input"
-                          placeholder="Ketik nama kecamatan..."
+                          placeholder="Ketik nama kecamatan *"
                           value={districtSearchTerm}
                           onChange={(e) => {
                             handleDistrictSearch(e.target.value);
@@ -1768,10 +2048,11 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
                         }}>
                           {districtSearchResults.map((item, idx) => {
-                            // Generate unique key
-                            const key = item.kode ?
-                              `${item.kode.id_provinsi}-${item.kode.id_kota}-${item.kode.id_kecamatan}` :
-                              `idx-${idx}`;
+                            const key = item.id != null && String(item.id)
+                              ? String(item.id)
+                              : item.kode
+                                ? `${item.kode.id_provinsi}-${item.kode.id_kota}-${item.kode.id_kecamatan}`
+                                : `idx-${idx}`;
 
                             return (
                               <div
@@ -1867,36 +2148,22 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                   {/* ✅ Bagian Ongkir dengan Kurir (hanya untuk produk fisik) */}
                   {isKategoriBuku() && (
                     <div className="compact-field">
-                      <label className="compact-label">Kurir <span className="required">*</span></label>
-                      <select
-                        className="compact-input"
-                        value={selectedCourier}
-                        onChange={(e) => setSelectedCourier(e.target.value)}
-                        disabled={!selectedWilayahIds.districtId || loadingCost}
-                        style={{
-                          appearance: 'auto',
-                          cursor: (!selectedWilayahIds.districtId || loadingCost) ? 'not-allowed' : 'pointer',
-                          backgroundColor: (!selectedWilayahIds.districtId || loadingCost) ? '#f9fafb' : 'white'
-                        }}
-                      >
-                        {couriers.map((courier) => (
-                          <option key={courier.value} value={courier.value}>
-                            {courier.label}
-                          </option>
-                        ))}
-                      </select>
-                      {loadingCost && (
-                        <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                          Menghitung ongkir...
-                        </small>
-                      )}
-                      {costResults.length > 0 && !loadingCost && (
-                        <div style={{ marginTop: "8px" }}>
-                          {costResults.map((result, idx) => (
-                            <div key={idx} style={{ fontSize: "14px", color: "#374151", marginTop: "4px" }}>
-                              {result.service}: Rp {formatPrice(result.cost)} ({result.etd || "Estimasi"})
-                            </div>
-                          ))}
+                      <label className="compact-label">Layanan Pengiriman <span className="required">*</span></label>
+                      {loadingCost ? (
+                        <div className="compact-input" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f9fafb' }}>
+                          <div className="animate-spin" style={{ width: '16px', height: '16px', border: '2px solid #e5e7eb', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+                          <span style={{ fontSize: '13px', color: '#6b7280' }}>Menghitung ongkir...</span>
+                        </div>
+                      ) : costResults.length > 0 ? (
+                        <div className="compact-input" style={{ backgroundColor: '#f0fdf4', border: '1.5px solid #22c55e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a' }}>JNE REG</span>
+                          <span style={{ fontSize: '13px', color: '#374151' }}>—</span>
+                          <span style={{ fontSize: '13px', color: '#374151' }}>Rp {formatPrice(ongkir)}</span>
+                          <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: 'auto' }}>{costResults[0]?.etd || "Estimasi 2-7 hari"}</span>
+                        </div>
+                      ) : (
+                        <div className="compact-input" style={{ backgroundColor: '#f9fafb', color: '#6b7280', fontSize: '13px' }}>
+                          {!selectedWilayahIds.districtId ? "Lengkapi alamat untuk cek ongkir" : "Tidak ada layanan pengiriman tersedia"}
                         </div>
                       )}
                     </div>
@@ -1905,7 +2172,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
               </section>
 
               {/* Section: Rincian Pesanan */}
-              <section className="preview-form-section rincian-pesanan-section" aria-label="Rincian Pesanan" style={{ marginBottom: "24px" }}>
+              {/* <section className="preview-form-section rincian-pesanan-section" aria-label="Rincian Pesanan" style={{ marginBottom: "24px" }}>
                 <div className="rincian-pesanan-card">
                   <h3 className="rincian-pesanan-title">RINCIAN PESANAN:</h3>
                   <div className="rincian-pesanan-item">
@@ -1932,76 +2199,84 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                     </span>
                   </div>
                 </div>
-              </section>
+              </section> */}
 
               {/* Section: Metode Pembayaran */}
-              <section className="preview-payment-section payment-section" aria-label="Payment methods" style={{ marginBottom: "24px" }}>
+              {/* <section className="preview-payment-section payment-section" aria-label="Payment methods" style={{ marginBottom: "24px" }}>
                 <h2 className="payment-title" style={{ fontSize: "18px", fontWeight: "600", color: "#000000", marginBottom: "16px" }}>
                   Metode Pembayaran
                 </h2>
                 <div className="payment-options-vertical">
-                  <label className="payment-option-row">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="manual"
-                      checked={paymentMethod === "manual"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="payment-label">Bank Transfer (Manual)</span>
-                    <div className="payment-icons-inline">
-                      <Image className="pay-icon" src="/assets/bca.png" alt="BCA" width={32} height={32} loading="lazy" />
-                    </div>
-                  </label>
-                  <label className="payment-option-row">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="ewallet"
-                      checked={paymentMethod === "ewallet"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="payment-label">E-Payment</span>
-                    <div className="payment-icons-inline">
-                      <Image className="pay-icon" src="/assets/qris.svg" alt="QRIS" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/dana.png" alt="DANA" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/ovo.png" alt="OVO" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/link.png" alt="LinkAja" width={32} height={32} loading="lazy" />
-                    </div>
-                  </label>
-                  <label className="payment-option-row">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cc"
-                      checked={paymentMethod === "cc"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="payment-label">Credit / Debit Card</span>
-                    <div className="payment-icons-inline">
-                      <Image className="pay-icon" src="/assets/visa.svg" alt="Visa" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/master.png" alt="Mastercard" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/jcb.png" alt="JCB" width={32} height={32} loading="lazy" />
-                    </div>
-                  </label>
-                  <label className="payment-option-row">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="va"
-                      checked={paymentMethod === "va"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <span className="payment-label">Virtual Account</span>
-                    <div className="payment-icons-inline">
-                      <Image className="pay-icon" src="/assets/bca.png" alt="BCA" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/mandiri.png" alt="Mandiri" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/bni.png" alt="BNI" width={32} height={32} loading="lazy" />
-                      <Image className="pay-icon" src="/assets/permata.svg" alt="Permata" width={32} height={32} loading="lazy" />
-                    </div>
-                  </label>
+                  {(settings?.payment_methods?.manual ?? true) && (
+                    <label className="payment-option-row">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="manual"
+                        checked={paymentMethod === "manual"}
+                        onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      />
+                      <span className="payment-label">Bank Transfer (Manual)</span>
+                      <div className="payment-icons-inline">
+                        <Image className="pay-icon" src="/assets/bca.png" alt="BCA" width={32} height={32} loading="lazy" />
+                      </div>
+                    </label>
+                  )}
+                  {(settings?.payment_methods?.ewallet ?? true) && (
+                    <label className="payment-option-row">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="ewallet"
+                        checked={paymentMethod === "ewallet"}
+                        onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      />
+                      <span className="payment-label">E-Payment</span>
+                      <div className="payment-icons-inline">
+                        <Image className="pay-icon" src="/assets/qris.svg" alt="QRIS" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/dana.png" alt="DANA" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/ovo.png" alt="OVO" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/link.png" alt="LinkAja" width={32} height={32} loading="lazy" />
+                      </div>
+                    </label>
+                  )}
+                  {(settings?.payment_methods?.cc ?? true) && (
+                    <label className="payment-option-row">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="cc"
+                        checked={paymentMethod === "cc"}
+                        onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      />
+                      <span className="payment-label">Credit / Debit Card</span>
+                      <div className="payment-icons-inline">
+                        <Image className="pay-icon" src="/assets/visa.svg" alt="Visa" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/master.png" alt="Mastercard" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/jcb.png" alt="JCB" width={32} height={32} loading="lazy" />
+                      </div>
+                    </label>
+                  )}
+                  {(settings?.payment_methods?.va ?? true) && (
+                    <label className="payment-option-row">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="va"
+                        checked={paymentMethod === "va"}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      />
+                      <span className="payment-label">Virtual Account</span>
+                      <div className="payment-icons-inline">
+                        <Image className="pay-icon" src="/assets/bca.png" alt="BCA" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/mandiri.png" alt="Mandiri" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/bni.png" alt="BNI" width={32} height={32} loading="lazy" />
+                        <Image className="pay-icon" src="/assets/permata.svg" alt="Permata" width={32} height={32} loading="lazy" />
+                      </div>
+                    </label>
+                  )}
                 </div>
-              </section>
+              </section> */}
 
               {/* Submit Button */}
               <div className="preview-form-submit-wrapper">
@@ -2015,7 +2290,8 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                     color: (!!isFormValid(isKategoriBuku(), isBundling)) ? '#64748b' : '#ffffff',
                     cursor: (!!isFormValid(isKategoriBuku(), isBundling)) ? 'not-allowed' : 'pointer',
                     boxShadow: (!!isFormValid(isKategoriBuku(), isBundling)) ? 'none' : '0 4px 14px rgba(241, 161, 36, 0.4)',
-                    opacity: submitting ? 0.8 : 1
+                    opacity: submitting ? 0.8 : 1,
+                    width: '100%'
                   }}
                 >
                   {submitting ? "Memproses..." : (isBundling && selectedBundling === null ? "Pilih Paket Dahulu" : "Pesan Sekarang")}
@@ -2076,16 +2352,121 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       }
 
       case "button": {
-        // ✅ SAMA PERSIS dengan renderPreview di addProducts3
-        const buttonData = content || {};
-        const buttonStyle = buttonData.style || style?.button?.style || 'primary';
-        const buttonText = buttonData.text || content?.text || "Klik Disini";
+        const c = content || {};
+        const sb = style?.button || {};
+        const brFromStyle =
+          typeof sb.borderRadius === "string"
+            ? parseInt(String(sb.borderRadius).replace(/px/i, ""), 10)
+            : Number(sb.borderRadius);
+        const merged = {
+          text: c.text ?? sb.text ?? "Klik Disini",
+          link: c.link ?? sb.link ?? "#",
+          fbPixelEvent: c.fbPixelEvent || "",
+          style: c.style ?? sb.style ?? "primary",
+          sizePreset: c.sizePreset ?? sb.sizePreset ?? "default",
+          fontSize: c.fontSize != null ? Number(c.fontSize) : sb.fontSize != null ? Number(sb.fontSize) : null,
+          paddingX:
+            c.paddingX != null
+              ? Number(c.paddingX)
+              : sb.padding?.right != null
+                ? Number(sb.padding.right)
+                : null,
+          paddingY:
+            c.paddingY != null
+              ? Number(c.paddingY)
+              : sb.padding?.top != null
+                ? Number(sb.padding.top)
+                : null,
+          backgroundColor: c.backgroundColor ?? sb.backgroundColor ?? "",
+          textColor: c.textColor ?? sb.textColor ?? "",
+          borderRadius:
+            c.borderRadius != null && c.borderRadius !== ""
+              ? Number(c.borderRadius)
+              : Number.isFinite(brFromStyle)
+                ? brFromStyle
+                : null,
+          fullWidth: Boolean(c.fullWidth ?? sb.fullWidth),
+          fixedBottom: Boolean(c.fixedBottom ?? sb.fixedBottom),
+        };
+
+        const preset = merged.style || "primary";
+        const btnInline = buildLandingButtonInlineStyle(merged);
+
+        const isAnchor = merged.link && merged.link.startsWith('#');
+
+        const handleClick = (e) => {
+          if (merged.fbPixelEvent && merged.fbPixelEvent !== "") {
+            trackFacebookEvent(merged.fbPixelEvent, {
+              content_name: productData?.name || '',
+              content_ids: [productData?.id || ''],
+              content_type: 'product',
+              value: productData?.harga || 0,
+              currency: 'IDR'
+            });
+          }
+
+          if (isAnchor) {
+            e.preventDefault();
+            const targetId = merged.link.substring(1);
+            const element = document.getElementById(targetId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          } else if (merged.link && merged.link !== '#') {
+            window.open(merged.link, '_blank');
+          }
+        };
+
+        const buttonElement = (
+          <button
+            type="button"
+            className={`preview-button preview-button-${preset}`}
+            style={btnInline}
+            onClick={handleClick}
+          >
+            {merged.text || "Klik Disini"}
+          </button>
+        );
+
+        if (merged.fixedBottom) {
+          return (
+            <ClientPortal>
+              <div
+                style={{
+                  position: 'fixed',
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 99999,
+                  width: '100%',
+                  maxWidth: '668px',
+                  boxSizing: "border-box",
+                  textAlign: "center",
+                }}
+              >
+                <button
+                  type="button"
+                  className={`preview-button preview-button-${preset}`}
+                  style={{ ...btnInline, borderRadius: 0, width: '100%', margin: 0 }}
+                  onClick={handleClick}
+                >
+                  {merged.text || "Klik Disini"}
+                </button>
+              </div>
+            </ClientPortal>
+          );
+        }
 
         return (
-          <div style={containerStyle}>
-            <button className={`preview-button preview-button-${buttonStyle}`}>
-              {buttonText}
-            </button>
+          <div
+            style={{
+              ...containerStyle,
+              width: "100%",
+              textAlign: "center",
+              boxSizing: "border-box",
+            }}
+          >
+            {buttonElement}
           </div>
         );
       }
@@ -2159,7 +2540,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
         return (
           <div style={sliderContainerStyle}>
-            <ImageSliderPreview data={adaptedData} />
+            <ImageSliderPreview data={adaptedData} isLandingPage={true} />
           </div>
         );
       }
@@ -2169,7 +2550,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         const quotaData = content || {};
 
         return (
-          <div style={containerStyle}>
+          <div style={containerStyle} className="quota-info-container">
             <QuotaInfoPreview data={quotaData} />
           </div>
         );
@@ -2230,45 +2611,29 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         // ✅ FIX #3: Build section styles from block.style.container, bukan block.data (sama dengan addProducts3)
         const sectionData = blockToRender.data || blockToRender.content || {};
         const sectionContainerStyle = blockToRender.style?.container || style?.container || {};
-        // ✅ FIX: Padding section - kiri/kanan lebih jauh dari komponen umum
-        // Section harus punya padding kiri-kanan yang lebih besar untuk memberikan ruang lebih
-        // Default: 4px top/bottom, 24px left/right (lebih jauh dari komponen umum yang biasanya 8-16px)
-        let sectionPadding = "4px 24px";
+        // ✅ FIX: Default padding antar section 0 agar rapet
+        let sectionPadding = "0px";
         if (sectionContainerStyle.padding) {
-          const top = sectionContainerStyle.padding.top || 4;
-          const right = sectionContainerStyle.padding.right || 24;
-          const bottom = sectionContainerStyle.padding.bottom || 4;
-          const left = sectionContainerStyle.padding.left || 24;
-          // ✅ Untuk section, padding kiri-kanan minimal 20px, maksimal 40px
-          // Top/bottom tetap kecil (4-12px) agar konten tidak terlalu jauh
-          const minHorizontalPadding = 20;
-          const maxHorizontalPadding = 40;
-          const minVerticalPadding = 4;
-          const maxVerticalPadding = 12;
-          sectionPadding = `${Math.min(Math.max(top, minVerticalPadding), maxVerticalPadding)}px ${Math.min(Math.max(right, minHorizontalPadding), maxHorizontalPadding)}px ${Math.min(Math.max(bottom, minVerticalPadding), maxVerticalPadding)}px ${Math.min(Math.max(left, minHorizontalPadding), maxHorizontalPadding)}px`;
-        } else if (sectionData.padding) {
-          // ✅ Jika sectionData.padding adalah string seperti "40px", gunakan untuk semua sisi
-          // Tapi pastikan kiri-kanan minimal 20px
+          const top = sectionContainerStyle.padding.top ?? 0;
+          const right = sectionContainerStyle.padding.right ?? 0;
+          const bottom = sectionContainerStyle.padding.bottom ?? 0;
+          const left = sectionContainerStyle.padding.left ?? 0;
+          sectionPadding = `${top}px ${right}px ${bottom}px ${left}px`;
+        } else if (sectionData.padding !== undefined) {
           const paddingValue = typeof sectionData.padding === 'string'
-            ? parseInt(sectionData.padding) || 24
-            : sectionData.padding || 24;
-          const horizontalPadding = Math.max(paddingValue, 20);
-          sectionPadding = `4px ${horizontalPadding}px`;
+            ? parseInt(sectionData.padding) || 0
+            : sectionData.padding || 0;
+          sectionPadding = `${paddingValue}px`;
         }
 
-        // ✅ FIX: Section harus lebih jauh dari tepi kiri-kanan website dibanding komponen umum
-        // Komponen umum berada dalam canvas-content-area dengan padding 150px kiri-kanan
-        // Section harus lebih masuk lagi dengan menambahkan margin kiri-kanan ekstra
-        // ✅ RESPONSIVE: Di mobile/tablet, tidak perlu extra margin
-        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-        const extraHorizontalMargin = isMobile ? 0 : 40; // 0 untuk mobile/tablet, 40 untuk desktop
-        const sectionMarginLeft = (sectionContainerStyle.margin?.left || sectionContainerStyle.marginLeft || sectionData.marginLeft || 0) + extraHorizontalMargin;
-        const sectionMarginRight = (sectionContainerStyle.margin?.right || sectionContainerStyle.marginRight || sectionData.marginRight || 0) + extraHorizontalMargin;
+        // ✅ FIX: Section tidak menambahkan extra margin, ikuti nilai asli
+        const sectionMarginLeft = sectionContainerStyle.margin?.left ?? sectionContainerStyle.marginLeft ?? sectionData.marginLeft ?? 0;
+        const sectionMarginRight = sectionContainerStyle.margin?.right ?? sectionContainerStyle.marginRight ?? sectionData.marginRight ?? 0;
 
         const sectionStyles = {
           marginRight: `${sectionMarginRight}px`,
           marginLeft: `${sectionMarginLeft}px`,
-          marginBottom: `${sectionContainerStyle.margin?.bottom || sectionContainerStyle.marginBottom || sectionContainerStyle.marginBetween || sectionData.marginBetween || 16}px`,
+          marginBottom: `${sectionContainerStyle.margin?.bottom ?? sectionContainerStyle.marginBottom ?? sectionContainerStyle.marginBetween ?? sectionData.marginBetween ?? 0}px`,
           border: sectionContainerStyle.border?.width
             ? `${sectionContainerStyle.border.width}px ${sectionContainerStyle.border.style || 'solid'} ${sectionContainerStyle.border.color || "#000000"}`
             : (sectionData.border ? `${sectionData.border}px solid ${sectionData.borderColor || "#000000"}` : "none"),
@@ -2287,17 +2652,19 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                 Section kosong - tambahkan komponen
               </div>
             ) : (
-              childComponents.map((childBlock) => {
+              childComponents.map((childBlock, childIndex) => {
                 if (!childBlock || !childBlock.type) {
                   console.warn("[SECTION] Child block tidak valid:", childBlock);
                   return null;
                 }
 
-                // ✅ Key dari componentId atau id atau order (sama dengan addProducts3 tapi dengan fallback untuk product page)
-                const childKey = childBlock.config?.componentId || childBlock.id || childBlock.order || `section-child-${childBlock.type}-${Date.now()}`;
+                // Suffix index: backend bisa punya componentId duplikat (mis. text-${Date.now()} sama dalam 1ms)
+                const childBase =
+                  childBlock.config?.componentId || childBlock.id || childBlock.order || `section-child-${childBlock.type}`;
+                const childKey = `${childBase}-${childIndex}`;
 
                 return (
-                  <div key={childKey} className="preview-section-child">
+                  <div key={childKey} className="preview-section-child" id={childBlock.config?.componentId}>
                     {renderBlock(childBlock, allBlocks)}
                   </div>
                 );
@@ -2326,21 +2693,99 @@ function ProductClient({ initialProductData, initialLandingPage }) {
   // Province loading logic moved to useAddressData hook
 
 
-  // ✅ BRIDGE: Trigger Ongkir Calculation when District Changes (for Physical Products)
+  // ✅ BRIDGE: Ongkir via Biteship — pakai nama wilayah (+ kode pos jika sudah diisi) untuk resolve area/rates
   useEffect(() => {
-    if (selectedWilayahIds.districtId) {
-      handleCalculateOngkir(selectedWilayahIds.districtId);
-    }
-  }, [selectedWilayahIds.districtId, handleCalculateOngkir]);
+    if (!selectedWilayahIds.districtId || !selectedWilayahIds.provinceId) return;
+
+    const { provinces, cities, districts } = wilayahData;
+    const p = provinces.find((x) => String(x.id) === String(selectedWilayahIds.provinceId));
+    const c = cities.find((x) => String(x.id) === String(selectedWilayahIds.cityId));
+    const d = districts.find(
+      (x) =>
+        String(x.id) === String(selectedWilayahIds.districtId) ||
+        String(x.district_id) === String(selectedWilayahIds.districtId)
+    );
+    const destination_search = [d?.name, c?.name, p?.name].filter(Boolean).join(", ");
+    if (!destination_search) return;
+
+    const kodePosDigits = formWilayah.kode_pos ? String(formWilayah.kode_pos).replace(/\D/g, "") : "";
+    const item_value = Number(productData?.harga_asli || productData?.harga || 100000) || 100000;
+
+    handleCalculateOngkir(selectedWilayahIds.districtId, "jne", selectedWilayahIds.provinceId, {
+      destination_search,
+      destination_postal_code: kodePosDigits.length >= 3 ? Number(kodePosDigits) : undefined,
+      item_value,
+    });
+  }, [
+    selectedWilayahIds.districtId,
+    selectedWilayahIds.provinceId,
+    selectedWilayahIds.cityId,
+    wilayahData.provinces,
+    wilayahData.cities,
+    wilayahData.districts,
+    formWilayah.kode_pos,
+    productData?.harga_asli,
+    productData?.harga,
+    handleCalculateOngkir,
+  ]);
 
 
   // ✅ MOVED UP: Derived state and hooks MUST be before any conditional returns
-  const settings = landingpage && Array.isArray(landingpage)
-    ? landingpage.find(item => item.type === 'settings')
-    : null;
+  // Derived settings already defined above
 
-  const logoUrl = buildImageUrl(settings?.logo) || '/assets/logo.png';
+  const logoUrl = buildImageUrl(settings?.logo, true) || '/assets/logo.png';
   const backgroundColor = settings?.background_color || '#ffffff';
+
+  // ✅ Normalisasi struktur analytics (mendukung format lama & baru)
+  const analytics = settings?.analytics || {};
+  const analyticsFacebook = analytics.facebook || {};
+  const analyticsFacebookPixels = Array.isArray(analyticsFacebook.pixels)
+    ? analyticsFacebook.pixels
+    : [];
+
+  let facebookPixelIds = [];
+
+  // Format lama: settings.facebook_pixels bisa string atau array
+  if (Array.isArray(settings?.facebook_pixels)) {
+    facebookPixelIds = settings.facebook_pixels;
+  } else if (typeof settings?.facebook_pixels === 'string') {
+    facebookPixelIds = settings.facebook_pixels
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  // Format baru (builder): ambil dari analytics.facebook.pixels[].id
+  if (facebookPixelIds.length === 0 && analyticsFacebookPixels.length > 0) {
+    facebookPixelIds = analyticsFacebookPixels
+      .map((p) => (p && (p.id || p.pixel || p.pixel_id)) || null)
+      .filter(Boolean);
+  }
+
+  // ✅ TERBARU: Ambil dari pixel_list (relasi ke pixel_meta)
+  if (productData?.pixel_list && Array.isArray(productData.pixel_list) && productData.pixel_list.length > 0) {
+    facebookPixelIds = productData.pixel_list
+      .map((p) => p.pixel)
+      .filter(Boolean);
+
+    console.log('setting di pixel', productData?.pixel_list)
+  }
+
+  // console.log('analFbPixels', analFbPixels);
+  console.log('productData.pixel_list', productData?.pixel_list);
+
+  // ✅ Facebook Pixel: Track Lead ketika landing page produk dibuka
+  useEffect(() => {
+    if (!productData) return;
+    if (!facebookPixelIds || facebookPixelIds.length === 0) return;
+
+    trackFacebookEvent("Lead", {
+      content_name: productData.nama || "Product",
+      content_category: "Landing",
+      value: Number(productData.harga) || 0,
+      currency: "IDR",
+    });
+  }, [productData]);
 
   // ✅ MOVED UP: SEO & Scripts Management
   useEffect(() => {
@@ -2468,8 +2913,52 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       /* ✅ MOBILE & TABLET OPTIMIZATION */
       @media (max-width: 768px) {
         .canvas-content-area, .page-builder-canvas {
-            padding-left: 16px !important;
-            padding-right: 16px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Tidy up sections: remove margins, borders, shadows, backgrounds, and padding on mobile */
+        .preview-section {
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+            margin-top: 4px !important;
+            margin-bottom: 12px !important;
+            padding: 0px !important;
+            border: none !important;
+            box-shadow: none !important;
+            /* background: transparent !important; */
+            /* background-color: transparent !important; */
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Tidy up the large checkout outer form card on mobile */
+        .form-outer-card {
+            padding: 16px !important;
+            border: 1px solid #e5e7eb !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border-radius: 12px !important;
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Tidy up the outer quota-info container on mobile (remove grey background) */
+        .quota-info-container {
+            padding: 0px !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        /* Tidy up the inner quota-info card on mobile */
+        .quota-info-card {
+            padding: 12px !important;
+            border-radius: 8px !important;
             box-sizing: border-box !important;
         }
         
@@ -2493,7 +2982,8 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
         /* Adjust compact form padding */
         .compact-form-card {
-            padding: 16px !important;
+            padding: 0 !important;
+            border: none !important;
         }
 
         /* Testimonials navigation adjust */
@@ -2530,7 +3020,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
   // ✅ Jika tidak ada productData setelah loading selesai, tampilkan notifikasi
   if (!productData) {
     return (
-      <div className="add-products3-container">
+      <div className="add-products3-container product-page-container">
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -2594,7 +3084,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       {/* Script injected via next/script component inside JSX */}
 
       {/* 1. Facebook Pixel */}
-      {settings?.facebook_pixels && (
+      {facebookPixelIds && facebookPixelIds.length > 0 && (
         <Script id="fb-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
@@ -2605,7 +3095,20 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${settings.facebook_pixels}');
+
+            try {
+              var pixelIds = ${JSON.stringify(facebookPixelIds)};
+              if (Array.isArray(pixelIds)) {
+                pixelIds.forEach(function(id) {
+                  if (!id) return;
+                  fbq('init', id);
+                  console.log('[FB PIXEL] init pixel ID:', id);
+                });
+              }
+            } catch (e) {
+              console.error('[FB PIXEL] Error initializing pixels:', e);
+            }
+
             fbq('track', 'PageView');
           `}
         </Script>
@@ -2671,35 +3174,31 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
             {/* Content Area - Center dengan padding */}
             {/* Content Area - Center dengan padding */}
-            <div className="canvas-content-area" style={{ padding: 0, width: '100%', maxWidth: '100%' }}>
+            <div
+              className="canvas-content-area"
+              style={{
+                padding: 0,
+                width: '100%',
+                maxWidth: '100%',
+                gap: `${Number(settings?.preview_component_gap ?? 0)}px`,
+              }}
+            >
               {/* ✅ Render Blocks sesuai urutan array dari backend (sumber kebenaran) */}
               {/* ✅ IMPORTANT: Pass landingpage sebagai allBlocks agar section bisa menemukan child-nya */}
               {blocks.length > 0 ? (
                 blocks.map((block, index) => {
-                  // ✅ KEY HARUS DARI componentId (WAJIB dari backend)
-                  // Jika componentId tidak ada, ini adalah bug backend/builder, bukan frontend
-                  // Fallback: gunakan kombinasi yang deterministik berdasarkan array index
+                  // Suffix index: componentId dari builder bisa tabrakan (Date.now() sama untuk beberapa blok)
                   const componentId = block.config?.componentId;
+                  const stableKey = componentId
+                    ? `${componentId}-${index}`
+                    : `block-${block.type}-${index}`;
 
-                  if (!componentId) {
-                    // ⚠️ WARNING: componentId missing - ini seharusnya tidak terjadi
-                    // Fallback menggunakan array index (deterministik karena urutan array tidak berubah)
-                    const fallbackKey = `block-${block.type}-${index}`;
-                    if (process.env.NODE_ENV === 'development') {
-                      console.warn(`[PRODUCT] ⚠️ Block tanpa componentId, menggunakan fallback key: ${fallbackKey}`);
-                    }
-
-                    return (
-                      <div key={fallbackKey} className="canvas-preview-block">
-                        {renderBlock(block, landingpage || [])}
-                      </div>
-                    );
+                  if (!componentId && process.env.NODE_ENV === 'development') {
+                    console.warn(`[PRODUCT] ⚠️ Block tanpa componentId, menggunakan fallback key: ${stableKey}`);
                   }
 
-                  // ✅ Key dari componentId (unik dan permanen)
-                  // ✅ Pass landingpage sebagai allBlocks (bukan blocks) agar section bisa menemukan child
                   return (
-                    <div key={componentId} className="canvas-preview-block">
+                    <div key={stableKey} id={componentId} className="canvas-preview-block">
                       {renderBlock(block, landingpage || [])}
                     </div>
                   );

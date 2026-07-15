@@ -10,11 +10,12 @@ import FollowupSection from "./FollowupSection";
 import LinkZoomSection from "./LinkZoomSection";
 import TrainerSection from "./TrainerSection";
 import ArticleSection from "./ArticleSection";
+import KnowledgeSection from "./KnowledgeSection";
 import {
   ArrowLeft, Package, Tag, DollarSign, Calendar,
   Globe, User, CheckCircle2, XCircle, FileText,
   Image as ImageIcon, Video, MessageSquare, List,
-  Edit, ExternalLink, Copy, Eye, Users
+  Edit, ExternalLink, Copy, Eye, Users, Brain
 } from "lucide-react";
 import "@/styles/sales/product-detail.css";
 
@@ -261,6 +262,12 @@ export default function DetailProdukPage({ params }) {
             onClick={() => setActiveTab("artikel")}
           >
             Artikel
+          </button>
+          <button
+            className={`tab ${activeTab === "knowledge" ? "active" : ""}`}
+            onClick={() => setActiveTab("knowledge")}
+          >
+            Knowledge
           </button>
         </div>
 
@@ -731,6 +738,10 @@ export default function DetailProdukPage({ params }) {
         {/* === TAB ARTIKEL === */}
         {activeTab === "artikel" && (
           <ArticleSection productName={product.nama} />
+        )}
+
+        {activeTab === "knowledge" && (
+          <KnowledgeSection productId={parseInt(id)} />
         )}
       </div>
     </Layout>

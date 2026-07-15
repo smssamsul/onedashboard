@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Type, Image as ImageIcon, FileText, List, MessageSquare, 
-  HelpCircle, Image as SliderIcon, Square, Youtube, Link as LinkIcon,
-  MapPin, Film, Minus, Code, X, ArrowLeft
+import {
+  Type, Image as ImageIcon, FileText, List, MessageSquare,
+  HelpCircle, Image as SliderIcon, Youtube, Link as LinkIcon,
+  MapPin, Film, Minus, Code, X, ArrowLeft, Upload,
+  Smartphone, Tablet, Laptop, MousePointerClick
 } from "lucide-react";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { MultiSelect } from "primereact/multiselect";
+import { Button } from "primereact/button";
 import OngkirCalculator from "@/components/OngkirCalculator";
 import {
   TextComponent,
@@ -31,6 +33,7 @@ import {
   AnimationComponent,
 } from './components';
 import "@/styles/sales/add-products3.css";
+import { buildLandingButtonInlineStyle } from "@/lib/landingPageButtonStyle";
 import "@/styles/ongkir.css";
 
 // Komponen yang tersedia sesuai gambar
@@ -55,7 +58,7 @@ const COMPONENT_CATEGORIES = {
     label: "Sales Page",
     components: [
       { id: "slider", name: "Gambar Slider", icon: SliderIcon, color: "#ef4444" },
-      { id: "button", name: "Tombol", icon: Square, color: "#F1A124" },
+      { id: "button", name: "Tombol", icon: MousePointerClick, color: "#F1A124" },
       { id: "youtube", name: "YouTube", icon: Youtube, color: "#dc2626" },
       { id: "embed", name: "Embed", icon: LinkIcon, color: "#6366f1" },
       { id: "scroll-target", name: "Scroll Target", icon: MapPin, color: "#14b8a6" },
@@ -75,13 +78,17 @@ const COMPONENT_CATEGORIES = {
 export default function AddProducts3Page() {
   const router = useRouter();
   const [showComponentModal, setShowComponentModal] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState("laptop");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [blocks, setBlocks] = useState([]);
   const [expandedBlockId, setExpandedBlockId] = useState(null);
   const [testimoniIndices, setTestimoniIndices] = useState({});
   const [productKategori, setProductKategori] = useState(null); // Untuk menentukan kategori produk
   const [activeTab, setActiveTab] = useState("konten"); // State untuk tab aktif
-  
+
+  // Ref untuk input file import template
+  const importFileInputRef = useRef(null);
+
   // State untuk form pengaturan
   const [pengaturanForm, setPengaturanForm] = useState({
     nama: "",
@@ -90,10 +97,53 @@ export default function AddProducts3Page() {
     url: "",
     harga_asli: null,
     harga_promo: null,
-    tanggal_event: null,
-    assign: []
+    assign: [],
+    jadwal: [] // [{ nama_jadwal, waktu_mulai, waktu_selesai, kuota, status }]
   });
-  
+
+  // Export Template ke file JSON
+  const handleExportTemplate = () => {
+    try {
+      const templateData = JSON.stringify(blocks, null, 2);
+      const blob = new Blob([templateData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `landingpage-template-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Template JSON berhasil didownload!");
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Gagal export template");
+    }
+  };
+
+  // Import Template dari file JSON
+  const handleImportTemplateFile = async (e) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const parsedData = JSON.parse(text);
+      if (!Array.isArray(parsedData)) {
+        toast.error("Format JSON tidak valid (harus array blocks)!");
+        return;
+      }
+      setBlocks(parsedData);
+      toast.success("Template berhasil diimport dari file!");
+    } catch (err) {
+      console.error("Import file error:", err);
+      toast.error("Gagal import: JSON tidak valid");
+    } finally {
+      if (importFileInputRef.current) {
+        importFileInputRef.current.value = "";
+      }
+    }
+  };
+
   // State untuk options dropdown
   const [kategoriOptions, setKategoriOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
@@ -109,7 +159,19 @@ export default function AddProducts3Page() {
       form: { kategori: null }, // Kategori untuk form pemesanan
       faq: { items: [] },
       slider: { images: [] },
-      button: { text: "Klik Disini", link: "#", style: "primary" },
+      button: {
+        text: "Klik Disini",
+        link: "#",
+        style: "primary",
+        sizePreset: "default",
+        fontSize: null,
+        paddingX: null,
+        paddingY: null,
+        backgroundColor: "",
+        textColor: "",
+        borderRadius: null,
+        fullWidth: false,
+      },
       embed: { code: "" },
       section: { background: "#ffffff", padding: "20px" },
       html: { code: "" },
@@ -131,14 +193,14 @@ export default function AddProducts3Page() {
         return;
       }
     }
-    
+
     const newBlock = {
       id: `block-${Date.now()}`,
       type: componentId,
       data: getDefaultData(componentId),
       order: blocks.length + 1,
     };
-    
+
     setBlocks([...blocks, newBlock]);
     setExpandedBlockId(newBlock.id); // Expand komponen baru yang ditambahkan
     setShowComponentModal(false);
@@ -146,8 +208,8 @@ export default function AddProducts3Page() {
 
   // Handler untuk update block data
   const handleUpdateBlock = (blockId, newData) => {
-    setBlocks(blocks.map(block => 
-      block.id === blockId 
+    setBlocks(blocks.map(block =>
+      block.id === blockId
         ? { ...block, data: { ...block.data, ...newData } }
         : block
     ));
@@ -157,10 +219,10 @@ export default function AddProducts3Page() {
   const moveBlock = (blockId, direction) => {
     const index = blocks.findIndex(b => b.id === blockId);
     if (index === -1) return;
-    
+
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= blocks.length) return;
-    
+
     const newBlocks = [...blocks];
     [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
     setBlocks(newBlocks);
@@ -168,11 +230,6 @@ export default function AddProducts3Page() {
 
   // Handler untuk delete block
   const deleteBlock = (blockId) => {
-    const block = blocks.find(b => b.id === blockId);
-    if (block && block.type === "form") {
-      alert("Form Pemesanan tidak bisa dihapus");
-      return;
-    }
     setBlocks(blocks.filter(b => b.id !== blockId));
   };
 
@@ -184,7 +241,7 @@ export default function AddProducts3Page() {
   // Render komponen form editing di sidebar
   const renderComponent = (block, index) => {
     const isExpanded = expandedBlockId === block.id;
-    
+
     const commonProps = {
       data: block.data,
       onUpdate: (newData) => handleUpdateBlock(block.id, newData),
@@ -195,7 +252,6 @@ export default function AddProducts3Page() {
       onDelete: () => deleteBlock(block.id),
       isExpanded: isExpanded,
       onToggleExpand: () => handleToggleExpand(block.id),
-      isRequired: block.type === "form", // Form tidak bisa dihapus
     };
 
     switch (block.type) {
@@ -261,29 +317,29 @@ export default function AddProducts3Page() {
         if (testimoniItems.length === 0) {
           return <div className="preview-placeholder">Belum ada testimoni</div>;
         }
-        
+
         const currentIndex = testimoniIndices[block.id] || 0;
         const maxIndex = Math.max(0, testimoniItems.length - 3);
-        
+
         const handlePrev = () => {
           setTestimoniIndices(prev => ({
             ...prev,
             [block.id]: Math.max(0, currentIndex - 1)
           }));
         };
-        
+
         const handleNext = () => {
           setTestimoniIndices(prev => ({
             ...prev,
             [block.id]: Math.min(maxIndex, currentIndex + 1)
           }));
         };
-        
+
         return (
           <section className="preview-testimonials" aria-label="Customer testimonials">
             <div className="testimonials-carousel-wrapper-new">
               {currentIndex > 0 && (
-                <button 
+                <button
                   className="testimoni-nav-btn-new testimoni-nav-prev-new"
                   onClick={handlePrev}
                   aria-label="Previous testimonials"
@@ -292,7 +348,7 @@ export default function AddProducts3Page() {
                 </button>
               )}
               <div className="testimonials-carousel-new" itemScope itemType="https://schema.org/Review">
-                <div 
+                <div
                   className="testimonials-track-new"
                   style={{ transform: `translateX(-${currentIndex * 28}%)` }}
                 >
@@ -302,8 +358,8 @@ export default function AddProducts3Page() {
                         <div className="testi-header-new">
                           {item.gambar ? (
                             <div className="testi-avatar-wrapper-new">
-                              <img 
-                                src={item.gambar} 
+                              <img
+                                src={item.gambar}
                                 alt={`Foto ${item.nama}`}
                                 className="testi-avatar-new"
                                 itemProp="author"
@@ -337,7 +393,7 @@ export default function AddProducts3Page() {
                 </div>
               </div>
               {currentIndex < maxIndex && testimoniItems.length > 3 && (
-                <button 
+                <button
                   className="testimoni-nav-btn-new testimoni-nav-next-new"
                   onClick={handleNext}
                   aria-label="Next testimonials"
@@ -363,7 +419,7 @@ export default function AddProducts3Page() {
         // Gunakan productKategori dari state pengaturan, bukan dari block.data.kategori
         const isFormBuku = productKategori === 13;
         const isFormWorkshop = productKategori === 15;
-        
+
         return (
           <>
             {/* Form Pemesanan */}
@@ -392,7 +448,7 @@ export default function AddProducts3Page() {
                   <label className="compact-label">Alamat <span className="required">*</span></label>
                   <textarea placeholder="Contoh: Jl. Peta Utara 1, No 62 RT 01/07" className="compact-input compact-textarea" rows={3} />
                 </div>
-                
+
                 {/* Form Ongkir - Kategori Buku (13) */}
                 {isFormBuku && (
                   <div className="compact-field">
@@ -477,14 +533,14 @@ export default function AddProducts3Page() {
       case "faq":
         // Generate FAQ berdasarkan kategori produk
         const faqItems = generateFAQByKategori(productKategori);
-        
+
         // FAQ Item Component untuk preview
         const FAQItem = ({ question, answer }) => {
           const [isOpen, setIsOpen] = useState(false);
           return (
             <div className="faq-item">
-              <button 
-                className="faq-question" 
+              <button
+                className="faq-question"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
               >
@@ -499,7 +555,7 @@ export default function AddProducts3Page() {
             </div>
           );
         };
-        
+
         if (!productKategori) {
           return (
             <section className="preview-faq-section">
@@ -512,15 +568,15 @@ export default function AddProducts3Page() {
             </section>
           );
         }
-        
+
         return (
           <section className="preview-faq-section" aria-label="Frequently Asked Questions">
             <h2 className="faq-title">Pertanyaan yang Sering Diajukan</h2>
             <div className="faq-container">
               {faqItems.map((faq, index) => (
-                <FAQItem 
+                <FAQItem
                   key={index}
-                  question={faq.question} 
+                  question={faq.question}
                   answer={faq.answer}
                 />
               ))}
@@ -533,10 +589,10 @@ export default function AddProducts3Page() {
           if (!harga || harga === 0) return "0";
           return harga.toLocaleString("id-ID");
         };
-        
+
         const hargaAsli = pengaturanForm.harga_asli || 0;
         const hargaPromo = pengaturanForm.harga_promo || 0;
-        
+
         return (
           <section className="preview-price-section special-offer-card" aria-label="Special offer" itemScope itemType="https://schema.org/Offer">
             <h2 className="special-offer-title">Special Offer!</h2>
@@ -554,12 +610,22 @@ export default function AddProducts3Page() {
             <meta itemProp="availability" content="https://schema.org/InStock" />
           </section>
         );
-      case "button":
+      case "button": {
+        const buttonData = block.data || {};
+        const preset = buttonData.style || "primary";
+        const btnInline = buildLandingButtonInlineStyle(buttonData);
         return (
-          <button className={`preview-button preview-button-${block.data.style || 'primary'}`}>
-            {block.data.text || "Klik Disini"}
-          </button>
+          <div style={{ width: "100%", textAlign: "center", boxSizing: "border-box" }}>
+            <button
+              type="button"
+              className={`preview-button preview-button-${preset}`}
+              style={btnInline}
+            >
+              {buttonData.text || "Klik Disini"}
+            </button>
+          </div>
         );
+      }
       case "html":
         return <div dangerouslySetInnerHTML={{ __html: block.data.code || "" }} />;
       case "embed":
@@ -659,11 +725,11 @@ export default function AddProducts3Page() {
         // Fetch kategori
         const kategoriRes = await fetch("/api/sales/kategori-produk", { headers });
         const kategoriData = await kategoriRes.json();
-        
+
         const activeCategories = Array.isArray(kategoriData.data)
           ? kategoriData.data.filter((k) => k.status === "1")
           : [];
-        
+
         const kategoriOpts = activeCategories.map((k) => ({
           label: `${k.id} - ${k.nama}`,
           value: String(k.id),
@@ -673,12 +739,12 @@ export default function AddProducts3Page() {
         // Fetch sales list from /api/sales/lead/sales-list
         const salesRes = await fetch("/api/sales/lead/sales-list", { headers });
         const salesJson = await salesRes.json();
-        
+
         const salesOpts = Array.isArray(salesJson.data)
           ? salesJson.data.map((sales) => ({
-              label: sales.nama || sales.name || `Sales ${sales.id}`,
-              value: String(sales.id),
-            }))
+            label: sales.nama || sales.name || `Sales ${sales.id}`,
+            value: String(sales.id),
+          }))
           : [];
         setUserOptions(salesOpts);
       } catch (err) {
@@ -691,7 +757,7 @@ export default function AddProducts3Page() {
   // Fungsi untuk generate kode dari nama (slugify)
   const generateKode = (text) => {
     if (!text) return "";
-    
+
     return text
       .toLowerCase()
       .trim()
@@ -713,8 +779,8 @@ export default function AddProducts3Page() {
       // Auto-generate kode dan URL dari nama
       const kode = generateKode(value);
       const url = kode ? `/${kode}` : "";
-      setPengaturanForm((prev) => ({ 
-        ...prev, 
+      setPengaturanForm((prev) => ({
+        ...prev,
         nama: value,
         kode: kode,
         url: url
@@ -724,8 +790,8 @@ export default function AddProducts3Page() {
       // Format langsung saat user mengetik
       const formattedKode = generateKode(value);
       const url = formattedKode ? `/${formattedKode}` : "";
-      setPengaturanForm((prev) => ({ 
-        ...prev, 
+      setPengaturanForm((prev) => ({
+        ...prev,
         kode: formattedKode,
         url: url
       }));
@@ -750,12 +816,12 @@ export default function AddProducts3Page() {
                     className="component-item"
                     onClick={() => handleAddComponent(component.id)}
                   >
-                    <div 
+                    <div
                       className="component-icon"
                       style={{ backgroundColor: `${component.color}15` }}
                     >
-                      <IconComponent 
-                        size={24} 
+                      <IconComponent
+                        size={24}
                         style={{ color: component.color }}
                       />
                     </div>
@@ -782,6 +848,33 @@ export default function AddProducts3Page() {
           <ArrowLeft size={18} />
           <span>Back to Products</span>
         </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={handleImportTemplateFile}
+          />
+          <button
+            className="action-btn-secondary"
+            onClick={() => importFileInputRef.current?.click()}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+            title="Import Template dari file JSON"
+          >
+            <Upload size={16} />
+            <span>Import</span>
+          </button>
+          <button
+            className="action-btn-secondary"
+            onClick={handleExportTemplate}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+            title="Download Template JSON"
+          >
+            <Code size={16} />
+            <span>Export</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -814,7 +907,7 @@ export default function AddProducts3Page() {
                     {renderComponent(block, index)}
                   </div>
                 ))}
-                
+
                 {/* Button Tambah Komponen Baru - Selalu di bawah komponen terakhir */}
                 <button
                   className="add-component-btn"
@@ -830,7 +923,7 @@ export default function AddProducts3Page() {
                 <div className="pengaturan-section">
                   <h3 className="pengaturan-section-title">Informasi Dasar</h3>
                   <p className="pengaturan-section-description">Data utama produk yang akan ditampilkan</p>
-                  
+
                   <div className="pengaturan-form-group">
                     <label className="pengaturan-label">
                       Nama Produk <span className="required">*</span>
@@ -856,7 +949,7 @@ export default function AddProducts3Page() {
                       onChange={(e) => {
                         const selectedValue = e.value;
                         const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
-                          ? String(selectedValue) 
+                          ? String(selectedValue)
                           : null;
                         handlePengaturanChange("kategori", finalValue);
                         setProductKategori(finalValue ? Number(finalValue) : null);
@@ -888,8 +981,8 @@ export default function AddProducts3Page() {
                           const newValue = currentValue.slice(0, cursorPos) + '-' + currentValue.slice(cursorPos);
                           const formattedValue = generateKode(newValue);
                           const url = formattedValue ? `/${formattedValue}` : "";
-                          setPengaturanForm((prev) => ({ 
-                            ...prev, 
+                          setPengaturanForm((prev) => ({
+                            ...prev,
                             kode: formattedValue,
                             url: url
                           }));
@@ -915,11 +1008,11 @@ export default function AddProducts3Page() {
                         inputValue = inputValue.replace(/-+/g, '-');
                         // Hapus dash di awal dan akhir
                         inputValue = inputValue.replace(/^-+|-+$/g, '');
-                        
+
                         // Update langsung dengan format yang sudah benar
                         const url = inputValue ? `/${inputValue}` : "";
-                        setPengaturanForm((prev) => ({ 
-                          ...prev, 
+                        setPengaturanForm((prev) => ({
+                          ...prev,
                           kode: inputValue,
                           url: url
                         }));
@@ -939,11 +1032,11 @@ export default function AddProducts3Page() {
                         inputValue = inputValue.replace(/-+/g, '-');
                         // Hapus dash di awal dan akhir
                         inputValue = inputValue.replace(/^-+|-+$/g, '');
-                        
+
                         // Update langsung dengan format yang sudah benar
                         const url = inputValue ? `/${inputValue}` : "";
-                        setPengaturanForm((prev) => ({ 
-                          ...prev, 
+                        setPengaturanForm((prev) => ({
+                          ...prev,
                           kode: inputValue,
                           url: url
                         }));
@@ -971,7 +1064,7 @@ export default function AddProducts3Page() {
                 {/* Harga Asli */}
                 <div className="pengaturan-section">
                   <h3 className="pengaturan-section-title">Harga Asli</h3>
-                  
+
                   <div className="pengaturan-form-group">
                     <label className="pengaturan-label">Harga Asli</label>
                     <InputNumber
@@ -1002,19 +1095,118 @@ export default function AddProducts3Page() {
                     />
                   </div>
 
-                  <div className="pengaturan-form-group">
-                    <label className="pengaturan-label">Tanggal Event</label>
-                    <Calendar
-                      className="pengaturan-input"
-                      value={pengaturanForm.tanggal_event}
-                      onChange={(e) => handlePengaturanChange("tanggal_event", e.value)}
-                      placeholder="Pilih tanggal dan jam event"
-                      showIcon
-                      showTime
-                      hourFormat="24"
-                      dateFormat="dd/mm/yy HH:mm"
-                      showButtonBar
-                    />
+                  {/* JADWAL / TANGGAL EVENT (MULTIPLE) */}
+                  <div className="pengaturan-form-group" style={{ marginTop: "1rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <label className="pengaturan-label" style={{ marginBottom: 0 }}>
+                        Jadwal / Tanggal Event
+                      </label>
+                      <Button
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Tambah"
+                        className="p-button-outlined p-button-xs"
+                        style={{ fontSize: '12px', padding: '4px 8px' }}
+                        onClick={() => {
+                          const newJadwal = [...(pengaturanForm.jadwal || []), { nama_jadwal: "", waktu_mulai: null, waktu_selesai: null, kuota: null, status: "A" }];
+                          handlePengaturanChange("jadwal", newJadwal);
+                        }}
+                      />
+                    </div>
+
+                    <div className="jadwal-list-builder" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {(pengaturanForm.jadwal || []).map((j, i) => (
+                        <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', background: '#f9fafb' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Jadwal {i + 1}</span>
+                            <Button
+                              type="button"
+                              icon="pi pi-trash"
+                              className="p-button-danger p-button-text p-button-xs"
+                              style={{ padding: '0', height: '20px', width: '20px' }}
+                              onClick={() => {
+                                const newJadwal = pengaturanForm.jadwal.filter((_, idx) => idx !== i);
+                                handlePengaturanChange("jadwal", newJadwal);
+                              }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <InputText
+                              className="pengaturan-input p-inputtext-sm"
+                              value={j.nama_jadwal}
+                              onChange={(e) => {
+                                const newJadwal = [...pengaturanForm.jadwal];
+                                newJadwal[i].nama_jadwal = e.target.value;
+                                handlePengaturanChange("jadwal", newJadwal);
+                              }}
+                              placeholder="Nama Jadwal (e.g. Batch 1)"
+                              style={{ fontSize: '13px' }}
+                            />
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                              <Calendar
+                                className="p-inputtext-sm"
+                                value={j.waktu_mulai}
+                                showTime
+                                hourFormat="24"
+                                onChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].waktu_mulai = e.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                placeholder="Mulai"
+                                style={{ width: '100%' }}
+                                inputStyle={{ fontSize: '12px' }}
+                              />
+                              <Calendar
+                                className="p-inputtext-sm"
+                                value={j.waktu_selesai}
+                                showTime
+                                hourFormat="24"
+                                onChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].waktu_selesai = e.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                placeholder="Selesai"
+                                style={{ width: '100%' }}
+                                inputStyle={{ fontSize: '12px' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                              <InputNumber
+                                className="p-inputtext-sm"
+                                value={j.kuota}
+                                onValueChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].kuota = e.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                placeholder="Kuota"
+                                style={{ width: '100%' }}
+                                inputStyle={{ fontSize: '12px' }}
+                              />
+                              <Dropdown
+                                className="p-inputtext-sm"
+                                value={j.status || "A"}
+                                options={[
+                                  { label: "Aktif", value: "A" },
+                                  { label: "Non-Aktif", value: "N" }
+                                ]}
+                                onChange={(e) => {
+                                  const newJadwal = [...pengaturanForm.jadwal];
+                                  newJadwal[i].status = e.value;
+                                  handlePengaturanChange("jadwal", newJadwal);
+                                }}
+                                style={{ width: '100%', fontSize: '12px' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1043,29 +1235,55 @@ export default function AddProducts3Page() {
           </div>
         </div>
 
-        {/* Right Canvas - Preview */}
+        {/* Right Canvas - Preview + simulasi perangkat */}
         <div className="page-builder-canvas">
-          <div className="canvas-wrapper">
-            {/* Nama Produk - Selalu muncul di paling atas, tidak bisa dipindahkan */}
-            {pengaturanForm.nama && (
-              <div className="canvas-preview-block canvas-product-title-block">
-                <h1 className="preview-product-title">{pengaturanForm.nama}</h1>
+          <div className="preview-device-toolbar">
+            <span className="preview-device-toolbar-label">Simulasi tampilan</span>
+            <div className="preview-device-tabs" role="tablist" aria-label="Ukuran preview landing page">
+              {[
+                { id: "mobile", label: "Mobile", Icon: Smartphone },
+                { id: "tablet", label: "Tablet", Icon: Tablet },
+                { id: "laptop", label: "Laptop", Icon: Laptop },
+              ].map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={previewDevice === id}
+                  className={`preview-device-tab ${previewDevice === id ? "is-active" : ""}`}
+                  onClick={() => setPreviewDevice(id)}
+                >
+                  <Icon size={16} aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="preview-device-stage">
+            <div className={`preview-device-frame preview-device-frame--${previewDevice}`}>
+              <div className="canvas-wrapper">
+                {/* Nama Produk - Selalu muncul di paling atas, tidak bisa dipindahkan */}
+                {pengaturanForm.nama && (
+                  <div className="canvas-preview-block canvas-product-title-block">
+                    <h1 className="preview-product-title">{pengaturanForm.nama}</h1>
+                  </div>
+                )}
+
+                {/* Placeholder jika belum ada komponen */}
+                {blocks.length === 0 && !pengaturanForm.nama && (
+                  <div className="canvas-empty">
+                    <p>Klik "Tambah Komponen Baru" untuk memulai</p>
+                  </div>
+                )}
+
+                {/* Preview komponen */}
+                {blocks.map((block) => (
+                  <div key={block.id} className="canvas-preview-block">
+                    {renderPreview(block)}
+                  </div>
+                ))}
               </div>
-            )}
-            
-            {/* Placeholder jika belum ada komponen */}
-            {blocks.length === 0 && !pengaturanForm.nama && (
-              <div className="canvas-empty">
-                <p>Klik "Tambah Komponen Baru" untuk memulai</p>
-              </div>
-            )}
-            
-            {/* Preview komponen */}
-            {blocks.map((block) => (
-              <div key={block.id} className="canvas-preview-block">
-                {renderPreview(block)}
-              </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -1077,22 +1295,22 @@ export default function AddProducts3Page() {
             {/* Header */}
             <div className="simple-modal-header">
               <h2 className="simple-modal-title">Pilih Komponen</h2>
-              <button 
+              <button
                 className="simple-modal-close"
                 onClick={() => setShowComponentModal(false)}
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             {/* Content */}
             <div className="simple-modal-content">
               {renderComponentGrid()}
             </div>
-            
+
             {/* Footer */}
             <div className="simple-modal-footer">
-              <button 
+              <button
                 className="simple-modal-cancel"
                 onClick={() => setShowComponentModal(false)}
               >

@@ -13,28 +13,15 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
 });
 
 const FOLLOWUP_TABS = [
-  { type: 1, label: "Follow Up 1" },
-  { type: 2, label: "Follow Up 2" },
-  { type: 3, label: "Follow Up 3" },
-  { type: 4, label: "Follow Up 4" },
+  { type: "unlimited", label: "Followup Reminder" },
   { type: 5, label: "Register" },
   { type: 6, label: "Processing" },
   { type: 7, label: "Selesai" },
-  { type: 8, label: "Upselling" },
+  { type: "upselling", label: "Upselling" },
   { type: 9, label: "Redirect" },
 ];
 
-// Type yang perlu settingan jam/hari manual
-const SCHEDULED_TYPES = [1, 2, 3, 4]; // Follow Up 1-4
-
-// Type yang langsung kirim tanpa delay (instant send - trigger dari backend)
-const INSTANT_SEND_TYPES = [5, 6, 7]; // Register, Processing, Selesai
-
-// Type upselling: H+1 dari tanggal event produk (default, tidak bisa edit)
-const UPSELLING_TYPE = 8;
-
-// Type redirect (instant seperti lainnya)
-const REDIRECT_TYPE = 9;
+const INSTANT_SEND_TYPES = [5, 6, 7, 9];
 
 const AUTOTEXT_OPTIONS = [
   { label: "Pilih Autotext", value: "" },
@@ -51,36 +38,48 @@ const AUTOTEXT_OPTIONS = [
   { label: "Sisa Tagihan (Formatted)", value: "{{amount_remaining_formatted}}" },
 ];
 
-// Mapping nama dari response ke type
+// Mapping nama ke type untuk instant types
 const NAMA_TO_TYPE = {
-  "Follow Up 1": 1,
-  "Follow Up 2": 2,
-  "Follow Up 3": 3,
-  "Follow Up 4": 4,
-  "Register": 5,
-  "Processing": 6,
-  "Selesai": 7,
-  "Upselling": 8,
-  "Redirect": 9,
+  "Register": "5",
+  "Processing": "6",
+  "Selesai": "7",
+  "Redirect": "9",
 };
 
 export default function FollowupSection() {
   const params = useParams();
   const produkId = params.id;
 
-  const [activeType, setActiveType] = useState(1);
-  const [templates, setTemplates] = useState([]); // array lokal template
-  const [text, setText] = useState("");
-  const [eventValue, setEventValue] = useState("1d-09:00");
-  const [scheduleDay, setScheduleDay] = useState(1);
-  const [scheduleTime, setScheduleTime] = useState("09:00");
-  const [autoSend, setAutoSend] = useState(false);
+  const [activeType, setActiveType] = useState("unlimited");
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedAutotext, setSelectedAutotext] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const textareaRef = useRef(null);
+  // INLINE FORM STATE (for non-unlimited, non-upselling types)
+  const [text, setText] = useState("");
+  const [eventValue, setEventValue] = useState("0d-00:00");
+  const [scheduleDay, setScheduleDay] = useState(0);
+  const [scheduleTime, setScheduleTime] = useState("00:00");
+  const [autoSend, setAutoSend] = useState(false);
+  const [selectedAutotextInline, setSelectedAutotextInline] = useState("");
+  const [showEmojiPickerInline, setShowEmojiPickerInline] = useState(false);
+  const textareaRefInline = useRef(null);
+
+  // MODAL STATE (for unlimited type & upselling type)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalData, setModalData] = useState({
+    id: null,
+    nama: "",
+    text: "",
+    event: "1d-09:00",
+    status: "1",
+    scheduleDay: 1,
+    scheduleTime: "09:00",
+  });
+  const [selectedAutotextModal, setSelectedAutotextModal] = useState("");
+  const [showEmojiPickerModal, setShowEmojiPickerModal] = useState(false);
+  const textareaRefModal = useRef(null);
 
   const parseEventValue = (value = "1d-09:00") => {
     const [dayPart = "1d", timePart = "09:00"] = value.split("-");
@@ -95,39 +94,24 @@ export default function FollowupSection() {
     return `${safeDay}d-${safeTime}`;
   };
 
-  const insertAtCursor = (value) => {
+  const insertAtCursor = (value, ref, textState, setTextState) => {
     if (!value) return;
-    const textarea = textareaRef.current;
+    const textarea = ref.current;
     if (!textarea) {
-      setText((prev) => (prev || "") + value);
+      setTextState((prev) => (prev || "") + value);
       return;
     }
     const start = textarea.selectionStart ?? textarea.value.length;
     const end = textarea.selectionEnd ?? textarea.value.length;
-    const before = text.slice(0, start);
-    const after = text.slice(end);
+    const before = textState.slice(0, start);
+    const after = textState.slice(end);
     const newValue = `${before}${value}${after}`;
-    setText(newValue);
+    setTextState(newValue);
     requestAnimationFrame(() => {
       const newPos = start + value.length;
       textarea.focus();
       textarea.setSelectionRange(newPos, newPos);
     });
-  };
-
-  const handleInsertAutotext = () => {
-    if (!selectedAutotext) {
-      toast.error("Pilih autotext terlebih dahulu");
-      return;
-    }
-    insertAtCursor(selectedAutotext);
-  };
-
-  const handleEmojiClick = (emojiData) => {
-    const emoji = emojiData?.emoji;
-    if (emoji) {
-      insertAtCursor(emoji);
-    }
   };
 
   // Fetch template follow-up per produk
@@ -149,20 +133,23 @@ export default function FollowupSection() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          // Map response data dengan menambahkan type berdasarkan nama
-          const mappedTemplates = (data.data || []).map((tpl) => ({
-            ...tpl,
-            type: NAMA_TO_TYPE[tpl.nama] || null, // Map nama ke type
-          }));
+          const mappedTemplates = (data.data || []).map((tpl) => {
+            let mappedType;
+            if (String(tpl.type) === "8") {
+              mappedType = "upselling";
+            } else if (String(tpl.type) === "1" || String(tpl.nama).includes("Follow Up")) {
+              mappedType = "unlimited";
+            } else {
+              mappedType = NAMA_TO_TYPE[tpl.nama] || String(tpl.type);
+            }
+            return { ...tpl, type: mappedType };
+          });
           setTemplates(mappedTemplates);
-          console.log("✅ [FOLLOWUP] Templates loaded:", mappedTemplates);
         } else {
-          console.error("❌ [FOLLOWUP] Failed to load templates:", data.message);
           toast.error(data.message || "Gagal memuat template");
         }
       })
       .catch((err) => {
-        console.error("❌ [FOLLOWUP] Error fetching templates:", err);
         toast.error("Gagal memuat template followup");
       })
       .finally(() => {
@@ -170,63 +157,29 @@ export default function FollowupSection() {
       });
   }, [produkId]);
 
-  // Update textarea dan event saat tab/type berubah
+  // Update INLINE form state if activeType is instant
   useEffect(() => {
-    // Cari template berdasarkan type yang sudah di-map, atau berdasarkan nama
-    const tpl = templates.find((t) => {
-      // Cek berdasarkan type yang sudah di-map
-      if (t.type === activeType) return true;
-      // Atau cek berdasarkan nama (fallback)
-      const expectedName = FOLLOWUP_TABS.find((tab) => tab.type === activeType)?.label;
-      return t.nama === expectedName;
-    });
-
-    if (tpl) {
-      setText(tpl.text || "");
-      const eventVal = tpl.event || "1d-09:00";
-      setEventValue(eventVal);
-      // Parse eventValue ke scheduleDay dan scheduleTime
-      const parsed = parseEventValue(eventVal);
-      setScheduleDay(parsed.days);
-      setScheduleTime(parsed.time);
-      setAutoSend(tpl.status === "1");
-      console.log("✅ [FOLLOWUP] Template loaded for type", activeType, ":", tpl, "| parsed event:", parsed);
-    } else {
-      setText("");
-      // Set default value berdasarkan type
-      if (SCHEDULED_TYPES.includes(activeType)) {
-        // Type 1-4: Follow Up dengan jadwal manual
-        setEventValue("1d-09:00");
-        setScheduleDay(1);
-        setScheduleTime("09:00");
-      } else if (INSTANT_SEND_TYPES.includes(activeType)) {
-        // Type 5, 6, 7: Instant send (trigger dari backend)
-        setEventValue("0d-00:00");
-        setScheduleDay(0);
-        setScheduleTime("00:00");
-      } else if (activeType === UPSELLING_TYPE) {
-        // Type 8: Upselling - H+1 dari tanggal event
-        setEventValue("1d-09:00"); // Default H+1 jam 09:00
-        setScheduleDay(1);
-        setScheduleTime("09:00");
-      } else if (activeType === REDIRECT_TYPE) {
-        // Type 9: Redirect - instant
-        setEventValue("0d-00:00");
-        setScheduleDay(0);
-        setScheduleTime("00:00");
+    if (activeType !== "unlimited" && activeType !== "upselling") {
+      const tpl = templates.find((t) => String(t.type) === String(activeType) || t.nama === FOLLOWUP_TABS.find(tab => tab.type === activeType)?.label);
+      if (tpl) {
+        setText(tpl.text || "");
+        setEventValue(tpl.event || "0d-00:00");
+        const parsed = parseEventValue(tpl.event || "0d-00:00");
+        setScheduleDay(parsed.days);
+        setScheduleTime(parsed.time);
+        setAutoSend(tpl.status === "1");
       } else {
-        // Fallback default
-        setEventValue("1d-09:00");
-        setScheduleDay(1);
-        setScheduleTime("09:00");
+        setText("");
+        setEventValue("0d-00:00");
+        setScheduleDay(0);
+        setScheduleTime("00:00");
+        setAutoSend(false);
       }
-      setAutoSend(false);
-      console.log("ℹ️ [FOLLOWUP] No template found for type", activeType);
     }
   }, [activeType, templates]);
 
-  // Save template ke backend & update array lokal
-  const handleSave = async () => {
+  // Save Inline Template
+  const handleSaveInline = async () => {
     if (!text.trim()) {
       toast.error("Text tidak boleh kosong");
       return;
@@ -241,10 +194,8 @@ export default function FollowupSection() {
       text: text.trim(),
       type: String(activeType),
       event: eventValue,
-      status: autoSend ? "1" : "2", // 1 = aktif, 2 = nonaktif
+      status: autoSend ? "1" : "2",
     };
-
-    console.log("🔵 [FOLLOWUP] Saving template:", payload);
 
     try {
       const res = await fetch(`${BASE_URL}/sales/template-follup/store`, {
@@ -258,65 +209,299 @@ export default function FollowupSection() {
       });
 
       const data = await res.json();
-      console.log("🟡 [FOLLOWUP] Save response:", data);
-
       if (data.success) {
-        // Update lokal array dengan data dari response
         const savedTemplate = {
           ...data.data,
-          type: activeType, // Tambahkan type untuk mapping
+          type: activeType,
           text: text.trim(),
           event: eventValue,
           status: autoSend ? "1" : "2",
         };
 
         setTemplates((prev) => {
-          // Cari template yang sudah ada berdasarkan type atau nama
-          const exists = prev.find((tpl) => {
-            return tpl.type === activeType ||
-              tpl.nama === savedTemplate.nama ||
-              tpl.id === savedTemplate.id;
-          });
-
+          const exists = prev.find((tpl) => String(tpl.type) === String(activeType));
           if (exists) {
-            return prev.map((tpl) => {
-              const isMatch = tpl.type === activeType ||
-                tpl.nama === savedTemplate.nama ||
-                tpl.id === savedTemplate.id;
-              return isMatch ? savedTemplate : tpl;
-            });
+            return prev.map((tpl) => (String(tpl.type) === String(activeType) ? savedTemplate : tpl));
           } else {
             return [...prev, savedTemplate];
           }
         });
-
-        console.log("✅ [FOLLOWUP] Template saved and updated locally");
         toast.success(data.message || "Template berhasil disimpan!");
       } else {
-        console.error("❌ [FOLLOWUP] Save failed:", data.message);
         toast.error(data.message || "Gagal menyimpan template");
       }
     } catch (err) {
-      console.error("❌ [FOLLOWUP] Error saving template:", err);
       toast.error("Gagal menyimpan template");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setText("");
-    setEventValue("1d-09:00");
+  // Open Modal for Create
+  const handleOpenModal = () => {
+    const isUpselling = activeType === "upselling";
+    setModalTitle(isUpselling ? "Tambah Upselling Baru" : "Tambah Reminder Baru");
+
+    // Hitung index untuk nama default
+    const existingList = templates.filter(t => t.type === activeType);
+    const newIdx = existingList.length + 1;
+    const defaultName = isUpselling ? `Upselling ${newIdx}` : `Follow Up ${newIdx}`;
+
+    setModalData({
+      id: null,
+      nama: defaultName,
+      text: "",
+      event: "1d-09:00",
+      status: "1",
+      scheduleDay: 1,
+      scheduleTime: "09:00",
+    });
+    setSelectedAutotextModal("");
+    setIsModalOpen(true);
+  };
+
+  // Open Modal for Edit
+  const handleEditModal = (tpl) => {
+    const parsed = parseEventValue(tpl.event);
+    setModalTitle(activeType === "upselling" ? "Edit Upselling" : "Edit Reminder");
+    setModalData({
+      id: tpl.id,
+      nama: tpl.nama || "",
+      text: tpl.text || "",
+      event: tpl.event || "1d-09:00",
+      status: tpl.status || "1",
+      scheduleDay: parsed.days,
+      scheduleTime: parsed.time,
+    });
+    setSelectedAutotextModal("");
+    setIsModalOpen(true);
+  };
+
+  // Save Modal Template
+  const handleSaveModal = async () => {
+    if (!modalData.text.trim()) {
+      toast.error("Text harus diisi");
+      return;
+    }
+
+    setSaving(true);
+    const token = localStorage.getItem("token");
+
+    const mappedType = activeType === "upselling" ? "8" : "1";
+    // Jika tidak ada input nama di modal, kita gunakan nama yang di set state (otomatis)
+    const payload = {
+      nama: modalData.nama.trim() || (activeType === "upselling" ? "Upselling" : "Follow Up"),
+      produk: produkId,
+      text: modalData.text.trim(),
+      type: mappedType,
+      event: modalData.event,
+      status: modalData.status,
+    };
+
+    if (modalData.id) {
+      payload.id = modalData.id;
+    }
+
+    const endpoint = modalData.id
+      ? `${BASE_URL}/sales/template-follup/update/${modalData.id}`
+      : `${BASE_URL}/sales/template-follup/store`;
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST", // assume update also uses POST or adapt if PUT is needed
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const savedTemplate = {
+          ...data.data,
+          id: modalData.id || data.data.id,
+          type: activeType,
+          nama: payload.nama,
+          text: modalData.text.trim(),
+          event: modalData.event,
+          status: modalData.status,
+        };
+
+        setTemplates((prev) => {
+          if (modalData.id) {
+            return prev.map((tpl) => tpl.id === modalData.id ? savedTemplate : tpl);
+          } else {
+            return [...prev, savedTemplate];
+          }
+        });
+
+        toast.success(data.message || "Template berhasil disimpan!");
+        setIsModalOpen(false);
+      } else {
+        toast.error(data.message || "Gagal menyimpan template");
+      }
+    } catch (err) {
+      toast.error("Gagal menyimpan template");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus template ini?")) return;
+
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${BASE_URL}/sales/template-follup/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Accept": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setTemplates((prev) => prev.filter((tpl) => tpl.id !== id));
+        toast.success("Template berhasil dihapus");
+      } else {
+        toast.error("Gagal menghapus template");
+      }
+    } catch (err) {
+      toast.error("Gagal menghapus template");
+    }
+  };
+
+  const renderActiveTabContent = () => {
+    if (activeType === "unlimited" || activeType === "upselling") {
+      const list = templates.filter(t => t.type === activeType);
+      const isUpselling = activeType === "upselling";
+      const title = isUpselling ? "Upselling (Unlimited)" : "Follow Up / Reminder (Unlimited)";
+      const subtitle = isUpselling ? "Tambahkan pesan upselling secara berurutan." : "Tambahkan pesan followup secara berurutan.";
+      const btnText = isUpselling ? "+ Tambah upselling" : "+ Tambah reminder";
+      const emptyText = isUpselling ? "Belum ada upselling. Silakan klik Tambah upselling." : "Belum ada reminder. Silakan klik Tambah reminder.";
+
+      return (
+        <div className="unlimited-wrapper">
+          <div className="unlimited-header-area">
+            <h3 className="unlimited-title">{title}</h3>
+            <p className="unlimited-subtitle">{subtitle}</p>
+            <button className="btn-add-green" onClick={handleOpenModal}>
+              {btnText}
+            </button>
+          </div>
+
+          <div className="unlimited-list">
+            {list.length === 0 ? (
+              <div className="empty-dashed-box">
+                <i>{emptyText}</i>
+              </div>
+            ) : (
+              list.map((tpl) => {
+                const parsed = parseEventValue(tpl.event);
+                return (
+                  <div key={tpl.id} className="fu-item-card">
+                    <div className="fu-item-header">
+                      <div className="fu-item-title">
+                        <span className="status-indicator" style={{ background: tpl.status === "1" ? "#10B981" : "#EF4444" }}></span>
+                        {tpl.nama}
+                      </div>
+                      <div className="fu-item-actions">
+                        <button className="edit-btn" onClick={() => handleEditModal(tpl)}><i className="pi pi-pencil" /></button>
+                        <button className="delete-btn" onClick={() => handleDelete(tpl.id)}><i className="pi pi-trash" /></button>
+                      </div>
+                    </div>
+                    <div className="fu-item-meta">
+                      {isUpselling ? (
+                        <span className="meta-schedule"><i className="pi pi-calendar-plus" /> H+{parsed.days} dari Event ({parsed.time})</span>
+                      ) : (
+                        <span className="meta-schedule"><i className="pi pi-clock" /> H+{parsed.days} ({parsed.time})</span>
+                      )}
+                    </div>
+                    <div className="fu-item-preview">{tpl.text?.substring(0, 80)}...</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Inline form for Instant Sends
+    return (
+      <div className="inline-form-section">
+        <label className="label">Pengaturan Text</label>
+        <textarea
+          ref={textareaRefInline}
+          className="followup-textarea"
+          rows={10}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Tulis template followup disini..."
+        />
+
+        <div className="control-row">
+          <div className="autotext-group">
+            <select
+              className="select-auto"
+              value={selectedAutotextInline}
+              onChange={(e) => setSelectedAutotextInline(e.target.value)}
+            >
+              {AUTOTEXT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => {
+                if (!selectedAutotextInline) return toast.error("Pilih autotext");
+                insertAtCursor(selectedAutotextInline, textareaRefInline, text, setText);
+              }}
+            >Insert</button>
+          </div>
+
+          <div className="emoji-wrapper">
+            <button
+              type="button"
+              className={`btn-outline ${showEmojiPickerInline ? "active" : ""}`}
+              onClick={() => setShowEmojiPickerInline((prev) => !prev)}
+            >😊 Emoji</button>
+            {showEmojiPickerInline && (
+              <div className="emoji-popover">
+                <EmojiPicker
+                  onEmojiClick={(e) => insertAtCursor(e.emoji, textareaRefInline, text, setText)}
+                  height={320} width={280} searchDisabled previewConfig={{ showPreview: false }} skinTonesDisabled
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="schedule-box">
+          <label className="schedule-row">
+            <input type="checkbox" checked={autoSend} onChange={() => setAutoSend(!autoSend)} />
+            Enable Auto Send
+          </label>
+        </div>
+
+        <button className="save-btn" onClick={handleSaveInline} disabled={saving || loading}>
+          {saving ? "Menyimpan..." : "Simpan"}
+        </button>
+      </div>
+    );
   };
 
   return (
-    <div className="followup-card">
-      {/* TOP TABS */}
-      <div className="followup-tabs">
+    <div className="followup-container">
+      <div className="followup-tabs-container">
         {FOLLOWUP_TABS.map((t) => (
           <button
             key={t.type}
-            className={`tab ${activeType === t.type ? "active" : ""}`}
+            className={`tab-btn ${activeType === t.type ? "active" : ""}`}
             onClick={() => setActiveType(t.type)}
           >
             {t.label}
@@ -324,426 +509,399 @@ export default function FollowupSection() {
         ))}
       </div>
 
-      {/* TEXT AREA */}
-      <label className="label">Pengaturan Text</label>
-      <textarea
-        ref={textareaRef}
-        className="followup-textarea"
-        rows={10}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Tulis template followup disini..."
-      />
+      {loading && <p style={{ padding: '20px', color: "#666" }}>Memuat template...</p>}
 
-      <div className="control-row">
-        {/* AUTOTEXT */}
-        <div className="autotext-group">
-          <select
-            className="select-auto"
-            value={selectedAutotext}
-            onChange={(e) => setSelectedAutotext(e.target.value)}
-          >
-            {AUTOTEXT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="insert-btn"
-            onClick={handleInsertAutotext}
-            disabled={!selectedAutotext}
-          >
-            Insert
-          </button>
-        </div>
+      {!loading && renderActiveTabContent()}
 
-        <div className="emoji-wrapper">
-          <button
-            type="button"
-            className={`btn-emoji ${showEmojiPicker ? "active" : ""}`}
-            onClick={() => setShowEmojiPicker((prev) => !prev)}
-          >
-            😊
-            <span>Emoticon</span>
-          </button>
-          {showEmojiPicker && (
-            <div className="emoji-popover">
-              <EmojiPicker
-                onEmojiClick={handleEmojiClick}
-                height={320}
-                width={280}
-                searchDisabled={false}
-                previewConfig={{ showPreview: false }}
-                skinTonesDisabled
-              />
+      {/* MODAL UNLIMITED/UPSELLING */}
+      {isModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <h2 className="modal-title">{modalTitle}</h2>
+              <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
             </div>
-          )}
-        </div>
 
-        <button className="reset-text" onClick={handleReset}>
-          Reset Text
-        </button>
-      </div>
-
-      {/* SCHEDULE */}
-      <div className="schedule-box">
-        <label className="schedule-row">
-          <input
-            type="checkbox"
-            checked={autoSend}
-            onChange={() => setAutoSend(!autoSend)}
-          />
-          Enable Auto Send
-        </label>
-
-        {/* Type 1-4: Follow Up dengan settingan jam/hari */}
-        {SCHEDULED_TYPES.includes(activeType) && (
-          <>
-            <div className="schedule-grid">
-              <div className="schedule-card">
-                <label>Delay (Hari)</label>
-                <div className="schedule-input">
-                  <input
-                    type="number"
-                    min="0"
-                    value={scheduleDay}
-                    onChange={(e) => {
-                      const newDay = Math.max(0, Number(e.target.value) || 0);
-                      setScheduleDay(newDay);
-                      setEventValue(formatEventValue(newDay, scheduleTime));
-                    }}
-                  />
-                  <span>hari</span>
-                </div>
-              </div>
-              <div className="schedule-card">
-                <label>Jam Kirim</label>
-                <input
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(e) => {
-                    const newTime = e.target.value || "09:00";
-                    setScheduleTime(newTime);
-                    setEventValue(formatEventValue(scheduleDay, newTime));
-                  }}
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="font-semibold text-gray-700">Pengaturan Text</label>
+                <textarea
+                  ref={textareaRefModal}
+                  className="modal-textarea"
+                  rows={8}
+                  value={modalData.text}
+                  onChange={(e) => setModalData({ ...modalData, text: e.target.value })}
                 />
               </div>
-            </div>
-            <p className="schedule-hint">
-              Format terkirim ke backend: <strong>{eventValue}</strong>
-            </p>
-          </>
-        )}
 
-        {/* Type 5, 6, 7: Instant Send (trigger dari backend) */}
-        {INSTANT_SEND_TYPES.includes(activeType) && (
-          <div className="instant-send-info">
-            <div className="instant-badge">
-              <i className="pi pi-bolt" />
-              Instant Send
+              <div className="control-row">
+                <div className="autotext-group">
+                  <select
+                    className="select-auto"
+                    value={selectedAutotextModal}
+                    onChange={(e) => setSelectedAutotextModal(e.target.value)}
+                  >
+                    {AUTOTEXT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => {
+                      if (!selectedAutotextModal) return toast.error("Pilih autotext");
+                      insertAtCursor(selectedAutotextModal, textareaRefModal, modalData.text, (v) => setModalData({ ...modalData, text: v(modalData.text) }));
+                    }}
+                  >Insert</button>
+                </div>
+
+                <div className="emoji-wrapper">
+                  <button
+                    type="button"
+                    className={`btn-outline ${showEmojiPickerModal ? "active" : ""}`}
+                    onClick={() => setShowEmojiPickerModal(!showEmojiPickerModal)}
+                  >😊 Emoji</button>
+                  {showEmojiPickerModal && (
+                    <div className="emoji-popover">
+                      <EmojiPicker
+                        onEmojiClick={(e) => insertAtCursor(e.emoji, textareaRefModal, modalData.text, (v) => setModalData({ ...modalData, text: v(modalData.text) }))}
+                        height={320} width={280} searchDisabled previewConfig={{ showPreview: false }} skinTonesDisabled
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <hr className="dashed-hr" />
+
+              <label className="checkbox-row font-semibold">
+                <input
+                  type="checkbox"
+                  checked={modalData.status === "1"}
+                  onChange={(e) => setModalData({ ...modalData, status: e.target.checked ? "1" : "2" })}
+                />
+                Aktifkan auto send
+              </label>
+
+              <div className="schedule-grid">
+                <div className="form-group">
+                  <label className="text-gray-500">{activeType === "upselling" ? "After Jadwal Event (hari)" : "Delay (hari)"}</label>
+                  <input
+                    type="number"
+                    className="modal-input"
+                    min="0"
+                    value={modalData.scheduleDay}
+                    onChange={(e) => {
+                      const newDay = Math.max(0, Number(e.target.value) || 0);
+                      const newEvent = formatEventValue(newDay, modalData.scheduleTime);
+                      setModalData({ ...modalData, scheduleDay: newDay, event: newEvent });
+                    }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="text-gray-500">Jam kirim</label>
+                  <div className="time-input-wrapper">
+                    <input
+                      type="time"
+                      className="modal-input"
+                      value={modalData.scheduleTime}
+                      onChange={(e) => {
+                        const newTime = e.target.value || "09:00";
+                        const newEvent = formatEventValue(modalData.scheduleDay, newTime);
+                        setModalData({ ...modalData, scheduleTime: newTime, event: newEvent });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <p className="instant-desc">
-              {activeType === 5 && "Pesan akan langsung dikirim saat customer berhasil melakukan pemesanan."}
-              {activeType === 6 && "Pesan akan langsung dikirim setelah customer melakukan pembayaran."}
-              {activeType === 7 && "Pesan akan langsung dikirim saat event/pesanan selesai (terimakasih sudah mengikuti webinar/seminar/workshop)."}
-            </p>
+
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setIsModalOpen(false)}>Batal</button>
+              <button className="btn-save-dark" onClick={handleSaveModal} disabled={saving}>
+                {saving ? "..." : "Simpan"}
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Type 8: Upselling - H+1 dari tanggal event */}
-        {activeType === UPSELLING_TYPE && (
-          <div className="instant-send-info upselling-info">
-            <div className="instant-badge upselling-badge">
-              <i className="pi pi-calendar-plus" />
-              H+1 Tanggal Event
-            </div>
-            <p className="instant-desc">
-              Pesan upselling akan otomatis dikirim <strong>1 hari setelah tanggal event produk</strong> sebagai penawaran produk lanjutan.
-            </p>
-            <p className="schedule-hint" style={{ marginTop: "8px" }}>
-              Jadwal dikirim otomatis berdasarkan: <strong>tanggal_event + 1 hari</strong>
-            </p>
-          </div>
-        )}
-
-        {/* Type 9: Redirect - Instant */}
-        {activeType === REDIRECT_TYPE && (
-          <div className="instant-send-info redirect-info">
-            <div className="instant-badge redirect-badge">
-              <i className="pi pi-directions" />
-              Redirect Message
-            </div>
-            <p className="instant-desc">
-              Pesan redirect akan dikirim sesuai kondisi tertentu yang di-trigger dari sistem.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <button
-        className="save-btn"
-        onClick={handleSave}
-        disabled={saving || loading}
-      >
-        {saving ? "Menyimpan..." : "Save"}
-      </button>
-
-      {loading && (
-        <p style={{ textAlign: "center", color: "#666", marginTop: "10px" }}>
-          Memuat template...
-        </p>
+        </div>
       )}
 
       <style>{`
-        .followup-card {
-          background: white;
-          padding: 20px;
-          border-radius: 16px;
-          box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        .followup-container {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
           margin-top: 20px;
+          overflow: hidden;
         }
 
-        .followup-tabs {
+        .followup-tabs-container {
           display: flex;
-          gap: 8px;
-          margin-bottom: 15px;
-          flex-wrap: wrap;
+          border-bottom: 1px solid #e2e8f0;
+          background: #ffffff;
+          overflow-x: auto;
+          padding: 0 16px;
         }
 
-        .tab {
+        .tab-btn {
+          padding: 16px 20px;
+          background: transparent;
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: #64748b;
+          font-weight: 500;
+          font-size: 14px;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+          color: #334155;
+        }
+
+        .tab-btn.active {
+          color: #f59e0b;
+          border-bottom-color: #f59e0b;
+        }
+
+        .unlimited-wrapper {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          margin: 20px;
+          padding: 24px;
+        }
+
+        .unlimited-header-area {
+          margin-bottom: 24px;
+        }
+
+        .unlimited-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #334155;
+          margin: 0 0 4px 0;
+        }
+
+        .unlimited-subtitle {
+          font-size: 14px;
+          color: #64748b;
+          margin: 0 0 16px 0;
+        }
+
+        .btn-add-green {
+          background: #10b981;
+          color: white;
+          border: none;
           padding: 8px 16px;
-          border: 1px solid #ddd;
-          background: #f7f7f7;
-          border-radius: 8px;
+          border-radius: 6px;
+          font-weight: 500;
+          font-size: 14px;
           cursor: pointer;
         }
 
-        .tab.active {
-          background: #2563EB;
-          color: white;
-          border-color: #2563EB;
+        .btn-add-green:hover {
+          background: #059669;
         }
 
-        .label {
-          display: block;
-          margin-bottom: 6px;
-          font-weight: 600;
-        }
-
-        .followup-textarea {
-          width: 100%;
-          border-radius: 12px;
-          border: 1px solid #ddd;
-          padding: 10px;
+        .empty-dashed-box {
+          border: 1px dashed #cbd5e1;
+          background: #ffffff;
+          border-radius: 8px;
+          padding: 32px;
+          text-align: center;
+          color: #94a3b8;
           font-size: 14px;
         }
 
-        .control-row {
+        .unlimited-list { display: flex; flex-direction: column; gap: 12px; }
+        .fu-item-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; background: #ffffff; border-left: 4px solid #f59e0b; }
+        .fu-item-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .fu-item-title { font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+        .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .fu-item-actions { display: flex; gap: 8px; }
+        .edit-btn, .delete-btn { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px; cursor: pointer; color: #64748b; }
+        .edit-btn:hover { color: #2563eb; border-color: #2563eb; }
+        .delete-btn:hover { color: #ef4444; border-color: #ef4444; }
+        .fu-item-meta { margin-bottom: 10px; }
+        .meta-schedule { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .fu-item-preview { font-size: 13px; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #e2e8f0; }
+
+        .modal-backdrop {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(15, 23, 42, 0.4);
           display: flex;
-          gap: 10px;
-          margin-top: 10px;
-          flex-wrap: wrap;
-          align-items: flex-start;
-          position: relative;
-        }
-
-        .autotext-group {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
           align-items: center;
+          justify-content: center;
+          z-index: 9999;
         }
 
-        .select-auto {
-          border: 1px solid #ddd;
-          padding: 6px 10px;
-          border-radius: 8px;
-        }
-
-        .btn-emoji,
-        .insert-btn {
-          padding: 8px 14px;
-          border-radius: 8px;
-          border: 1px solid #ddd;
-          background: white;
-          cursor: pointer;
-          font-weight: 500;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .btn-emoji.active {
-          border-color: #2563EB;
-          background: #EEF4FF;
-          color: #2563EB;
-        }
-
-        .emoji-wrapper {
-          position: relative;
-        }
-
-        .emoji-popover {
-          position: absolute;
-          top: 50px;
-          right: 0;
-          z-index: 30;
-          background: white;
-          border: 1px solid #e5e7eb;
+        .modal-dialog {
+          background: #ffffff;
+          width: 90%;
+          max-width: 550px;
           border-radius: 12px;
-          box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
-          padding: 6px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
-        .reset-text {
-          margin-left: auto;
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 24px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .modal-title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 500;
+          color: #0f172a;
+        }
+
+        .close-btn {
           background: none;
-          color: #2563EB;
-          cursor: pointer;
           border: none;
+          font-size: 24px;
+          color: #64748b;
+          cursor: pointer;
+          line-height: 1;
+        }
+
+        .modal-body {
+          padding: 24px;
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .font-semibold {
           font-weight: 600;
         }
 
-        .schedule-box {
-          margin-top: 24px;
-          border-top: 1px solid #eef2ff;
-          padding-top: 18px;
+        .text-gray-700 {
+          color: #334155;
+        }
+        
+        .text-gray-500 {
+          color: #64748b;
+          font-size: 14px;
+          margin-bottom: 6px;
+          display: block;
+        }
+
+        .modal-textarea {
+          width: 100%;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 12px;
+          font-size: 14px;
+          margin-top: 8px;
+          resize: vertical;
+        }
+
+        .modal-textarea:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 1px #3b82f6;
+        }
+
+        .control-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .autotext-group { display: flex; gap: 8px; }
+        .select-auto { border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-size: 14px; background: #fff; }
+        
+        .btn-outline {
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 14px;
+          color: #334155;
+          cursor: pointer;
+          font-weight: 500;
+        }
+        
+        .btn-outline:hover {
+          background: #f8fafc;
+        }
+
+        .emoji-wrapper { position: relative; }
+        .emoji-popover { position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+
+        .dashed-hr {
+          border: none;
+          border-top: 1px dashed #cbd5e1;
+          margin: 24px 0;
+        }
+
+        .checkbox-row {
           display: flex;
-          flex-direction: column;
-          gap: 16px;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 24px;
+          color: #1e293b;
         }
 
         .schedule-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
         }
 
-        .schedule-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          padding: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
-        }
-
-        .schedule-card label {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .schedule-card input {
-          border: 1px solid #d1d5db;
-          border-radius: 10px;
-          padding: 8px 10px;
-          font-size: 14px;
+        .modal-input {
           width: 100%;
-        }
-
-        .schedule-input {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .schedule-input span {
-          font-size: 13px;
-          color: #6b7280;
-        }
-
-        .schedule-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-weight: 600;
-        }
-
-        .schedule-hint {
-          font-size: 13px;
-          color: #6b7280;
-        }
-
-        .schedule-hint strong {
-          color: #111827;
-        }
-
-        .instant-send-info {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border: 1px solid #f59e0b;
-          border-radius: 14px;
-          padding: 16px;
-        }
-
-        .instant-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: #f59e0b;
-          color: white;
-          padding: 6px 14px;
-          border-radius: 20px;
-          font-weight: 600;
-          font-size: 14px;
-          width: fit-content;
-        }
-
-        .instant-badge i {
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 10px 12px;
           font-size: 14px;
         }
 
-        .instant-desc {
-          font-size: 14px;
-          color: #92400e;
-          margin: 0;
-        }
-
-        /* Upselling style */
-        .upselling-info {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        .modal-input:focus {
+          outline: none;
           border-color: #3b82f6;
         }
 
-        .upselling-badge {
-          background: #3b82f6;
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 16px 24px;
+          border-top: 1px solid #f1f5f9;
         }
 
-        .upselling-info .instant-desc {
-          color: #1e40af;
-        }
-
-        /* Redirect style */
-        .redirect-info {
-          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-          border-color: #a855f7;
-        }
-
-        .redirect-badge {
-          background: #a855f7;
-        }
-
-        .redirect-info .instant-desc {
-          color: #6b21a8;
-          line-height: 1.5;
-        }
-
-        .save-btn {
-          margin-top: 20px;
-          background: #2563EB;
-          color: white;
-          padding: 10px 18px;
-          border: none;
-          border-radius: 10px;
+        .btn-cancel {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          padding: 8px 16px;
+          border-radius: 6px;
+          color: #475569;
+          font-weight: 500;
           cursor: pointer;
         }
+
+        .btn-save-dark {
+          background: #0f172a;
+          color: white;
+          border: none;
+          padding: 8px 24px;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .btn-save-dark:hover {
+          background: #1e293b;
+        }
+
+        /* INLINE FORM OVERRIDES */
+        .inline-form-section { padding: 24px; }
+        .label { font-weight: 600; color: #334155; margin-bottom: 8px; display: block; }
+        .followup-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; }
+        .save-btn { background: #0f172a; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-top: 24px; }
       `}</style>
     </div>
   );

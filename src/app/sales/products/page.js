@@ -103,6 +103,12 @@ export default function AdminProductsPage() {
     return `Rp ${parseInt(price).toLocaleString("id-ID")}`;
   }, []);
 
+  const formatListRupiah = useCallback((value) => {
+    const n = Math.round(Number(value ?? 0));
+    if (Number.isNaN(n)) return "Rp 0";
+    return `Rp ${n.toLocaleString("id-ID")}`;
+  }, []);
+
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "-";
     try {
@@ -246,11 +252,11 @@ export default function AdminProductsPage() {
                 <tr>
                   <th className="sticky-left-1" style={{ width: '250px', minWidth: '250px' }}>PRODUCT</th>
                   <th className="sticky-left-2" style={{ left: '250px' }}>CATEGORY</th>
+                  <th style={{ minWidth: "150px", maxWidth: "200px" }}>REVENUE</th>
                   <th>STATUS</th>
                   <th>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>EVENT</span>
-                      <span>DATE</span>
+                      <span>JADWAL</span>
                     </div>
                   </th>
                   <th>
@@ -275,7 +281,7 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="table-empty">Loading data...</td></tr>
+                  <tr><td colSpan={8} className="table-empty">Loading data...</td></tr>
                 ) : paginatedData.length > 0 ? (
                   paginatedData.map((p, i) => (
                     <tr key={p.id}>
@@ -324,15 +330,83 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
                       <td className="sticky-left-2" style={{ left: '250px' }}>{p.kategori_rel?.nama || "-"}</td>
+                      <td style={{ whiteSpace: "normal", verticalAlign: "top" }}>
+                        {(() => {
+                          const revenue = Number(p.total_revenue ?? 0);
+                          const pctRaw = p.fee_trainer;
+                          const pct = Number(pctRaw);
+                          const showTrainerFee =
+                            pctRaw != null &&
+                            pctRaw !== "" &&
+                            Number.isFinite(pct) &&
+                            pct > 0;
+                          const trainerFeeRp = showTrainerFee
+                            ? Math.round(revenue * (pct / 100))
+                            : null;
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600,
+                                  color: "#111827",
+                                }}
+                              >
+                                {formatListRupiah(revenue)}
+                              </span>
+                              {showTrainerFee && (
+                                <span style={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.35 }}>
+                                  fee trainer ({pct.toFixed(1)}%) = {formatListRupiah(trainerFeeRp)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td>{getStatusBadge(p.status)}</td>
-                      <td>{formatDate(p.tanggal_event)}</td>
+                      <td>
+                        {(() => {
+                          const jadwalArr = p.jadwal_rel || [];
+                          if (jadwalArr.length === 0) {
+                            return <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>;
+                          }
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {jadwalArr.map((j, idx) => (
+                                <div key={idx} style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  background: '#f0f9ff',
+                                  border: '1px solid #bae6fd',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  minWidth: '130px',
+                                }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0369a1', lineHeight: 1.3 }}>
+                                    {j.nama_jadwal || `Jadwal ${idx + 1}`}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: '#475569', marginTop: '1px' }}>
+                                    {j.waktu_mulai ? formatDate(j.waktu_mulai) : '—'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td>{p.user_rel?.nama || "-"}</td>
                       <td>{getAssignNames(p.assign)}</td>
                       <td>{formatDate(p.create_at)}</td>
                     </tr>
                   ))
                 ) : (
-                  <tr><td colSpan={7} className="table-empty">{products.length ? "Tidak ada hasil pencarian." : "Belum ada produk."}</td></tr>
+                  <tr><td colSpan={8} className="table-empty">{products.length ? "Tidak ada hasil pencarian." : "Belum ada produk."}</td></tr>
                 )}
               </tbody>
             </table>

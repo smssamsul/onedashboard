@@ -1,4 +1,6 @@
 import ToasterProvider from "@/components/ToasterProvider";
+import WebSocketErrorHandler from "@/components/WebSocketErrorHandler";
+import "./globals.css";
 
 export const metadata = {
   title: "One Dashboard",
@@ -21,6 +23,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <WebSocketErrorHandler />
         {children}
         <ToasterProvider />
       </body>

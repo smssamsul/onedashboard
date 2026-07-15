@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { InputText } from "primereact/inputtext";
+import { Button } from "primereact/button";
 import { InputTextarea } from "primereact/inputtextarea";
 import { InputNumber } from "primereact/inputnumber";
 import { Calendar } from "primereact/calendar";
 import { Dropdown } from "primereact/dropdown";
 import { InputSwitch } from "primereact/inputswitch";
-import { Button } from "primereact/button";
 import LandingTemplate from "@/components/LandingTemplate";
 import { MultiSelect } from "primereact/multiselect";
 import { ArrowLeft } from "lucide-react";
@@ -673,6 +673,10 @@ const handleSubmit = async () => {
 const [kategoriOptions, setKategoriOptions] = useState([]);
 const [userOptions, setUserOptions] = useState([]);
 const [currentUser, setCurrentUser] = useState(null); // User yang sedang login
+// Meta Pixel options dari backend
+const [metaPixelOptions, setMetaPixelOptions] = useState([]);
+const [isLoadingMetaPixel, setIsLoadingMetaPixel] = useState(false);
+const [isCreatingMetaPixel, setIsCreatingMetaPixel] = useState(false);
 
 useEffect(() => {
   async function fetchInitialData() {
@@ -772,6 +776,34 @@ useEffect(() => {
       // Log untuk debugging
       console.log("📋 User Options (Assign By):", userOpts);
 
+      // 4️⃣ Fetch Meta Pixel list
+      try {
+        setIsLoadingMetaPixel(true);
+        const pixelRes = await fetch("/api/sales/pixel-meta", {
+          headers: {
+            ...headers,
+            Accept: "application/json",
+          },
+        });
+        const pixelJson = await pixelRes.json();
+
+        if (!pixelRes.ok || pixelJson.success === false) {
+          console.error("[META PIXEL] Gagal memuat data:", pixelJson);
+        } else {
+          const pixels = Array.isArray(pixelJson.data) ? pixelJson.data : [];
+          const pixelOpts = pixels.map((p) => ({
+            label: p.nama ? p.nama : `${p.id} - ${p.pixel}`,
+            value: Number(p.id),
+          }));
+          setMetaPixelOptions(pixelOpts);
+          console.log("📋 Meta Pixel Options:", pixelOpts);
+        }
+      } catch (error) {
+        console.error("[META PIXEL] Error fetch pixel-meta:", error);
+      } finally {
+        setIsLoadingMetaPixel(false);
+      }
+
       // ✅ SELALU generate kode dari nama dengan dash
       const kodeGenerated = generateKode(produkData.nama || "produk-baru");
 
@@ -806,6 +838,59 @@ useEffect(() => {
 
   fetchInitialData();
 }, []);
+
+// Tambah Meta Pixel baru via API backend
+const handleCreateMetaPixel = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Token tidak ditemukan, silakan login ulang.");
+    return;
+  }
+
+  const pixel = window.prompt("Masukkan ID Meta Pixel (Facebook Pixel ID) baru:");
+  if (!pixel || !pixel.trim()) return;
+
+  try {
+    setIsCreatingMetaPixel(true);
+    const res = await fetch("/api/sales/pixel-meta", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pixel: pixel.trim() }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.success === false) {
+      console.error("[META PIXEL] Gagal membuat pixel:", data);
+      alert(data.message || "Gagal membuat Meta Pixel baru");
+      return;
+    }
+
+    const created = data.data;
+    const newOption = {
+      label: `${created.id} - ${created.pixel}`,
+      value: Number(created.id),
+    };
+    setMetaPixelOptions((prev) => [...prev, newOption]);
+
+    // Auto-select pixel baru di form
+    const currentPixels = Array.isArray(form.fb_pixel) ? form.fb_pixel : [];
+    handleChange("fb_pixel", [
+      ...currentPixels.map((v) => Number(v)).filter((n) => !Number.isNaN(n)),
+      Number(created.id),
+    ]);
+
+    alert("Meta Pixel berhasil dibuat dan ditambahkan ke produk.");
+  } catch (error) {
+    console.error("[META PIXEL] Error create pixel:", error);
+    alert("Terjadi kesalahan saat membuat Meta Pixel baru");
+  } finally {
+    setIsCreatingMetaPixel(false);
+  }
+};
 
 
   // ============================
@@ -1035,19 +1120,100 @@ useEffect(() => {
               />
             </div>
           </div>
-
-          {/* TANGGAL EVENT */}
-          <div className="form-field-group">
-            <label className="form-label">
-              Tanggal Event
-            </label>
-            <Calendar
-              className="w-full form-input"
-              showTime
-              value={form.tanggal_event ? new Date(form.tanggal_event) : null}
-              onChange={(e) => handleChange("tanggal_event", e.value)}
-              placeholder="Pilih tanggal event"
-            />
+                {/* JADWAL PRODUK (MULTIPLE) */}
+          <div className="form-field-group" style={{ marginTop: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>
+                Jadwal Produk (Multiple)
+              </label>
+              <Button
+                type="button"
+                icon="pi pi-plus"
+                label="Tambah Jadwal"
+                className="p-button-outlined p-button-sm"
+                onClick={() => addArray("jadwal", { nama_jadwal: "", waktu_mulai: null, waktu_selesai: null, kuota: null, status: "A" })}
+              />
+            </div>
+            
+            <div className="jadwal-list-container">
+              {form.jadwal && form.jadwal.map((j, i) => (
+                <div key={i} className="gallery-item-card" style={{ marginBottom: "1rem", border: "1px solid #e2e8f0", padding: "1rem", borderRadius: "8px" }}>
+                  <div className="gallery-item-header" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+                    <span className="gallery-item-number" style={{ fontWeight: 600 }}>Jadwal {i + 1}</span>
+                    <Button
+                      type="button"
+                      icon="pi pi-trash"
+                      severity="danger"
+                      className="p-button-danger p-button-sm"
+                      onClick={() => removeArray("jadwal", i)}
+                    />
+                  </div>
+                  <div className="gallery-item-content">
+                    <div className="form-field-group">
+                      <label className="form-label-small">Nama Jadwal <span className="required">*</span></label>
+                      <InputText
+                        className="w-full form-input"
+                        value={j.nama_jadwal}
+                        onChange={(e) => updateArrayItem("jadwal", i, "nama_jadwal", e.target.value)}
+                        placeholder="Contoh: Batch 1, Sesi Pagi, dll"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="form-field-group">
+                        <label className="form-label-small">Waktu Mulai <span className="required">*</span></label>
+                        <Calendar
+                          className="w-full form-input"
+                          value={j.waktu_mulai}
+                          showTime
+                          hourFormat="24"
+                          onChange={(e) => updateArrayItem("jadwal", i, "waktu_mulai", e.value)}
+                          placeholder="Mulai"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label-small">Waktu Selesai <span className="required">*</span></label>
+                        <Calendar
+                          className="w-full form-input"
+                          value={j.waktu_selesai}
+                          showTime
+                          hourFormat="24"
+                          onChange={(e) => updateArrayItem("jadwal", i, "waktu_selesai", e.value)}
+                          placeholder="Selesai"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="form-field-group">
+                        <label className="form-label-small">Kuota <span className="required">*</span></label>
+                        <InputNumber
+                          className="w-full form-input"
+                          value={j.kuota}
+                          onValueChange={(e) => updateArrayItem("jadwal", i, "kuota", e.value)}
+                          placeholder="Jumlah kuota"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label className="form-label-small">Status <span className="required">*</span></label>
+                        <Dropdown
+                          className="w-full form-input"
+                          value={j.status || "A"}
+                          options={[
+                            { label: "Aktif", value: "A" },
+                            { label: "Non-Aktif", value: "N" }
+                          ]}
+                          onChange={(e) => updateArrayItem("jadwal", i, "status", e.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!form.jadwal || form.jadwal.length === 0) && (
+                <div className="empty-state-card" style={{ textAlign: "center", padding: "2rem", border: "2px dashed #e2e8f0", borderRadius: "8px", color: "#64748b" }}>
+                  <p>Belum ada jadwal. Klik tombol "Tambah Jadwal" untuk menambahkan.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* LANDING PAGE TYPE */}
@@ -1365,6 +1531,39 @@ useEffect(() => {
           <p className="section-description">Assign user, landing page, dan status produk</p>
         </div>
         <div className="section-content">
+          {/* META PIXEL */}
+          <div className="form-field-group">
+            <label className="form-label">
+              Meta Pixel (Facebook Pixel ID)
+            </label>
+            <MultiSelect
+              className="w-full form-input"
+              value={
+                Array.isArray(form.fb_pixel)
+                  ? form.fb_pixel.filter(Boolean)
+                  : []
+              }
+              options={metaPixelOptions}
+              onChange={(e) =>
+                handleChange(
+                  "fb_pixel",
+                  e.value || []
+                )
+              }
+              placeholder={
+                isLoadingMetaPixel
+                  ? "Memuat daftar Meta Pixel..."
+                  : "Pilih Meta Pixel untuk produk ini"
+              }
+              display="chip"
+              showClear
+              filter
+              filterPlaceholder="Cari Meta Pixel..."
+              optionLabel="label"
+              optionValue="value"
+            />
+          </div>
+
           {/* CREATED BY - Read Only */}
           {/* ASSIGN BY - Penanggung Jawab */}
           <div className="form-field-group">

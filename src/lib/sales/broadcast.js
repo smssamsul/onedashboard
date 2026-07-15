@@ -24,6 +24,7 @@ export function normalizeBroadcastPayload(payload) {
     langsung_kirim: Boolean(payload.langsung_kirim),
     tanggal_kirim: null,
     target: {
+      tipe: payload.target?.tipe || "filter",
       produk: [],
     },
   };
@@ -78,9 +79,14 @@ export function normalizeBroadcastPayload(payload) {
     }
   }
 
-  // Ensure produk is always an array (wajib)
+  // Ensure produk is always an array (wajib untuk filter, opsional untuk excel)
   if (!normalized.target.produk || normalized.target.produk.length === 0) {
     normalized.target.produk = [];
+  }
+
+  // Sertakan excel_data jika tipe adalah excel
+  if (normalized.target.tipe === "excel" && payload.target?.excel_data) {
+    normalized.target.excel_data = payload.target.excel_data;
   }
 
   // Status Order: only include if selected (string) - OPTIONAL
@@ -137,6 +143,11 @@ export function normalizeBroadcastPayload(payload) {
       normalized.target.status_pembayaran = statusValue;
     }
     // If empty string or undefined, don't include it (will be absent from target)
+  }
+
+  // sender_sales_id: only include if selected - OPTIONAL
+  if (payload.target?.sender_sales_id !== undefined && payload.target?.sender_sales_id !== null && payload.target?.sender_sales_id !== "") {
+    normalized.target.sender_sales_id = Number(payload.target.sender_sales_id);
   }
 
   return normalized;

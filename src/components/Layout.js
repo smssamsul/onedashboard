@@ -8,6 +8,12 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { getDivisionHome } from "@/lib/divisionRoutes";
+import {
+  isSuperOpsUser,
+  inferSuperOpsTabFromPath,
+  getSuperOpsHomeRoute,
+  SUPER_OPS_TAB_STORAGE_KEY,
+} from "@/lib/superOps";
 import "@/styles/sales/layout.css";
 import "@/styles/toast.css";
 import "../app/globals.css";
@@ -46,6 +52,7 @@ function generateBreadcrumb(pathname) {
   const sectionMap = {
     customers: "CUSTOMERS",
     orders: "OPERATIONS",
+    pengiriman: "OPERATIONS",
     products: "OPERATIONS",
     kategori: "OPERATIONS",
     users: "USER MANAGEMENT",
@@ -120,7 +127,10 @@ export default function Layout({ children, title, description, aboveContent = nu
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [superOpsTab, setSuperOpsTab] = useState("hub");
   const accountRef = useRef(null);
+
+  const isSuperOps = useMemo(() => isSuperOpsUser(user), [user]);
 
   useEffect(() => {
     if (pathname.includes("/login")) {
@@ -143,31 +153,51 @@ export default function Layout({ children, title, description, aboveContent = nu
     try {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      
+
+      if (isSuperOpsUser(parsedUser)) {
+        setIsAuthorized(true);
+        return;
+      }
+
       // Check if user is accessing the correct route based on their level
       const userDivisi = parsedUser?.divisi;
       const userLevel = parsedUser?.level ? Number(parsedUser.level) : null;
       const expectedRoute = getDivisionHome(userDivisi, userLevel);
       
-      // Redirect logic based on level
-      if (userLevel === 2) {
-        // Staff level - should be on /{division}/staff or sub-routes
-        if (pathname === "/sales" || pathname === "/finance") {
-          // Staff trying to access leader route - redirect to staff route
-          router.replace(expectedRoute);
-          return;
-        }
-      } else if (userLevel === 1) {
-        // Leader level - should be on /{division} or sub-routes (but not /staff)
-        if (pathname === "/sales/staff" || pathname === "/finance/staff") {
-          // Leader trying to access staff route - redirect to leader route
-          router.replace(expectedRoute);
-          return;
-        }
-        // Also redirect if accessing /staff sub-routes
-        if (pathname.startsWith("/sales/staff/") || pathname.startsWith("/finance/staff/")) {
-          router.replace(expectedRoute);
-          return;
+      // ✅ FIX: Skip redirect logic untuk HR (divisi 5) - HR tidak punya level staff/head
+      const isHR = userDivisi === 5 || userDivisi === "5" || userDivisi === "hr";
+      const isMarketing = userDivisi === 6 || userDivisi === "6" || userDivisi === "marketing";
+      const isMultimedia = userDivisi === 7 || userDivisi === "7" || userDivisi === "multimedia" || userDivisi === "mm";
+      const isIT = userDivisi === 8 || userDivisi === "8" || userDivisi === "it";
+      const isDireksi = userLevel === 9 || userLevel === "9" || userDivisi === 9 || userDivisi === "9";
+      
+      // Direksi (level 9 atau divisi 9) - redirect ke /direksi
+      if (isDireksi && !pathname.startsWith("/direksi")) {
+        router.replace("/direksi");
+        return;
+      }
+      
+      // Redirect logic based on level (hanya untuk Sales dan Finance)
+      if (!isHR && !isMarketing && !isMultimedia && !isIT && !isDireksi) {
+        if (userLevel === 2) {
+          // Staff level - should be on /{division}/staff or sub-routes
+          if (pathname === "/sales" || pathname === "/finance") {
+            // Staff trying to access leader route - redirect to staff route
+            router.replace(expectedRoute);
+            return;
+          }
+        } else if (userLevel === 1) {
+          // Leader level - should be on /{division} or sub-routes (but not /staff)
+          if (pathname === "/sales/staff" || pathname === "/finance/staff") {
+            // Leader trying to access staff route - redirect to leader route
+            router.replace(expectedRoute);
+            return;
+          }
+          // Also redirect if accessing /staff sub-routes
+          if (pathname.startsWith("/sales/staff/") || pathname.startsWith("/finance/staff/")) {
+            router.replace(expectedRoute);
+            return;
+          }
         }
       }
       
@@ -176,6 +206,11 @@ export default function Layout({ children, title, description, aboveContent = nu
       setIsAuthorized(false);
     }
   }, [pathname, router]);
+
+  useEffect(() => {
+    if (!user || !isSuperOpsUser(user)) return;
+    setSuperOpsTab(inferSuperOpsTabFromPath(pathname));
+  }, [pathname, user]);
 
   const isLoginPage = pathname.includes("/login");
   const showShell = !isLoginPage;
@@ -237,6 +272,8 @@ export default function Layout({ children, title, description, aboveContent = nu
             role={user?.role || "admin"}
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen((prev) => !prev)}
+            isSuperOps={isSuperOps}
+            superOpsTab={superOpsTab}
           />
         )}
 
@@ -252,7 +289,34 @@ export default function Layout({ children, title, description, aboveContent = nu
                 >
                   <Menu size={20} />
                 </button>
-                
+
+                {isSuperOps && (
+                  <nav className="layout-super-ops-tabs" aria-label="Ganti divisi">
+                    {[
+                      { id: "hub", label: "Pusat" },
+                      { id: "sales", label: "Sales" },
+                      { id: "hr", label: "HR" },
+                      { id: "finance", label: "Finance" },
+                    ].map(({ id, label }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`layout-super-ops-tab ${superOpsTab === id ? "is-active" : ""}`}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem(SUPER_OPS_TAB_STORAGE_KEY, id);
+                          } catch {
+                            /* ignore */
+                          }
+                          router.push(getSuperOpsHomeRoute(id));
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                )}
+
                 <div className="layout-header__breadcrumb">
                   {breadcrumb.length > 0 ? (
                     breadcrumb.map((crumb, index) => (

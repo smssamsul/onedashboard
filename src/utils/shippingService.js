@@ -94,11 +94,22 @@ export async function getDistricts(cityId) {
  * @param {number} params.destination - Destination district ID
  * @param {number} params.weight - Berat dalam gram
  * @param {string} params.courier - Courier code (single courier: "jne", "sicepat", etc)
+ * @param {number} params.province_id - Province ID (optional but may be required by API)
  * @returns {Promise<Array>} Array of shipping cost objects { courier, service, description, etd, cost }
  */
-export async function calculateDomesticCost({ origin, destination, weight, courier }) {
+export async function calculateDomesticCost({
+  origin,
+  destination,
+  weight,
+  courier,
+  province_id,
+  destination_search,
+  destination_postal_code,
+  destination_area_id,
+  item_value,
+}) {
   try {
-    if (!origin || !destination || !weight || !courier) {
+    if (!weight || !courier) {
       return [];
     }
 
@@ -111,7 +122,12 @@ export async function calculateDomesticCost({ origin, destination, weight, couri
         origin,
         destination,
         weight,
-        courier
+        courier,
+        province_id,
+        destination_search,
+        destination_postal_code,
+        destination_area_id,
+        item_value,
       })
     });
 

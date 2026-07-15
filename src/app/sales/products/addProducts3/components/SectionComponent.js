@@ -7,7 +7,7 @@ import { Dropdown } from "primereact/dropdown";
 import { 
   X, ChevronUp, ChevronDown as ChevronDownIcon,
   Type, Image as ImageIcon, FileText, List, MessageSquare, 
-  HelpCircle, Youtube, Layout
+  HelpCircle, Youtube, Layout, MousePointerClick
 } from "lucide-react";
 import ComponentWrapper from "./ComponentWrapper";
 
@@ -38,6 +38,7 @@ const COMPONENT_CATEGORIES = {
       { id: "image", name: "Gambar", icon: ImageIcon, color: "#6b7280" },
       { id: "price", name: "Harga", icon: FileText, color: "#6b7280" },
       { id: "youtube", name: "Video", icon: Youtube, color: "#6b7280" },
+      { id: "button", name: "Tombol", icon: MousePointerClick, color: "#6b7280" },
     ]
   },
   formPemesanan: {
@@ -74,7 +75,7 @@ export default function SectionComponent({
   // Advance settings
   const marginRight = data.marginRight || 0;
   const marginLeft = data.marginLeft || 0;
-  const marginBetween = data.marginBetween || 16;
+  const marginBetween = data.marginBetween !== undefined ? data.marginBetween : 0;
   const border = data.border || 0;
   const borderColor = data.borderColor || "#000000";
   const backgroundColor = data.backgroundColor || "#ffffff";
@@ -397,7 +398,7 @@ export default function SectionComponent({
                     <InputNumber
                       value={marginRight}
                       onValueChange={(e) => handleChange("marginRight", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-margin-input"
                     />
@@ -410,7 +411,7 @@ export default function SectionComponent({
                     <InputNumber
                       value={marginLeft}
                       onValueChange={(e) => handleChange("marginLeft", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-margin-input"
                     />
@@ -426,8 +427,8 @@ export default function SectionComponent({
               <div className="advance-margin-input-wrapper">
                 <InputNumber
                   value={marginBetween}
-                  onValueChange={(e) => handleChange("marginBetween", e.value || 16)}
-                  min={0}
+                  onValueChange={(e) => handleChange("marginBetween", e.value !== null ? e.value : 0)}
+                  min={-9999}
                   max={200}
                   className="advance-margin-input"
                 />
@@ -442,7 +443,7 @@ export default function SectionComponent({
                 <InputNumber
                   value={border}
                   onValueChange={(e) => handleChange("border", e.value || 0)}
-                  min={0}
+                  min={-9999}
                   max={20}
                   className="advance-margin-input"
                 />
@@ -542,7 +543,7 @@ export default function SectionComponent({
                   Component ID <span className="required">*</span>
                 </label>
                 <InputText
-                  value={componentId}
+                  value={sectionComponentId || ""}
                   onChange={(e) => handleChange("componentId", e.target.value)}
                   placeholder="section-2Kb7LxmXaF"
                   className="w-full form-input"
@@ -551,7 +552,7 @@ export default function SectionComponent({
               <div className="form-field-group" style={{ marginTop: "12px" }}>
                 <label className="form-label-small">Title</label>
                 <InputText
-                  value={title}
+                  value={data.title || ""}
                   onChange={(e) => handleChange("title", e.target.value)}
                   placeholder="Section"
                   className="w-full form-input"

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
 import { createPortal } from "react-dom";
+import { trackSalesUploadedPaymentPurchase } from "@/lib/sales/metaPixelPurchase";
 
 // Use Next.js proxy to avoid CORS
 const BASE_URL = "/api";
@@ -55,6 +56,8 @@ export default function UpdateOrders({ order, onClose, onSave }) {
       : null
   );
   const [metodeBayar, setMetodeBayar] = useState(order?.metode_bayar ?? "");
+  const [namaPengirim, setNamaPengirim] = useState("");
+  const [noRekPengirim, setNoRekPengirim] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isDP, setIsDP] = useState(false);
@@ -70,6 +73,8 @@ export default function UpdateOrders({ order, onClose, onSave }) {
           : null
       );
       setMetodeBayar(order.metode_bayar ?? "");
+      setNamaPengirim("");
+      setNoRekPengirim("");
       setErrorMsg("");
       setIsDP(false);
       setAmount("");
@@ -278,11 +283,21 @@ export default function UpdateOrders({ order, onClose, onSave }) {
 
       formData.append("amount", String(amountValue));
 
+      // Opsional: identitas pengirim transfer
+      if (namaPengirim && namaPengirim.trim() !== "") {
+        formData.append("nama_pengirim", namaPengirim.trim());
+      }
+      if (noRekPengirim && noRekPengirim.trim() !== "") {
+        formData.append("no_rek_pengirim", noRekPengirim.trim());
+      }
+
       // Log untuk debugging - pastikan semua field ada
       console.log("🔍 [KONFIRMASI] ========== REQUEST DATA ==========");
       console.log("🔍 [KONFIRMASI] waktu_pembayaran:", waktuPembayaran);
       console.log("🔍 [KONFIRMASI] metode_pembayaran:", metodeBayar);
       console.log("🔍 [KONFIRMASI] amount:", amountValue);
+      console.log("🔍 [KONFIRMASI] nama_pengirim:", namaPengirim);
+      console.log("🔍 [KONFIRMASI] no_rek_pengirim:", noRekPengirim);
       console.log("🔍 [KONFIRMASI] bukti_pembayaran:", bukti?.file ? `[File] ${bukti.file.name} (${bukti.file.size} bytes)` : "TIDAK ADA");
       console.log("🔍 [KONFIRMASI] FormData entries:");
       for (const [key, value] of formData.entries()) {
@@ -293,6 +308,52 @@ export default function UpdateOrders({ order, onClose, onSave }) {
         }
       }
       console.log("🔍 [KONFIRMASI] ====================================");
+
+      // --- MULAI DEMO MODE PIXEL ---
+      // (Ubah ke false nanti jika ingin data benar-benar terkirim ke backend)
+      const isDemoMode = false;
+
+      if (isDemoMode) {
+        console.log("🛠️ [DEMO MODE] Menjalankan test Pixel Purchase tanpa kirim ke backend...");
+
+        let finalProdukRel = order?.produk_rel;
+        try {
+          console.log("🔍 [DEMO MODE] Mengambil detail order untuk mengekstrak Pixel (karena di list tidak ada)...");
+          const token = localStorage.getItem("token");
+          const detailRes = await fetch(`${BASE_URL}/sales/order/${order.id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            }
+          });
+          if (detailRes.ok) {
+            const detailData = await detailRes.json();
+            if (detailData?.data?.produk_rel) {
+              finalProdukRel = detailData.data.produk_rel;
+              console.log("✅ [DEMO MODE] Detail order berhasil diambil, fb_pixel:", finalProdukRel.fb_pixel);
+            }
+          }
+        } catch (err) {
+          console.error("Gagal mengambil detail pixel:", err);
+        }
+
+        if (finalProdukRel) {
+          console.log("[SALES DEMO] Triggering Purchase Pixel...");
+          trackSalesUploadedPaymentPurchase({
+            produk: finalProdukRel,
+            value: amountValue,
+            currency: "IDR",
+            orderId: order.id,
+          });
+          alert("✅ Demo Test Pixel Purchase Berhasil Ditembakkan!\n\nCek ekstensi Meta Pixel Helper di browser Anda.\nData TIDAK dikirim ke database karena mode Demo aktif.");
+        } else {
+          alert("⚠️ Gagal: Data produk (produk_rel) tidak ditemukan pada order ini.");
+        }
+
+        setSubmitting(false);
+        return;
+      }
+      // --- AKHIR DEMO MODE PIXEL ---
 
       const token = localStorage.getItem("token");
       const url = `${BASE_URL}/sales/order-konfirmasi/${order.id}`;
@@ -393,6 +454,37 @@ export default function UpdateOrders({ order, onClose, onSave }) {
       const successMessage = isFullyPaid
         ? "Pembayaran berhasil dikonfirmasi! Order sudah lunas."
         : `Pembayaran berhasil dikonfirmasi! Sisa yang harus dibayar: Rp ${newRemaining.toLocaleString("id-ID")}`;
+
+      // ✅ [PIXEL PURCHASE] Trigger Pixel Purchase di Sales setelah berhasil upload bukti pembayaran
+      if (isFullyPaid || konfirmasiOrder) {
+        let realProdukRel = order?.produk_rel;
+        try {
+          const detailRes = await fetch(`${BASE_URL}/sales/order/${order.id}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Accept: "application/json",
+            }
+          });
+          if (detailRes.ok) {
+            const detailData = await detailRes.json();
+            if (detailData?.data?.produk_rel) {
+              realProdukRel = detailData.data.produk_rel;
+            }
+          }
+        } catch (err) {
+          console.error("Gagal mengambil detail pixel:", err);
+        }
+
+        if (realProdukRel) {
+          console.log("[SALES] Triggering Purchase Pixel...");
+          trackSalesUploadedPaymentPurchase({
+            produk: realProdukRel,
+            value: amountValue,
+            currency: "IDR",
+            orderId: order.id,
+          });
+        }
+      }
 
       setErrorMsg("");
       // Success handled by onSave callback
@@ -501,7 +593,7 @@ export default function UpdateOrders({ order, onClose, onSave }) {
         <div className="modal-card" style={{ width: "min(960px, 95vw)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
           {/* Header */}
           <div className="modal-header">
-            <h2>Update Pesanan #{order?.id}</h2>
+            <h2>Update Pesanan {order?.kode_order || `#${order?.id || "-"}`}</h2>
             <button className="modal-close" onClick={onClose} type="button" aria-label="Tutup modal">
               <i className="pi pi-times" />
             </button>
@@ -1058,7 +1150,7 @@ export default function UpdateOrders({ order, onClose, onSave }) {
               <div className="konfirmasi-icon">💳</div>
               <div>
                 <h3>Konfirmasi Pembayaran</h3>
-                <p>Upload bukti pembayaran untuk order #{order?.id}</p>
+                <p>Upload bukti pembayaran untuk order {order?.kode_order || `#${order?.id || "-"}`}</p>
               </div>
               <button
                 className="konfirmasi-close"
@@ -1133,6 +1225,31 @@ export default function UpdateOrders({ order, onClose, onSave }) {
                   </span>
                 )}
               </label>
+
+              {/* Input opsional: data pengirim */}
+              <div className="konfirmasi-info" style={{ marginTop: 10 }}>
+                <label className="form-field" style={{ marginBottom: 10 }}>
+                  <span className="field-label">Nama Pengirim (opsional)</span>
+                  <input
+                    type="text"
+                    className="orders-input"
+                    value={namaPengirim}
+                    onChange={(e) => setNamaPengirim(e.target.value)}
+                    placeholder="Contoh: Budi Santoso"
+                  />
+                </label>
+                <label className="form-field" style={{ marginBottom: 0 }}>
+                  <span className="field-label">No. Rekening Pengirim (opsional)</span>
+                  <input
+                    type="text"
+                    className="orders-input"
+                    value={noRekPengirim}
+                    onChange={(e) => setNoRekPengirim(e.target.value)}
+                    placeholder="Contoh: 1234567890"
+                    inputMode="numeric"
+                  />
+                </label>
+              </div>
 
               {errorMsg && (
                 <div className="konfirmasi-error">⚠️ {errorMsg}</div>

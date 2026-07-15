@@ -139,6 +139,21 @@ export default function PaymentPage() {
 
   useEffect(() => {
     loadUnpaidOrders();
+
+    // Load Midtrans Snap script
+    const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
+    const snapScript = isProduction 
+      ? "https://app.midtrans.com/snap/snap.js" 
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-v9Kjzq0WcEjk4-W7";
+
+    if (!document.querySelector(`script[src="${snapScript}"]`)) {
+      const script = document.createElement("script");
+      script.src = snapScript;
+      script.setAttribute("data-client-key", clientKey);
+      script.async = true;
+      document.body.appendChild(script);
+    }
   }, [loadUnpaidOrders]);
 
   const handleContinuePayment = async (order) => {
@@ -211,8 +226,28 @@ export default function PaymentPage() {
             sessionStorage.setItem("midtrans_snap_token", data.snap_token);
           }
 
-          toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
-          window.open(data.redirect_url, "_blank");
+          if (window.snap && data.snap_token) {
+            window.snap.pay(data.snap_token, {
+              onSuccess: function (result) {
+                toast.success("Pembayaran berhasil!");
+                loadUnpaidOrders();
+              },
+              onPending: function (result) {
+                toast.success("Menunggu pembayaran!");
+                loadUnpaidOrders();
+              },
+              onError: function (result) {
+                toast.error("Pembayaran gagal!");
+              },
+              onClose: function () {
+                toast.error("Popup pembayaran ditutup tanpa penyelesaian.");
+              }
+            });
+          } else {
+            // Fallback jika window.snap gagal dimuat
+            toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
+            window.open(data.redirect_url, "_blank");
+          }
         } else {
           toast.error(data.message || "Gagal membuat sesi pembayaran online.");
           // Fallback manual

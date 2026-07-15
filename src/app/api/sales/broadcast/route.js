@@ -56,12 +56,13 @@ export async function POST(request) {
       );
     }
 
-    // Validate produk is present and not empty
-    if (!body.target?.produk || !Array.isArray(body.target.produk) || body.target.produk.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Pilih minimal satu produk" },
-        { status: 400 }
-      );
+    // Validate produk is present and not empty — ONLY for filter type, skip for excel
+    const isExcelType = body.target?.tipe === "excel" || body.target?.excel_data;
+    if (!isExcelType) {
+      if (!body.target?.produk || !Array.isArray(body.target.produk) || body.target.produk.length === 0) {
+        // produk kosong berarti semua produk (no filter), ini valid
+        // validasi ini hanya perlu jika backend membutuhkan produk wajib
+      }
     }
 
     // Prepare request body for backend
@@ -72,10 +73,13 @@ export async function POST(request) {
       langsung_kirim: Boolean(body.langsung_kirim),
       tanggal_kirim: body.tanggal_kirim || null,
       target: {
-        // Produk: always array of integers (wajib)
+        // Produk: array of integers (kosong = semua produk)
         produk: Array.isArray(body.target.produk)
           ? body.target.produk.map((id) => Number(id)).filter((id) => !isNaN(id) && id > 0)
           : [],
+        // Sertakan tipe dan excel_data jika ada
+        ...(body.target?.tipe ? { tipe: body.target.tipe } : {}),
+        ...(body.target?.excel_data ? { excel_data: body.target.excel_data } : {}),
       },
     };
 
@@ -135,12 +139,14 @@ export async function POST(request) {
       // If empty string or undefined, don't include it
     }
 
-    // Final validation: produk must not be empty
-    if (!requestBody.target.produk || requestBody.target.produk.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Pilih minimal satu produk" },
-        { status: 400 }
-      );
+    // Final validation: jika tipe excel, excel_data harus ada
+    if (requestBody.target?.tipe === "excel") {
+      if (!requestBody.target.excel_data || requestBody.target.excel_data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "Upload file Excel terlebih dahulu" },
+          { status: 400 }
+        );
+      }
     }
 
     console.log("📤 [BROADCAST-POST] Final request body to backend:", JSON.stringify(requestBody, null, 2));

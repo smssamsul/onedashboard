@@ -905,6 +905,47 @@ ORDERS ACTION BUTTONS
   box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.3) !important;
 }
 
+.orders-action-btn-primary {
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, border 0.2s ease;
+  gap: 0.2rem;
+  min-height: 28px;
+  background: #ff6c00;
+  color: #fff;
+  border-color: #ff6c00;
+  outline: none !important;
+}
+
+.orders-action-btn-primary:hover {
+  background: #e05f00;
+  border-color: #e05f00;
+  transform: translateY(-1px);
+}
+
+.orders-action-btn-primary:active,
+.orders-action-btn-primary:focus,
+.orders-action-btn-primary:focus-visible {
+  background: #cc5600 !important;
+  border-color: #cc5600 !important;
+  color: #fff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.3) !important;
+}
+
+.orders-action-btn-primary:disabled {
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
 .orders-action-btn--ghost {
   background: #eef2ff;
   color: #4338ca;
@@ -1884,5 +1925,95 @@ RESPONSIVE STYLES
 
   .timeline-date {
     font-size: 0.75rem;
+  }
+}
+
+/* ===========================
+MOBILE / NARROW: orders table (no frozen columns — scroll to see all)
+=========================== */
+@media (max-width: 900px) {
+  .orders-shell .orders-table__wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding: 0 0 0.75rem 0;
+    box-sizing: border-box;
+  }
+
+  /* Satu lebar minimum agar semua kolom bisa di-scroll, tanpa kolom menutupi kolom lain */
+  .orders-shell .table-orders {
+    min-width: 1020px !important;
+    border-spacing: 0 0.35rem;
+  }
+
+  .orders-shell .table-orders thead {
+    position: relative !important;
+    top: auto !important;
+    z-index: 1 !important;
+  }
+
+  .orders-shell .sticky-left-1,
+  .orders-shell .sticky-left-2,
+  .orders-shell .table-orders thead th.sticky-left-1,
+  .orders-shell .table-orders thead th.sticky-left-2 {
+    position: static !important;
+    left: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    z-index: auto !important;
+    box-shadow: none !important;
+  }
+
+  .orders-shell .table-orders tbody td.sticky-left-1,
+  .orders-shell .table-orders tbody td.sticky-left-2 {
+    position: static !important;
+    left: auto !important;
+    z-index: auto !important;
+    box-shadow: none !important;
+  }
+
+  .orders-shell .sticky-col-1,
+  .orders-shell .sticky-col-right,
+  .orders-shell .table-orders thead th.sticky-col-right,
+  .orders-shell .table-orders tbody td.sticky-col-right {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    box-shadow: none !important;
+  }
+
+  .orders-shell .col-product {
+    min-width: 160px !important;
+    max-width: none !important;
+  }
+
+  .orders-shell .table-orders th,
+  .orders-shell .table-orders td {
+    padding: 0.55rem 0.45rem;
+    font-size: 0.72rem;
+  }
+
+  .orders-shell .table-orders tbody tr:hover {
+    transform: none;
+  }
+
+  /* Staff orders: tabel order per pelanggan di dalam baris (timpa overflow:hidden inline) */
+  .orders-shell .table-orders>tbody>tr>td[colspan]>div {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100%;
+  }
+
+  .orders-shell .table-orders>tbody>tr>td[colspan]>div>table {
+    min-width: 720px;
   }
 }

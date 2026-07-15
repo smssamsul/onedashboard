@@ -3,12 +3,19 @@
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import Layout from "@/components/Layout";
 import dynamic from "next/dynamic";
-import { ShoppingCart, Clock, CheckCircle, PartyPopper, XCircle, X, Filter, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { ShoppingCart, Clock, CheckCircle, PartyPopper, XCircle, X, Filter, ExternalLink, Image as ImageIcon, Download } from "lucide-react";
 import { Calendar } from "primereact/calendar";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import "primereact/resources/primereact.min.css";
 import "@/styles/sales/orders-page.css";
 import { getOrders, updateOrderAdmin, getOrderStatistics } from "@/lib/sales/orders";
+import {
+  buildAdminOrdersQueryParams,
+  ordersToCsvString,
+  downloadCsvBlob,
+  ORDER_LIST_PER_PAGE_ALL,
+  resolveOrderListPerPageForRequest,
+} from "@/lib/sales/orderListQueryParams";
 import { api } from "@/lib/api";
 import { createPortal } from "react-dom";
 
@@ -49,10 +56,58 @@ const STATUS_PEMBAYARAN_MAP = {
 const STATUS_ORDER_MAP = {
   "1": { label: "Pending", class: "pending" },
   "2": { label: "Processing", class: "success" },
-  "3": { label: "Failed", class: "failed" },
+  "3": { label: "Cancelled", class: "failed" },
   "4": { label: "Completed", class: "completed" },
   "N": { label: "Deleted", class: "deleted" },
 };
+
+const UTM_FILTER_FIELDS = [
+  { key: "utm_source", label: "UTM Source" },
+  { key: "utm_medium", label: "UTM Medium" },
+  { key: "utm_campaign", label: "UTM Campaign" },
+  { key: "utm_term", label: "UTM Term" },
+  { key: "utm_content", label: "UTM Content" },
+];
+
+function emptyUtmColumnSelections() {
+  return Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, []]));
+}
+
+const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100, ORDER_LIST_PER_PAGE_ALL];
+
+function orderRowToExportRecord(order) {
+  const statusOrderRaw = order.status_order ?? order.status;
+  const sk = statusOrderRaw !== undefined && statusOrderRaw !== null ? String(statusOrderRaw) : "";
+  const statusOrderLabel = STATUS_ORDER_MAP[sk]?.label ?? String(order.status_order ?? "");
+  let spv = order.status_pembayaran;
+  if (spv === null || spv === undefined) spv = 0;
+  else {
+    spv = Number(spv);
+    if (Number.isNaN(spv)) spv = 0;
+  }
+  const spLabel = STATUS_PEMBAYARAN_MAP[spv]?.label ?? String(order.status_pembayaran ?? "");
+  const row = {
+    "Kode Order": order.kode_order || order.id || "",
+    Tanggal: order.tanggal || order.create_at || "",
+    Customer: order.customer_rel?.nama || "",
+    WA:
+      order.customer_rel?.wa != null && String(order.customer_rel.wa).trim() !== ""
+        ? `+${order.customer_rel.wa}`
+        : "",
+    Produk: order.produk_rel?.nama || "",
+    Paket: order.bundling_rel?.nama || "",
+    "Status Order": statusOrderLabel,
+    "Status Pembayaran": spLabel,
+    "Total Harga": order.total_harga ?? "",
+    "Total Dibayar": order.total_paid ?? "",
+    Sisa: order.remaining ?? "",
+    Sales: order.customer_rel?.sales_rel?.nama || order.customer_rel?.sales_nama || "",
+  };
+  UTM_FILTER_FIELDS.forEach(({ key, label }) => {
+    row[label] = order[key] != null && String(order[key]).trim() !== "" ? String(order[key]) : "";
+  });
+  return row;
+}
 
 const ORDERS_COLUMNS = [
   { line1: "Order", line2: "Id" },
@@ -192,6 +247,29 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
   // 3. Bubble P (Proses / Upload Pembayaran)
   const activeP = isPaymentActive();
   bubbles.push(createBubble("P", activeP, "bubble-p", false, activeP ? "Pembayaran Terdeteksi / Sukses" : "Pembayaran"));
+
+  // 4. Bubble U (Upselling) — blue when active
+  const activeU = isUpsellingActive();
+  const upsellingBubble = (
+    <div key="bubble-u" title={activeU ? "Upselling (Sukses)" : "Upselling"} style={{
+      position: "relative",
+      background: activeU ? "#3b82f6" : "#E5E7EB",
+      borderRadius: "7px 7px 7px 0",
+      width: "28px",
+      height: "24px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "13px",
+      color: activeU ? "white" : "#6B7280",
+      fontWeight: "bold",
+      flexShrink: 0,
+      cursor: "pointer"
+    }}>
+      U
+    </div>
+  );
+  bubbles.push(upsellingBubble);
 
   return (
     <div
@@ -362,7 +440,7 @@ export default function DaftarPesanan() {
   const [hasMore, setHasMore] = useState(true); // penentu masih ada halaman berikutnya
   const [loading, setLoading] = useState(false);
   const [paginationInfo, setPaginationInfo] = useState(null); // Store pagination info from backend
-  const perPage = 15; // Data per halaman
+  const [perPage, setPerPage] = useState(15);
 
   // Filter state
   const [searchInput, setSearchInput] = useState("");
@@ -377,6 +455,12 @@ export default function DaftarPesanan() {
   const [selectedProductsData, setSelectedProductsData] = useState([]); // Array of full product objects
   const [selectedStatusOrder, setSelectedStatusOrder] = useState([]); // Array of status order values
   const [selectedStatusPembayaran, setSelectedStatusPembayaran] = useState([]); // Array of status pembayaran values
+  const [selectedUtmByColumn, setSelectedUtmByColumn] = useState(emptyUtmColumnSelections);
+  const [utmColumnOptions, setUtmColumnOptions] = useState(emptyUtmColumnSelections);
+  const [loadingUtmOptions, setLoadingUtmOptions] = useState(false);
+  const [utmSearch, setUtmSearch] = useState(() =>
+    Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, ""]))
+  );
   const [productSearch, setProductSearch] = useState("");
   const [productResults, setProductResults] = useState([]);
 
@@ -399,6 +483,8 @@ export default function DaftarPesanan() {
   const [loadingTimeline, setLoadingTimeline] = useState(false);
 
   const fetchingRef = useRef(false); // Prevent multiple simultaneous fetches
+  const [completingOrderId, setCompletingOrderId] = useState(null); // ID order yang sedang di-complete
+  const [confirmCompleteOrder, setConfirmCompleteOrder] = useState(null); // Order yang akan di-complete (untuk modal konfirmasi)
 
   // Convert filter untuk API (termasuk search) - sama seperti customers
   const filters = useMemo(() => ({
@@ -407,7 +493,8 @@ export default function DaftarPesanan() {
     statusOrder: selectedStatusOrder,
     statusPembayaran: selectedStatusPembayaran,
     products: selectedProducts,
-  }), [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts]);
+    utmByColumn: selectedUtmByColumn,
+  }), [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn]);
 
   // 🔹 Search produk untuk filter
   const handleSearchProduct = useCallback(async (keyword) => {
@@ -492,6 +579,14 @@ export default function DaftarPesanan() {
     });
   }, []);
 
+  const handleToggleUtmColumnValue = useCallback((columnKey, value) => {
+    setSelectedUtmByColumn((prev) => {
+      const arr = prev[columnKey] || [];
+      const nextArr = arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
+      return { ...prev, [columnKey]: nextArr };
+    });
+  }, []);
+
   // 🔹 Reset all filters
   const handleResetFilters = useCallback(() => {
     setDateRange(null);
@@ -499,24 +594,63 @@ export default function DaftarPesanan() {
     setSelectedProductsData([]);
     setSelectedStatusOrder([]);
     setSelectedStatusPembayaran([]);
+    setSelectedUtmByColumn(emptyUtmColumnSelections());
+    setUtmSearch(Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, ""])));
     setProductSearch("");
     setProductResults([]);
   }, []);
 
   // 🔹 Load statistics
-  const loadStatistics = useCallback(async () => {
+  const loadStatistics = useCallback(async (currentFilters = null) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const stats = await getOrderStatistics();
-      if (stats) {
-        setStatistics(stats);
+      const params = new URLSearchParams();
+      const activeFilters = currentFilters || filters;
+
+      if (activeFilters.search) params.append("search", activeFilters.search);
+
+      if (activeFilters.dateRange && activeFilters.dateRange[0]) {
+        const fromDate = new Date(activeFilters.dateRange[0]);
+        const toDate = activeFilters.dateRange[1] ? new Date(activeFilters.dateRange[1]) : new Date(activeFilters.dateRange[0]);
+        fromDate.setHours(0, 0, 0, 0);
+        toDate.setHours(23, 59, 59, 999);
+        const formatLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        params.append("tanggal_from", formatLocal(fromDate));
+        params.append("tanggal_to", formatLocal(toDate));
+      }
+
+      if (activeFilters.statusOrder?.length) {
+        activeFilters.statusOrder.forEach(s => params.append("status_order[]", s));
+      }
+      if (activeFilters.statusPembayaran?.length) {
+        activeFilters.statusPembayaran.forEach(s => params.append("status_pembayaran[]", s));
+      }
+      if (activeFilters.products?.length) {
+        activeFilters.products.forEach(p => params.append("produk_id[]", p));
+      }
+
+      UTM_FILTER_FIELDS.forEach(({ key }) => {
+        const vals = activeFilters.utmByColumn[key] || [];
+        vals.forEach((v) => params.append(`${key}[]`, v));
+      });
+
+      const res = await fetch(`/api/sales/order/statistic?${params.toString()}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        setStatistics(json.data);
       }
     } catch (err) {
       console.error("Error loading statistics:", err);
     }
-  }, []);
+  }, [filters]);
 
   // 🔹 Fetch orders dengan fallback pagination
   const fetchOrders = useCallback(async (pageNumber = 1) => {
@@ -537,48 +671,7 @@ export default function DaftarPesanan() {
         return;
       }
 
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: String(pageNumber),
-        per_page: String(perPage),
-      });
-
-      // Add search parameter (gunakan filters.search untuk konsistensi)
-      if (filters.search && filters.search.trim()) {
-        params.append("search", filters.search.trim());
-      }
-
-      // Add date range filter (tanggal orderan)
-      if (filters.dateRange && Array.isArray(filters.dateRange) && filters.dateRange.length === 2 && filters.dateRange[0] && filters.dateRange[1]) {
-        const fromDate = new Date(filters.dateRange[0]);
-        const toDate = new Date(filters.dateRange[1]);
-        // Set time to start and end of day
-        fromDate.setHours(0, 0, 0, 0);
-        toDate.setHours(23, 59, 59, 999);
-        params.append("tanggal_from", fromDate.toISOString().split('T')[0]);
-        params.append("tanggal_to", toDate.toISOString().split('T')[0]);
-      }
-
-      // Add status order filter (multiple)
-      if (filters.statusOrder && filters.statusOrder.length > 0) {
-        filters.statusOrder.forEach(status => {
-          params.append("status_order", status);
-        });
-      }
-
-      // Add status pembayaran filter (multiple)
-      if (filters.statusPembayaran && filters.statusPembayaran.length > 0) {
-        filters.statusPembayaran.forEach(status => {
-          params.append("status_pembayaran", status);
-        });
-      }
-
-      // Add produk filter (multiple) - jika backend support produk_id
-      if (filters.products && filters.products.length > 0) {
-        filters.products.forEach(productId => {
-          params.append("produk_id", productId);
-        });
-      }
+      const params = buildAdminOrdersQueryParams(pageNumber, perPage, filters);
 
       const res = await fetch(`/api/sales/order?${params.toString()}`, {
         headers: {
@@ -675,12 +768,19 @@ export default function DaftarPesanan() {
         } else {
           setPaginationInfo(null);
           // Fallback pagination: cek jumlah data untuk menentukan hasMore
-          if (json.data.length < perPage) {
+          const perReq = resolveOrderListPerPageForRequest(perPage);
+          if (json.data.length < perReq) {
             setHasMore(false); // sudah halaman terakhir
           } else {
             setHasMore(true); // masih ada halaman berikutnya
           }
         }
+
+        // Apply filtered statistics dynamically
+        if (json.filtered_statistics) {
+          setStatistics(json.filtered_statistics);
+        }
+
       } else {
         // Jika response tidak sesuai format yang diharapkan
         console.warn("⚠️ Unexpected response format:", json);
@@ -718,15 +818,15 @@ export default function DaftarPesanan() {
     setOrders([]);
     setHasMore(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts]); // Reset when search or filter changes
+  }, [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn]); // Reset when search or filter changes
 
-  // Fetch data saat page atau filters berubah
+  // Fetch data saat page, perPage, atau filters berubah
   useEffect(() => {
     if (page > 0) {
       fetchOrders(page);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters]); // Depend pada page dan filters (sama seperti customers)
+  }, [page, filters, perPage]);
 
   // Scroll to top and prevent body scroll when filter modal opens
   useEffect(() => {
@@ -756,6 +856,38 @@ export default function DaftarPesanan() {
     }
   }, [showFilterModal]);
 
+  useEffect(() => {
+    if (!showFilterModal || typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    let cancelled = false;
+    setLoadingUtmOptions(true);
+    fetch("/api/sales/order/utm-filter-options", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled || !j?.success || !j?.data) return;
+        setUtmColumnOptions((prev) => {
+          const next = { ...prev };
+          UTM_FILTER_FIELDS.forEach(({ key }) => {
+            if (Array.isArray(j.data[key])) next[key] = j.data[key];
+          });
+          return next;
+        });
+      })
+      .catch(() => { })
+      .finally(() => {
+        if (!cancelled) setLoadingUtmOptions(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showFilterModal]);
+
   // 🔹 Next page
   const handleNextPage = useCallback(() => {
     if (loading || !hasMore) return; // Jangan load jika sedang loading atau sudah habis
@@ -773,6 +905,21 @@ export default function DaftarPesanan() {
     console.log("🔄 Previous page clicked, loading page:", prevPage);
     setPage(prevPage);
   }, [page, loading]);
+
+  const handleExportPage = useCallback(() => {
+    if (!orders.length) {
+      setToast({ show: true, message: "Tidak ada data pada halaman ini", type: "error" });
+      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+      return;
+    }
+    const records = orders.map(orderRowToExportRecord);
+    const csv = ordersToCsvString(records);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const pg = paginationInfo?.current_page ?? page;
+    downloadCsvBlob(`orders_halaman_${pg}_${stamp}.csv`, csv);
+    setToast({ show: true, message: "Export halaman berhasil", type: "success" });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 2500);
+  }, [orders, paginationInfo, page]);
 
   // 🔹 Refresh all data (reset to page 1)
   const requestRefresh = async (message, type = "success") => {
@@ -938,10 +1085,19 @@ export default function DaftarPesanan() {
   // === SUMMARY ===
   // Gunakan data dari statistics API
   const totalOrders = statistics?.total_order || 0;
+  const totalAmount = statistics?.total_amount_order || 0;
+
   const unpaidOrders = statistics?.total_order_unpaid || 0;
+  const unpaidAmount = statistics?.total_amount_unpaid || 0;
+
   const menungguOrders = statistics?.total_order_menunggu || 0;
+  const menungguAmount = statistics?.total_amount_menunggu || 0;
+
   const approvedOrders = statistics?.total_order_sudah_diapprove || 0;
+  const revenueTotal = statistics?.revenue || 0; // alias sukses amount
+
   const ditolakOrders = statistics?.total_order_ditolak || 0;
+  const ditolakAmount = statistics?.total_amount_ditolak || 0;
 
 
 
@@ -960,6 +1116,53 @@ export default function DaftarPesanan() {
     if (order?.id) {
       setSelectedOrderIdForHistory(order.id);
       setShowPaymentHistory(true);
+    }
+  };
+
+  // 🟢 Handle Complete Order — buka modal konfirmasi
+  const handleCompleteOrder = (order) => {
+    if (!order?.id) return;
+    setConfirmCompleteOrder(order);
+  };
+
+  // 🟢 Eksekusi Complete Order setelah konfirmasi
+  const doCompleteOrder = async () => {
+    const order = confirmCompleteOrder;
+    if (!order?.id) return;
+    setConfirmCompleteOrder(null);
+    setCompletingOrderId(order.id);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/sales/order/${order.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status_order: "4" }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success !== false) {
+        // Update state lokal
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id ? { ...o, status_order: "4" } : o
+          )
+        );
+        setToast({ show: true, message: "Order berhasil ditandai Completed!", type: "success" });
+        setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+        await loadStatistics();
+      } else {
+        setToast({ show: true, message: json.message || "Gagal mengupdate status order", type: "error" });
+        setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+      }
+    } catch (err) {
+      console.error("Error completing order:", err);
+      setToast({ show: true, message: "Terjadi kesalahan saat mengupdate order", type: "error" });
+      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+    } finally {
+      setCompletingOrderId(null);
     }
   };
 
@@ -1164,55 +1367,39 @@ export default function DaftarPesanan() {
     <Layout title="Manage Orders">
       <div className="orders-shell">
         <section className="orders-summary">
-          <article className="summary-card summary-card--combined">
-            <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
-                <ShoppingCart size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Total orders</p>
-                <p className="summary-card__value">{(totalOrders || 0).toLocaleString("id-ID")}</p>
-              </div>
+          <article className="summary-card" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '16px',
+            padding: '24px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Total orders ({totalOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(totalAmount || 0).toLocaleString("id-ID")}</p>
             </div>
-            <div className="summary-card__divider"></div>
-            <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
-                <Clock size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Unpaid</p>
-                <p className="summary-card__value">{(unpaidOrders || 0).toLocaleString("id-ID")}</p>
-              </div>
+
+            <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Unpaid ({unpaidOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(unpaidAmount || 0).toLocaleString("id-ID")}</p>
             </div>
-            <div className="summary-card__divider"></div>
-            <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
-                <Clock size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Pending</p>
-                <p className="summary-card__value">{(menungguOrders || 0).toLocaleString("id-ID")}</p>
-              </div>
+
+            <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Waiting Approval ({menungguOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(menungguAmount || 0).toLocaleString("id-ID")}</p>
             </div>
-            <div className="summary-card__divider"></div>
-            <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
-                <CheckCircle size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Sukses</p>
-                <p className="summary-card__value">{(approvedOrders || 0).toLocaleString("id-ID")}</p>
-              </div>
+
+            <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Sukses ({approvedOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>Rp {(revenueTotal || 0).toLocaleString("id-ID")}</p>
             </div>
-            <div className="summary-card__divider"></div>
-            <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
-                <XCircle size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Ditolak</p>
-                <p className="summary-card__value">{(ditolakOrders || 0).toLocaleString("id-ID")}</p>
-              </div>
+
+            <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Ditolak ({ditolakOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(ditolakAmount || 0).toLocaleString("id-ID")}</p>
             </div>
           </article>
         </section>
@@ -1229,6 +1416,29 @@ export default function DaftarPesanan() {
               <span className="orders-search__icon pi pi-search" />
             </div>
             <div className="orders-toolbar-buttons">
+              {/* Quick filter: Completed */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedStatusOrder.includes("4")) {
+                    setSelectedStatusOrder(prev => prev.filter(s => s !== "4"));
+                  } else {
+                    setSelectedStatusOrder(["4"]);
+                  }
+                  setPage(1);
+                  setOrders([]);
+                }}
+                className="customers-button customers-button--secondary"
+                title="Filter order yang sudah Completed"
+                style={{
+                  background: selectedStatusOrder.includes("4") ? "#16a34a" : undefined,
+                  color: selectedStatusOrder.includes("4") ? "#fff" : undefined,
+                  borderColor: selectedStatusOrder.includes("4") ? "#16a34a" : undefined,
+                }}
+              >
+                <CheckCircle size={14} />
+                Completed
+              </button>
               {/* Filter Icon Button */}
               <button
                 type="button"
@@ -1247,7 +1457,7 @@ export default function DaftarPesanan() {
                   showIcon
                   icon="pi pi-calendar"
                   placeholder="Pilih tanggal"
-                  dateFormat="dd M yyyy"
+                  dateFormat="dd M yy"
                   monthNavigator
                   yearNavigator
                   yearRange="2020:2030"
@@ -1274,7 +1484,7 @@ export default function DaftarPesanan() {
                   }}
                 />
               </div>
-              {(dateRange && Array.isArray(dateRange) && dateRange.length === 2 && dateRange[0] && dateRange[1]) ||
+              {(dateRange && Array.isArray(dateRange) && dateRange[0]) ||
                 selectedProducts.length > 0 ||
                 selectedStatusOrder.length > 0 ||
                 selectedStatusPembayaran.length > 0 ? (
@@ -1296,8 +1506,17 @@ export default function DaftarPesanan() {
               <p className="panel__eyebrow">Directory</p>
               <h3 className="panel__title">Order roster</h3>
             </div>
-            <div className="customers-toolbar-buttons">
-
+            <div className="customers-toolbar-buttons" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+              <button
+                type="button"
+                className="customers-button customers-button--secondary"
+                onClick={handleExportPage}
+                disabled={loading || !orders.length}
+                title="Unduh CSV — data yang tampil di halaman ini"
+              >
+                <Download size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                Export halaman
+              </button>
               <button
                 className="customers-button customers-button--primary"
                 onClick={() => setShowAdd(true)}
@@ -1353,12 +1572,17 @@ export default function DaftarPesanan() {
                     </div>
                   </th>
                   <th>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>GROSS</span>
-                      <span>REVENUE</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span style={{ fontWeight: 600 }}>REVENUE</span>
                     </div>
                   </th>
                   <th>SALES</th>
+
+                  {UTM_FILTER_FIELDS.map(({ key, label }) => (
+                    <th key={key} style={{ whiteSpace: "nowrap", fontSize: "0.7rem", fontWeight: 600, color: "#475569" }}>
+                      {label}
+                    </th>
+                  ))}
 
                   {/* Action Column - NON STICKY */}
                   <th></th>
@@ -1404,7 +1628,7 @@ export default function DaftarPesanan() {
                             <div className="order-id-content">
                               <div>
                                 <span className="order-id-text" style={{ fontSize: "0.9rem" }}>
-                                  {order.id || "-"}
+                                  {order.kode_order || order.id || "-"}
                                 </span>
                                 <p className="order-date-text">
                                   {formatOrderDate(order.tanggal || order.create_at)}
@@ -1491,9 +1715,11 @@ export default function DaftarPesanan() {
                           )}
                         </td>
 
-                        {/* Gross Revenue */}
-                        <td className="revenue-text">
-                          Rp {Number(order.total_harga || 0).toLocaleString("id-ID")}
+                        {/* Revenue */}
+                        <td>
+                          <span style={{ fontSize: "0.875rem", fontWeight: "normal", color: "#111827" }}>
+                            Rp {Number(order.total_harga || 0).toLocaleString("id-ID")}
+                          </span>
                         </td>
 
                         {/* Sales */}
@@ -1503,31 +1729,83 @@ export default function DaftarPesanan() {
                           </span>
                         </td>
 
+                        {UTM_FILTER_FIELDS.map(({ key }) => {
+                          const raw = order[key];
+                          const text = raw != null && String(raw).trim() !== "" ? String(raw) : "—";
+                          return (
+                            <td key={key}>
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  color: "#475569",
+                                  wordBreak: "break-word",
+                                  display: "block",
+                                  maxWidth: "10rem",
+                                }}
+                                title={text !== "—" ? text : undefined}
+                              >
+                                {text}
+                              </span>
+                            </td>
+                          );
+                        })}
+
                         {/* Action Column - NON STICKY */}
                         <td>
-                          <button
-                            className="orders-action-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(order);
-                            }}
-                            style={{
-                              width: "100%",
-                              padding: "0.4rem 0.75rem",
-                              fontSize: "0.8rem",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
-                            Update / Konfirmasi
-                          </button>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                            <button
+                              className="orders-action-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(order);
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "0.4rem 0.75rem",
+                                fontSize: "0.8rem",
+                                whiteSpace: "nowrap"
+                              }}
+                            >
+                              Update / Konfirmasi
+                            </button>
+                            {/* Button Complete — hanya tampil jika Paid dan belum Completed */}
+                            {statusPembayaranValue === 2 && statusOrderValue !== "4" && (
+                              <button
+                                className="orders-action-btn-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCompleteOrder(order);
+                                }}
+                                disabled={completingOrderId === order.id}
+                                title="Tandai order sebagai Completed"
+                                style={{
+                                  width: "100%",
+                                  padding: "0.4rem 0.75rem",
+                                  fontSize: "0.8rem",
+                                  whiteSpace: "nowrap",
+                                  fontWeight: 600,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "4px"
+                                }}
+                              >
+                                {completingOrderId === order.id ? (
+                                  <><i className="pi pi-spin pi-spinner" style={{ fontSize: "0.75rem" }} /> Memproses...</>
+                                ) : (
+                                  <><CheckCircle size={13} /> Complete</>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={10} className="orders-empty">
-                      {orders.length ? "Tidak ada hasil pencarian." : "Loading data..."}
+                    <td colSpan={14} className="orders-empty">
+                      {loading ? "Loading data..." : "Data kosong atau tidak ada hasil pencarian."}
                     </td>
                   </tr>
                 )}
@@ -1535,81 +1813,122 @@ export default function DaftarPesanan() {
             </table>
           </div>
 
-          {/* Pagination dengan Next/Previous Button */}
-          <div className="orders-pagination" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", padding: "1.5rem", flexWrap: "wrap" }}>
-            {/* Previous Button */}
-            <button
-              className="orders-pagination__btn"
-              onClick={handlePrevPage}
-              disabled={page === 1 || loading}
-              aria-label="Previous page"
-              style={{
-                padding: "0.75rem 1rem",
-                minWidth: "100px",
-                background: page === 1 || loading ? "#e5e7eb" : "#f1a124",
-                color: page === 1 || loading ? "#9ca3af" : "#fff",
-                border: "none",
-                borderRadius: "0.5rem",
-                cursor: page === 1 || loading ? "not-allowed" : "pointer",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-            >
-              <i className="pi pi-chevron-left" />
-              Previous
-            </button>
-
-            {/* Page Info */}
-            <div style={{
+          {/* Pagination + opsi baris per halaman */}
+          <div
+            className="orders-pagination"
+            style={{
               display: "flex",
+              justifyContent: "center",
               alignItems: "center",
-              gap: "0.5rem",
-              fontSize: "0.95rem",
-              color: "var(--dash-text)",
-              fontWeight: 500
-            }}>
-              {loading ? (
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <i className="pi pi-spin pi-spinner" />
-                  Loading...
-                </span>
-              ) : (
-                <span>
-                  Page {paginationInfo?.current_page || page} of {paginationInfo?.last_page || "?"}
-                  {paginationInfo?.total && ` (${paginationInfo.total} total)`}
-                </span>
-              )}
+              gap: "1rem 1.5rem",
+              padding: "1.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <label htmlFor="orders-per-page" style={{ fontSize: "0.875rem", color: "var(--dash-text)", whiteSpace: "nowrap" }}>
+                Baris per halaman
+              </label>
+              <select
+                id="orders-per-page"
+                value={perPage}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setPerPage(v);
+                  setPage(1);
+                }}
+                disabled={loading}
+                style={{
+                  padding: "0.45rem 0.65rem",
+                  borderRadius: "0.5rem",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "0.875rem",
+                  background: "#fff",
+                  color: "#111827",
+                }}
+              >
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n === ORDER_LIST_PER_PAGE_ALL ? "Semua" : n}
+                  </option>
+                ))}
+              </select>
             </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+              {/* Previous Button */}
+              <button
+                className="orders-pagination__btn"
+                onClick={handlePrevPage}
+                disabled={page === 1 || loading}
+                aria-label="Previous page"
+                style={{
+                  padding: "0.75rem 1rem",
+                  minWidth: "100px",
+                  background: page === 1 || loading ? "#e5e7eb" : "#f1a124",
+                  color: page === 1 || loading ? "#9ca3af" : "#fff",
+                  border: "none",
+                  borderRadius: "0.5rem",
+                  cursor: page === 1 || loading ? "not-allowed" : "pointer",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  justifyContent: "center",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                <i className="pi pi-chevron-left" />
+                Previous
+              </button>
 
-            {/* Next Button */}
-            <button
-              className="orders-pagination__btn"
-              onClick={handleNextPage}
-              disabled={!hasMore || loading}
-              aria-label="Next page"
-              style={{
-                padding: "0.75rem 1rem",
-                minWidth: "100px",
-                background: !hasMore || loading ? "#e5e7eb" : "#f1a124",
-                color: !hasMore || loading ? "#9ca3af" : "#fff",
-                border: "none",
-                borderRadius: "0.5rem",
-                cursor: !hasMore || loading ? "not-allowed" : "pointer",
-                fontWeight: 600,
+              {/* Page Info */}
+              <div style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Next
-              <i className="pi pi-chevron-right" />
-            </button>
+                fontSize: "0.95rem",
+                color: "var(--dash-text)",
+                fontWeight: 500
+              }}>
+                {loading ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <i className="pi pi-spin pi-spinner" />
+                    Loading...
+                  </span>
+                ) : (
+                  <span>
+                    Page {paginationInfo?.current_page || page} of {paginationInfo?.last_page || "?"}
+                    {paginationInfo?.total && ` (${paginationInfo.total} total)`}
+                  </span>
+                )}
+              </div>
+
+              {/* Next Button */}
+              <button
+                className="orders-pagination__btn"
+                onClick={handleNextPage}
+                disabled={!hasMore || loading}
+                aria-label="Next page"
+                style={{
+                  padding: "0.75rem 1rem",
+                  minWidth: "100px",
+                  background: !hasMore || loading ? "#e5e7eb" : "#f1a124",
+                  color: !hasMore || loading ? "#9ca3af" : "#fff",
+                  border: "none",
+                  borderRadius: "0.5rem",
+                  cursor: !hasMore || loading ? "not-allowed" : "pointer",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  justifyContent: "center",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Next
+                <i className="pi pi-chevron-right" />
+              </button>
+            </div>
           </div>
         </section>
 
@@ -2445,6 +2764,123 @@ export default function DaftarPesanan() {
                   })}
                 </div>
               </div>
+
+              {/* UTM — per kolom, nilai dari data order */}
+              <div style={{ marginBottom: "2rem" }}>
+                <label className="field-label" style={{
+                  marginBottom: "0.875rem",
+                  display: "block",
+                  fontSize: "0.9375rem",
+                  fontWeight: "600",
+                  color: "#111827",
+                  letterSpacing: "-0.01em"
+                }}>
+                  Filter UTM
+                </label>
+                {loadingUtmOptions && (
+                  <p style={{ fontSize: "0.8125rem", color: "#6b7280", marginBottom: "0.75rem" }}>Memuat opsi UTM…</p>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                  {UTM_FILTER_FIELDS.map(({ key, label }) => {
+                    const options = utmColumnOptions[key] || [];
+                    const selected = selectedUtmByColumn[key] || [];
+                    return (
+                      <div key={key}>
+                        <div style={{
+                          fontSize: "0.8125rem",
+                          fontWeight: "600",
+                          color: "#374151",
+                          marginBottom: "0.5rem",
+                        }}>{label}</div>
+                        {options.length === 0 && !loadingUtmOptions ? (
+                          <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>Belum ada nilai untuk kolom ini.</p>
+                        ) : (
+                          <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.375rem",
+                            background: "#f9fafb",
+                            padding: "0.5rem",
+                            borderRadius: "0.5rem",
+                            border: "1.5px solid #e5e7eb",
+                          }}>
+                            <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+                              <input
+                                type="text"
+                                placeholder={`Cari ${label}...`}
+                                value={utmSearch[key] || ""}
+                                onChange={(e) => setUtmSearch(prev => ({ ...prev, [key]: e.target.value }))}
+                                style={{
+                                  width: "100%",
+                                  padding: "0.5rem 2rem 0.5rem 0.75rem",
+                                  border: "1px solid #d1d5db",
+                                  borderRadius: "0.375rem",
+                                  fontSize: "0.8125rem",
+                                  outline: "none"
+                                }}
+                              />
+                              <span className="pi pi-search" style={{
+                                position: "absolute",
+                                right: "0.75rem",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                color: "#9ca3af",
+                                fontSize: "0.8125rem",
+                                pointerEvents: "none",
+                              }} />
+                            </div>
+                            <div style={{
+                              maxHeight: "160px",
+                              overflowY: "auto",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "0.375rem",
+                            }}>
+                              {options.filter(val => String(val || "").toLowerCase().includes(String(utmSearch[key] || "").toLowerCase())).map((val) => {
+                                const isChecked = selected.includes(val);
+                                return (
+                                  <label
+                                    key={`${key}-${val}`}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      cursor: "pointer",
+                                      padding: "0.5rem 0.625rem",
+                                      borderRadius: "0.375rem",
+                                      background: isChecked ? "#fff5ed" : "transparent",
+                                      border: isChecked ? "1px solid #ff6c00" : "1px solid transparent",
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => handleToggleUtmColumnValue(key, val)}
+                                      style={{
+                                        marginRight: "0.5rem",
+                                        width: "16px",
+                                        height: "16px",
+                                        cursor: "pointer",
+                                        accentColor: "#ff6c00",
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <span style={{
+                                      fontSize: "0.8125rem",
+                                      color: isChecked ? "#c85400" : "#111827",
+                                      fontWeight: isChecked ? "600" : "400",
+                                      wordBreak: "break-word",
+                                    }}>{val}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div className="modal-footer" style={{
               display: "flex",
@@ -2733,6 +3169,48 @@ export default function DaftarPesanan() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ✅ Modal Konfirmasi Complete Order */}
+      {confirmCompleteOrder && (
+        <div className="modal-overlay" onClick={() => setConfirmCompleteOrder(null)}>
+          <div className="modal-container" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Konfirmasi Complete Order</h3>
+              <button onClick={() => setConfirmCompleteOrder(null)} className="close-btn"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ margin: "0 0 12px", fontSize: "0.9rem", color: "var(--dash-text, #374151)" }}>
+                Tandai order <strong>{confirmCompleteOrder.kode_order || `#${confirmCompleteOrder.id}`}</strong>
+                {confirmCompleteOrder.customer_rel?.nama && <> — {confirmCompleteOrder.customer_rel.nama}</>} sebagai <strong>Completed</strong>?
+              </p>
+              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="customers-button customers-button--secondary"
+                  onClick={() => setConfirmCompleteOrder(null)}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  className="customers-button customers-button--primary"
+                  onClick={doCompleteOrder}
+                  style={{
+                    background: "#ff6c00",
+                    borderColor: "#ff6c00",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  Ya, Complete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </Layout>

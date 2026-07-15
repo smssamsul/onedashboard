@@ -7,12 +7,15 @@ import { useRouter } from "next/navigation";
  * Orchestrator untuk logic form order.
  * UPDATED: Decoupled from PriceState to avoid circular dependency.
  */
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+
 export function useProductForm({
     productData,
-    // priceState REMOVED from dependency
     shippingState, // We still keep this for ongkir value in payload
     addressState, // Legacy address handling
     sumber,
+    utmParams = {},
+    fbPixel = null,
 }) {
     const router = useRouter();
 
@@ -40,12 +43,13 @@ export function useProductForm({
     // Construct Alamat Lengkap
     useEffect(() => {
         const parts = [];
+        if (customerForm.alamat) parts.push(customerForm.alamat);
         if (formWilayah.kecamatan) parts.push(`Kec. ${formWilayah.kecamatan}`);
         if (formWilayah.kabupaten) parts.push(`${formWilayah.kabupaten}`);
         if (formWilayah.provinsi) parts.push(`${formWilayah.provinsi}`);
         if (formWilayah.kode_pos) parts.push(`Kode Pos ${formWilayah.kode_pos}`);
         setAlamatLengkap(parts.join(", "));
-    }, [formWilayah]);
+    }, [formWilayah, customerForm.alamat]);
 
     // -- INTERNAL BUNDLING DATA --
     const getBundlingList = () => {
@@ -87,8 +91,8 @@ export function useProductForm({
         if (!paymentMethod) return "Pilih metode pembayaran";
 
         if (isFisik) {
-            if (!formWilayah.provinsi || !formWilayah.kabupaten || !formWilayah.kecamatan || !formWilayah.kode_pos) {
-                return "Silakan lengkapi alamat pengiriman (Provinsi, Kota, Kecamatan, Kode Pos)";
+            if (!customerForm.alamat || !formWilayah.provinsi || !formWilayah.kabupaten || !formWilayah.kecamatan || !formWilayah.kode_pos) {
+                return "Silakan lengkapi alamat pengiriman (Detail Alamat, Provinsi, Kota, Kecamatan, Kode Pos)";
             }
         } else {
             if (!formWilayah.provinsi || !formWilayah.kabupaten || !formWilayah.kecamatan) {
@@ -138,6 +142,52 @@ export function useProductForm({
                 bundling: String(bundlingId),
             };
 
+            UTM_KEYS.forEach((key) => {
+                const val = utmParams[key];
+                if (val != null && String(val).trim() !== "") {
+                    payload[key] = String(val).trim();
+                }
+            });
+
+            // ==========================================
+            // TEST MODE: Set ke FALSE jika ingin live/production
+            const isTestMode = false;
+            // ==========================================
+
+            if (isTestMode) {
+                console.log("[TEST MODE] Payload yang seharusnya dikirim ke backend:", payload);
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulasi loading API
+
+                const dummyOrderId = "TEST-" + Math.floor(Math.random() * 100000);
+
+                const pendingOrder = {
+                    orderId: dummyOrderId,
+                    customerId: "cust-123",
+                    nama: customerForm.nama,
+                    wa: customerForm.wa,
+                    email: customerForm.email,
+                    productName: productData.nama || "Produk",
+                    totalHarga: String(totalHarga),
+                    paymentMethod: "ewallet",
+                    landingUrl: window.location.pathname,
+                };
+
+                const orderDataForPayment = {
+                    ...pendingOrder,
+                    downPayment: null,
+                    timestamp: Date.now(),
+                    fb_pixel: fbPixel,
+                };
+
+                localStorage.setItem("pending_order", JSON.stringify(pendingOrder));
+                localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
+
+                toast.success("[TEST MODE] Lanjut ke pembayaran...");
+                window.location.href = `https://app.ternakproperti.com/payment?order_id=${dummyOrderId}&harga=${totalHarga}`;
+                // window.location.href = `/payment?order_id=${dummyOrderId}&harga=${totalHarga}`;
+                return; // STOP di sini, jangan kirim data betulan
+            }
+
             const response = await fetch("/api/order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -171,12 +221,26 @@ export function useProductForm({
                 landingUrl: window.location.pathname,
             };
 
+            const orderDataForPayment = {
+                orderId,
+                paymentMethod,
+                productName: productData.nama || "Produk",
+                totalHarga: String(totalHarga),
+                nama: customerForm.nama,
+                email: customerForm.email,
+                wa: customerForm.wa,
+                downPayment: null,
+                customerId,
+                timestamp: Date.now(),
+                fb_pixel: fbPixel,
+            };
+
             localStorage.setItem("pending_order", JSON.stringify(pendingOrder));
+            localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
 
-            if (customerId) toast.success("Kode OTP telah dikirim ke WhatsApp Anda!");
-            else toast.success("Order berhasil! Lanjut ke pembayaran...");
-
-            router.push("/verify-order");
+            toast.success("Order berhasil! Lanjut ke pembayaran...");
+            window.location.href = `https://app.ternakproperti.com/payment?order_id=${orderId}&harga=${totalHarga}`;
+            // window.location.href = `/payment?order_id=${orderId}&harga=${totalHarga}`;
 
         } catch (err) {
             console.error("[SUBMIT ERROR]", err);

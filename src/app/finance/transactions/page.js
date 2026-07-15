@@ -12,6 +12,7 @@ import "@/styles/finance/dashboard-premium.css";
 import "@/styles/finance/admin.css";
 import "@/styles/sales/admin.css";
 import { getOrderStatistics } from "@/lib/finance/orders";
+import { trackFinanceApprovedPurchase } from "@/lib/finance/metaPixelPurchase";
 
 // Lazy load modals
 const ViewOrders = dynamic(() => import("./viewOrders"), { ssr: false });
@@ -61,6 +62,8 @@ export default function FinanceOrders() {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  /** Modal sukses setelah approve + info pixel Purchase */
+  const [approveSuccess, setApproveSuccess] = useState(null);
 
   const [toast, setToast] = useState(DEFAULT_TOAST);
   const toastTimeoutRef = useRef(null);
@@ -462,13 +465,13 @@ export default function FinanceOrders() {
     try {
       if (!order?.id) {
         showToast("Order ID tidak valid", "error");
-        return;
+        return false;
       }
 
       const token = localStorage.getItem("token");
       if (!token) {
         showToast("Token tidak ditemukan", "error");
-        return;
+        return false;
       }
 
       const res = await fetch(`/api/finance/order-validation/${order.id}/approve`, {
@@ -482,16 +485,58 @@ export default function FinanceOrders() {
 
       const json = await res.json();
 
-      if (json.success) {
-        setShowApprove(false);
-        setSelectedOrder(null);
-        await requestRefresh(json.message || "Order berhasil disetujui", "success");
-      } else {
+      if (!json.success) {
         showToast(json.message || "Gagal approve order", "error");
+        return false;
       }
+
+      let pixelSent = false;
+      let detail = null;
+      try {
+        const orderDetailRes = await fetch(`/api/finance/order-validation/${order.id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (orderDetailRes.ok) {
+          const orderDetail = await orderDetailRes.json();
+          detail = orderDetail.data;
+          const produk = detail?.produk;
+          const amount = parseFloat(detail?.amount ?? detail?.order?.total_harga ?? 0);
+          if (produk) {
+            // [DINONAKTIFKAN SESUAI PERMINTAAN USER - EVENT PURCHASE PINDAH KE SALES]
+            // pixelSent = !!trackFinanceApprovedPurchase({
+            //   produk,
+            //   value: amount,
+            //   currency: "IDR",
+            //   orderId: detail?.order_id,
+            // });
+          }
+        }
+      } catch (e) {
+        console.error("[FB PIXEL Finance] Gagal ambil detail / kirim Purchase:", e);
+      }
+
+      setShowApprove(false);
+      setSelectedOrder(null);
+      await requestRefresh();
+
+      setApproveSuccess({
+        message: json.message || "Pembayaran berhasil disetujui.",
+        orderId: detail?.order_id ?? order?.order_id,
+        productName: detail?.produk?.nama ?? "-",
+        amount: detail?.amount,
+        pixelSent,
+      });
+
+      return true;
     } catch (err) {
       console.error("Error approving order:", err);
       showToast("Terjadi kesalahan saat approve order", "error");
+      return false;
     }
   };
 
@@ -644,7 +689,7 @@ export default function FinanceOrders() {
                   showIcon
                   icon="pi pi-calendar"
                   placeholder="Pilih tanggal"
-                  dateFormat="dd M yyyy"
+                  dateFormat="dd M yy"
                   monthNavigator
                   yearNavigator
                   yearRange="2020:2030"
@@ -705,8 +750,8 @@ export default function FinanceOrders() {
                   filteredOrders.map((payment, i) => {
                     const orderRel = payment.order_rel || {};
 
-                    const orderId =
-                      orderRel.id ?? payment.order_id ?? payment.id ?? "-";
+                    const orderId = orderRel.id ?? payment.order_id ?? payment.id ?? "-";
+                    const orderRefDisplay = orderRel.kode_order ?? orderId;
                     const customerNama =
                       orderRel.customer_rel?.nama || "-";
                     const produkNama = orderRel.produk_rel?.nama || "-";
@@ -792,7 +837,7 @@ export default function FinanceOrders() {
                           {(page - 1) * perPage + i + 1}
                         </div>
                         <div className="finance-transactions-table__cell" data-label="Order ID">
-                          {orderId}
+                          {orderRefDisplay}
                         </div>
                         <div
                           className="finance-transactions-table__cell finance-transactions-table__cell--strong"
@@ -1081,6 +1126,80 @@ export default function FinanceOrders() {
           }}
           onReject={onReject}
         />
+      )}
+
+      {approveSuccess && (
+        <div
+          className="orders-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finance-approve-success-title"
+        >
+          <div className="orders-modal-card" style={{ maxWidth: "420px" }}>
+            <div className="orders-modal-header">
+              <div>
+                <p className="orders-modal-eyebrow">Berhasil</p>
+                <h2 id="finance-approve-success-title">Approval selesai</h2>
+              </div>
+              <button
+                className="orders-modal-close"
+                type="button"
+                aria-label="Tutup"
+                onClick={() => setApproveSuccess(null)}
+              >
+                <i className="pi pi-times" />
+              </button>
+            </div>
+            <div className="orders-modal-body">
+              <p style={{ margin: "0 0 1rem", color: "#374151", lineHeight: 1.5 }}>
+                {approveSuccess.message}
+              </p>
+              <div className="detail-list">
+                <div className="detail-item">
+                  <span className="detail-label">Order ID</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">#{approveSuccess.orderId ?? "-"}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Produk</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{approveSuccess.productName}</span>
+                </div>
+                {approveSuccess.amount != null && (
+                  <div className="detail-item">
+                    <span className="detail-label">Jumlah disetujui</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value" style={{ fontWeight: 600, color: "#059669" }}>
+                      Rp {Number(approveSuccess.amount).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                )}
+                <div
+                  className="detail-item"
+                  style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #e5e7eb" }}
+                >
+                  <span className="detail-label">Meta Pixel</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value" style={{ fontSize: "0.85rem", color: "#4b5563" }}>
+                    {approveSuccess.pixelSent
+                      ? "Event Purchase dikirim (produk mengaktifkan event Purchase & memiliki Pixel ID)."
+                      : "Tidak mengirim Purchase — aktifkan event Purchase di pengaturan produk dan pastikan Pixel ID terisi."}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="orders-modal-footer">
+              <button
+                type="button"
+                className="orders-btn orders-btn--primary"
+                style={{ width: "100%", background: "#f1a124", color: "#fff" }}
+                onClick={() => setApproveSuccess(null)}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

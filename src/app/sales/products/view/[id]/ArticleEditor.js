@@ -93,6 +93,7 @@ const ArticleEditor = forwardRef(({ initialData, idorder, onSuccess, onCancel, e
     };
 
     const editor = useEditor({
+        immediatelyRender: false,
         extensions: [
             StarterKit,
             Underline,

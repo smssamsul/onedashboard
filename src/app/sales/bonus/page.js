@@ -141,8 +141,8 @@ export default function BonusProdukPage() {
                         <div className="main-content-card card-shadow">
                             <div className="card-header-inner">
                                 <div className="card-header-titles">
-                                    <span className="eyebrow-text">DIRECTORY</span>
-                                    <h2 className="card-title">Bonus roster</h2>
+                                    <span className="eyebrow-text">BONUS PRODUK</span>
+                                    <h2 className="card-title">Daftar Bonus Produk (Artikel)</h2>
                                 </div>
                                 <div className="card-header-actions">
                                     <button className="btn-primary-orange" onClick={handleCreate}>

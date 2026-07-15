@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { buildImageUrl } from "@/lib/image";
+import { buildImageUrl, convertToWebp } from "@/lib/image";
 import { flushSync } from "react-dom";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
@@ -65,38 +65,63 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
     });
   }, [alignment, imageWidth, imageFit, aspectRatio, backgroundType, backgroundColor, backgroundImage, device, paddingTop, paddingRight, paddingBottom, paddingLeft, componentId]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
+      try {
+        const webpDataUrl = await convertToWebp(file);
         const newImage = {
-          src: event.target.result,
+          src: webpDataUrl,
           file: file,
           alt: "",
           caption: "",
           link: ""
         };
         handleChange("images", [...images, newImage]);
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const newImage = {
+            src: event.target.result,
+            file: file,
+            alt: "",
+            caption: "",
+            link: ""
+          };
+          handleChange("images", [...images, newImage]);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
-  const handleImageFileChange = (imageIndex, e) => {
+  const handleImageFileChange = async (imageIndex, e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
+      try {
+        const webpDataUrl = await convertToWebp(file);
         const newImages = [...images];
         newImages[imageIndex] = {
           ...newImages[imageIndex],
-          src: event.target.result,
+          src: webpDataUrl,
           file: file
         };
         handleChange("images", newImages);
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const newImages = [...images];
+          newImages[imageIndex] = {
+            ...newImages[imageIndex],
+            src: event.target.result,
+            file: file
+          };
+          handleChange("images", newImages);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -121,14 +146,20 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
     handleChange("images", newImages);
   };
 
-  const handleBackgroundFileChange = (e) => {
+  const handleBackgroundFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setBackgroundImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        setBackgroundImage(webpDataUrl);
+      } catch (err) {
+        console.error("Failed to convert background image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setBackgroundImage(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -564,7 +595,7 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
                       <InputNumber
                         value={paddingTop}
                         onValueChange={(e) => setPaddingTop(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -578,7 +609,7 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
                       <InputNumber
                         value={paddingRight}
                         onValueChange={(e) => setPaddingRight(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -592,7 +623,7 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
                       <InputNumber
                         value={paddingBottom}
                         onValueChange={(e) => setPaddingBottom(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -606,7 +637,7 @@ export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, on
                       <InputNumber
                         value={paddingLeft}
                         onValueChange={(e) => setPaddingLeft(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>

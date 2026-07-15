@@ -9,6 +9,18 @@ export default function ViewPenerima({ broadcast, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  let targetData = {};
+  try {
+    if (broadcast?.target) {
+      targetData = typeof broadcast.target === "string"
+        ? JSON.parse(broadcast.target)
+        : broadcast.target;
+    }
+  } catch (e) {
+    console.error("Error parsing target:", e);
+  }
+  const isExcel = targetData?.tipe === "excel";
+
   useEffect(() => {
     if (!broadcast?.id) return;
 
@@ -133,11 +145,9 @@ export default function ViewPenerima({ broadcast, onClose }) {
                     <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
                       <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>#</th>
                       <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Customer</th>
-                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>No. Telp</th>
-                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Pesan</th>
-                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Response</th>
+                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>No. Telepon</th>
                       <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Status</th>
-                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Dikirim</th>
+                      <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", color: "#6b7280" }}>Waktu Kirim</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -145,16 +155,10 @@ export default function ViewPenerima({ broadcast, onClose }) {
                       <tr key={item.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
                         <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>{i + 1}</td>
                         <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
-                          {item.customer_rel?.nama || "-"}
+                          {item.customer_rel?.nama || (isExcel ? "Penerima Excel" : "-")}
                         </td>
                         <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
                           {item.notelp || item.customer_rel?.wa || "-"}
-                        </td>
-                        <td style={{ padding: "0.75rem", fontSize: "0.875rem", maxWidth: "200px", wordBreak: "break-word" }}>
-                          {item.pesan || "-"}
-                        </td>
-                        <td style={{ padding: "0.75rem", fontSize: "0.875rem", maxWidth: "200px", wordBreak: "break-word" }}>
-                          {item.response && item.response !== "null" ? item.response : "-"}
                         </td>
                         <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
                           <span className={`orders-status-badge orders-status-badge--${getStatusClass(item.status)}`}>

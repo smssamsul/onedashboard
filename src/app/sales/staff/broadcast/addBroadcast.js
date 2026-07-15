@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { Calendar } from "primereact/calendar";
 import { normalizeBroadcastPayload } from "@/lib/sales/broadcast";
 import dynamic from "next/dynamic";
-import "@/styles/sales/pesanan.css";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
@@ -27,20 +26,11 @@ const STATUS_ORDER_MAP = {
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", class: "unpaid" },
   null: { label: "Unpaid", class: "unpaid" },
-  1: { label: "Waiting Approval", class: "pending" }, // Menunggu approve finance
-  2: { label: "Paid", class: "paid" },             // Finance approved
+  1: { label: "Waiting Approval", class: "pending" }, 
+  2: { label: "Paid", class: "paid" },             
   3: { label: "Rejected", class: "rejected" },
   4: { label: "Partial Payment", class: "partial" },
 };
-
-// Autotext Options untuk variable
-const AUTOTEXT_OPTIONS = [
-  { label: "Pilih Variable", value: "" },
-  { label: "{{customer_name}}", value: "{{customer_name}}" },
-  { label: "{{product_name}}", value: "{{product_name}}" },
-  { label: "{{order_date}}", value: "{{order_date}}" },
-  { label: "{{order_total}}", value: "{{order_total}}" },
-];
 
 export default function AddBroadcast({ onClose, onAdd }) {
   const [formData, setFormData] = useState({
@@ -49,30 +39,30 @@ export default function AddBroadcast({ onClose, onAdd }) {
     langsung_kirim: true,
     tanggal_kirim: null,
     target: {
+      tipe: "filter",
       produk: [],
       status_order: "",
       status_pembayaran: "",
+      excel_data: null,
     },
   });
 
   const [products, setProducts] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [statusOrderOptions, setStatusOrderOptions] = useState([]);
   const [statusPembayaranOptions, setStatusPembayaranOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [estimatedTarget, setEstimatedTarget] = useState(null);
-  const [checkingTarget, setCheckingTarget] = useState(false);
-  // State untuk search produk
-  const [produkSearchQuery, setProdukSearchQuery] = useState("");
+  const [senderInfo, setSenderInfo] = useState(null);
+  
   const [showProdukDropdown, setShowProdukDropdown] = useState(false);
-  // State untuk autotext dan emoji
-  const [selectedAutotext, setSelectedAutotext] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Fetch products and orders data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -84,6 +74,26 @@ export default function AddBroadcast({ onClose, onAdd }) {
           return;
         }
 
+        // Fetch sender profile info
+        try {
+          const profileRes = await fetch("/api/profile", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (profileRes.ok) {
+            const profileJson = await profileRes.json();
+            if (profileJson.success && profileJson.data) {
+              setSenderInfo(profileJson.data);
+            }
+          }
+        } catch (profileErr) {
+          console.error("Error fetching sender profile:", profileErr);
+        }
+
         // Fetch products
         const productsRes = await fetch("/api/sales/produk", {
           method: "GET",
@@ -93,22 +103,33 @@ export default function AddBroadcast({ onClose, onAdd }) {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        if (!productsRes.ok) {
-          throw new Error(`HTTP error! status: ${productsRes.status}`);
+        if (productsRes.ok) {
+          const productsJson = await productsRes.json();
+          if (productsJson.success && productsJson.data) {
+            const activeProducts = Array.isArray(productsJson.data)
+              ? productsJson.data.filter((p) => p.status === "1" || p.status === 1)
+              : [];
+            setProducts(activeProducts);
+          }
         }
 
-        const productsJson = await productsRes.json();
-
-        if (productsJson.success && productsJson.data) {
-          // Filter hanya produk aktif (status === "1" atau status === 1)
-          const activeProducts = Array.isArray(productsJson.data)
-            ? productsJson.data.filter((p) => p.status === "1" || p.status === 1)
-            : [];
-          setProducts(activeProducts);
+        // Fetch templates
+        const templatesRes = await fetch("/api/sales/template-broadcast", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (templatesRes.ok) {
+          const templatesJson = await templatesRes.json();
+          if (templatesJson.success && templatesJson.data) {
+            setTemplates(Array.isArray(templatesJson.data) ? templatesJson.data : []);
+          }
         }
 
-        // Fetch orders to get unique status_order and status_pembayaran
+        // Fetch orders for statuses
         const ordersRes = await fetch("/api/sales/order?page=1&per_page=1000", {
           method: "GET",
           headers: {
@@ -120,9 +141,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
 
         if (ordersRes.ok) {
           const ordersJson = await ordersRes.json();
-
           if (ordersJson.success && ordersJson.data && Array.isArray(ordersJson.data)) {
-            // Extract unique status_order
             const uniqueStatusOrder = new Set();
             ordersJson.data.forEach((order) => {
               if (order.status_order) {
@@ -133,20 +152,13 @@ export default function AddBroadcast({ onClose, onAdd }) {
               }
             });
 
-            // Extract unique status_pembayaran
-            // Keep null as null (Unpaid), don't convert to 0
             const uniqueStatusPembayaran = new Set();
             ordersJson.data.forEach((order) => {
               let status = order.status_pembayaran;
-              // Keep null as null, undefined as null
-              if (status === undefined) {
-                status = null;
-              }
-              // Use null for Unpaid instead of 0
+              if (status === undefined) status = null;
               uniqueStatusPembayaran.add(status);
             });
 
-            // Convert to options array
             const statusOrderOpts = Array.from(uniqueStatusOrder)
               .sort()
               .map((value) => ({
@@ -156,10 +168,8 @@ export default function AddBroadcast({ onClose, onAdd }) {
 
             const statusPembayaranOpts = Array.from(uniqueStatusPembayaran)
               .sort((a, b) => {
-                // Handle null first (Unpaid should be first)
                 if (a === null) return -1;
                 if (b === null) return 1;
-                // Then sort numbers
                 return Number(a) - Number(b);
               })
               .map((value) => ({
@@ -169,9 +179,6 @@ export default function AddBroadcast({ onClose, onAdd }) {
 
             setStatusOrderOptions(statusOrderOpts);
             setStatusPembayaranOptions(statusPembayaranOpts);
-
-            console.log("📊 Status Order Options:", statusOrderOpts);
-            console.log("📊 Status Pembayaran Options:", statusPembayaranOpts);
           }
         }
       } catch (err) {
@@ -192,22 +199,56 @@ export default function AddBroadcast({ onClose, onAdd }) {
     }));
   };
 
-  const handleRadioChange = (value) => {
-    setFormData((prev) => ({
-      ...prev,
-      langsung_kirim: value,
-      tanggal_kirim: value ? null : new Date(),
-    }));
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formDataFile = new FormData();
+    formDataFile.append('file', file);
+
+    try {
+      setIsUploadingExcel(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/sales/broadcast/parse-excel", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formDataFile
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setFormData(prev => ({
+          ...prev,
+          target: {
+            ...prev.target,
+            excel_data: json.data
+          }
+        }));
+        alert(`Berhasil membaca ${json.data.length} kontak dari Excel`);
+      } else {
+        alert(json.message || "Gagal memproses file Excel");
+        e.target.value = null;
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan saat upload Excel");
+      e.target.value = null;
+    } finally {
+      setIsUploadingExcel(false);
+    }
   };
 
-  const handleDateChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      tanggal_kirim: e.value,
-    }));
+  const handleTemplateChange = (e) => {
+    const templateId = e.target.value;
+    if (!templateId) return;
+    
+    const selectedTemplate = templates.find(t => t.id.toString() === templateId);
+    if (selectedTemplate) {
+      insertAtCursor(selectedTemplate.isi);
+    }
   };
 
-  // Toggle produk selection
   const toggleProduk = (productId) => {
     setFormData((prev) => {
       const currentProduk = prev.target.produk || [];
@@ -222,54 +263,18 @@ export default function AddBroadcast({ onClose, onAdd }) {
         },
       };
     });
-    // Reset search dan tutup dropdown setelah pilih
-    setProdukSearchQuery("");
-    setShowProdukDropdown(false);
   };
 
-  // Filter produk berdasarkan search query
-  const filteredProducts = products.filter((product) => {
-    const query = produkSearchQuery.toLowerCase();
-    const isSelected = formData.target.produk.includes(product.id);
-    // Jangan tampilkan produk yang sudah dipilih
-    if (isSelected) return false;
-    // Filter berdasarkan nama produk
-    return product.nama.toLowerCase().includes(query);
-  });
-
-  // Toggle status order selection (single select - radio-like)
-  const toggleStatusOrder = (status) => {
-    setFormData((prev) => {
-      const currentStatus = prev.target.status_order || "";
-      return {
+  const toggleSemuaProduk = (e) => {
+    const isChecked = e.target.checked;
+    if (isChecked) {
+      setFormData(prev => ({
         ...prev,
-        target: {
-          ...prev.target,
-          // If clicking the same status, deselect it (allow none)
-          // Otherwise, replace with new selection (single select)
-          status_order: currentStatus === status ? "" : status,
-        },
-      };
-    });
+        target: { ...prev.target, produk: [] }
+      }));
+    }
   };
 
-  // Toggle status pembayaran selection (single select - radio-like)
-  const toggleStatusPembayaran = (status) => {
-    setFormData((prev) => {
-      const currentStatus = prev.target.status_pembayaran || "";
-      return {
-        ...prev,
-        target: {
-          ...prev.target,
-          // If clicking the same status, deselect it (allow none)
-          // Otherwise, replace with new selection (single select)
-          status_pembayaran: currentStatus === status ? "" : status,
-        },
-      };
-    });
-  };
-
-  // Insert text at cursor position
   const insertAtCursor = (value) => {
     if (!value) return;
     const textarea = textareaRef.current;
@@ -296,16 +301,10 @@ export default function AddBroadcast({ onClose, onAdd }) {
     });
   };
 
-  // Handle insert autotext variable
-  const handleInsertAutotext = () => {
-    if (!selectedAutotext) {
-      return;
-    }
-    insertAtCursor(selectedAutotext);
-    setSelectedAutotext(""); // Reset selection after insert
+  const insertAutoText = (value) => {
+    insertAtCursor(value);
   };
 
-  // Handle emoji click
   const handleEmojiClick = (emojiData) => {
     const emoji = emojiData?.emoji;
     if (emoji) {
@@ -317,7 +316,6 @@ export default function AddBroadcast({ onClose, onAdd }) {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (!formData.nama.trim()) {
       setError("Nama broadcast wajib diisi");
       return;
@@ -334,26 +332,10 @@ export default function AddBroadcast({ onClose, onAdd }) {
     try {
       setSubmitting(true);
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Token tidak ditemukan");
-        return;
-      }
-
-      // Validate produk is selected
-      if (!formData.target.produk || formData.target.produk.length === 0) {
-        setError("Pilih minimal satu produk");
-        return;
-      }
-
-      // Normalize payload using helper function
+      
       const requestBody = normalizeBroadcastPayload(formData);
 
-      console.log("📤 [BROADCAST] Normalized payload:", JSON.stringify(requestBody, null, 2));
-      console.log("📤 [BROADCAST] Target produk:", requestBody.target.produk);
-      console.log("📤 [BROADCAST] Target status_order:", requestBody.target.status_order);
-      console.log("📤 [BROADCAST] Target status_pembayaran:", requestBody.target.status_pembayaran);
-
-      const res = await fetch("/api/sales/broadcast/per-sales", {
+      const res = await fetch("/api/sales/broadcast", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -369,646 +351,252 @@ export default function AddBroadcast({ onClose, onAdd }) {
         throw new Error(json.message || "Gagal membuat broadcast");
       }
 
-      console.log("✅ [BROADCAST] Success:", json);
-
-      // Check if total_target is 0
       if (json.data?.total_target === 0) {
-        const filterInfo = [];
-        if (requestBody.target.produk?.length > 0) {
-          const productNames = requestBody.target.produk
-            .map((id) => getSelectedProductName(id))
-            .join(", ");
-          filterInfo.push(`Produk: ${productNames}`);
-        }
-        if (requestBody.target.status_order) {
-          filterInfo.push(`Status Order: ${getStatusOrderLabel(requestBody.target.status_order)}`);
-        }
-        // Handle null as valid value (Unpaid) - null should be included
-        if (requestBody.target.status_pembayaran !== undefined && requestBody.target.status_pembayaran !== "") {
-          filterInfo.push(`Status Pembayaran: ${getStatusPembayaranLabel(requestBody.target.status_pembayaran)}`);
-        }
-
-        const warningMessage = `⚠️ Broadcast berhasil dibuat, tetapi tidak ada customer yang sesuai dengan filter:\n\n${filterInfo.join("\n")}\n\nSilakan kurangi filter atau pilih kombinasi filter yang berbeda.`;
-
-        alert(warningMessage);
+        alert("⚠️ Broadcast berhasil dibuat, tetapi tidak ada customer yang sesuai dengan filter.");
       } else {
-        // Show success message if there are targets
         alert(`✅ Broadcast berhasil dibuat!\nTotal Target: ${json.data?.total_target || 0} customer`);
       }
 
       if (onAdd) onAdd(json.data);
       onClose();
     } catch (err) {
-      console.error("❌ [BROADCAST] Error:", err);
       setError(err.message || "Terjadi kesalahan saat membuat broadcast");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getSelectedProductName = (productId) => {
-    const product = products.find((p) => p.id === productId);
-    return product ? product.nama : `Produk #${productId}`;
-  };
-
-  const getStatusOrderLabel = (value) => {
-    return STATUS_ORDER_MAP[value] || value;
-  };
-
-  const getStatusPembayaranLabel = (value) => {
-    const status = STATUS_PEMBAYARAN_MAP[value];
-    return status?.label || value;
-  };
-
-  // Check estimated target count (optional helper function)
-  const checkEstimatedTarget = async () => {
-    if (!formData.target.produk || formData.target.produk.length === 0) {
-      setEstimatedTarget(null);
-      return;
-    }
-
-    setCheckingTarget(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      // Create a test payload to check target
-      const testPayload = normalizeBroadcastPayload({
-        ...formData,
-        nama: "test",
-        pesan: "test",
-      });
-
-      // Call backend to get estimated count (if backend supports it)
-      // For now, we'll just show a message based on filters
-      const filterInfo = [];
-      if (testPayload.target.produk?.length > 0) {
-        filterInfo.push(`${testPayload.target.produk.length} produk`);
-      }
-      if (testPayload.target.status_order) {
-        filterInfo.push(`Status Order: ${getStatusOrderLabel(testPayload.target.status_order)}`);
-      }
-      // Handle null as valid value (Unpaid) - null should be included
-      if (testPayload.target.status_pembayaran !== undefined && testPayload.target.status_pembayaran !== "") {
-        filterInfo.push(`Status Pembayaran: ${getStatusPembayaranLabel(testPayload.target.status_pembayaran)}`);
-      }
-
-      setEstimatedTarget({
-        filters: filterInfo,
-        note: "Estimasi akan muncul setelah broadcast dibuat",
-      });
-    } catch (err) {
-      console.error("Error checking target:", err);
-    } finally {
-      setCheckingTarget(false);
-    }
-  };
-
   return (
-    <div className="orders-modal-overlay" onClick={onClose}>
-      <div className="orders-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "800px", maxHeight: "90vh" }}>
-        <div className="orders-modal-header">
-          <h2>Tambah Broadcast</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup modal">
-            <i className="pi pi-times" />
-          </button>
+    <div className="orders-modal-overlay" onClick={onClose} style={{ zIndex: 1000, background: 'rgba(0,0,0,0.5)', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="orders-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "680px", width: "100%", maxHeight: "90vh", background: 'white', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700 }}>Buat Broadcast</h3>
+          <button type="button" onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="orders-modal-body" style={{ overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ overflowY: "auto", flex: 1, padding: "1.5rem" }}>
           {error && (
-            <div className="dashboard-alert" style={{ marginBottom: "1rem" }}>
+            <div style={{ background: "#fee2e2", color: "#dc2626", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1rem" }}>
               {error}
             </div>
           )}
 
-          {/* Nama Broadcast */}
-          <label className="orders-field">
-            Nama Broadcast *
-            <input
-              type="text"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              placeholder="Contoh: Promo Bulan Desember"
-              required
-            />
-          </label>
-
-          {/* Pesan Broadcast */}
-          <label className="orders-field">
-            Pesan Broadcast *
-            <textarea
-              ref={textareaRef}
-              name="pesan"
-              value={formData.pesan}
-              onChange={handleChange}
-              rows={6}
-              placeholder="Tulis pesan yang akan dikirim ke customer..."
-              required
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: "0.875rem",
-                fontFamily: "inherit",
-                resize: "vertical",
-              }}
-            />
-          </label>
-
-          {/* Control Row: Autotext & Emoji */}
-          <div style={{
-            display: "flex",
-            gap: "0.75rem",
-            marginTop: "-0.5rem",
-            marginBottom: "1rem",
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            position: "relative",
-          }}>
-            {/* Autotext Group */}
-            <div style={{
-              display: "flex",
-              gap: "0.5rem",
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}>
-              <select
-                value={selectedAutotext}
-                onChange={(e) => setSelectedAutotext(e.target.value)}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  fontSize: "0.875rem",
-                  background: "#fff",
-                  cursor: "pointer",
-                  outline: "none",
-                  minWidth: "180px",
-                }}
-              >
-                {AUTOTEXT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleInsertAutotext}
-                disabled={!selectedAutotext}
-                style={{
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid #d1d5db",
-                  background: selectedAutotext ? "#f1a124" : "#f3f4f6",
-                  color: selectedAutotext ? "#fff" : "#9ca3af",
-                  cursor: selectedAutotext ? "pointer" : "not-allowed",
-                  fontWeight: 500,
-                  fontSize: "0.875rem",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedAutotext) {
-                    e.currentTarget.style.background = "#e69100";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedAutotext) {
-                    e.currentTarget.style.background = "#f1a124";
-                  }
-                }}
-              >
-                Insert
-              </button>
+          {senderInfo && (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "0.5rem", padding: "1rem", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <i className="pi pi-user" style={{ color: "#3b82f6", fontSize: "1.25rem" }}></i>
+              <div style={{ fontSize: "0.875rem" }}>
+                <span style={{ fontWeight: 600, color: "#1e3a8a" }}>Sales Pengirim:</span>{" "}
+                <span style={{ color: "#1e40af" }}>{senderInfo.nama}</span>{" "}
+                <span style={{ color: "#64748b" }}>|</span>{" "}
+                <span style={{ fontWeight: 600, color: "#1e3a8a" }}>WhatsApp:</span>{" "}
+                <span style={{ color: "#1e40af" }}>{senderInfo.no_telp || "-"}</span>
+              </div>
             </div>
-
-            {/* Emoji Picker */}
-            <div style={{ position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker((prev) => !prev)}
-                style={{
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  border: `1px solid ${showEmojiPicker ? "#f1a124" : "#d1d5db"}`,
-                  background: showEmojiPicker ? "#fef3e2" : "#fff",
-                  color: showEmojiPicker ? "#f1a124" : "#374151",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                  fontSize: "0.875rem",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  transition: "all 0.2s",
-                }}
-              >
-                😊
-                <span>Emoticon</span>
-              </button>
-              {showEmojiPicker && (
-                <div style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  marginTop: "0.5rem",
-                  zIndex: 1000,
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  boxShadow: "0 20px 45px rgba(15, 23, 42, 0.15)",
-                  padding: "6px",
-                }}>
-                  <EmojiPicker
-                    onEmojiClick={handleEmojiClick}
-                    height={320}
-                    width={280}
-                    searchDisabled={false}
-                    previewConfig={{ showPreview: false }}
-                    skinTonesDisabled
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Radio: Kirim Sekarang / Kirim Nanti */}
-          <div className="orders-field">
-            <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
-              Waktu Pengiriman *
-            </label>
-            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                <input
-                  type="radio"
-                  name="langsung_kirim"
-                  checked={formData.langsung_kirim === true}
-                  onChange={() => handleRadioChange(true)}
-                />
-                <span>Kirim Sekarang</span>
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                <input
-                  type="radio"
-                  name="langsung_kirim"
-                  checked={formData.langsung_kirim === false}
-                  onChange={() => handleRadioChange(false)}
-                />
-                <span>Kirim Nanti</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Date & Time Picker (muncul jika Kirim Nanti) */}
-          {!formData.langsung_kirim && (
-            <label className="orders-field">
-              Tanggal & Waktu Kirim *
-              <Calendar
-                value={formData.tanggal_kirim}
-                onChange={handleDateChange}
-                showTime
-                hourFormat="24"
-                dateFormat="dd/mm/yy"
-                placeholder="Pilih tanggal dan waktu"
-                style={{ width: "100%" }}
-                required
-              />
-            </label>
           )}
 
-          {/* Filter Produk */}
-          <div className="orders-field">
-            <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
-              Target Produk *
-              <small style={{ fontWeight: 400, color: "#6b7280", marginLeft: "0.5rem" }}>
-                (Pilih satu atau lebih produk)
-              </small>
-            </label>
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.5rem", padding: "1.25rem", marginBottom: "1rem" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <i className="pi pi-info-circle" style={{ color: "#F1A124" }}></i>
+              Informasi broadcast
+            </div>
+            
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Nama broadcast <span style={{ color: "#dc2626" }}>*</span></label>
+              <input type="text" name="nama" value={formData.nama} onChange={handleChange} required placeholder="Contoh: Promo Januari 2026" style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }} />
+            </div>
 
-            {loading ? (
-              <div style={{ padding: "1rem", textAlign: "center", color: "#6b7280" }}>
-                Memuat produk...
-              </div>
-            ) : products.length === 0 ? (
-              <div style={{ padding: "1rem", textAlign: "center", color: "#6b7280" }}>
-                Tidak ada produk tersedia
-              </div>
-            ) : (
-              <>
-                {/* Input Search Produk */}
-                <div style={{ position: "relative", marginBottom: "0.75rem" }}>
-                  <input
-                    type="text"
-                    placeholder="Cari produk..."
-                    value={produkSearchQuery}
-                    onChange={(e) => {
-                      setProdukSearchQuery(e.target.value);
-                      setShowProdukDropdown(true);
-                    }}
-                    onFocus={() => setShowProdukDropdown(true)}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "0.875rem",
-                      outline: "none",
-                      transition: "border-color 0.2s",
-                    }}
-                    onBlur={() => {
-                      // Delay untuk allow click on dropdown items
-                      setTimeout(() => setShowProdukDropdown(false), 200);
-                    }}
-                  />
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Pilih Template (Opsional)</label>
+              <select onChange={handleTemplateChange} style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}>
+                <option value="">-- Ketik pesan manual --</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.judul}</option>
+                ))}
+              </select>
+            </div>
 
-                  {/* Dropdown Hasil Search */}
-                  {showProdukDropdown && produkSearchQuery && filteredProducts.length > 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        marginTop: "0.25rem",
-                        background: "#fff",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        maxHeight: "200px",
-                        overflowY: "auto",
-                        zIndex: 1000,
-                      }}
-                    >
-                      {filteredProducts.map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => toggleProduk(product.id)}
-                          style={{
-                            padding: "0.75rem 1rem",
-                            cursor: "pointer",
-                            transition: "background-color 0.2s",
-                            borderBottom: "1px solid #f3f4f6",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#f9fafb";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "#fff";
-                          }}
-                        >
-                          {product.nama}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Pesan jika tidak ada hasil */}
-                  {showProdukDropdown && produkSearchQuery && filteredProducts.length === 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        marginTop: "0.25rem",
-                        background: "#fff",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        padding: "0.75rem 1rem",
-                        color: "#6b7280",
-                        fontSize: "0.875rem",
-                        zIndex: 1000,
-                      }}
-                    >
-                      Tidak ada produk ditemukan
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Pesan <span style={{ color: "#dc2626" }}>*</span></label>
+              <textarea ref={textareaRef} name="pesan" value={formData.pesan} onChange={handleChange} required placeholder="Tulis pesan WhatsApp..." rows="5" style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem", resize: "vertical" }} />
+              
+              <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <button type="button" onClick={() => insertAutoText('{Halo|Hai|Selamat pagi}')} style={{ background: "#e2e8f0", border: "none", padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", cursor: "pointer" }}>Sapaan (Spintax)</button>
+                <button type="button" onClick={() => insertAutoText('{{customer_name}}')} style={{ background: "#e2e8f0", border: "none", padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", cursor: "pointer" }}>Nama Customer</button>
+                <button type="button" onClick={() => insertAutoText('{{product_name}}')} style={{ background: "#e2e8f0", border: "none", padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", cursor: "pointer" }}>Nama Produk</button>
+                <button type="button" onClick={() => insertAutoText('{{order_total}}')} style={{ background: "#e2e8f0", border: "none", padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", cursor: "pointer" }}>Total Order</button>
+                
+                <div style={{ position: "relative" }}>
+                  <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} style={{ background: "#e2e8f0", border: "none", padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", cursor: "pointer" }}>😊 Emoji</button>
+                  {showEmojiPicker && (
+                    <div style={{ position: "absolute", bottom: "100%", left: 0, zIndex: 100 }}>
+                      <EmojiPicker onEmojiClick={handleEmojiClick} height={300} width={280} />
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Produk Terpilih (Chips dengan tombol X) */}
-                {formData.target.produk.length > 0 && (
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                      {formData.target.produk.map((productId) => (
-                        <span
-                          key={productId}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            padding: "0.5rem 0.75rem",
-                            background: "#f1a124",
-                            color: "#fff",
-                            borderRadius: "999px",
-                            fontSize: "0.875rem",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {getSelectedProductName(productId)}
-                          <button
-                            type="button"
-                            onClick={() => toggleProduk(productId)}
-                            style={{
-                              background: "rgba(255, 255, 255, 0.2)",
-                              border: "none",
-                              borderRadius: "50%",
-                              width: "20px",
-                              height: "20px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              color: "#fff",
-                              fontSize: "0.875rem",
-                              lineHeight: 1,
-                              padding: 0,
-                              transition: "background-color 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
-                            }}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.5rem", padding: "1.25rem", marginBottom: "1rem" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <i className="pi pi-clock" style={{ color: "#F1A124" }}></i>
+              Waktu pengiriman
+            </div>
+            
+            <div style={{ display: "flex", gap: "1.5rem", marginBottom: !formData.langsung_kirim ? "1rem" : "0" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 }}>
+                <input type="radio" checked={formData.langsung_kirim} onChange={() => setFormData(p => ({...p, langsung_kirim: true, tanggal_kirim: null}))} /> Langsung
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 }}>
+                <input type="radio" checked={!formData.langsung_kirim} onChange={() => setFormData(p => ({...p, langsung_kirim: false}))} /> Jadwalkan
+              </label>
+            </div>
+
+            {!formData.langsung_kirim && (
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.875rem" }}>Tanggal & waktu kirim</label>
+                <Calendar value={formData.tanggal_kirim} onChange={(e) => setFormData(p => ({...p, tanggal_kirim: e.value}))} showTime hourFormat="24" style={{ width: "100%" }} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.5rem", padding: "1.25rem" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <i className="pi pi-users" style={{ color: "#F1A124" }}></i>
+              Target penerima
+            </div>
+            
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600, fontSize: "0.875rem" }}>Tipe Target</label>
+              <div style={{ display: "flex", gap: "1.5rem", padding: "0.75rem", background: "white", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 }}>
+                  <input type="radio" checked={formData.target.tipe === "filter"} onChange={() => setFormData(p => ({...p, target: {...p.target, tipe: "filter"}}))} /> Filter Data Order
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 }}>
+                  <input type="radio" checked={formData.target.tipe === "excel"} onChange={() => setFormData(p => ({...p, target: {...p.target, tipe: "excel"}}))} /> Upload Excel
+                </label>
+              </div>
+            </div>
+
+            {formData.target.tipe === "filter" && (
+              <>
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Produk</label>
+                  <div style={{ position: "relative" }}>
+                    <div 
+                      onClick={() => setShowProdukDropdown(!showProdukDropdown)} 
+                      style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                    >
+                      <span style={{ color: formData.target.produk.length === 0 ? "#9ca3af" : "inherit" }}>
+                        {formData.target.produk.length === 0 ? "Semua produk" : `${formData.target.produk.length} produk dipilih`}
+                      </span>
+                      <i className="pi pi-chevron-down" />
                     </div>
+
+                    {showProdukDropdown && (
+                      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: "1px solid #e2e8f0", borderRadius: "0.375rem", marginTop: "0.25rem", zIndex: 10, maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+                        <div style={{ padding: "0.5rem 1rem", borderBottom: "1px solid #e2e8f0" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                            <input type="checkbox" checked={formData.target.produk.length === 0} onChange={toggleSemuaProduk} />
+                            Semua produk (tidak filter produk)
+                          </label>
+                        </div>
+                        {products.map(p => (
+                          <div key={p.id} style={{ padding: "0.5rem 1rem" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                              <input type="checkbox" checked={formData.target.produk.includes(p.id)} onChange={() => toggleProduk(p.id)} />
+                              {p.nama}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Status Order</label>
+                    <select 
+                      value={formData.target.status_order || ""}
+                      onChange={(e) => setFormData(p => ({...p, target: {...p.target, status_order: e.target.value}}))}
+                      style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                    >
+                      <option value="">Semua Status Order</option>
+                      {statusOrderOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Status Pembayaran</label>
+                    <select 
+                      value={formData.target.status_pembayaran !== null ? formData.target.status_pembayaran : ""}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (val === "null") val = null;
+                        setFormData(p => ({...p, target: {...p.target, status_pembayaran: val}}));
+                      }}
+                      style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                    >
+                      <option value="">Semua Status Pembayaran</option>
+                      {statusPembayaranOptions.map((opt, idx) => (
+                        <option key={idx} value={opt.value === null ? "null" : opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </>
             )}
-          </div>
 
-          {/* Filter Status Order */}
-          <div className="orders-field">
-            <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
-              Status Order
-              <small style={{ fontWeight: 400, color: "#6b7280", marginLeft: "0.5rem" }}>
-                (Pilih status, kosongkan untuk semua status)
-              </small>
-            </label>
-            {statusOrderOptions.length === 0 ? (
-              <div style={{ padding: "1rem", textAlign: "center", color: "#6b7280" }}>
-                Memuat status order...
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {statusOrderOptions.map((option) => {
-                  const isSelected = formData.target.status_order === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => toggleStatusOrder(option.value)}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        borderRadius: "999px",
-                        border: `2px solid ${isSelected ? "#f1a124" : "#e5e7eb"}`,
-                        background: isSelected ? "#fef3e2" : "#fff",
-                        color: isSelected ? "#f1a124" : "#374151",
-                        fontWeight: isSelected ? 600 : 400,
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {formData.target.status_order && (
-              <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "#f9fafb", borderRadius: "8px" }}>
-                <strong style={{ fontSize: "0.875rem", color: "#374151" }}>Status Terpilih:</strong>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <span
-                    style={{
-                      padding: "0.25rem 0.75rem",
-                      background: "#f1a124",
-                      color: "#fff",
-                      borderRadius: "999px",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                    }}
+            {formData.target.tipe === "excel" && (
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Upload Excel Target</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <input 
+                    type="file" 
+                    accept=".xlsx,.xls,.csv" 
+                    onChange={handleExcelUpload} 
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ padding: "0.5rem 1rem", background: "#e2e8f0", border: "none", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
+                    disabled={isUploadingExcel}
                   >
-                    {getStatusOrderLabel(formData.target.status_order)}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Filter Status Pembayaran */}
-          <div className="orders-field">
-            <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
-              Status Pembayaran
-              <small style={{ fontWeight: 400, color: "#6b7280", marginLeft: "0.5rem" }}>
-                (Pilih status, kosongkan untuk semua status)
-              </small>
-            </label>
-            {statusPembayaranOptions.length === 0 ? (
-              <div style={{ padding: "1rem", textAlign: "center", color: "#6b7280" }}>
-                Memuat status pembayaran...
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {statusPembayaranOptions.map((option, index) => {
-                  const isSelected = formData.target.status_pembayaran === option.value;
-                  return (
-                    <button
-                      key={option.value !== null ? option.value : `null-${index}`}
-                      type="button"
-                      onClick={() => toggleStatusPembayaran(option.value)}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        borderRadius: "999px",
-                        border: `2px solid ${isSelected ? "#f1a124" : "#e5e7eb"}`,
-                        background: isSelected ? "#fef3e2" : "#fff",
-                        color: isSelected ? "#f1a124" : "#374151",
-                        fontWeight: isSelected ? 600 : 400,
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        fontSize: "0.875rem",
+                    <i className={isUploadingExcel ? "pi pi-spin pi-spinner" : "pi pi-upload"}></i>
+                    {isUploadingExcel ? "Memproses..." : "Pilih File Excel"}
+                  </button>
+                  {formData.target.excel_data && (
+                    <span style={{ fontSize: "0.875rem", color: "#16a34a", fontWeight: 600 }}>
+                      {formData.target.excel_data.length} kontak siap dikirim
+                    </span>
+                  )}
+                  {formData.target.excel_data && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setFormData(prev => ({...prev, target: {...prev.target, excel_data: null}}));
+                        if (fileInputRef.current) fileInputRef.current.value = null;
                       }}
+                      style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.875rem" }}
                     >
-                      {option.label}
+                      Batal
                     </button>
-                  );
-                })}
-              </div>
-            )}
-            {/* Handle null as valid value (Unpaid) - null should be displayed */}
-            {(formData.target.status_pembayaran !== undefined && formData.target.status_pembayaran !== "") && (
-              <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "#f9fafb", borderRadius: "8px" }}>
-                <strong style={{ fontSize: "0.875rem", color: "#374151" }}>Status Terpilih:</strong>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <span
-                    style={{
-                      padding: "0.25rem 0.75rem",
-                      background: "#f1a124",
-                      color: "#fff",
-                      borderRadius: "999px",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {getStatusPembayaranLabel(formData.target.status_pembayaran)}
-                  </span>
+                  )}
                 </div>
+                <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>Format: Kolom A (Nama), Kolom B (No WA)</small>
               </div>
             )}
           </div>
-
-          {/* Info Box: Summary Filter yang Dipilih */}
-          {/* Handle null as valid value (Unpaid) - null should be included */}
-          {(formData.target.produk.length > 0 ||
-            formData.target.status_order ||
-            (formData.target.status_pembayaran !== undefined && formData.target.status_pembayaran !== "")) && (
-              <div style={{
-                marginTop: "1.5rem",
-                padding: "1rem",
-                background: "#f0f9ff",
-                borderRadius: "8px",
-                border: "1px solid #bae6fd"
-              }}>
-                <strong style={{ fontSize: "0.875rem", color: "#0369a1", display: "block", marginBottom: "0.5rem" }}>
-                  📋 Filter yang Dipilih:
-                </strong>
-                <div style={{ fontSize: "0.875rem", color: "#0369a1" }}>
-                  {formData.target.produk.length > 0 && (
-                    <div style={{ marginBottom: "0.25rem" }}>
-                      • Produk: {formData.target.produk.map((id) => getSelectedProductName(id)).join(", ")}
-                    </div>
-                  )}
-                  {formData.target.status_order && (
-                    <div style={{ marginBottom: "0.25rem" }}>
-                      • Status Order: {getStatusOrderLabel(formData.target.status_order)}
-                    </div>
-                  )}
-                  {/* Handle null as valid value (Unpaid) - null should be included */}
-                  {(formData.target.status_pembayaran !== undefined && formData.target.status_pembayaran !== "") && (
-                    <div style={{ marginBottom: "0.25rem" }}>
-                      • Status Pembayaran: {getStatusPembayaranLabel(formData.target.status_pembayaran)}
-                    </div>
-                  )}
-                  <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid #bae6fd", fontStyle: "italic" }}>
-                    💡 Semua filter harus terpenuhi (AND logic). Jika tidak ada customer yang match, total_target akan 0.
-                  </div>
-                </div>
-              </div>
-            )}
         </form>
-
-        <div className="orders-modal-footer">
-          <button type="button" className="orders-button orders-button--ghost" onClick={onClose} disabled={submitting}>
-            Batal
-          </button>
-          <button type="submit" className="orders-button orders-button--primary" onClick={handleSubmit} disabled={submitting}>
+        
+        <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: "0.75rem", background: "#f8fafc", borderBottomLeftRadius: "0.75rem", borderBottomRightRadius: "0.75rem" }}>
+          <button type="button" onClick={onClose} style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #e2e8f0", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>Batal</button>
+          <button type="button" onClick={handleSubmit} disabled={submitting} style={{ padding: "0.5rem 1rem", background: "#F1A124", color: "white", border: "none", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>
             {submitting ? "Menyimpan..." : "Simpan Broadcast"}
           </button>
         </div>

@@ -13,7 +13,9 @@ export default function OngkirCalculator({
   onAddressChange,
   defaultCourier = "jne",
   mode = "dropdown",
-  compact = false
+  compact = false,
+  /** Kode pos tujuan (angka) — memperkuat akurasi rates Biteship jika diisi */
+  destinationPostalCode = "",
 }) {
   // State untuk cascading dropdown
   const [provinces, setProvinces] = useState([]);
@@ -93,7 +95,7 @@ export default function OngkirCalculator({
     } else {
       setCostResults([]);
     }
-  }, [selectedDistrict, selectedCourier]);
+  }, [selectedDistrict, selectedCourier, destinationPostalCode, selectedProvince, selectedCity, provinces, cities, districts]);
 
   // Call onAddressChange callback when address changes
   // This ensures data from Raja Ongkir (province, city, district) is sent to backend
@@ -168,11 +170,22 @@ export default function OngkirCalculator({
     setCostResults([]);
 
     try {
+      const provinceName = provinces.find((p) => p.id === selectedProvince)?.name || "";
+      const cityName = cities.find((c) => c.id === selectedCity)?.name || "";
+      const districtName =
+        districts.find((d) => d.id === selectedDistrict || d.district_id === selectedDistrict)?.name || "";
+      const destination_search = [districtName, cityName, provinceName].filter(Boolean).join(", ");
+
+      const postalDigits = destinationPostalCode ? String(destinationPostalCode).replace(/\D/g, "") : "";
+
       const results = await calculateDomesticCost({
         origin: ORIGIN_DISTRICT_ID,
-        destination: parseInt(districtId, 10), // Pastikan numeric
+        destination: parseInt(districtId, 10),
         weight: parseInt(weightInGrams, 10),
-        courier: courier.toLowerCase() // Single courier string, lowercase
+        courier: courier.toLowerCase(),
+        province_id: null,
+        destination_search: destination_search || undefined,
+        destination_postal_code: postalDigits.length >= 3 ? Number(postalDigits) : undefined,
       });
 
       setCostResults(results);
@@ -191,7 +204,9 @@ export default function OngkirCalculator({
           onSelectOngkir({
             cost: lowestCost,
             courier: cheapest.courier || courier.toUpperCase(),
-            service: cheapest.service || ''
+            service: cheapest.service || '',
+            courier_company: cheapest.courier_company,
+            courier_type: cheapest.courier_type,
           });
         }
       }

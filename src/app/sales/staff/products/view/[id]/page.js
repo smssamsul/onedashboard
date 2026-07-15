@@ -10,23 +10,38 @@ import LinkZoomSection from "./LinkZoomSection";
 import TrainerSection from "./TrainerSection";
 import "@/styles/sales/product-detail.css";
 
+import {
+  ArrowLeft,
+  Package,
+  Tag,
+  Info,
+  Calendar,
+  Globe,
+  CheckCircle,
+  XCircle,
+  Eye,
+  ShoppingBag,
+  CreditCard,
+  DollarSign,
+  Image as ImageIcon,
+  Copy,
+  ExternalLink
+} from "lucide-react";
+
 // Helper function untuk build image URL via proxy
 const buildImageUrl = (path) => {
   if (!path) return null;
-  
-  // Jika path sudah full URL, return langsung
+
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  
-  // Bersihkan path dari prefix yang tidak diperlukan
+
   let cleanPath = path.replace(/^\/?(storage\/)?/, "");
-  
-  // Pastikan path tidak kosong
+
   if (!cleanPath || cleanPath.trim() === "") {
     return null;
   }
-  
+
   return `/api/image?path=${encodeURIComponent(cleanPath)}`;
 };
 
@@ -65,17 +80,7 @@ export default function DetailProdukPage({ params }) {
     async function fetchData() {
       try {
         const data = await getProductById(id);
-        console.log("📦 [VIEW PRODUCT] Fetched data:", data);
-        console.log("📦 [VIEW PRODUCT] Data type:", Array.isArray(data) ? "array" : typeof data);
-        console.log("📦 [VIEW PRODUCT] Nama produk:", data?.nama);
-        console.log("📦 [VIEW PRODUCT] Header:", data?.header);
-        console.log("📦 [VIEW PRODUCT] Gambar:", data?.gambar);
-        
-        if (!data) {
-          console.error("❌ [VIEW PRODUCT] No data received");
-          return;
-        }
-        
+        if (!data) return;
         setProduct(data);
       } catch (err) {
         console.error("❌ Error fetching detail:", err);
@@ -86,15 +91,17 @@ export default function DetailProdukPage({ params }) {
     fetchData();
   }, [id]);
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert("Berhasil disalin ke clipboard!");
+  };
+
   if (loading) return <Layout>Memuat detail produk...</Layout>;
   if (!product) return <Layout>Produk tidak ditemukan.</Layout>;
 
   // Parse JSON fields dengan safe parse
   const gallery = safeParse(product.gambar, []);
-  const testimoni = safeParse(product.testimoni, []);
   const listPoint = safeParse(product.list_point, []);
-  const video = safeParse(product.video, []);
-  const customField = safeParse(product.custom_field, []);
 
   return (
     <Layout title={`Detail Produk - ${product.nama}`}>
@@ -103,31 +110,33 @@ export default function DetailProdukPage({ params }) {
         <div className="product-detail-header">
           <button
             className="back-to-list-btn"
-            onClick={() => router.push("/sales/products")}
+            onClick={() => router.push("/sales/staff/products")}
           >
-            <i className="pi pi-arrow-left" />
-            <span>Back to Product List</span>
+            <ArrowLeft size={18} />
+            <span>Kembali ke Daftar Produk</span>
           </button>
         </div>
 
+        {/* ANALYTICS BOX */}
         <div className="analytics-box">
           <div className="analytics-item">
             <h3>Sales Page View</h3>
             <p>43</p>
           </div>
           <div className="analytics-item">
-            <h3>Checkout Page View</h3>
+            <h3>Checkout View</h3>
             <p>0</p>
           </div>
           <div className="analytics-item">
-            <h3>Order</h3>
+            <h3>Total Order</h3>
             <p>0</p>
           </div>
           <div className="analytics-item">
-            <h3>Paid</h3>
+            <h3>Order Paid</h3>
             <p>0</p>
           </div>
         </div>
+
         {/* TABS */}
         <div className="top-tabs">
           <button
@@ -136,269 +145,114 @@ export default function DetailProdukPage({ params }) {
           >
             Detail Produk
           </button>
-          <button
-            className={`tab ${activeTab === "followup" ? "active" : ""}`}
-            onClick={() => setActiveTab("followup")}
-          >
-            Followup Text
-          </button>
-          <button
-            className={`tab ${activeTab === "link-zoom" ? "active" : ""}`}
-            onClick={() => setActiveTab("link-zoom")}
-          >
-            Link Zoom
-          </button>
-          <button
-            className={`tab ${activeTab === "trainer" ? "active" : ""}`}
-            onClick={() => setActiveTab("trainer")}
-          >
-            Trainer
-          </button>
         </div>
 
         {/* === TAB DETAIL === */}
         {activeTab === "detail" && (
-          <>
-            {/* HEADER IMAGE */}
-            <div className="header-section">
-              {product.header ? (
-                <img
-                  src={buildImageUrl(product.header)}
-                  className="header-image"
-                  alt={product.nama || "Product header"}
-                  onError={(e) => {
-                    e.target.src = "/placeholder-image.png";
-                  }}
-                />
-              ) : (
-                <div className="header-image-placeholder">
-                  <span>No Image</span>
+          <div className="tab-content-fade">
+            {/* HERO SECTION */}
+            <div className="product-hero-section">
+
+
+              <div className="product-hero-content">
+                <div className="product-title-section">
+                  <h1 className="product-title">{product.nama || "-"}</h1>
+                  <div className="product-meta-tags">
+                    <span className="meta-tag category">
+                      <Tag size={14} />
+                      {product.kategori_rel?.nama || product.kategori || "Tanpa Kategori"}
+                    </span>
+                    <span className="meta-tag code">
+                      <Package size={14} />
+                      {product.kode || "No Code"}
+                    </span>
+                    <span className={`meta-tag status ${product.status === "1" ? "active" : "inactive"}`}>
+                      {product.status === "1" ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                      {product.status === "1" ? "Aktif" : "Nonaktif"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="product-price-section">
+                  {product.harga_coret && (
+                    <span className="price-old">Rp {formatCurrency(product.harga_coret)}</span>
+                  )}
+                  <span className="price-current">Rp {formatCurrency(product.harga_asli)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* INFO CARDS GRID */}
+            <div className="info-cards-grid">
+              {/* Card 1: Main Info */}
+              <div className="info-card">
+                <div className="info-card-header">
+                  <Info size={18} />
+                  <h2>Informasi Dasar</h2>
+                </div>
+                <div className="info-card-body">
+                  <div className="info-item">
+                    <div className="info-label">Deskripsi</div>
+                    <div className="info-value">{product.deskripsi || "Tidak ada deskripsi."}</div>
+                  </div>
+                  <div className="info-item">
+                    <div className="info-label">Tanggal Event</div>
+                    <div className="info-value">
+                      <Calendar size={16} />
+                      {product.tanggal_event ? new Date(product.tanggal_event).toLocaleString("id-ID", {
+                        weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+                      }) : "-"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Links & Access */}
+              <div className="info-card">
+                <div className="info-card-header">
+                  <Globe size={18} />
+                  <h2>Link & Akses</h2>
+                </div>
+                <div className="info-card-body">
+                  <div className="info-item">
+                    <div className="info-label">Landing Page URL</div>
+                    <div className="info-value">
+                      <a href={`/landing/${product.kode}`} target="_blank" className="url-link">
+                        /landing/{product.kode}
+                        <ExternalLink size={14} />
+                      </a>
+                      <button className="copy-btn" onClick={() => copyToClipboard(`${window.location.origin}/landing/${product.kode}`)}>
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+
+
+              {/* Card 4: Poin Penting */}
+              {listPoint.length > 0 && (
+                <div className="info-card full-width">
+                  <div className="info-card-header">
+                    <CheckCircle size={18} />
+                    <h2>Poin Penting Produk</h2>
+                  </div>
+                  <div className="info-card-body">
+                    <ul className="list-point-grid">
+                      {listPoint.map((point, i) => (
+                        <li key={i} className="list-point-item">
+                          <CheckCircle size={16} />
+                          {point.nama || point}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
-
-              <div className="header-info">
-                <h1>{product.nama || "-"}</h1>
-                <p className="category-tag">{product.kategori_rel?.nama || product.kategori || "-"}</p>
-                <div className="price-group">
-                  {product.harga_coret && (
-                    <p className="price-coret">Rp {formatCurrency(product.harga_coret)}</p>
-                  )}
-                  <p className="price">Rp {formatCurrency(product.harga_asli)}</p>
-                </div>
-                {product.kode && (
-                  <p className="product-code">Kode: {product.kode}</p>
-                )}
-              </div>
             </div>
-
-            {/* GRID */}
-            <div className="detail-grid">
-              {/* LEFT */}
-              <div className="detail-card">
-                <h2>Informasi Produk</h2>
-
-                <div className="info-row">
-                  <span>Nama Produk:</span>
-                  <p>{product.nama || "-"}</p>
-                </div>
-
-                {product.kode && (
-                  <div className="info-row">
-                    <span>Kode Produk:</span>
-                    <p>{product.kode}</p>
-                  </div>
-                )}
-
-                <div className="info-row">
-                  <span>Harga Asli:</span>
-                  <p>Rp {formatCurrency(product.harga_asli)}</p>
-                </div>
-
-                {product.harga_coret && (
-                  <div className="info-row">
-                    <span>Harga Coret:</span>
-                    <p>Rp {formatCurrency(product.harga_coret)}</p>
-                  </div>
-                )}
-
-                <div className="info-row">
-                  <span>Deskripsi:</span>
-                  <p>{product.deskripsi || "-"}</p>
-                </div>
-
-                {product.tanggal_event && (
-                  <div className="info-row">
-                    <span>Tanggal Event:</span>
-                    <p>
-                      {new Date(product.tanggal_event).toLocaleString("id-ID", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </p>
-                  </div>
-                )}
-
-                {product.url && (
-                  <div className="info-row">
-                    <span>URL:</span>
-                    <p>{product.url}</p>
-                  </div>
-                )}
-
-                {product.user_rel?.nama && (
-                  <div className="info-row">
-                    <span>User Input:</span>
-                    <p>{product.user_rel.nama}</p>
-                  </div>
-                )}
-
-                <div className="info-row">
-                  <span>Status:</span>
-                  <p>{product.status === "1" ? "Aktif" : "Nonaktif"}</p>
-                </div>
-
-                {product.landingpage && (
-                  <div className="info-row">
-                    <span>Landing Page:</span>
-                    <p>{product.landingpage === "1" ? "Aktif" : "Nonaktif"}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* GALLERY */}
-              <div className="detail-card">
-                <h2>Gallery Produk</h2>
-
-                {gallery.length === 0 ? (
-                  <p>Tidak ada gambar gallery</p>
-                ) : (
-                  <div className="gallery-list">
-                    {gallery.map((g, i) => {
-                      const imageUrl = buildImageUrl(g.path);
-                      return (
-                        <div key={i} className="gallery-item">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={g.caption || `Gallery ${i + 1}`}
-                              onError={(e) => {
-                                e.target.src = "/placeholder-image.png";
-                              }}
-                            />
-                          ) : (
-                            <div className="gallery-placeholder">
-                              <span>No Image</span>
-                            </div>
-                          )}
-                          {g.caption && <p>{g.caption}</p>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* LIST POINT */}
-            {listPoint.length > 0 && (
-              <div className="detail-card">
-                <h2>List Point</h2>
-                <ul className="list-point-list">
-                  {listPoint.map((point, i) => (
-                    <li key={i}>{point.nama || point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* TESTIMONI */}
-            {testimoni.length > 0 && (
-              <div className="detail-card">
-                <h2>Testimoni</h2>
-                <div className="testimoni-list">
-                  {testimoni.map((testi, i) => {
-                    const imageUrl = buildImageUrl(testi.gambar);
-                    return (
-                      <div key={i} className="testimoni-item">
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={testi.nama || `Testimoni ${i + 1}`}
-                            className="testimoni-image"
-                            onError={(e) => {
-                              e.target.src = "/placeholder-image.png";
-                            }}
-                          />
-                        ) : (
-                          <div className="testimoni-image-placeholder">
-                            <span>No Image</span>
-                          </div>
-                        )}
-                        <div className="testimoni-content">
-                          {testi.nama && <h4>{testi.nama}</h4>}
-                          {testi.deskripsi && <p>{testi.deskripsi}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* VIDEO */}
-            {video.length > 0 && (
-              <div className="detail-card">
-                <h2>Video</h2>
-                <div className="video-list">
-                  {video.map((url, i) => (
-                    <div key={i} className="video-item">
-                      <a href={url} target="_blank" rel="noopener noreferrer">
-                        {url}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* CUSTOM FIELD */}
-            {customField.length > 0 && (
-              <div className="detail-card">
-                <h2>Custom Field</h2>
-                <div className="custom-field-list">
-                  {customField.map((field, i) => (
-                    <div key={i} className="custom-field-item">
-                      <span className="field-label">{field.nama_field || field.label}:</span>
-                      <span className="field-value">{field.value || "-"}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* === TAB FOLLOWUP TEXT === */}
-        {activeTab === "followup" && <FollowupSection productId={id} />}
-
-        {/* === TAB LINK ZOOM === */}
-        {activeTab === "link-zoom" && (
-          <LinkZoomSection productId={id} productName={product.nama} />
-        )}
-
-        {/* === TAB TRAINER === */}
-        {activeTab === "trainer" && (
-          <TrainerSection
-            productId={id}
-            product={product}
-            onProductUpdate={(updatedProduct) => {
-              setProduct(updatedProduct);
-            }}
-          />
+          </div>
         )}
       </div>
     </Layout>

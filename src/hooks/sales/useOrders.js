@@ -79,6 +79,12 @@ export default function useOrders({ mode = "admin" } = {}) {
             total_harga: String(formData.total_harga || "0"),
             sumber: formData.sumber || "",
             notif: formData.notif ? 1 : 0,
+            // UTM fields
+            utm_source: formData.utm_source || "",
+            utm_medium: formData.utm_medium || "",
+            utm_campaign: formData.utm_campaign || "",
+            utm_term: formData.utm_term || "",
+            utm_content: formData.utm_content || "",
           };
           
           console.log("[CREATE ORDER] Has existing customer:", hasExistingCustomer);

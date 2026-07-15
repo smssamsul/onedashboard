@@ -4,7 +4,8 @@ import { toast } from "react-hot-toast";
 
 /**
  * useShippingCalculator
- * Mengelola logic perhitungan ongkir menggunakan shippingService.
+ * Perhitungan ongkir via Biteship (proxy /api/shipping/calculate-domestic).
+ * Hanya menggunakan JNE REG sebagai kurir default.
  */
 export function useShippingCalculator() {
     const [ongkir, setOngkir] = useState(0);
@@ -13,33 +14,66 @@ export function useShippingCalculator() {
     const [loadingCost, setLoadingCost] = useState(false);
     const [selectedCourier, setSelectedCourier] = useState("jne");
 
-    // Constants (Moved from Component)
-    const ORIGIN_DISTRICT_ID = 6204; // Kelapa Dua, Kabupaten Tangerang
     const DEFAULT_WEIGHT = 1000; // 1kg
 
-    const handleCalculateOngkir = useCallback(async (destinationDistrictId, courier = selectedCourier) => {
-        if (!destinationDistrictId) return;
+    const handleCalculateOngkir = useCallback(async (
+        _destinationDistrictId,
+        _courier = "jne", // Hanya JNE
+        _provinceId = null,
+        options = {}
+    ) => {
+        const {
+            destination_search,
+            destination_postal_code,
+            destination_area_id,
+            item_value,
+        } = options || {};
+
+        if (!destination_search && destination_postal_code == null && !destination_area_id) {
+            return;
+        }
 
         setLoadingCost(true);
-        // Reset ongkir saat hitung ulang untuk mencegah race condition harga
         setOngkir(0);
 
         try {
+            // Selalu hanya query JNE
             const results = await calculateDomesticCost({
-                origin: ORIGIN_DISTRICT_ID,
-                destination: destinationDistrictId,
+                origin: null,
+                destination: null,
                 weight: DEFAULT_WEIGHT,
-                courier: courier
+                courier: "jne",
+                province_id: null,
+                destination_search,
+                destination_postal_code,
+                destination_area_id,
+                item_value,
             });
 
-            setCostResults(results);
+            // Filter hanya layanan REG dari JNE
+            const jneRegResults = (results || []).filter(r =>
+                (r.courier_company || r.courier || '').toLowerCase() === 'jne' &&
+                (r.courier_type || '').toLowerCase() === 'reg'
+            );
 
-            // Auto-select first service if available (Existing behavior pattern)
-            if (results && results.length > 0) {
-                // Cari service termurah atau yang pertama logic existing biasanya user pilih manual, 
-                // tapi kita siapkan state costResults untuk ditampilkan di UI
+            // Jika ada REG, gunakan itu; jika tidak ada, gunakan hasil JNE pertama
+            const filteredResults = jneRegResults.length > 0 ? jneRegResults : (results || []).filter(r =>
+                (r.courier_company || r.courier || '').toLowerCase() === 'jne'
+            );
+
+            setCostResults(filteredResults);
+
+            if (filteredResults.length > 0) {
+                const selected = filteredResults[0];
+                setOngkir(selected.cost || 0);
+                setOngkirInfo({
+                    courier: selected.courier || 'jne',
+                    service: selected.service || 'REG',
+                    courier_company: selected.courier_company || 'jne',
+                    courier_type: selected.courier_type || 'reg',
+                });
             } else {
-                // console.warn("No shipping costs found");
+                setOngkirInfo({ courier: '', service: '' });
             }
         } catch (err) {
             console.error("[SHIPPING] Calculate error:", err);
@@ -49,10 +83,14 @@ export function useShippingCalculator() {
         }
     }, [selectedCourier]);
 
-    // Handle user selecting a shipping service from the list
-    const selectShippingService = useCallback((cost, serviceName, courierCode) => {
+    const selectShippingService = useCallback((cost, serviceName, courierCode, extra = {}) => {
         setOngkir(cost);
-        setOngkirInfo({ courier: courierCode, service: serviceName });
+        setOngkirInfo({
+            courier: courierCode,
+            service: serviceName,
+            courier_company: extra.courier_company || courierCode,
+            courier_type: extra.courier_type || '',
+        });
     }, []);
 
     return {
@@ -60,7 +98,7 @@ export function useShippingCalculator() {
         setOngkir,
         ongkirInfo,
         setOngkirInfo,
-        costResults, // To be displayed in UI
+        costResults,
         setCostResults,
         loadingCost,
         selectedCourier,

@@ -229,7 +229,7 @@ export default function VideoComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                     <InputNumber
                       value={paddingTop}
                       onValueChange={(e) => updateAdvanceSetting("paddingTop", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -242,7 +242,7 @@ export default function VideoComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                     <InputNumber
                       value={paddingRight}
                       onValueChange={(e) => updateAdvanceSetting("paddingRight", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -255,7 +255,7 @@ export default function VideoComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                     <InputNumber
                       value={paddingBottom}
                       onValueChange={(e) => updateAdvanceSetting("paddingBottom", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -268,7 +268,7 @@ export default function VideoComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                     <InputNumber
                       value={paddingLeft}
                       onValueChange={(e) => updateAdvanceSetting("paddingLeft", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />

@@ -29,6 +29,7 @@ export default function EditCustomerModal({ customer, onClose, onSuccess }) {
     sapaan: customer.sapaan || "",
     email: customer.email || "",
     wa: customer.wa || "",
+    wa2: customer.wa2 || "",
     instagram: customer.instagram?.replace(/^@/, "") || "",
     profesi: customer.profesi || "",
     pendapatan_bln: customer.pendapatan_bln || "",
@@ -228,6 +229,16 @@ export default function EditCustomerModal({ customer, onClose, onSuccess }) {
                   value={formData.wa}
                   onChange={handleChange}
                   required
+                  placeholder="cth: 081234567890"
+                />
+              </div>
+
+              <div className="form-group form-group--primary">
+                <label>WA 2 (Opsional)</label>
+                <input
+                  name="wa2"
+                  value={formData.wa2}
+                  onChange={handleChange}
                   placeholder="cth: 081234567890"
                 />
               </div>

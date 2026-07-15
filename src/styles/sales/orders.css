@@ -64,6 +64,17 @@ MODAL STYLES (copied from customer.css)
   alignSelf: center !important;
 }
 
+.modal-card--fullscreen {
+  width: min(1200px, 98vw);
+  max-width: 98vw;
+  height: 94vh;
+  max-height: 94vh;
+}
+
+.modal-card--fullscreen .modal-body {
+  padding: 1.25rem 1.75rem;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

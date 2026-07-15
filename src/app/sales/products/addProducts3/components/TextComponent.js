@@ -30,7 +30,11 @@ import { FontSize } from './extensions/FontSize';
 export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const content = data.content || "<p>Text Baru</p>";
   const darkEditor = data.darkEditor || false;
-  const lineHeight = data.lineHeight || 1.5;
+  const lineHeightRaw = data.lineHeight;
+  const lineHeight =
+    Number.isFinite(Number(lineHeightRaw)) && Number(lineHeightRaw) > 0
+      ? Number(lineHeightRaw)
+      : 1.5;
   const fontFamily = data.fontFamily || "Page Font";
   const textColor = data.textColor || "#000000";
   const backgroundColor = data.backgroundColor || "transparent";
@@ -39,13 +43,18 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
   const fontStyle = data.fontStyle || "normal";
   const textDecoration = data.textDecoration || "none";
   const textTransform = data.textTransform || "none";
-  const letterSpacing = data.letterSpacing || 0;
+  const letterSpacingRaw = data.letterSpacing;
+  const letterSpacing = Number.isFinite(Number(letterSpacingRaw)) ? Number(letterSpacingRaw) : 0;
+  const wordSpacingRaw = data.wordSpacing;
+  const wordSpacing = Number.isFinite(Number(wordSpacingRaw)) ? Number(wordSpacingRaw) : 0;
 
   // Advance settings
   const paddingTop = data.paddingTop || 0;
   const paddingRight = data.paddingRight || 0;
   const paddingBottom = data.paddingBottom || 0;
   const paddingLeft = data.paddingLeft || 0;
+  const marginTop = data.marginTop ?? 0;
+  const marginBottom = data.marginBottom ?? 0;
   const bgType = data.bgType || "none"; // none, color, image
   const bgColor = data.bgColor || "#ffffff";
   const bgImage = data.bgImage || "";
@@ -129,6 +138,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
 
   // ===== TIPTAP EDITOR SETUP =====
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       UnderlineExtension,
@@ -157,6 +167,8 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
           min-height: 200px;
           padding: 12px 14px;
           line-height: ${lineHeight};
+          letter-spacing: ${letterSpacing}px;
+          word-spacing: ${wordSpacing}px;
           font-family: ${fontFamily !== "Page Font" ? fontFamily : "inherit"};
           color: ${textColor};
           text-align: ${textAlign};
@@ -187,6 +199,8 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
               min-height: 200px;
               padding: 12px 14px;
               line-height: ${lineHeight};
+              letter-spacing: ${letterSpacing}px;
+              word-spacing: ${wordSpacing}px;
               font-family: ${fontFamily !== "Page Font" ? (fontFamily.includes(' ') && !fontFamily.startsWith("'") ? `'${fontFamily}'` : fontFamily) : "inherit"};
               color: ${textColor};
               text-align: ${textAlign};
@@ -196,7 +210,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
         },
       });
     }
-  }, [editor, lineHeight, fontFamily, textColor, textAlign]);
+  }, [editor, lineHeight, letterSpacing, wordSpacing, fontFamily, textColor, textAlign]);
 
   // Sync button state dengan editor selection (untuk color buttons)
   useEffect(() => {
@@ -762,6 +776,21 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
               title="Font Size"
             />
           </div>
+          <div className="toolbar-input-group" title="Jarak baris / line spacing (line-height)">
+            <span className="toolbar-typography-mini-label">Jarak baris</span>
+            <InputNumber
+              value={lineHeight}
+              onValueChange={(e) =>
+                handleChange("lineHeight", e.value != null && e.value > 0 ? e.value : 1.5)
+              }
+              min={0.1}
+              max={5}
+              step={0.1}
+              minFractionDigits={0}
+              maxFractionDigits={2}
+              className="toolbar-input toolbar-line-height-input"
+            />
+          </div>
         </div>
 
         {/* Row 3: Font Family, Line Height, Image, Emoji */}
@@ -778,6 +807,34 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
             className="toolbar-dropdown"
             placeholder="Page Font"
           />
+          <div className="toolbar-input-group" title="Jarak antar huruf (letter-spacing)">
+            <span className="toolbar-typography-mini-label">Jarak huruf</span>
+            <InputNumber
+              value={letterSpacing}
+              onValueChange={(e) => handleChange("letterSpacing", e.value != null ? e.value : 0)}
+              min={-3}
+              max={40}
+              step={0.5}
+              minFractionDigits={0}
+              maxFractionDigits={2}
+              className="toolbar-input toolbar-letter-spacing-input"
+            />
+            <span className="toolbar-input-suffix">px</span>
+          </div>
+          <div className="toolbar-input-group" title="Jarak antar kata (word-spacing)">
+            <span className="toolbar-typography-mini-label">Jarak kata</span>
+            <InputNumber
+              value={wordSpacing}
+              onValueChange={(e) => handleChange("wordSpacing", e.value != null ? e.value : 0)}
+              min={-8}
+              max={48}
+              step={0.5}
+              minFractionDigits={0}
+              maxFractionDigits={2}
+              className="toolbar-input toolbar-letter-spacing-input"
+            />
+            <span className="toolbar-input-suffix">px</span>
+          </div>
           <button
             className="toolbar-btn"
             title="Insert Image"
@@ -807,7 +864,13 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
       </div>
 
       {/* Rich Text Editor Area - Tiptap */}
-      <div className={`text-editor-area ${darkEditor ? 'dark' : ''}`}>
+      <div
+        className={`text-editor-area ${darkEditor ? 'dark' : ''}`}
+        style={{
+          marginTop: `${Number(marginTop) || 0}px`,
+          marginBottom: `${Number(marginBottom) || 0}px`,
+        }}
+      >
         <EditorContent editor={editor} />
       </div>
 
@@ -911,6 +974,39 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
               </div>
             </div>
 
+            {/* Margin blok (jarak ke komponen lain) */}
+            <div className="advance-section-group">
+              <div className="advance-section-sublabel">Jarak teks atas dan bawah (margin luar)</div>
+              <div className="advance-padding-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <div className="advance-padding-item">
+                  <label className="advance-padding-label">Margin atas</label>
+                  <div className="advance-padding-input-wrapper">
+                    <InputNumber
+                      value={marginTop}
+                      onValueChange={(e) => handleChange("marginTop", e.value != null ? e.value : 0)}
+                      min={-9999}
+                      max={200}
+                      className="advance-padding-input"
+                    />
+                    <span className="advance-padding-unit">px</span>
+                  </div>
+                </div>
+                <div className="advance-padding-item">
+                  <label className="advance-padding-label">Margin bawah</label>
+                  <div className="advance-padding-input-wrapper">
+                    <InputNumber
+                      value={marginBottom}
+                      onValueChange={(e) => handleChange("marginBottom", e.value != null ? e.value : 0)}
+                      min={-9999}
+                      max={200}
+                      className="advance-padding-input"
+                    />
+                    <span className="advance-padding-unit">px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Padding Settings */}
             <div className="advance-section-group">
               <div className="advance-padding-grid">
@@ -920,7 +1016,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingTop}
                       onValueChange={(e) => handleChange("paddingTop", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -933,7 +1029,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingRight}
                       onValueChange={(e) => handleChange("paddingRight", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -946,7 +1042,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingBottom}
                       onValueChange={(e) => handleChange("paddingBottom", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />
@@ -959,7 +1055,7 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
                     <InputNumber
                       value={paddingLeft}
                       onValueChange={(e) => handleChange("paddingLeft", e.value || 0)}
-                      min={0}
+                      min={-9999}
                       max={200}
                       className="advance-padding-input"
                     />

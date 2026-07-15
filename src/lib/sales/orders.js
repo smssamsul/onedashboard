@@ -128,6 +128,48 @@ export async function getOrderById(id) {
   return res.data?.[0] || null;
 }
 
+/** 📊 GET Order dengan UTM (pagination + search) */
+export async function getOrdersUtm(page = 1, per_page = 15, search = "") {
+  try {
+    const q = new URLSearchParams({
+      page: String(page),
+      per_page: String(per_page),
+    });
+    if (search && String(search).trim()) {
+      q.set("search", String(search).trim());
+    }
+    const res = await api(`/sales/order/utm?${q.toString()}`, {
+      method: "GET",
+      disableToast: true,
+    });
+    if (res.success === true && res.data !== undefined) {
+      return {
+        data: Array.isArray(res.data) ? res.data : [],
+        current_page: res.pagination?.current_page ?? page,
+        last_page: res.pagination?.last_page ?? 1,
+        total: res.pagination?.total ?? 0,
+        per_page: res.pagination?.per_page ?? per_page,
+      };
+    }
+    return {
+      data: [],
+      current_page: page,
+      last_page: 1,
+      total: 0,
+      per_page,
+    };
+  } catch (error) {
+    console.error("getOrdersUtm:", error);
+    return {
+      data: [],
+      current_page: page,
+      last_page: 1,
+      total: 0,
+      per_page,
+    };
+  }
+}
+
 /** 🟢 POST Tambah Order (Admin) */
 export async function createOrderAdmin(data) {
   const payload = {

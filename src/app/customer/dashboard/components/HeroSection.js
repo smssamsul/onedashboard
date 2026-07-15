@@ -101,6 +101,10 @@ export default function HeroSection({ customerInfo, isLoading, isVerified }) {
   const memberId = customerInfo?.memberID || (customerInfo?.id ? String(customerInfo.id).padStart(6, '0') : "000000");
   const membershipType = customerInfo?.keanggotaan || "BASIC";
 
+  // Hanya tampilkan member card untuk keanggotaan platinum, gold, silver, bronze
+  const validMembershipTiers = ["platinum", "gold", "silver", "bronze"];
+  const showMemberCard = validMembershipTiers.includes(membershipType?.toLowerCase());
+
 
 
   // QR Data
@@ -109,7 +113,7 @@ export default function HeroSection({ customerInfo, isLoading, isVerified }) {
 
   return (
     <header className="customer-dashboard__hero">
-      <div className="hero-content">
+      <div className={`hero-content${showMemberCard ? ' has-card' : ''}`}>
 
         {/* LEFT COLUMN: TEXT */}
         <div className="hero-text">
@@ -118,7 +122,9 @@ export default function HeroSection({ customerInfo, isLoading, isVerified }) {
             Halo, <span className="hero-name-highlight">{displayName}</span>
           </h1>
           <p className="hero-subtitle">
-            Selamat datang kembali! Berikut adalah kartu keanggotaan digital Anda.
+            {showMemberCard
+              ? "Selamat datang kembali! Berikut adalah kartu keanggotaan digital Anda."
+              : "Selamat datang kembali! Pantau aktivitas dan pesanan Anda di sini."}
           </p>
 
           {/* Account Status Refactored */}
@@ -144,60 +150,62 @@ export default function HeroSection({ customerInfo, isLoading, isVerified }) {
 
         </div>
 
-        {/* RIGHT COLUMN: MEMBER CARD */}
-        <div className="hero-card-wrapper">
-          <div className="ternak-card">
+        {/* RIGHT COLUMN: MEMBER CARD — hanya tampil untuk tier platinum/gold/silver/bronze */}
+        {showMemberCard && (
+          <div className="hero-card-wrapper">
+            <div className="ternak-card">
 
-            {/* Background Illustration (Housing Rows) */}
-            <div className="ternak-card__bg">
-              {/* Simple CSS shape skyline mimicking property rows */}
-              <svg className="skyline-svg" viewBox="0 0 400 200" preserveAspectRatio="none">
-                <path d="M0,200 L0,150 L30,120 L60,150 L60,140 L90,110 L120,140 L120,100 L160,140 L200,100 L240,140 L240,120 L270,90 L300,120 L330,90 L360,120 L400,80 L400,200 Z" fill="#2d2d2d" opacity="0.3" />
-                <path d="M20,200 L20,170 L50,140 L80,170 L110,140 L140,170 L170,140 L200,170 L230,140 L260,170 L290,140 L320,170 L350,140 L380,170 L400,150 L400,200 Z" fill="#383838" opacity="0.4" />
-              </svg>
-            </div>
-
-            {/* TOP ROW */}
-            <div className="ternak-card__top">
-              <div className="ternak-card__brand">
-                <h2 className="brand-title">TERNAK PROPERTI</h2>
-                <span className="brand-subtitle">MEMBERSHIP</span>
+              {/* Background Illustration (Housing Rows) */}
+              <div className="ternak-card__bg">
+                {/* Simple CSS shape skyline mimicking property rows */}
+                <svg className="skyline-svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                  <path d="M0,200 L0,150 L30,120 L60,150 L60,140 L90,110 L120,140 L120,100 L160,140 L200,100 L240,140 L240,120 L270,90 L300,120 L330,90 L360,120 L400,80 L400,200 Z" fill="#2d2d2d" opacity="0.3" />
+                  <path d="M20,200 L20,170 L50,140 L80,170 L110,140 L140,170 L170,140 L200,170 L230,140 L260,170 L290,140 L320,170 L350,140 L380,170 L400,150 L400,200 Z" fill="#383838" opacity="0.4" />
+                </svg>
               </div>
 
-              <div className="ternak-card__qr">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrUrl} alt="Member QR" className="qr-image" />
-              </div>
-            </div>
+              {/* TOP ROW */}
+              <div className="ternak-card__top">
+                <div className="ternak-card__brand">
+                  <h2 className="brand-title">TERNAK PROPERTI</h2>
+                  <span className="brand-subtitle">MEMBERSHIP</span>
+                </div>
 
-            {/* BOTTOM ROW */}
-            <div className="ternak-card__bottom">
-              <div className="ternak-card__info-left">
-                <div className="info-group">
-                  <label>MEMBER ID</label>
-                  <div className="value-row">
-                    <span className="id-text">{memberId}</span>
-                    <button onClick={handleCopyId} className="copy-icon-btn">
-                      {copied ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
+                <div className="ternak-card__qr">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrUrl} alt="Member QR" className="qr-image" />
+                </div>
+              </div>
+
+              {/* BOTTOM ROW */}
+              <div className="ternak-card__bottom">
+                <div className="ternak-card__info-left">
+                  <div className="info-group">
+                    <label>MEMBER ID</label>
+                    <div className="value-row">
+                      <span className="id-text">{memberId}</span>
+                      <button onClick={handleCopyId} className="copy-icon-btn">
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="info-group mt-2">
+                    <label>CARDHOLDER</label>
+                    <div className="holder-name">{customerInfo?.nama || displayName}</div>
                   </div>
                 </div>
-                <div className="info-group mt-2">
-                  <label>CARDHOLDER</label>
-                  <div className="holder-name">{customerInfo?.nama || displayName}</div>
+
+                <div className="ternak-card__info-right">
+                  <label className="align-right">MEMBER</label>
+                  <div className="membership-badge">
+                    {membershipType}
+                  </div>
                 </div>
               </div>
 
-              <div className="ternak-card__info-right">
-                <label className="align-right">MEMBER</label>
-                <div className="membership-badge">
-                  {membershipType}
-                </div>
-              </div>
             </div>
-
           </div>
-        </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -213,7 +221,7 @@ export default function HeroSection({ customerInfo, isLoading, isVerified }) {
         }
 
         @media (min-width: 900px) {
-          .hero-content {
+          .hero-content.has-card {
             display: grid;
             grid-template-columns: 1fr 400px;
             gap: 4rem;

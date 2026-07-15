@@ -113,7 +113,8 @@ export async function GET(request) {
         success: json.success,
         data: json.data || json || [],
         message: json.message,
-        pagination: json.pagination, // Forward pagination object if exists
+        pagination: json.pagination,
+        summary: json.summary, // Forward pagination object if exists
       });
     }
 

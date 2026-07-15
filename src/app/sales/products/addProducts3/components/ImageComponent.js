@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { buildImageUrl } from "@/lib/image";
+import { buildImageUrl, convertToWebp } from "@/lib/image";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Slider } from "primereact/slider";
@@ -30,14 +30,20 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
   const [paddingLeft, setPaddingLeft] = useState(data.paddingLeft || 0);
   const [componentId, setComponentId] = useState(data.componentId || `img-${Math.random().toString(36).substr(2, 9)}`);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        onUpdate?.({ ...data, src: event.target.result, file: file });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        onUpdate?.({ ...data, src: webpDataUrl, file: file });
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          onUpdate?.({ ...data, src: event.target.result, file: file });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -65,14 +71,20 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
     });
   }, [alignment, imageWidth, imageFit, aspectRatio, backgroundType, backgroundColor, backgroundImage, device, paddingTop, paddingRight, paddingBottom, paddingLeft, componentId]);
 
-  const handleBackgroundFileChange = (e) => {
+  const handleBackgroundFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setBackgroundImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        setBackgroundImage(webpDataUrl);
+      } catch (err) {
+        console.error("Failed to convert background image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setBackgroundImage(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -421,7 +433,7 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                       <InputNumber
                         value={paddingTop}
                         onValueChange={(e) => setPaddingTop(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -435,7 +447,7 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                       <InputNumber
                         value={paddingRight}
                         onValueChange={(e) => setPaddingRight(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -449,7 +461,7 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                       <InputNumber
                         value={paddingBottom}
                         onValueChange={(e) => setPaddingBottom(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>
@@ -463,7 +475,7 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
                       <InputNumber
                         value={paddingLeft}
                         onValueChange={(e) => setPaddingLeft(e.value || 0)}
-                        min={0}
+                        min={-9999}
                         className="w-full"
                       />
                     </div>

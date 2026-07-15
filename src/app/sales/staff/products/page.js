@@ -69,6 +69,12 @@ export default function AdminProductsPage() {
     return `Rp ${parseInt(price).toLocaleString("id-ID")}`;
   }, []);
 
+  const formatListRupiah = useCallback((value) => {
+    const n = Math.round(Number(value ?? 0));
+    if (Number.isNaN(n)) return "Rp 0";
+    return `Rp ${n.toLocaleString("id-ID")}`;
+  }, []);
+
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "-";
     try {
@@ -148,12 +154,6 @@ export default function AdminProductsPage() {
               <p className="panel__eyebrow">Directory</p>
               <h3 className="panel__title">Product roster</h3>
             </div>
-            <button
-              className="customers-button customers-button--primary"
-              onClick={() => router.push("/sales/products/addProducts")}
-            >
-              + Tambah Produk
-            </button>          
           </div>
 
           {error && (
@@ -165,9 +165,9 @@ export default function AdminProductsPage() {
           <div className="products-table__wrapper">
             <div className="products-table">
               <div className="products-table__head">
-                <span>Image</span>
                 <span>Product</span>
                 <span>Price</span>
+                <span>Revenue</span>
                 <span>Category</span>
                 <span>Status</span>
                 <span>Event Date</span>
@@ -181,32 +181,12 @@ export default function AdminProductsPage() {
                 ) : paginatedData.length > 0 ? (
                   paginatedData.map((p, i) => (
                     <div className="products-table__row" key={p.id}>
-                      <div className="products-table__cell" data-label="Image">
-                        <div className="product-table__image">
-                          {p.header ? (
-                            <img
-                              src={`/api/image?path=${encodeURIComponent(p.header)}`}
-                              alt={p.nama}
-                              onError={(e) => {
-                                e.target.style.display = "none";
-                                e.target.nextElementSibling.style.display = "flex";
-                              }}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : null}
-                          <div
-                            className="product-table__image-placeholder"
-                            style={{ display: p.header ? "none" : "flex" }}
-                          >
-                            <i className="pi pi-box" />
-                          </div>
-                        </div>
-                      </div>
+
                       <div className="products-table__cell products-table__cell--strong" data-label="Product">
                         <div className="product-table__info">
                           <span
                             className="product-table__name"
-                            onClick={() => router.push(`/sales/products/view/${p.id}`)}
+                            onClick={() => router.push(`/sales/staff/products/view/${p.id}`)}
                           >
                             {p.nama || "-"}
                           </span>
@@ -242,23 +222,57 @@ export default function AdminProductsPage() {
                             </button>
                             <button
                               className="product-table__action-link"
-                              onClick={() => {
-                                router.push(`/sales/products/editProducts/${p.id}`);
-                              }}
+                              onClick={() => router.push(`/sales/staff/products/view/${p.id}`)}
                             >
-                              Edit
-                            </button>
-                            <button
-                              className="product-table__action-link product-table__action-link--danger"
-                              onClick={() => openDeleteModal(p)}
-                            >
-                              Delete
+                              Detail
                             </button>
                           </div>
                         </div>
                       </div>
                       <div className="products-table__cell" data-label="Price">
                         {formatPrice(p.harga_asli)}
+                      </div>
+                      <div
+                        className="products-table__cell products-table__cell--revenue"
+                        data-label="Revenue"
+                      >
+                        {(() => {
+                          const revenue = Number(p.total_revenue ?? 0);
+                          const pctRaw = p.fee_trainer;
+                          const pct = Number(pctRaw);
+                          const showTrainerFee =
+                            pctRaw != null &&
+                            pctRaw !== "" &&
+                            Number.isFinite(pct) &&
+                            pct > 0;
+                          const trainerFeeRp = showTrainerFee
+                            ? Math.round(revenue * (pct / 100))
+                            : null;
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.85rem",
+                                  fontWeight: 600,
+                                  color: "#0f172a",
+                                }}
+                              >
+                                {formatListRupiah(revenue)}
+                              </span>
+                              {showTrainerFee && (
+                                <span style={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.35 }}>
+                                  fee trainer ({pct.toFixed(1)}%) = {formatListRupiah(trainerFeeRp)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="products-table__cell" data-label="Category">
                         {p.kategori_rel?.nama || "-"}
@@ -267,7 +281,14 @@ export default function AdminProductsPage() {
                         {getStatusBadge(p.status)}
                       </div>
                       <div className="products-table__cell" data-label="Event Date">
-                        {formatDate(p.tanggal_event)}
+                        {(() => {
+                          const jadwalArr = p.jadwal_rel || [];
+                          if (jadwalArr.length > 0) {
+                            const firstJadwal = jadwalArr[0];
+                            return formatDate(firstJadwal.waktu_mulai);
+                          }
+                          return formatDate(p.tanggal_event);
+                        })()}
                       </div>
                       <div className="products-table__cell" data-label="Created By">
                         {p.user_rel?.nama || "-"}

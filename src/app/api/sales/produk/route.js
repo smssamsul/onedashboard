@@ -396,10 +396,13 @@ export async function GET(request) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log("🟢 [GET_PRODUK] Fetching products...");
-    console.log("🟢 [GET_PRODUK] Backend URL:", `${BACKEND_URL}/api/sales/produk`);
+    const forwardQuery = request.nextUrl?.search ?? "";
+    const backendListUrl = `${BACKEND_URL}/api/sales/produk${forwardQuery}`;
 
-    const response = await fetch(`${BACKEND_URL}/api/sales/produk`, {
+    console.log("🟢 [GET_PRODUK] Fetching products...");
+    console.log("🟢 [GET_PRODUK] Backend URL:", backendListUrl);
+
+    const response = await fetch(backendListUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -429,13 +432,20 @@ export async function GET(request) {
         kode: p.kode,
         url: p.url,
         status: p.status,
-        kategori_rel: p.kategori_rel, // Dibutuhkan untuk nama kategori
-        user_rel: p.user_rel,         // Dibutuhkan untuk "Created By"
-        assign: p.assign,             // Dibutuhkan untuk "Assign By"
-        tanggal_event: p.tanggal_event, // Dibutuhkan untuk "Event Date"
-        create_at: p.create_at,         // Dibutuhkan untuk "Created At"
-        harga: p.harga,               // Opsional (biasanya ada di table)
-        // EXCLUDE: landingpage, deskripsi, testimoni, video, images, pixel, dll
+        kategori_rel: p.kategori_rel,
+        user_rel: p.user_rel,
+        assign: p.assign,
+        assign_rel: p.assign_rel,
+        tanggal_event: p.tanggal_event,
+        create_at: p.create_at,
+        harga: p.harga,
+        harga_asli: p.harga_asli,
+        header: p.header,
+        total_revenue: p.total_revenue,
+        fee_trainer: p.fee_trainer,
+        trainer_rel: p.trainer_rel,
+        bundling_rel: p.bundling_rel,
+        jadwal_rel: p.jadwal_rel || [],  // ✅ Tambah jadwal_rel
       }));
     }
 

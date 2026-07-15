@@ -1,80 +1,39 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 /**
- * Next.js API Route untuk mengambil daftar provinces
- * 
  * Endpoint: GET /api/shipping/provinces
- * 
- * Proxy ke: GET https://rajaongkir.komerce.id/api/v1/destination/province
+ *
+ * Sumber wilayah: wilayah.id (static JSON, tanpa API key).
+ * @see https://wilayah.id/
+ *
+ * Response normalized untuk dropdown:
+ * [{ id: "11", name: "ACEH" }, ...]
  */
-const API_KEY = 'mT8nGMeZ4cacc72ba9d93fd4g2xH48Gb';
-const KOMERCE_BASE_URL = 'https://rajaongkir.komerce.id/api/v1';
-
-export async function GET(request) {
+export async function GET() {
   try {
-    const provincesUrl = `${KOMERCE_BASE_URL}/destination/province`;
+    const url = "https://wilayah.id/api/provinces.json";
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    let response;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(url, { method: "GET", signal: controller.signal });
+    clearTimeout(timeoutId);
 
-      response = await fetch(provincesUrl, {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json',
-          'key': API_KEY
-        },
-        signal: controller.signal
-      });
+    const json = await res.json().catch(() => ({}));
+    const rows = Array.isArray(json?.data) ? json.data : [];
 
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      console.error('[SHIPPING_PROVINCES] Fetch failed:', fetchError.message);
-      return NextResponse.json({
-        success: false,
-        message: 'Gagal terhubung ke server',
-        data: []
-      }, { status: 200 });
-    }
+    const data = rows
+      .map((x) => ({ id: String(x.code || ""), name: String(x.name || "") }))
+      .filter((x) => x.id && x.name);
 
-    if (!response || !response.ok) {
-      const status = response?.status || 0;
-      console.error('[SHIPPING_PROVINCES] HTTP error:', status);
-      return NextResponse.json({
-        success: false,
-        message: `Gagal mengambil data (HTTP ${status})`,
-        data: []
-      }, { status: 200 });
-    }
-
-    const json = await response.json();
-    
-    let results = [];
-    if (json.data && Array.isArray(json.data)) {
-      results = json.data;
-    } else if (Array.isArray(json)) {
-      results = json;
-    }
-
-    // Normalize data
-    const normalizedData = results.map(item => ({
-      id: item.id || '',
-      name: item.name || ''
-    }));
-
-    return NextResponse.json({
-      success: true,
-      message: 'Berhasil mengambil data provinces',
-      data: normalizedData
-    }, { status: 200 });
-
+    return NextResponse.json(
+      { success: true, message: "Berhasil mengambil data provinsi", data },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error('[SHIPPING_PROVINCES] Unexpected error:', error);
-    return NextResponse.json({
-      success: false,
-      message: `Terjadi kesalahan: ${error.message || 'Unknown error'}`,
-      data: []
-    }, { status: 200 });
+    console.error("[SHIPPING_PROVINCES]", error);
+    return NextResponse.json(
+      { success: false, message: error.message || "Terjadi kesalahan", data: [] },
+      { status: 200 }
+    );
   }
 }

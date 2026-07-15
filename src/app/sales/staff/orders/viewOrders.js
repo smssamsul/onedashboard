@@ -4,6 +4,7 @@ import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
 import UpdateOrders from "./updateOrders";
 import { BACKEND_URL } from "@/config/env";
+import BiteshipOrderTrackingPanel from "@/components/BiteshipOrderTrackingPanel";
 
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", class: "unpaid" },
@@ -264,7 +265,7 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-card" style={{ maxWidth: "800px" }}>
+      <div className="modal-card modal-card--fullscreen">
         {/* HEADER */}
         <div className="modal-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
           <h2>Detail Order</h2>
@@ -367,10 +368,34 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>Alamat</h4>
                   <p style={{ fontSize: '0.95rem', color: '#1e293b', lineHeight: '1.5' }}>{order.alamat || "-"}</p>
 
+                  <div style={{ marginTop: "1.25rem" }}>
+                    <BiteshipOrderTrackingPanel order={order} />
+                  </div>
+
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>Sisa Pembayaran</h4>
                   <p style={{ fontSize: "1rem", fontWeight: 600, color: sisaPembayaran > 0 ? "#dc2626" : "#059669" }}>
                     Rp {sisaPembayaran.toLocaleString("id-ID")}
                   </p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
+                <h4 style={{ fontSize: "0.875rem", fontWeight: 600, color: "#334155", marginBottom: "0.75rem" }}>UTM</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.5rem 1.25rem" }}>
+                  {[
+                    { key: "utm_source", label: "UTM Source" },
+                    { key: "utm_medium", label: "UTM Medium" },
+                    { key: "utm_campaign", label: "UTM Campaign" },
+                    { key: "utm_term", label: "UTM Term" },
+                    { key: "utm_content", label: "UTM Content" },
+                  ].map(({ key, label }) => (
+                    <div key={key}>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: "0.125rem" }}>{label}</div>
+                      <div style={{ fontSize: "0.875rem", color: "#1e293b", wordBreak: "break-word" }}>
+                        {order[key] && String(order[key]).trim() ? order[key] : "—"}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

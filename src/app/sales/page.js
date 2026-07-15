@@ -19,6 +19,7 @@ import {
 import { getOrders } from "@/lib/sales/orders";
 import dynamic from "next/dynamic";
 import ProductPerformanceAll from "@/components/sales/ProductPerformanceAll";
+import AttendanceCard from "@/components/AttendanceCard";
 import axios from "axios";
 
 // Lazy load heavy components
@@ -407,6 +408,7 @@ export default function Dashboard() {
     <Layout title="Dashboard" aboveContent={<GreetingBanner />}>
       <div className="dashboard-shell">
         {error && <div className="dashboard-alert">{error}</div>}
+        <AttendanceCard />
         <section className="dashboard-hero">
           <div className="dashboard-summary-horizontal">
             {summaryCards.map((card, index) => (

@@ -35,7 +35,6 @@ export async function PUT(request, { params }) {
     console.log(`[TRAINER_UPDATE] ========== PUT /api/sales/produk/${id}/trainer ==========`);
     console.log(`[TRAINER_UPDATE] Request body:`, reqBody);
     
-    // Validate request body - sesuai dokumentasi: { "trainer": 6 }
     if (!reqBody || (reqBody.trainer !== null && typeof reqBody.trainer !== "number")) {
       return NextResponse.json(
         { success: false, message: "Trainer ID harus berupa number atau null" },
@@ -43,13 +42,32 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Forward ke backend Laravel
+    let feeTrainerForward = undefined;
+    if (Object.prototype.hasOwnProperty.call(reqBody, "fee_trainer")) {
+      const f = reqBody.fee_trainer;
+      if (f === null || f === "" || f === undefined) {
+        feeTrainerForward = null;
+      } else {
+        const n = typeof f === "number" ? f : Number(f);
+        if (!Number.isFinite(n)) {
+          return NextResponse.json(
+            { success: false, message: "fee_trainer harus angka (persen) atau null" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
+        feeTrainerForward = Math.min(100, Math.max(0, n));
+      }
+    }
+
+    const forwardBody = { trainer: reqBody.trainer };
+    if (feeTrainerForward !== undefined) {
+      forwardBody.fee_trainer = feeTrainerForward;
+    }
+
     try {
       const response = await axios.put(
         `${BACKEND_URL}/api/sales/produk/${id}/trainer`,
-        {
-          trainer: reqBody.trainer,
-        },
+        forwardBody,
         {
           headers: {
             "Content-Type": "application/json",

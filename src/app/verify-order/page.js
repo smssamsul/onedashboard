@@ -22,6 +22,21 @@ function VerifyOrderOTPPageContent() {
   const [orderData, setOrderData] = useState(null);
   const inputs = useRef([]);
 
+  // ✅ Facebook Pixel: Subscribe event ketika user berada di halaman OTP verifikasi order
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.fbq !== "function") {
+      return;
+    }
+    try {
+      window.fbq("track", "Subscribe");
+      if (process.env.NODE_ENV === "development") {
+        console.log("[FB PIXEL] Subscribe event triggered on verify-order page");
+      }
+    } catch (e) {
+      console.error("[FB PIXEL] Error triggering Subscribe event:", e);
+    }
+  }, []);
+
   // Load order data dari localStorage
   useEffect(() => {
     const stored = localStorage.getItem("pending_order");

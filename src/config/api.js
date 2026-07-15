@@ -40,6 +40,8 @@ export const API_ENDPOINTS = {
     categoryById: (id) => `/sales/kategori-produk/${id}`,
     orders: '/sales/order',
     dashboard: '/sales/dashboard',
+    aiSetting: '/sales/ai-setting',
+    aiSettingById: (id) => `/sales/ai-setting/${id}`,
   },
 
   // Customer

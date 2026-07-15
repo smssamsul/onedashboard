@@ -6,10 +6,11 @@
 /**
  * Build image URL from backend path
  * Backend returns path without "storage/" prefix, e.g., "produk/header/xxx.png"
- * This function returns a proxy URL: /api/image?path=...
+ * For landing page products, this function returns full URL with https://app.ternakproperti.com/
+ * Otherwise, returns a proxy URL: /api/image?path=...
  * Proxy handler (src/app/api/image/route.js) adds /storage/ prefix and fetches from BACKEND_URL
  */
-export const buildImageUrl = (path) => {
+export const buildImageUrl = (path, isLandingPage = false) => {
     if (!path) return "";
     if (typeof path !== "string") return "";
 
@@ -44,14 +45,19 @@ export const buildImageUrl = (path) => {
     // Remove leading slash
     cleanPath = cleanPath.replace(/^\/+/, "");
 
-    // Remove "storage/" prefix if already there (proxy will add it)
+    // Remove "storage/" prefix if already there
     cleanPath = cleanPath.replace(/^storage\//, "");
 
     // Remove double slashes
     cleanPath = cleanPath.replace(/\/+/g, "/");
 
-    // Encode URL
+    // Encode URL for proxy
     const encodedPath = encodeURIComponent(cleanPath);
+
+    // For landing page products, return full URL with https://app.ternakproperti.com/api/image?path=...
+    if (isLandingPage) {
+        return `https://app.ternakproperti.com/api/image?path=${encodedPath}`;
+    }
 
     // Use proxy to avoid mixed content HTTPS/HTTP
     return `/api/image?path=${encodedPath}`;
@@ -76,4 +82,51 @@ export const resolveHeaderSource = (header) => {
     }
 
     return buildImageUrl(rawPath);
+};
+
+/**
+ * Convert File to WebP Data URL (or JPEG for Safari)
+ */
+export const convertToWebp = (file) => {
+    return new Promise((resolve, reject) => {
+        if (!file) return reject(new Error("No file provided"));
+        
+        // Don't convert SVG or non-images
+        if (!file.type.startsWith('image/') || file.type === 'image/svg+xml' || file.type === 'image/gif') {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                const format = isSafari ? "image/jpeg" : "image/webp";
+                
+                // For JPEG, fill transparent background with white
+                if (format === "image/jpeg") {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                }
+
+                const dataUrl = canvas.toDataURL(format, 0.85);
+                resolve(dataUrl);
+            };
+            img.onerror = () => reject(new Error("Failed to load image for conversion"));
+            img.src = event.target.result;
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+    });
 };

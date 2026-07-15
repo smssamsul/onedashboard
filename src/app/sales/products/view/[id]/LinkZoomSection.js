@@ -44,12 +44,19 @@ const formatStartTime = (value) => {
 
 export default function LinkZoomSection({ productId, productName }) {
   const [webinars, setWebinars] = useState([]);
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRecords, setLoadingRecords] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [modalMode, setModalMode] = useState("create"); // "create" or "edit"
   const [selectedWebinar, setSelectedWebinar] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Record modal state
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [recordLink, setRecordLink] = useState("");
+  const [savingRecord, setSavingRecord] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -66,6 +73,7 @@ export default function LinkZoomSection({ productId, productName }) {
   // Fetch webinars list
   useEffect(() => {
     fetchWebinars();
+    fetchRecords();
   }, [productId]);
 
   const fetchWebinars = async () => {
@@ -100,6 +108,40 @@ export default function LinkZoomSection({ productId, productName }) {
       setWebinars([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecords = async () => {
+    if (!productId) {
+      setLoadingRecords(false);
+      return;
+    }
+
+    try {
+      setLoadingRecords(true);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      const res = await fetch(`/api/sales/zoom-record/${productId}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data?.success && Array.isArray(data.data)) {
+        setRecords(data.data);
+      } else {
+        setRecords([]);
+      }
+    } catch (error) {
+      console.error("❌ [ZOOM RECORD] Error fetching records:", error);
+      toast.error("Gagal memuat link record zoom");
+      setRecords([]);
+    } finally {
+      setLoadingRecords(false);
     }
   };
 
@@ -138,6 +180,90 @@ export default function LinkZoomSection({ productId, productName }) {
   const openViewModal = (webinar) => {
     setSelectedWebinar(webinar);
     setShowViewModal(true);
+  };
+
+  const handleJoinAsHost = (webinar) => {
+    const startUrl = webinar?.start_url;
+    if (!startUrl) {
+      toast.error("Start URL (host) belum tersedia. Silakan buat/refresh link Zoom terlebih dahulu.");
+      return;
+    }
+    window.open(startUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const openRecordModal = () => {
+    setRecordLink("");
+    setShowRecordModal(true);
+  };
+
+  const handleSaveRecord = async (e) => {
+    e?.preventDefault?.();
+    if (!productId) return;
+
+    const link = (recordLink || "").trim();
+    if (!link) {
+      toast.error("Link wajib diisi");
+      return;
+    }
+
+    setSavingRecord(true);
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    try {
+      const res = await fetch(`/api/sales/zoom-record`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          id_produk: Number(productId),
+          link,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Gagal menyimpan link record");
+      }
+
+      toast.success(data?.message || "Link record berhasil ditambahkan");
+      setShowRecordModal(false);
+      fetchRecords();
+    } catch (err) {
+      console.error("❌ [ZOOM RECORD] Save error:", err);
+      toast.error(err.message || "Terjadi kesalahan");
+    } finally {
+      setSavingRecord(false);
+    }
+  };
+
+  const handleDeleteRecord = async (recordId) => {
+    if (!recordId) return;
+    const ok = window.confirm("Hapus link record ini?");
+    if (!ok) return;
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    try {
+      const res = await fetch(`/api/sales/zoom-record/delete/${recordId}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Gagal menghapus record");
+      }
+      toast.success(data?.message || "Record berhasil dihapus");
+      fetchRecords();
+    } catch (err) {
+      console.error("❌ [ZOOM RECORD] Delete error:", err);
+      toast.error(err.message || "Terjadi kesalahan");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -261,6 +387,13 @@ export default function LinkZoomSection({ productId, productName }) {
                         onClick={() => openViewModal(webinar)}
                       >
                         View
+                      </button>
+                      <button
+                        className="btn-host"
+                        onClick={() => handleJoinAsHost(webinar)}
+                        title="Masuk sebagai host (Start URL)"
+                      >
+                        Masuk Zoom
                       </button>
                       <button
                         className="btn-edit"
@@ -465,6 +598,13 @@ export default function LinkZoomSection({ productId, productName }) {
                     >
                       Copy
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleJoinAsHost(selectedWebinar)}
+                      title="Masuk sebagai host (Start URL)"
+                    >
+                      Masuk Zoom
+                    </button>
                   </div>
                 </div>
               )}
@@ -479,6 +619,115 @@ export default function LinkZoomSection({ productId, productName }) {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* === RECORDING TABLE === */}
+      <div className="linkzoom-header" style={{ marginTop: 28 }}>
+        <h2>Record Zoom</h2>
+        <button className="btn-add" onClick={openRecordModal}>
+          Tambah Link Record
+        </button>
+      </div>
+
+      {loadingRecords ? (
+        <div className="linkzoom-loading">
+          <p>Memuat link record...</p>
+        </div>
+      ) : records.length === 0 ? (
+        <div className="linkzoom-empty">
+          <p>Belum ada link record zoom</p>
+          <button className="btn-add-empty" onClick={openRecordModal}>
+            Tambah Link Record
+          </button>
+        </div>
+      ) : (
+        <div className="linkzoom-table-wrapper">
+          <table className="linkzoom-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Link</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((rec, index) => (
+                <tr key={rec.id}>
+                  <td>{index + 1}</td>
+                  <td style={{ wordBreak: "break-all" }}>{rec.link || "-"}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        className="btn-view"
+                        type="button"
+                        onClick={() => window.open(rec.link, "_blank", "noopener,noreferrer")}
+                      >
+                        Open
+                      </button>
+                      <button
+                        className="btn-host"
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(rec.link);
+                          toast.success("Link berhasil disalin");
+                        }}
+                      >
+                        Copy
+                      </button>
+                      <button
+                        className="btn-edit"
+                        type="button"
+                        onClick={() => handleDeleteRecord(rec.id)}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Record Modal */}
+      {showRecordModal && (
+        <div className="modal-overlay" onClick={() => setShowRecordModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tambah Link Record Zoom</h3>
+              <button className="modal-close" onClick={() => setShowRecordModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRecord} className="linkzoom-form">
+              <label>
+                Link Record *
+                <input
+                  type="url"
+                  value={recordLink}
+                  onChange={(e) => setRecordLink(e.target.value)}
+                  placeholder="https://..."
+                  required
+                />
+              </label>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setShowRecordModal(false)}
+                >
+                  Batal
+                </button>
+                <button type="submit" className="btn-submit" disabled={savingRecord}>
+                  {savingRecord ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -577,7 +826,8 @@ export default function LinkZoomSection({ productId, productName }) {
         }
 
         .btn-view,
-        .btn-edit {
+        .btn-edit,
+        .btn-host {
           padding: 6px 12px;
           border: none;
           border-radius: 6px;
@@ -603,6 +853,15 @@ export default function LinkZoomSection({ productId, productName }) {
 
         .btn-edit:hover {
           background: #d97706;
+        }
+
+        .btn-host {
+          background: #2563eb;
+          color: white;
+        }
+
+        .btn-host:hover {
+          background: #1d4ed8;
         }
 
         /* Modal Styles */

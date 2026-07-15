@@ -5,12 +5,21 @@ const divisionRouteMap = {
   "3": "/sales", // Sales
   "4": "/finance", // Finance
   "5": "/hr/dashboard", // HR
+  "6": "/marketing", // Marketing
+  "7": "/multimedia", // Multimedia
+  "8": "/it", // IT
+  "9": "/direksi", // Direksi
   "11": "/admin", // Trainer (default ke admin untuk sementara)
+  "99": "/super-ops", // Super operator — pusat + akses Sales / HR / Finance
   sales: "/sales",
   hr: "/hr/dashboard",
   "human resources": "/hr/dashboard",
   "human_resources": "/hr/dashboard",
   finance: "/finance",
+  marketing: "/marketing",
+  multimedia: "/multimedia",
+  mm: "/multimedia",
+  it: "/it",
   trainer: "/admin",
 };
 
@@ -25,7 +34,12 @@ export function getDivisionHome(divisi, level = null) {
   
   // Handle both string and number values
   const divisiStr = String(divisi).trim();
-  const levelNum = level ? Number(level) : null;
+  const levelNum = level != null && level !== "" ? Number(level) : null;
+
+  // Super operator: divisi 99 + level 99 → halaman pusat /super-ops
+  if (divisiStr === "99" && levelNum === 99) {
+    return "/super-ops";
+  }
   
   // Get base route for division
   let baseRoute = null;
@@ -39,9 +53,15 @@ export function getDivisionHome(divisi, level = null) {
     baseRoute = divisionRouteMap[normalized] || "/admin";
   }
   
+  // Direksi (level 9 atau divisi 9) - redirect ke /direksi
+  if (levelNum === 9 || divisiStr === "9") {
+    return "/direksi";
+  }
+  
   // If level is provided and is 2 (Staff), append /staff to the route
   // Only apply for divisions that have staff routes (sales, finance, etc.)
-  if (levelNum === 2 && baseRoute !== "/admin" && baseRoute !== "/hr/dashboard") {
+  if (levelNum === 2 && baseRoute !== "/admin" && baseRoute !== "/hr/dashboard" && 
+      baseRoute !== "/marketing" && baseRoute !== "/multimedia" && baseRoute !== "/it") {
     // Check if division supports staff routes
     const staffSupportedDivisions = ["/sales", "/finance"];
     if (staffSupportedDivisions.includes(baseRoute)) {

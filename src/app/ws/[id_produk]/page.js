@@ -180,7 +180,7 @@ export default function WorkshopPage() {
       });
 
       setTimeout(() => {
-        router.push(`/payment?${query.toString()}`);
+        window.location.href = `https://app.ternakproperti.com/payment?${query.toString()}`;
       }, 1000);
     } catch (error) {
       console.error("❌ [WORKSHOP] Error:", error);

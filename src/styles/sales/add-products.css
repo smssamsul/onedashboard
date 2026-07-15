@@ -903,7 +903,8 @@ body {
 
 .preview-video iframe {
   width: 100%;
-  height: 220px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 8px;
   border: none;
 }
@@ -2611,6 +2612,11 @@ body {
   .landing-block-video,
   .landing-block-testimoni {
     padding: 2rem 1rem;
+  }
+
+  .landing-video-container {
+    padding-bottom: 56.25%; /* Mempertahankan aspek rasio 16:9 di mobile */
+    border-radius: 8px; /* Sedikit lebih kecil untuk mobile */
   }
 
   .landing-block-price {

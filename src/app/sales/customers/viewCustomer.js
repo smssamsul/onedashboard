@@ -114,11 +114,76 @@ export default function ViewCustomerModal({ customer, onClose, onEdit, onDelete 
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [errorOrders, setErrorOrders] = useState("");
 
+  const [followups, setFollowups] = useState([]);
+  const [loadingFollowups, setLoadingFollowups] = useState(true);
+  const [followupForm, setFollowupForm] = useState({ via: 'WhatsApp', respon: 'Tertarik', keterangan: '' });
+  const [submittingFollowup, setSubmittingFollowup] = useState(false);
+
   useEffect(() => {
     if (!customer?.id) return;
     fetchOrderHistory();
+    fetchFollowups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer?.id]);
+
+  const fetchFollowups = async () => {
+    if (!customer?.id) return;
+    setLoadingFollowups(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/sales/customer/${customer.id}/followups`, {
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (data?.success) {
+        setFollowups(Array.isArray(data.data) ? data.data : []);
+      } else {
+        setFollowups([]);
+      }
+    } catch (err) {
+      setFollowups([]);
+    } finally {
+      setLoadingFollowups(false);
+    }
+  };
+
+  const submitFollowup = async (e) => {
+    e.preventDefault();
+    if (!customer?.id || !followupForm.via || !followupForm.respon) return;
+    setSubmittingFollowup(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/sales/customer/${customer.id}/followups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(followupForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.success) {
+        setFollowupForm({ via: 'WhatsApp', respon: 'Tertarik', keterangan: '' });
+        fetchFollowups();
+        if(typeof window !== 'undefined' && window.toastSuccess) {
+           window.toastSuccess('Follow up berhasil dicatat');
+        } else {
+           alert('Follow up berhasil dicatat');
+        }
+      } else {
+        alert(data?.message || 'Gagal menyimpan follow up');
+      }
+    } catch (err) {
+       alert('Terjadi kesalahan saat menyimpan data');
+    } finally {
+       setSubmittingFollowup(false);
+    }
+  };
 
   const fetchOrderHistory = async () => {
     if (!customer?.id) return;
@@ -218,6 +283,14 @@ export default function ViewCustomerModal({ customer, onClose, onEdit, onDelete 
                 <span className="detail-colon">:</span>
                 <span className="detail-value">{formatValue(customer.wa)}</span>
               </div>
+
+              {customer.wa2 && (
+                <div className="detail-item">
+                  <span className="detail-label">No. HP 2</span>
+                  <span className="detail-colon">:</span>
+                  <span className="detail-value">{formatValue(customer.wa2)}</span>
+                </div>
+              )}
 
               <div className="detail-item">
                 <span className="detail-label">Nama Panggilan</span>
@@ -350,6 +423,116 @@ export default function ViewCustomerModal({ customer, onClose, onEdit, onDelete 
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section Follow Up History */}
+          <div className="followup-history-section" style={{ marginTop: "2rem" }}>
+            <h3 style={{
+              fontSize: "1.25rem",
+              fontWeight: 600,
+              marginBottom: "1rem",
+              color: "#111827"
+            }}>
+              Histori Follow Up
+            </h3>
+            
+            {/* Form Input Follow Up */}
+            {!loadingFollowups && followups.length > 0 && (
+            <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "1rem" }}>
+              <form onSubmit={submitFollowup} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: "200px" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Via / Channel</label>
+                    <select 
+                      value={followupForm.via}
+                      onChange={(e) => setFollowupForm({...followupForm, via: e.target.value})}
+                      style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    >
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Telepon">Telepon</option>
+                      <option value="Email">Email</option>
+                      <option value="Tatap Muka">Tatap Muka</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, minWidth: "200px" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Respon</label>
+                    <select 
+                      value={followupForm.respon}
+                      onChange={(e) => setFollowupForm({...followupForm, respon: e.target.value})}
+                      style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    >
+                      <option value="Tertarik">Tertarik</option>
+                      <option value="Follow Up Lagi">Follow Up Lagi</option>
+                      <option value="Pikir-pikir">Pikir-pikir</option>
+                      <option value="Tidak Tertarik">Tidak Tertarik</option>
+                      <option value="Salah Sambung">Salah Sambung</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Keterangan / Catatan</label>
+                  <textarea 
+                    value={followupForm.keterangan}
+                    onChange={(e) => setFollowupForm({...followupForm, keterangan: e.target.value})}
+                    placeholder="Masukkan catatan follow up..."
+                    rows={3}
+                    style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1", resize: "vertical" }}
+                  ></textarea>
+                </div>
+                <div style={{ alignSelf: "flex-end" }}>
+                  <button 
+                    type="submit" 
+                    disabled={submittingFollowup}
+                    style={{ padding: "0.5rem 1rem", background: submittingFollowup ? "#94a3b8" : "#2563eb", color: "white", borderRadius: "8px", border: "none", fontWeight: 600, cursor: submittingFollowup ? "not-allowed" : "pointer" }}
+                  >
+                    {submittingFollowup ? "Menyimpan..." : "Simpan Follow Up"}
+                  </button>
+                </div>
+              </form>
+            </div>
+            )}
+
+            {/* Tabel History */}
+            {loadingFollowups ? (
+              <p style={{ textAlign: "center", color: "#6b7280" }}>Memuat histori follow up...</p>
+            ) : followups.length === 0 ? (
+              <p style={{ textAlign: "center", color: "#6b7280" }}>Belum ada histori follow up.</p>
+            ) : (
+              <div className="history-table">
+                <div className="history-table__head" style={{ gridTemplateColumns: "1fr 1fr 1fr 1.5fr" }}>
+                  <span>Tanggal</span>
+                  <span>Via</span>
+                  <span>Respon</span>
+                  <span>Keterangan</span>
+                </div>
+                <div className="history-table__body">
+                  {followups.map((f, i) => (
+                    <div className="history-table__row" key={f.id || i} style={{ gridTemplateColumns: "1fr 1fr 1fr 1.5fr" }}>
+                      <div className="history-table__cell" data-label="Tanggal">
+                        {formatDateTime(f.created_at)}
+                      </div>
+                      <div className="history-table__cell" data-label="Via">
+                        <span style={{ padding: "4px 8px", background: "#f1f5f9", borderRadius: "6px", fontSize: "0.8rem", fontWeight: 600 }}>{f.via || "-"}</span>
+                      </div>
+                      <div className="history-table__cell" data-label="Respon">
+                        <span style={{ 
+                          padding: "4px 8px", 
+                          background: f.respon === 'Tertarik' ? '#dcfce7' : f.respon === 'Tidak Tertarik' ? '#fee2e2' : '#fef3c7', 
+                          color: f.respon === 'Tertarik' ? '#166534' : f.respon === 'Tidak Tertarik' ? '#991b1b' : '#92400e',
+                          borderRadius: "6px", fontSize: "0.8rem", fontWeight: 600 
+                        }}>{f.respon || "-"}</span>
+                      </div>
+                      <div className="history-table__cell" data-label="Keterangan">
+                        <div style={{ fontSize: "0.85rem" }}>{f.keterangan || "-"}</div>
+                        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
+                          Oleh: {f.user?.nama || "Sistem"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -4,6 +4,30 @@ import { api } from "../api";
 /* =====================================================
    🔍 GET: Ambil semua produk (exclude yang sudah soft-deleted)
    ===================================================== */
+/**
+ * Produk aktif untuk halaman order cepat (tanpa syarat landingpage terisi).
+ */
+export async function getQuickOrderProducts(options = {}) {
+  try {
+    const res = await api("/sales/produk?quick_order=1", { method: "GET", ...options });
+
+    if (res && res.success === false) {
+      throw new Error(res.message || "Gagal mengambil data produk");
+    }
+
+    if (res && res.data !== undefined) {
+      let list = Array.isArray(res.data) ? res.data : [];
+      list = list.filter((p) => p.status === "1" || p.status === 1);
+      return list;
+    }
+
+    return [];
+  } catch (err) {
+    console.error("❌ Error getQuickOrderProducts:", err);
+    throw err;
+  }
+}
+
 export async function getProducts(includeDeleted = false, options = {}) {
   try {
     const res = await api("/sales/produk", { method: "GET", ...options });

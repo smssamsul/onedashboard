@@ -1,6 +1,6 @@
-:root, body 
-{
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+:root,
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* ===========================
@@ -9,18 +9,18 @@ ADMIN USERS PAGE (Scoped Styles)
 
 /* Root variables tetap global */
 :root {
---primary: #ff6c00;
---primary-hover: #c85400;
---success: #4ADE80;
---warning: #FACC15;
---danger: #F87171;
---gray-bg: #F9FAFB;
---gray-border: #E5E7EB;
---gray-text: #6B7280;
---dark-text: #111827;
---white: #ffffff;
---radius: 8px;
---shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  --primary: #ff6c00;
+  --primary-hover: #c85400;
+  --success: #4ADE80;
+  --warning: #FACC15;
+  --danger: #F87171;
+  --gray-bg: #F9FAFB;
+  --gray-border: #E5E7EB;
+  --gray-text: #6B7280;
+  --dark-text: #111827;
+  --white: #ffffff;
+  --radius: 8px;
+  --shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
 /* === USERS LAYOUT (align with dashboard shell) === */
@@ -560,8 +560,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .customers-table__head,
 .customers-table__row {
   display: grid;
-  grid-template-columns: 40px minmax(120px, 1.1fr) minmax(140px, 1.2fr) minmax(100px, 0.9fr) minmax(100px, 0.9fr)
-    minmax(130px, 1fr) minmax(85px, 0.7fr) minmax(100px, 0.8fr);
+  grid-template-columns: 40px minmax(120px, 1.1fr) minmax(140px, 1.2fr) minmax(100px, 0.9fr) minmax(100px, 0.9fr) minmax(130px, 1fr) minmax(85px, 0.7fr) minmax(100px, 0.8fr);
   gap: 0.3rem;
   align-items: center;
   min-width: 900px;
@@ -880,6 +879,7 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 @media (max-width: 1200px) {
+
   .users-table__head,
   .users-table__row {
     grid-template-columns: 44px minmax(200px, 1.5fr) minmax(110px, 0.7fr) minmax(180px, 1.1fr) minmax(120px, 0.75fr) minmax(120px, 0.65fr);
@@ -893,8 +893,7 @@ ADMIN USERS PAGE (Scoped Styles)
 
   .customers-table__head,
   .customers-table__row {
-    grid-template-columns: 50px minmax(140px, 1.1fr) minmax(180px, 1.3fr) repeat(3, minmax(140px, 1fr)) minmax(120px, 0.8fr)
-      minmax(110px, 0.7fr);
+    grid-template-columns: 50px minmax(140px, 1.1fr) minmax(180px, 1.3fr) repeat(3, minmax(140px, 1fr)) minmax(120px, 0.8fr) minmax(110px, 0.7fr);
   }
 
   .users-action-btn__label {
@@ -903,6 +902,7 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 @media (max-width: 900px) {
+
   .users-toolbar,
   .customers-toolbar {
     flex-direction: column;
@@ -945,14 +945,21 @@ ADMIN USERS PAGE (Scoped Styles)
     gap: 0.5rem !important;
     min-width: 900px;
     /* Override grid columns untuk melebar di tablet/handphone */
-    grid-template-columns: 
-      minmax(140px, 1.2fr)   /* Id Member */
-      minmax(200px, 2fr)     /* Nama */
-      minmax(220px, 2.2fr)   /* Email */
-      minmax(160px, 1.5fr)   /* No WA */
-      minmax(150px, 1.3fr)   /* Verifikasi */
-      minmax(170px, 1.6fr)   /* Pesanan Sukses */
-      minmax(180px, 1.7fr) !important; /* Total Net Revenue */
+    grid-template-columns:
+      minmax(140px, 1.2fr)
+      /* Id Member */
+      minmax(200px, 2fr)
+      /* Nama */
+      minmax(220px, 2.2fr)
+      /* Email */
+      minmax(160px, 1.5fr)
+      /* No WA */
+      minmax(150px, 1.3fr)
+      /* Verifikasi */
+      minmax(170px, 1.6fr)
+      /* Pesanan Sukses */
+      minmax(180px, 1.7fr) !important;
+    /* Total Net Revenue */
   }
 
   .customers-table__head {
@@ -1022,7 +1029,7 @@ ADMIN USERS PAGE (Scoped Styles)
     padding: 0.5rem 0.75rem !important;
   }
 
-  .customers-table__cell > * {
+  .customers-table__cell>* {
     justify-content: flex-start !important;
   }
 
@@ -1317,13 +1324,13 @@ ADMIN USERS PAGE (Scoped Styles)
 /* Override PrimeReact datepicker colors */
 .orders-shell .p-datepicker .p-datepicker-header,
 .orders-shell .p-datepicker .p-datepicker-calendar th,
-.orders-shell .p-datepicker .p-datepicker-calendar td > span.p-highlight {
+.orders-shell .p-datepicker .p-datepicker-calendar td>span.p-highlight {
   background: rgba(255, 108, 0, 0.1) !important;
   color: #c85400 !important;
   border-color: rgba(255, 108, 0, 0.3) !important;
 }
 
-.orders-shell .p-datepicker .p-datepicker-calendar td > span:focus {
+.orders-shell .p-datepicker .p-datepicker-calendar td>span:focus {
   outline: 2px solid rgba(255, 108, 0, 0.3) !important;
   outline-offset: 2px !important;
 }
@@ -1473,18 +1480,29 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-table__head,
 .orders-table__row {
   display: grid;
-  grid-template-columns: 
-    40px                                    /* # */
-    minmax(120px, 1.1fr)                    /* Customer */
-    minmax(140px, 1.2fr)                    /* Produk */
-    minmax(150px, 1.1fr)                    /* Total Harga */
-    minmax(100px, 0.9fr)                    /* Status Order */
-    minmax(110px, 1fr)                      /* Status Pembayaran */
-    minmax(90px, 0.8fr)                     /* Tanggal */
-    minmax(100px, 0.9fr)                    /* Sumber */
-    minmax(120px, 1fr)                      /* Waktu Pembayaran */
-    minmax(110px, 1fr)                      /* Metode Bayar */
-    minmax(100px, 0.9fr);                   /* Actions */
+  grid-template-columns:
+    40px
+    /* # */
+    minmax(120px, 1.1fr)
+    /* Customer */
+    minmax(140px, 1.2fr)
+    /* Produk */
+    minmax(150px, 1.1fr)
+    /* Total Harga */
+    minmax(100px, 0.9fr)
+    /* Status Order */
+    minmax(110px, 1fr)
+    /* Status Pembayaran */
+    minmax(90px, 0.8fr)
+    /* Tanggal */
+    minmax(100px, 0.9fr)
+    /* Sumber */
+    minmax(120px, 1fr)
+    /* Waktu Pembayaran */
+    minmax(110px, 1fr)
+    /* Metode Bayar */
+    minmax(100px, 0.9fr);
+  /* Actions */
   gap: 0.3rem;
   align-items: center;
   min-width: 1200px;
@@ -1603,9 +1621,12 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -1641,23 +1662,32 @@ ADMIN USERS PAGE (Scoped Styles)
 /* === BROADCAST TABLE (9 columns) === */
 .broadcast-table.orders-table .orders-table__head,
 .broadcast-table.orders-table .orders-table__row {
-  grid-template-columns: 
-    40px                                    /* # */
-    minmax(150px, 1.2fr)                   /* Nama */
-    minmax(200px, 1.5fr)                   /* Pesan */
-    minmax(160px, 1.2fr)                   /* Tanggal Kirim */
-    minmax(180px, 1.3fr)                   /* Target */
-    minmax(100px, 0.9fr)                   /* Total Target */
-    minmax(100px, 0.9fr)                   /* Status */
-    minmax(160px, 1.2fr)                   /* Dibuat */
-    minmax(100px, 0.8fr) !important;       /* Actions */
+  grid-template-columns:
+    40px
+    /* # */
+    minmax(150px, 1.2fr)
+    /* Nama */
+    minmax(200px, 1.5fr)
+    /* Pesan */
+    minmax(160px, 1.2fr)
+    /* Tanggal Kirim */
+    minmax(180px, 1.3fr)
+    /* Target */
+    minmax(100px, 0.9fr)
+    /* Total Target */
+    minmax(100px, 0.9fr)
+    /* Status */
+    minmax(160px, 1.2fr)
+    /* Dibuat */
+    minmax(100px, 0.8fr) !important;
+  /* Actions */
   min-width: 1200px !important;
 }
 
 /* === PRODUCTS TABLE (Similar to Orders Table) === */
 .products-table__wrapper {
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding-bottom: 0.5rem;
 }
 
@@ -1671,16 +1701,27 @@ ADMIN USERS PAGE (Scoped Styles)
 .products-table__head,
 .products-table__row {
   display: grid;
-  /* 7 kolom: Product, Category, Status, Event Date, Created By, Assign By, Created At */
-  grid-template-columns: 
-    minmax(200px, 2fr)  /* Product + Actions */
-    minmax(120px, 1fr)  /* Category */
-    minmax(80px, 0.8fr)  /* Status */
-    minmax(100px, 1fr)  /* Event Date */
-    minmax(120px, 1fr)  /* Created By */
-    minmax(120px, 1fr)  /* Assign By */
-    minmax(100px, 1fr);  /* Created At */
-  gap: 1.5rem;
+  /* Image, Product, Price, Revenue, Category, Status, Event, Created By, Assign, Created At */
+  grid-template-columns:
+    minmax(350px, 2.5fr)
+    /* Product */
+    minmax(100px, 0.8fr)
+    /* Price */
+    minmax(140px, 1.1fr)
+    /* Revenue */
+    minmax(120px, 1fr)
+    /* Category */
+    minmax(80px, 0.7fr)
+    /* Status */
+    minmax(100px, 0.9fr)
+    /* Event Date */
+    minmax(120px, 1fr)
+    /* Created By */
+    minmax(120px, 1fr)
+    /* Assign By */
+    minmax(100px, 0.9fr);
+  /* Created At */
+  gap: 1rem;
   align-items: center;
   width: 100%;
 }
@@ -1757,6 +1798,11 @@ ADMIN USERS PAGE (Scoped Styles)
   gap: 0.35rem;
   align-items: flex-start;
   white-space: normal;
+}
+
+.products-table__cell--revenue {
+  white-space: normal;
+  align-items: flex-start;
 }
 
 .orders-table__cell--actions {
@@ -1922,7 +1968,7 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 /* Label and value container - vertical layout */
-.dashboard-summary.orders-summary .summary-card__column > div:not(.summary-card__icon) {
+.dashboard-summary.orders-summary .summary-card__column>div:not(.summary-card__icon) {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1964,7 +2010,7 @@ ADMIN USERS PAGE (Scoped Styles)
     grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
   }
-  
+
   .dashboard-summary.orders-summary .summary-card__divider {
     display: none;
   }
@@ -1976,7 +2022,7 @@ ADMIN USERS PAGE (Scoped Styles)
     gap: 1rem;
     padding: 1rem 1.25rem;
   }
-  
+
   .dashboard-summary.orders-summary .summary-card__divider {
     display: none;
   }
@@ -2022,7 +2068,7 @@ ADMIN USERS PAGE (Scoped Styles)
     gap: 1rem;
     padding: 1rem 1.25rem;
   }
-  
+
   .dashboard-summary.products-summary .summary-card__divider {
     display: none;
   }
@@ -2077,7 +2123,7 @@ ADMIN USERS PAGE (Scoped Styles)
     gap: 1rem;
     padding: 1rem 1.25rem;
   }
-  
+
   .dashboard-summary.kategori-summary .summary-card__divider {
     display: none;
   }
@@ -2087,7 +2133,8 @@ ADMIN USERS PAGE (Scoped Styles)
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.55); /* abu gelap semi transparan */
+  background: rgba(17, 24, 39, 0.55);
+  /* abu gelap semi transparan */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2110,7 +2157,7 @@ html:has(.modal-overlay) {
 }
 
 /* Pastikan modal overlay tidak mempengaruhi elemen di belakangnya */
-.modal-overlay ~ *,
+.modal-overlay~*,
 body:has(.modal-overlay) .orders-shell,
 body:has(.modal-overlay) .dashboard-summary,
 body:has(.modal-overlay) .summary-card {
@@ -2320,6 +2367,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
     opacity: 0;
     transform: scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -2335,46 +2383,52 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
     grid-template-columns: 1fr;
   }
 }
-        .toast {
-          position: fixed;
-          top: 30px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #22c55e;
-          color: white;
-          padding: 14px 22px;
-          border-radius: 8px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-          font-weight: 500;
-          font-size: 15px;
-          z-index: 9999;
-          animation: slideDown 0.4s ease, fadeOut 0.4s ease 2s forwards;
-        }
-        .toast-error {
-          background: #ef4444;
-        }
-        .toast-warning {
-          background: #facc15;
-          color: #473a00;
-        }
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translate(-50%, -20px);
-          }
-          to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-          }
-        }
-        @keyframes fadeOut {
-          to {
-            opacity: 0;
-            transform: translate(-50%, -15px);
-          }
-        }
-        
-        /* === VERIFIKASI ICON STYLE === */
+
+.toast {
+  position: fixed;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #22c55e;
+  color: white;
+  padding: 14px 22px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  font-weight: 500;
+  font-size: 15px;
+  z-index: 9999;
+  animation: slideDown 0.4s ease, fadeOut 0.4s ease 2s forwards;
+}
+
+.toast-error {
+  background: #ef4444;
+}
+
+.toast-warning {
+  background: #facc15;
+  color: #473a00;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -15px);
+  }
+}
+
+/* === VERIFIKASI ICON STYLE === */
 .admin-users-page .verifikasi-icon {
   display: flex;
   justify-content: center;
@@ -2398,6 +2452,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 .admin-users-page .unverified {
   color: var(--danger);
 }
+
 .remember input[type="checkbox"] {
   appearance: none;
   width: 16px;
@@ -2426,23 +2481,26 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   color: white;
 }
 
-@media (max-width: 1024px){
-.admin-users-page .field-header {
-margin-right: 0px;
-margin-left: 0px;
-}
-.admin-users-page .admin-header{
-  margin-right: 0px;
-margin-left: 0px;
-margin-top: 20px;
-}
-.admin-users-page .header-actions{
-gap: 0;
-}
-.admin-users-page .data-list {
-margin-right: 0px;
-margin-left: 0px;
-}
+@media (max-width: 1024px) {
+  .admin-users-page .field-header {
+    margin-right: 0px;
+    margin-left: 0px;
+  }
+
+  .admin-users-page .admin-header {
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 20px;
+  }
+
+  .admin-users-page .header-actions {
+    gap: 0;
+  }
+
+  .admin-users-page .data-list {
+    margin-right: 0px;
+    margin-left: 0px;
+  }
 }
 
 /* === PRODUCT TABLE STYLES === */
@@ -2566,14 +2624,21 @@ margin-left: 0px;
 .customers-table__row {
   display: grid;
   /* 7 kolom: Id Member, Nama, Email, No WA, Verifikasi, Pesanan Sukses, Total Net Revenue */
-  grid-template-columns: 
-    minmax(90px, 0.8fr)   /* Id Member */
-    minmax(150px, 1.3fr)  /* Nama */
-    minmax(160px, 1.4fr)  /* Email */
-    minmax(120px, 1.1fr)  /* No WA */
-    minmax(100px, 0.9fr)  /* Verifikasi */
-    minmax(110px, 1fr)    /* Pesanan Sukses */
-    minmax(130px, 1.2fr); /* Total Net Revenue */
+  grid-template-columns:
+    minmax(90px, 0.8fr)
+    /* Id Member */
+    minmax(150px, 1.3fr)
+    /* Nama */
+    minmax(160px, 1.4fr)
+    /* Email */
+    minmax(120px, 1.1fr)
+    /* No WA */
+    minmax(100px, 0.9fr)
+    /* Verifikasi */
+    minmax(110px, 1fr)
+    /* Pesanan Sukses */
+    minmax(130px, 1.2fr);
+  /* Total Net Revenue */
   gap: 0.75rem;
   align-items: stretch;
   width: 100%;
@@ -2674,7 +2739,7 @@ margin-left: 0px;
   padding: 0.5rem 0.5rem;
 }
 
-.customers-table__cell > * {
+.customers-table__cell>* {
   display: flex;
   align-items: center;
   justify-content: flex-start;

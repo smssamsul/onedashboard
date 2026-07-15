@@ -6,8 +6,6 @@ import dynamic from "next/dynamic";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
-import "@/styles/sales/dashboard.css";
-import "@/styles/sales/admin.css";
 
 // Lazy load modals
 const ViewPenerima = dynamic(() => import("./viewPenerima"), { ssr: false });
@@ -24,6 +22,7 @@ export default function BroadcastPage() {
   const [selectedBroadcast, setSelectedBroadcast] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [sendingId, setSendingId] = useState(null);
+  const [products, setProducts] = useState([]);
 
   const fetchBroadcasts = useCallback(async () => {
     setLoading(true);
@@ -69,73 +68,6 @@ export default function BroadcastPage() {
     fetchBroadcasts();
   }, [fetchBroadcasts]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const getStatusLabel = (status, broadcast) => {
-    // Jika status "1" (Draft) tapi sudah ada sent_to_queue, berarti sedang diproses
-    if (status?.trim() === "1" && broadcast?.sent_to_queue > 0) {
-      return "Sedang Diproses";
-    }
-
-    const statusMap = {
-      "1": "Draft",
-      "2": "Terjadwal",
-      "3": "Terkirim",
-      "4": "Dibatalkan",
-    };
-    return statusMap[status?.trim()] || status || "-";
-  };
-
-  const getStatusClass = (status, broadcast) => {
-    // Jika status "1" (Draft) tapi sudah ada sent_to_queue, gunakan class "processing"
-    if (status?.trim() === "1" && broadcast?.sent_to_queue > 0) {
-      return "processing";
-    }
-
-    const statusMap = {
-      "1": "pending",
-      "2": "pending",
-      "3": "sukses",
-      "4": "failed",
-    };
-    return statusMap[status?.trim()] || "default";
-  };
-
-  // Status Order Mapping
-  const STATUS_ORDER_MAP = {
-    "1": "Proses",
-    "2": "Processing",
-    "3": "Failed",
-    "4": "Upselling",
-    "N": "Dihapus",
-  };
-
-  // Status Pembayaran Mapping
-  const STATUS_PEMBAYARAN_MAP = {
-    0: { label: "Unpaid", class: "unpaid" },
-    null: { label: "Unpaid", class: "unpaid" },
-    1: { label: "Waiting Approval", class: "pending" }, // Menunggu approve finance
-    2: { label: "Paid", class: "paid" },             // Finance approved
-    3: { label: "Rejected", class: "rejected" },
-    4: { label: "Partial Payment", class: "partial" },
-  };
-  // Fetch products untuk mendapatkan nama produk
-  const [products, setProducts] = useState([]);
-
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -165,38 +97,88 @@ export default function BroadcastPage() {
     fetchProducts();
   }, []);
 
-  // Helper function untuk mendapatkan nama produk dari ID
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const getStatusLabel = (status, broadcast) => {
+    if (status?.trim() === "1" && broadcast?.sent_to_queue > 0) {
+      return "Sedang Diproses";
+    }
+
+    const statusMap = {
+      "1": "Draft",
+      "2": "Terjadwal",
+      "3": "Terkirim",
+      "4": "Dibatalkan",
+    };
+    return statusMap[status?.trim()] || status || "-";
+  };
+
+  const getStatusClass = (status, broadcast) => {
+    if (status?.trim() === "1" && broadcast?.sent_to_queue > 0) {
+      return "status-badge status-processing";
+    }
+
+    const statusMap = {
+      "1": "status-badge status-draft",
+      "2": "status-badge status-draft",
+      "3": "status-badge status-success",
+      "4": "status-badge status-failed",
+    };
+    return statusMap[status?.trim()] || "status-badge";
+  };
+
+  const STATUS_ORDER_MAP = {
+    "1": "Proses",
+    "2": "Processing",
+    "3": "Failed",
+    "4": "Upselling",
+    "N": "Dihapus",
+  };
+
+  const STATUS_PEMBAYARAN_MAP = {
+    0: { label: "Unpaid", class: "unpaid" },
+    null: { label: "Unpaid", class: "unpaid" },
+    1: { label: "Waiting Approval", class: "pending" },
+    2: { label: "Paid", class: "paid" },
+    3: { label: "Rejected", class: "rejected" },
+    4: { label: "Partial Payment", class: "partial" },
+  };
+
   const getProductName = (productId) => {
     const product = products.find(p => p.id === productId);
     return product?.nama || `Produk ID: ${productId}`;
   };
 
-  // Helper function untuk mendapatkan label status order
-  const getStatusOrderLabel = (status) => {
-    if (Array.isArray(status)) {
-      return status.map(s => STATUS_ORDER_MAP[s] || s).join(", ");
-    }
-    return STATUS_ORDER_MAP[status] || status || "-";
-  };
-
-  // Helper function untuk mendapatkan label status pembayaran
-  const getStatusPembayaranLabel = (status) => {
-    if (Array.isArray(status)) {
-      return status.map(s => STATUS_PEMBAYARAN_MAP[s]?.label || s).join(", ");
-    }
-    const mapped = STATUS_PEMBAYARAN_MAP[status];
-    return mapped?.label || status || "-";
-  };
-
-  // Format target untuk ditampilkan
   const formatTarget = (targetData) => {
     if (!targetData || Object.keys(targetData).length === 0) {
       return "-";
     }
 
+    if (targetData.tipe === "excel") {
+      return (
+        <div key="excel">
+          <strong>Sumber:</strong>
+          <span style={{ marginLeft: "0.5rem" }}>Excel File ({targetData.excel_data?.length || 0} kontak)</span>
+        </div>
+      );
+    }
+
     const parts = [];
 
-    // Format Produk
     if (targetData.produk) {
       const produkList = Array.isArray(targetData.produk) ? targetData.produk : [targetData.produk];
       const validProduk = produkList.filter(id => id !== null && id !== undefined && id !== "");
@@ -219,7 +201,6 @@ export default function BroadcastPage() {
       }
     }
 
-    // Format Status Order
     if (targetData.status_order !== undefined && targetData.status_order !== null && targetData.status_order !== "") {
       const statusOrderList = Array.isArray(targetData.status_order)
         ? targetData.status_order
@@ -244,7 +225,6 @@ export default function BroadcastPage() {
       }
     }
 
-    // Format Status Pembayaran
     if (targetData.status_pembayaran !== undefined && targetData.status_pembayaran !== null && targetData.status_pembayaran !== "") {
       const statusPembayaranList = Array.isArray(targetData.status_pembayaran)
         ? targetData.status_pembayaran
@@ -272,20 +252,14 @@ export default function BroadcastPage() {
     return parts.length > 0 ? parts : "-";
   };
 
-  // Handle Delete Broadcast
   const handleDelete = async (broadcastId, broadcastNama) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus broadcast "${broadcastNama}"?`)) {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus broadcast "${broadcastNama}"?`)) {
       return;
     }
 
     setDeletingId(broadcastId);
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Token tidak ditemukan");
-        return;
-      }
-
       const res = await fetch(`/api/sales/broadcast/${broadcastId}`, {
         method: "DELETE",
         headers: {
@@ -301,7 +275,6 @@ export default function BroadcastPage() {
         throw new Error(json.message || "Gagal menghapus broadcast");
       }
 
-      // Refresh list
       fetchBroadcasts();
     } catch (err) {
       console.error("Error deleting broadcast:", err);
@@ -311,17 +284,10 @@ export default function BroadcastPage() {
     }
   };
 
-  // Handle Send Broadcast
   const handleSend = async (broadcastId) => {
     setSendingId(broadcastId);
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Token tidak ditemukan");
-        setSendingId(null);
-        return;
-      }
-
       const res = await fetch(`/api/sales/broadcast/${broadcastId}/send`, {
         method: "POST",
         headers: {
@@ -337,213 +303,325 @@ export default function BroadcastPage() {
         throw new Error(json.message || "Gagal mengirim broadcast");
       }
 
-      // Show success message
       alert(`Broadcast berhasil dikirim!\nTotal Target: ${json.data?.total_target || 0}\nSent to Queue: ${json.data?.sent_to_queue || 0}\nFailed: ${json.data?.failed || 0}`);
-
-      // Refresh list
       fetchBroadcasts();
     } catch (err) {
       console.error("Error sending broadcast:", err);
       setError(err.message || "Terjadi kesalahan saat mengirim broadcast");
-      throw err; // Re-throw untuk ditangani di modal
+      throw err;
     } finally {
       setSendingId(null);
     }
   };
 
-  // Handle open send modal
   const handleOpenSend = (broadcast) => {
     setSelectedBroadcast(broadcast);
     setShowSendBroadcast(true);
   };
 
   return (
-    <Layout title="Manage Broadcast">
-      <style jsx>{`
-        .orders-modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          padding: 1.25rem 1.5rem;
-          border-top: 1px solid #e5e7eb;
-          background: #f9fafb;
+    <Layout title="Broadcast">
+      <style>{`
+        :root {
+            --primary: #F1A124;
+            --primary-light: #f7c376;
+            --secondary: #3b82f6;
+            --accent: #F1A124;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
 
-        .orders-modal-footer .orders-button {
-          padding: 0.625rem 1.25rem;
-          border-radius: 0.5rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          border: 1px solid #e5e7eb;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
+        .bc-container {
+            padding: 1.5rem;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            min-height: 100vh;
         }
 
-        .orders-modal-footer .orders-button--ghost {
-          background: #ffffff;
-          color: #374151;
-          border-color: #d1d5db;
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem 2rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
         }
 
-        .orders-modal-footer .orders-button--ghost:hover:not(:disabled) {
-          background: #f9fafb;
-          border-color: #9ca3af;
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
         }
 
-        .orders-modal-footer .orders-button--primary {
-          background: #c85400;
-          color: #ffffff;
-          border-color: #c85400;
+        .page-header p {
+            margin: 0.25rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.875rem;
         }
 
-        .orders-modal-footer .orders-button--primary:hover:not(:disabled) {
-          background: #b04800;
-          border-color: #b04800;
+        .btn-create {
+            background: white;
+            color: var(--primary);
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
         }
 
-        .orders-modal-footer .orders-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+        .btn-create:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
         }
+
+        .card-table {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-table-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-table-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            font-size: 0.875rem;
+        }
+
+        tbody tr:hover {
+            background: #fcfcfc;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 0.375rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .action-btn i {
+            font-size: 0.8rem;
+        }
+
+        .action-btn.send { background: #ccfbf1; color: #0d9488; }
+        .action-btn.send:hover { background: #99f6e4; }
+        .action-btn.send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .action-btn.view { background: #dbeafe; color: #2563eb; }
+        .action-btn.view:hover { background: #bfdbfe; }
+
+        .action-btn.delete { background: #fee2e2; color: #dc2626; }
+        .action-btn.delete:hover { background: #fecaca; }
+        .action-btn.delete:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .status-badge {
+            display: inline-flex;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .status-success { background: #d1fae5; color: #059669; }
+        .status-failed { background: #fee2e2; color: #dc2626; }
+        .status-processing { background: #fef3c7; color: #d97706; }
+        .status-draft { background: #e0e7ff; color: #4f46e5; }
       `}</style>
-      <div className="dashboard-shell orders-shell">
-        <section className="dashboard-hero orders-hero">
-          <div className="orders-toolbar">
-            <div></div>
-            <div className="orders-toolbar-buttons">
-            </div>
+      
+      <div className="bc-container">
+        <div className="page-header">
+          <div>
+            <h1>Manajemen Broadcast</h1>
+            <p>Kirim pesan broadcast ke customer</p>
           </div>
-        </section>
+          <button className="btn-create" onClick={() => setShowAddBroadcast(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Buat Broadcast
+          </button>
+        </div>
 
         {error && (
-          <div className="dashboard-alert" style={{ marginTop: "1rem" }}>
+          <div style={{ background: "#fee2e2", color: "#dc2626", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1.5rem" }}>
             {error}
           </div>
         )}
 
-        <section className="panel orders-panel">
-          <div className="panel__header">
-            <div>
-              <p className="panel__eyebrow">Directory</p>
-              <h3 className="panel__title">Broadcast List</h3>
-            </div>
-            <button
-              type="button"
-              className="customers-button customers-button--primary"
-              onClick={() => setShowAddBroadcast(true)}
-            >
-              + Tambah Broadcast
-            </button>
+        <div className="card-table">
+          <div className="card-table-header">
+            <h3>Daftar Broadcast</h3>
           </div>
-
-          <div className="orders-table__wrapper">
-            {loading ? (
-              <div style={{ padding: "2rem", textAlign: "center", color: "var(--dash-muted)" }}>
-                Memuat data...
-              </div>
-            ) : broadcasts.length === 0 ? (
-              <div style={{ padding: "2rem", textAlign: "center", color: "var(--dash-muted)" }}>
-                Belum ada data broadcast
-              </div>
-            ) : (
-              <div className="orders-table broadcast-table">
-                <div className="orders-table__head">
-                  <span>#</span>
-                  <span>Nama</span>
-                  <span>Pesan</span>
-                  <span>Tanggal Kirim</span>
-                  <span>Target</span>
-                  <span>Total Target</span>
-                  <span>Status</span>
-                  <span>Dibuat</span>
-                  <span>Actions</span>
-                </div>
-                <div className="orders-table__body">
-                  {broadcasts.map((broadcast, i) => {
+          <div className="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "40px" }}>#</th>
+                  <th>Nama</th>
+                  <th style={{ width: "25%" }}>Pesan</th>
+                  <th>Waktu Kirim</th>
+                  <th>Target Penerima</th>
+                  <th style={{ textAlign: "center" }}>Jml Target</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
+                      Memuat data...
+                    </td>
+                  </tr>
+                ) : broadcasts.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
+                      Belum ada data broadcast.
+                    </td>
+                  </tr>
+                ) : (
+                  broadcasts.map((broadcast, i) => {
                     let targetData = {};
                     try {
                       if (broadcast.target) {
-                        targetData = JSON.parse(broadcast.target);
+                        targetData = typeof broadcast.target === "string"
+                          ? JSON.parse(broadcast.target)
+                          : broadcast.target;
                       }
                     } catch (e) {
                       console.error("Error parsing target:", e);
                     }
 
                     return (
-                      <div className="orders-table__row" key={broadcast.id}>
-                        <div className="orders-table__cell" data-label="#">
-                          {i + 1}
-                        </div>
-                        <div className="orders-table__cell orders-table__cell--strong" data-label="Nama">
-                          {broadcast.nama || "-"}
-                        </div>
-                        <div className="orders-table__cell" data-label="Pesan">
-                          {broadcast.pesan || "-"}
-                        </div>
-                        <div className="orders-table__cell" data-label="Tanggal Kirim">
-                          {formatDate(broadcast.tanggal_kirim)}
-                        </div>
-                        <div className="orders-table__cell" data-label="Target" style={{ fontSize: "0.875rem", lineHeight: "1.5" }}>
-                          {formatTarget(targetData)}
-                        </div>
-                        <div className="orders-table__cell" data-label="Total Target">
-                          {broadcast.total_target || "0"}
-                        </div>
-                        <div className="orders-table__cell" data-label="Status">
-                          <span className={`orders-status-badge orders-status-badge--${getStatusClass(broadcast.status, broadcast)}`}>
+                      <tr key={broadcast.id}>
+                        <td>{i + 1}</td>
+                        <td style={{ fontWeight: 600 }}>{broadcast.nama || "-"}</td>
+                        <td>
+                          <div style={{ maxHeight: "60px", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+                            {broadcast.pesan || "-"}
+                          </div>
+                        </td>
+                        <td>{formatDate(broadcast.tanggal_kirim)}</td>
+                        <td>{formatTarget(targetData)}</td>
+                        <td style={{ textAlign: "center", fontWeight: 600 }}>{broadcast.total_target || "0"}</td>
+                        <td>
+                          <span className={getStatusClass(broadcast.status, broadcast)}>
                             {getStatusLabel(broadcast.status, broadcast)}
                           </span>
-                        </div>
-                        <div className="orders-table__cell" data-label="Dibuat">
-                          {formatDate(broadcast.create_at)}
-                        </div>
-                        <div className="orders-table__cell orders-table__cell--actions" data-label="Actions">
-                          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        </td>
+                        <td>
+                          <div className="action-group">
                             <button
-                              className="orders-action-btn"
-                              title="View Penerima"
+                              className="action-btn view"
                               onClick={() => {
                                 setSelectedBroadcast(broadcast);
                                 setShowViewPenerima(true);
                               }}
+                              title="Lihat Penerima"
                             >
-                              <i className="pi pi-eye" />
-                              View
+                              <i className="pi pi-eye" /> View
                             </button>
                             <button
-                              className="orders-action-btn orders-action-btn--ghost"
-                              title="Send Broadcast"
+                              className="action-btn send"
                               onClick={() => handleOpenSend(broadcast)}
                               disabled={sendingId === broadcast.id}
+                              title="Kirim Broadcast"
                             >
-                              <i className="pi pi-send" />
-                              Send
+                              <i className="pi pi-send" /> Send
                             </button>
                             <button
-                              className="orders-action-btn orders-action-btn--danger"
-                              title="Hapus Broadcast"
+                              className="action-btn delete"
                               onClick={() => handleDelete(broadcast.id, broadcast.nama)}
                               disabled={deletingId === broadcast.id}
+                              title="Hapus Broadcast"
                             >
-                              <i className="pi pi-trash" />
-                              {deletingId === broadcast.id ? "Deleting..." : "Hapus"}
+                              <i className="pi pi-trash" /> {deletingId === broadcast.id ? "..." : "Hapus"}
                             </button>
                           </div>
-                        </div>
-                      </div>
+                        </td>
+                      </tr>
                     );
-                  })}
-                </div>
-              </div>
-            )}
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        </section>
+        </div>
       </div>
 
-      {/* Modal View Penerima */}
       {showViewPenerima && selectedBroadcast && (
         <ViewPenerima
           broadcast={selectedBroadcast}
@@ -554,19 +632,16 @@ export default function BroadcastPage() {
         />
       )}
 
-      {/* Modal Add Broadcast */}
       {showAddBroadcast && (
         <AddBroadcast
           onClose={() => setShowAddBroadcast(false)}
           onAdd={(newBroadcast) => {
-            // Refresh broadcasts list
             fetchBroadcasts();
             setShowAddBroadcast(false);
           }}
         />
       )}
 
-      {/* Modal Send Broadcast */}
       {showSendBroadcast && selectedBroadcast && (
         <SendBroadcast
           broadcast={selectedBroadcast}

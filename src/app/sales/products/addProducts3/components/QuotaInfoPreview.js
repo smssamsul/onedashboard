@@ -15,6 +15,7 @@ export default function QuotaInfoPreview({ data = {} }) {
 
   return (
     <div
+      className="quota-info-card"
       style={{
         padding: "16px",
         borderRadius: "12px",
