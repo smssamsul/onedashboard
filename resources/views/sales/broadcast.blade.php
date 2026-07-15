@@ -437,19 +437,19 @@
                         <div class="form-group">
                             <label>Status Pembayaran</label>
                             <select id="target_status_pembayaran">
-                                <option value="">Semua Status</option>
-                                <option value="">Belum Bayar</option>
-                                <option value="1">Menunggu Validasi</option>
-                                <option value="2">Sudah Approve</option>
-                                <option value="3">Ditolak</option>
+                                <option value="">Semua</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="paid">Paid</option>
+                                <option value="dp">DP</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Status Order</label>
                             <select id="target_status_order">
-                                <option value="">Semua Status</option>
-                                <option value="1">Pending</option>
-                                <option value="2">Sudah Dibayar</option>
+                                <option value="">Semua</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="complete">Complete</option>
                             </select>
                         </div>
                     </div>
@@ -689,12 +689,40 @@
                             option.selected = produkIds.includes(parseInt(option.value));
                         });
                     }
-                    if (target.status_pembayaran) {
-                        document.getElementById('target_status_pembayaran').value = target.status_pembayaran;
-                    }
-                    if (target.status_order) {
-                        document.getElementById('target_status_order').value = target.status_order;
-                    }
+                    (function mapStatusPembayaranToSelect() {
+                        var el = document.getElementById('target_status_pembayaran');
+                        var sp = target.status_pembayaran;
+                        if (sp === undefined || sp === null || sp === '') {
+                            el.value = '';
+                            return;
+                        }
+                        var s = String(sp).toLowerCase();
+                        if (s === 'unpaid' || s === 'paid' || s === 'dp') {
+                            el.value = s;
+                            return;
+                        }
+                        if (s === '0' || sp === 0) el.value = 'unpaid';
+                        else if (s === '2' || sp === 2) el.value = 'paid';
+                        else if (s === '4' || sp === 4) el.value = 'dp';
+                        else el.value = '';
+                    })();
+                    (function mapStatusOrderToSelect() {
+                        var el = document.getElementById('target_status_order');
+                        var so = target.status_order;
+                        if (so === undefined || so === null || so === '') {
+                            el.value = '';
+                            return;
+                        }
+                        var s = String(so).toLowerCase();
+                        if (s === 'pending' || s === 'processing' || s === 'complete') {
+                            el.value = s;
+                            return;
+                        }
+                        if (s === '1' || so === 1) el.value = 'pending';
+                        else if (s === '2' || so === 2) el.value = 'processing';
+                        else if (s === '4' || so === 4) el.value = 'complete';
+                        else el.value = '';
+                    })();
                 }
                 
                 document.getElementById('broadcastModal').classList.add('active');

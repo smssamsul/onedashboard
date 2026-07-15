@@ -20,13 +20,18 @@ use App\Http\Controllers\Api\Sales\{
     ProdukController,
     LogsFollupController,
     OrderCustomerController,
+    OrderUtmController,
     OrderPaymentController,
     OtpCustomerController,
     MidtransController,
     WebinarController,
+    ZoomRecordController,
+    OrderResiController,
     BroadcastController,
     LeadController,
-    SalesController
+    SalesController,
+    TemplateBroadcastController,
+    BaileysController
 };
 
 // Admin Controllers
@@ -45,8 +50,19 @@ use App\Http\Controllers\Api\Hr\HRDashboardController;
 use App\Http\Controllers\Api\Hr\HrDepartemenController;
 use App\Http\Controllers\Api\Hr\HrKaryawanController;
 use App\Http\Controllers\Api\Hr\HrAbsensiController;
+use App\Http\Controllers\Api\Hr\HrCutiController;
+use App\Http\Controllers\Api\Hr\HrIzinController;
+use App\Http\Controllers\Api\Hr\HrTypeCutiController;
 use App\Http\Controllers\Api\Hr\HrSettingController;
+use App\Http\Controllers\Api\Hr\HrTodoListController;
 use App\Http\Controllers\Api\Marketing\MarketingDashboardController;
+use App\Http\Controllers\Api\Sales\PixelMetaController;
+use App\Http\Controllers\Api\PostController;
+
+
+use App\Http\Controllers\Api\KnowledgeSourceController;
+use App\Http\Controllers\Api\TodoListController;
+use App\Http\Controllers\Api\BiteshipWebhookController;
 
 // ============================================
 // PUBLIC ROUTES (No Authentication Required)
@@ -67,12 +83,20 @@ Route::post('/otp/verify', [OtpCustomerController::class, 'verifyOtp'])
 
 // Order (Public)
 Route::middleware(['throttle:order'])->post('/order', [OrderCustomerController::class, 'store']);
+Route::get('/public-order/{id}', [OrderCustomerController::class, 'publicShowOrder']);
+Route::post('/public-order/{id}/upload-bukti-pembayaran', [OrderCustomerController::class, 'publicUploadBuktiPembayaran']);
+Route::post('/pixel-log', [\App\Http\Controllers\Api\Sales\PixelLogController::class, 'store']);
 
 // Landing Page
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
+Route::get('/seminar/schedules', [ProdukController::class, 'publicSeminarSchedules']);
 
 // Webinar (Public)
 Route::get('/webinar/join-order/{orderId}', [WebinarController::class, 'joinFromOrder']);
+
+// Biteship webhook (publik — set header X-One-Webhook-Token = BITESHIP_WEBHOOK_SECRET)
+Route::post('/biteship/webhook', [BiteshipWebhookController::class, 'handle'])
+    ->middleware('throttle:120,1');
 
 // testing n8n otomatisasi
 Route::post('/laporan/minggu-ini', [OrderCustomerController::class, 'laporanMingguIni']);
@@ -90,9 +114,24 @@ Route::prefix('midtrans')->group(function () {
 Route::post('/whatsapp/webhook', [WhatsAppBotController::class, 'webhook'])
     ->middleware('throttle:60,1');
 
+// WhatsApp AI Webhook (untuk AI flow dengan pgvector)
+use App\Http\Controllers\Api\WhatsAppWebhookController;
+Route::post('/webhook/whatsapp', [WhatsAppWebhookController::class, 'handle'])
+    ->middleware('throttle:60,1');
+
 // Woowa Webhook (Public - untuk menerima data dari Woowa)
 Route::post('/woowa/webhook', [WoowaWebhookController::class, 'handle'])
     ->middleware('throttle:120,1');
+
+// LPWA Baileys Webhook
+Route::post('/baileys/webhook-lpwa', [\App\Http\Controllers\Api\Sales\LpwaWebhookController::class, 'handleWebhook'])
+    ->middleware('throttle:120,1');
+
+// Post by Slug (Public)
+Route::get('/post/slug/{slug}', [PostController::class, 'showBySlug']);
+
+// Pixel Meta (Public for Landing Page)
+Route::get('/sales/pixel-meta/public', [\App\Http\Controllers\Api\Sales\PixelMetaController::class, 'getPublicPixels']);
 
 // Test Zoom Token
 Route::get('/test-zoom-token', function () {
@@ -107,21 +146,48 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', LogoutController::class)->name('logout');
 
+    // Direksi routes
+    Route::prefix('direksi')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Api\Direksi\DireksiDashboardController::class, 'index']);
+    });
+
     Route::prefix('sales')->group(function () {
+        Route::get('/pixel-meta', [PixelMetaController::class, 'index']);
+        Route::get('/pixel-meta/{id}', [PixelMetaController::class, 'show']);
+        Route::post('/pixel-meta', [PixelMetaController::class, 'store']);
+        Route::put('/pixel-meta/{id}', [PixelMetaController::class, 'update']);
+        Route::delete('/pixel-meta/{id}', [PixelMetaController::class, 'destroy']);
+
 
         // Dashboard
         Route::get('/dashboard', [SalesDashboardController::class, 'index']);
+        Route::get('/dashboard/produk-statistics', [SalesDashboardController::class, 'produkStatistics']);
+        Route::get('/dashboard/produk-statistics-all', [SalesDashboardController::class, 'produkStatisticsAll']);
 
         // Customer
         Route::get('/customer', [CustomerController::class, 'index']);
+        Route::get('/customer/statistics', [CustomerController::class, 'statistics']);
+        Route::get('/customer/leads', [CustomerController::class, 'indexLeads']);
         Route::get('/customer/{id}', [CustomerController::class, 'show']);
         Route::post('/customer', [CustomerController::class, 'store']);
         Route::put('/customer/{id}', [CustomerController::class, 'update']);
         Route::delete('/customer/{id}', [CustomerController::class, 'destroy']);
         Route::post('/customer/import-excel', [CustomerController::class, 'importFromExcel']);
+        Route::post('/customer/import-arsip', [CustomerController::class, 'importArsipFromExcel']);
+        Route::post('/customer/import-workshop', [CustomerController::class, 'importWorkshopCustomer']);
         Route::get('/customer/riwayat-order/{id}', [CustomerController::class, 'riwayat_order']);
         Route::get('/customer/followup/{id}', [CustomerController::class, 'followup']);
         Route::post('/customer/update/{id}', [CustomerController::class, 'form_customer_update']);
+        Route::post('/customer/{id}/promote', [CustomerController::class, 'promoteToCustomer']);
+        Route::get('/customer/{id}/followups', [CustomerController::class, 'getFollowups']);
+        Route::post('/customer/{id}/followups', [CustomerController::class, 'storeFollowup']);
+
+        // Lead LPWA
+        Route::get('/lead-lpwa', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'index']);
+        Route::post('/lead-lpwa', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'store']);
+        Route::put('/lead-lpwa/{id}', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'update']);
+        Route::delete('/lead-lpwa/{id}', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'destroy']);
+
 
         // Produk
         Route::get('/produk', [ProdukController::class, 'index']);
@@ -130,8 +196,31 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/produk/{id}', [ProdukController::class, 'update']);
         Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);
         Route::put('/produk/{id}/trainer', [ProdukController::class, 'updateTrainer']);
+        Route::put('/produk/{id}/post', [ProdukController::class, 'updatePost']);
         Route::delete('/produk/{id}/gambar/{index}', [ProdukController::class, 'deleteImage']);
         Route::delete('/produk/{id}/testimoni/{index}', [ProdukController::class, 'deleteTestimoni']);
+
+        // Knowledge Sources (AI Vector)
+        Route::get('/knowledge-source', [KnowledgeSourceController::class, 'index']);
+        Route::get('/knowledge-source/{id}', [KnowledgeSourceController::class, 'show']);
+        Route::post('/knowledge-source', [KnowledgeSourceController::class, 'store']);
+        Route::put('/knowledge-source/{id}', [KnowledgeSourceController::class, 'update']);
+        Route::delete('/knowledge-source/{id}', [KnowledgeSourceController::class, 'destroy']);
+        Route::get('/knowledge-source/chunk/{id}/check-embedding', [KnowledgeSourceController::class, 'checkEmbedding']);
+        Route::post('/knowledge-source/{id}/regenerate-embeddings', [KnowledgeSourceController::class, 'regenerateEmbeddings']);
+
+        // AI Setting
+        Route::get('/ai-setting', [\App\Http\Controllers\Api\Sales\AiSettingController::class, 'index']);
+        Route::post('/ai-setting', [\App\Http\Controllers\Api\Sales\AiSettingController::class, 'store']);
+        Route::put('/ai-setting/{id}', [\App\Http\Controllers\Api\Sales\AiSettingController::class, 'update']);
+
+        // AI Simulasi Percakapan
+        Route::post('/ai-simulasi/chat', [\App\Http\Controllers\Api\Sales\AiSimulasiController::class, 'chat']);
+        Route::post('/ai-simulasi/save-prompt', [\App\Http\Controllers\Api\Sales\AiSimulasiController::class, 'savePrompt']);
+
+        // Sales Setting
+        Route::get('/setting', [\App\Http\Controllers\Api\Sales\SalesSettingController::class, 'show']);
+        Route::post('/setting', [\App\Http\Controllers\Api\Sales\SalesSettingController::class, 'update']);
 
         // Kategori Produk
         Route::get('/kategori-produk', [KategoriProdukController::class, 'index']);
@@ -140,12 +229,38 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/kategori-produk/{id}', [KategoriProdukController::class, 'update']);
         Route::delete('/kategori-produk/{id}', [KategoriProdukController::class, 'destroy']);
 
+        // Ecourse
+        Route::get('/ecourse/upload-url', [\App\Http\Controllers\EcourseController::class, 'getUploadUrl']);
+        Route::get('/ecourse', [\App\Http\Controllers\EcourseController::class, 'index']);
+        Route::get('/ecourse/{id}', [\App\Http\Controllers\EcourseController::class, 'show']);
+        Route::post('/ecourse', [\App\Http\Controllers\EcourseController::class, 'store']);
+        Route::delete('/ecourse/{id}', [\App\Http\Controllers\EcourseController::class, 'destroy']);
+
         // Sales
         Route::get('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'index']);
         Route::get('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'show']);
         Route::post('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'store']);
         Route::put('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'update']);
         Route::delete('/sales-list/{id}', [\App\Http\Controllers\Api\Sales\SalesController::class, 'destroy']);
+
+        // Baileys WA Session Management
+        Route::prefix('baileys')->group(function () {
+            Route::get('/engine', [BaileysController::class, 'getEngine']);
+            Route::get('/sessions', [BaileysController::class, 'listSessions']);
+            Route::get('/status/{sessionId}', [BaileysController::class, 'getStatus']);
+            Route::get('/status-by-sales/{salesId}', [BaileysController::class, 'getStatusBySales']);
+            Route::get('/qr/{sessionId}', [BaileysController::class, 'getQr']);
+            Route::get('/qr-by-sales/{salesId}', [BaileysController::class, 'getQrBySales']);
+            Route::post('/init/{sessionId}', [BaileysController::class, 'createSession']);
+            Route::post('/init-by-sales/{salesId}', [BaileysController::class, 'createSessionBySales']);
+            Route::delete('/session/{sessionId}', [BaileysController::class, 'logout']);
+            Route::delete('/session-by-sales/{salesId}', [BaileysController::class, 'logoutBySales']);
+        });
+        
+        // Google Sync
+        Route::get('/google-sync/status', [\App\Http\Controllers\GoogleOAuthController::class, 'status']);
+        Route::get('/google-sync/url', [\App\Http\Controllers\GoogleOAuthController::class, 'getAuthUrl']);
+        Route::post('/google-sync/disconnect', [\App\Http\Controllers\GoogleOAuthController::class, 'disconnect']);
         
         // Head Sales - Statistics & Performance
         Route::get('/statistics', [\App\Http\Controllers\Api\Sales\SalesController::class, 'statistics']);
@@ -154,13 +269,20 @@ Route::middleware('auth:api')->group(function () {
         // Template Followup
         Route::post('/template-follup', [TemplateFollupController::class, 'index']);
         Route::post('/template-follup/store', [TemplateFollupController::class, 'store']);
+        Route::post('/template-follup/update/{id}', [TemplateFollupController::class, 'store']);
+        Route::delete('/template-follup/delete/{id}', [TemplateFollupController::class, 'destroy']);
 
         // Logs Followup
         Route::get('/logs-follup', [LogsFollupController::class, 'index']);
+
+        // Log Pixel
+        Route::get('/pixel-logs', [\App\Http\Controllers\Api\Sales\PixelLogController::class, 'index']);
         Route::post('/logs-follup', [LogsFollupController::class, 'show']);
 
         // Order
         Route::get('/order', [OrderCustomerController::class, 'index']);
+        Route::get('/order/utm-filter-options', [OrderCustomerController::class, 'utmFilterOptions']);
+        Route::get('/order/utm', [OrderUtmController::class, 'index']);
         Route::get('/order/statistic', [OrderCustomerController::class, 'statistiOrder']);
         Route::get('/order/statistic-per-sales', [OrderCustomerController::class, 'statistiOrderPerSales']);
         Route::get('/order/sales', [OrderCustomerController::class, 'ordersForSales']);
@@ -172,6 +294,7 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/order/{id}', [OrderCustomerController::class, 'update'])->where('id', '[0-9]+');
         Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
         Route::post('/order-admin', [OrderCustomerController::class, 'store_admin']);
+        Route::post('/order-admin/bulk', [OrderCustomerController::class, 'store_admin_bulk']);
 
         // Order Payment
         Route::get('/order-payment', [OrderPaymentController::class, 'index']);
@@ -187,17 +310,39 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/webinar', [WebinarController::class, 'store']);
         Route::put('/webinar/{id}', [WebinarController::class, 'update']);
 
+        // Zoom Recording Links (1 produk : many)
+        Route::get('/zoom-record/{produkId}', [ZoomRecordController::class, 'index']);
+        Route::post('/zoom-record', [ZoomRecordController::class, 'store']);
+        Route::delete('/zoom-record/{id}', [ZoomRecordController::class, 'destroy']);
+
+        // Order resi (Biteship) — simpan waybill, jadwal, status
+        Route::get('/order-resi', [OrderResiController::class, 'index']);
+        Route::get('/order-resi/order/{orderId}', [OrderResiController::class, 'indexByOrder'])->where('orderId', '[0-9]+');
+        Route::get('/order-resi/{id}', [OrderResiController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/order-resi', [OrderResiController::class, 'store']);
+        Route::post('/order-resi/{id}/sync', [OrderResiController::class, 'sync'])->where('id', '[0-9]+');
+        Route::get('/order-resi/{id}/label', [OrderResiController::class, 'label'])->where('id', '[0-9]+');
+        Route::get('/order-resi/{id}/tracking', [OrderResiController::class, 'trackingDetail'])->where('id', '[0-9]+');
+        Route::get('/order-resi/print-custom-label', [OrderResiController::class, 'printCustomLabel']);
+
         // Broadcast
         Route::get('/broadcast', [BroadcastController::class, 'index']);
         Route::get('/broadcast/my-broadcast', [BroadcastController::class, 'indexByUser']);
-        Route::get('/broadcast/{id}', [BroadcastController::class, 'show']);
-        Route::get('/broadcast/{id}/penerima', [BroadcastController::class, 'penerima']);
         Route::post('/broadcast', [BroadcastController::class, 'store']);
         Route::post('/broadcast/per-sales', [BroadcastController::class, 'storeForMySales']);
+        Route::post('/broadcast/parse-excel', [BroadcastController::class, 'parseExcel']); // harus sebelum {id}
+        Route::get('/broadcast/{id}', [BroadcastController::class, 'show']);
+        Route::get('/broadcast/{id}/penerima', [BroadcastController::class, 'penerima']);
         Route::put('/broadcast/{id}', [BroadcastController::class, 'update']);
         Route::delete('/broadcast/{id}', [BroadcastController::class, 'destroy']);
         Route::post('/broadcast/{id}/send-sales', [BroadcastController::class, 'sendToMySales']);
         Route::post('/broadcast/{id}/send', [BroadcastController::class, 'send']);
+
+        // Template Broadcast
+        Route::get('/template-broadcast', [TemplateBroadcastController::class, 'index']);
+        Route::post('/template-broadcast', [TemplateBroadcastController::class, 'store']);
+        Route::put('/template-broadcast/{id}', [TemplateBroadcastController::class, 'update']);
+        Route::delete('/template-broadcast/{id}', [TemplateBroadcastController::class, 'destroy']);
 
         // Leads
         Route::get('/lead', [LeadController::class, 'index']);
@@ -213,6 +358,21 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/lead/{id}', [LeadController::class, 'destroy']);
         Route::post('/lead/{id}/send-whatsapp', [LeadController::class, 'sendWhatsApp']);
         Route::post('/lead/broadcast', [LeadController::class, 'broadcast']);
+
+        // AI Leads (dari tabel ai_leads)
+        Route::get('/lead-ai', [\App\Http\Controllers\Api\Sales\LeadAiController::class, 'index']);
+        Route::get('/lead-ai/statistics', [\App\Http\Controllers\Api\Sales\LeadAiController::class, 'statistics']);
+        Route::get('/lead-ai/{id}', [\App\Http\Controllers\Api\Sales\LeadAiController::class, 'show']);
+        Route::put('/lead-ai/{id}', [\App\Http\Controllers\Api\Sales\LeadAiController::class, 'update']);
+        Route::delete('/lead-ai/{id}', [\App\Http\Controllers\Api\Sales\LeadAiController::class, 'destroy']);
+
+        // Percakapan
+        Route::get('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'index']);
+        Route::get('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'show']);
+        Route::post('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'store']);
+        Route::put('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'update']);
+        Route::post('/percakapan/{id}/message', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'addMessage']);
+        Route::post('/percakapan/get-or-create', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'getOrCreateByPhone']);
 
         // Follow Up Leads
         Route::get('/lead/{leadId}/followup', [\App\Http\Controllers\Api\Sales\FollowUpLeadController::class, 'index']);
@@ -236,6 +396,14 @@ Route::middleware('auth:api')->group(function () {
         // Aktivitas Leads
         Route::get('/aktivitas/lead/{leadId}', [\App\Http\Controllers\Api\Sales\AktivitasLeadController::class, 'index']);
         Route::get('/aktivitas/{id}', [\App\Http\Controllers\Api\Sales\AktivitasLeadController::class, 'show']);
+   
+    // Post Management (Admin Only)
+    Route::get('/post', [PostController::class, 'index']);
+    Route::get('/post/{id}', [PostController::class, 'show'])->where('id', '[0-9]+');
+    Route::post('/post', [PostController::class, 'store']);
+    Route::put('/post/{id}', [PostController::class, 'update']);
+    Route::delete('/post/{id}', [PostController::class, 'destroy']);
+   
     });
 
     Route::prefix('admin')->group(function () {
@@ -283,10 +451,17 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/shift', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'store']);
         Route::put('/shift/{id}', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'update']);
         Route::delete('/shift/{id}', [\App\Http\Controllers\Api\Hr\HrShiftController::class, 'destroy']);
+
+        // Type Cuti
+        Route::get('/type-cuti', [HrTypeCutiController::class, 'index']);
+        Route::post('/type-cuti', [HrTypeCutiController::class, 'store']);
+        Route::put('/type-cuti/{id}', [HrTypeCutiController::class, 'update']);
+        Route::delete('/type-cuti/{id}', [HrTypeCutiController::class, 'destroy']);
         
         // Karyawan
         Route::get('/karyawan', [HrKaryawanController::class, 'index']);
         Route::get('/karyawan/by-current-user', [HrKaryawanController::class, 'getByCurrentUser']);
+        Route::get('/karyawan/direksi', [HrKaryawanController::class, 'getDireksi']);
         Route::get('/karyawan/{id}', [HrKaryawanController::class, 'show']);
         Route::post('/karyawan', [HrKaryawanController::class, 'store']);
         Route::put('/karyawan/{id}', [HrKaryawanController::class, 'update']);
@@ -303,16 +478,52 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/absensi/{id}/check-out', [HrAbsensiController::class, 'checkOut'])->where('id', '[0-9]+');
         Route::put('/absensi/{id}', [HrAbsensiController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('/absensi/{id}', [HrAbsensiController::class, 'destroy'])->where('id', '[0-9]+');
+
+        // Cuti
+        Route::get('/cuti', [HrCutiController::class, 'index']);
+        Route::get('/cuti/{id}', [HrCutiController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/cuti', [HrCutiController::class, 'store']);
+        Route::put('/cuti/{id}', [HrCutiController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/cuti/{id}', [HrCutiController::class, 'destroy'])->where('id', '[0-9]+');
+        Route::post('/cuti/{id}/approve', [HrCutiController::class, 'approve'])->where('id', '[0-9]+');
+        Route::post('/cuti/{id}/reject', [HrCutiController::class, 'reject'])->where('id', '[0-9]+');
+
+        // Izin
+        Route::get('/izin', [HrIzinController::class, 'index']);
+        Route::get('/izin/by-current-user', [HrIzinController::class, 'getByCurrentUser']);
+        Route::get('/izin/{id}', [HrIzinController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/izin', [HrIzinController::class, 'storeByCurrentUser']); // Untuk user yang input sendiri
+        Route::post('/izin/admin', [HrIzinController::class, 'store']); // Untuk admin/HR yang input manual
+        Route::put('/izin/{id}', [HrIzinController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/izin/{id}', [HrIzinController::class, 'destroy'])->where('id', '[0-9]+');
+        Route::post('/izin/{id}/approve', [HrIzinController::class, 'approve'])->where('id', '[0-9]+');
         
         // Setting
         Route::get('/setting', [HrSettingController::class, 'index']);
         Route::post('/setting', [HrSettingController::class, 'store']);
         Route::put('/setting/{id}', [HrSettingController::class, 'update']);
+
+        // Todo List Management (HR only)
+        Route::get('/todo-list', [HrTodoListController::class, 'index']);
+        Route::get('/todo-list/statistics', [HrTodoListController::class, 'statistics']);
+    });
+
+    // Todo List - Available for all authenticated users
+    Route::prefix('todo-list')->group(function () {
+        Route::get('/', [TodoListController::class, 'index']);
+        Route::get('/my-todos', [TodoListController::class, 'myTodos']);
+        Route::get('/{id}', [TodoListController::class, 'show']);
+        Route::post('/', [TodoListController::class, 'store']);
+        Route::put('/{id}', [TodoListController::class, 'update']);
+        Route::delete('/{id}', [TodoListController::class, 'destroy']);
+        Route::post('/{id}/complete', [TodoListController::class, 'complete']);
     });
 
     Route::prefix('marketing')->group(function () {
         Route::get('/dashboard', [MarketingDashboardController::class, 'index']);
     });
+
+
 });
 
 
@@ -320,6 +531,12 @@ Route::prefix('customer')->group(function () {
     // Public Customer Routes
     Route::post('/otp/verify', [OtpCustomerController::class, 'verifyOtp']);
     Route::post('/login', LoginCustomerController::class);
+
+    // Phone-based Login Flow (New)
+    Route::post('/check-phone', [LoginCustomerController::class, 'checkPhone']);
+    Route::post('/send-otp-by-phone', [LoginCustomerController::class, 'sendOtpByPhone']);
+    Route::post('/verify-otp-set-password', [LoginCustomerController::class, 'verifyOtpAndSetPassword']);
+    Route::post('/login-password', [LoginCustomerController::class, 'loginWithPassword']);
 
     // Authenticated Customer Routes
     Route::middleware('auth:customer')->group(function () {
@@ -341,8 +558,6 @@ Route::prefix('customer')->group(function () {
     });
 });
 
-// ============================================
-
 Route::prefix('admin/rabbitmq')->group(function () {
     Route::get('/stats', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getStats']);
     Route::get('/queue-detail', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getQueueDetail']);
@@ -361,4 +576,7 @@ Route::middleware('auth:api')->prefix('user')->group(function () {
     Route::put('/tasks/{id}', [\App\Http\Controllers\Api\User\UserTaskController::class, 'update']);
     Route::delete('/tasks/{id}', [\App\Http\Controllers\Api\User\UserTaskController::class, 'destroy']);
     Route::get('/attendance-stats', [\App\Http\Controllers\Api\User\UserController::class, 'getAttendanceStats']);
+    Route::get('/absensi', [\App\Http\Controllers\Api\Hr\HrAbsensiController::class, 'getByCurrentUser']);
+    Route::get('/cuti', [\App\Http\Controllers\Api\Hr\HrCutiController::class, 'getByCurrentUser']);
+    Route::post('/cuti', [\App\Http\Controllers\Api\Hr\HrCutiController::class, 'storeByCurrentUser']);
 });

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sales Dashboard') - One Dashboard</title>
-    <link rel="stylesheet" href="{{ secure_asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     @stack('styles')
 </head>
@@ -77,6 +77,22 @@
                         </svg>
                         Customer
                     </a>
+                    <a href="{{ route('sales.lead-list') }}" class="sidebar-link {{ request()->routeIs('sales.lead-list') ? 'active' : '' }}" id="leadListMenuLink">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M11 8v3l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Leads
+                    </a>
+                    <a href="{{ route('sales.statistics') }}" class="sidebar-link {{ request()->routeIs('sales.statistics') ? 'active' : '' }}" id="statisticsMenuLink">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 20V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 20V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 20V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Statistik Customer
+                    </a>
                     <a href="{{ route('sales.order') }}" class="sidebar-link {{ request()->routeIs('sales.order') ? 'active' : '' }}">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -108,6 +124,25 @@
                         Absensi
                     </a>
                 </div>
+
+                <!-- AI Section -->
+                <div class="nav-section" id="aiMenuSection">
+                    <div class="nav-section-title">AI</div>
+                    <a href="{{ route('sales.ai.knowledge') }}" class="sidebar-link {{ request()->routeIs('sales.ai.knowledge') ? 'active' : '' }}" id="aiKnowledgeMenuLink">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Knowledge
+                    </a>
+                    <a href="{{ route('sales.ai.prompt') }}" class="sidebar-link {{ request()->routeIs('sales.ai.prompt') ? 'active' : '' }}" id="aiPromptMenuLink">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Prompt
+                    </a>
+                </div>
             </nav>
 
             <!-- User Profile at Bottom -->
@@ -136,7 +171,7 @@
         </div>
     </div>
 
-    <script src="{{ secure_asset('js/admin.js') }}"></script>
+    <script src="{{ asset('js/admin.js') }}"></script>
     <script>
         // Show/hide menu based on user level
         (function() {
@@ -177,6 +212,25 @@
                         console.log('Customer menu link not found');
                     }
 
+                    // Lead List menu — tampil untuk semua level sales
+                    const leadListMenuLink = document.getElementById('leadListMenuLink');
+                    if (leadListMenuLink) {
+                        leadListMenuLink.style.display = '';
+                    }
+
+                    const statisticsMenuLink = document.getElementById('statisticsMenuLink');
+                    if (statisticsMenuLink) {
+                        if (userLevel === '1' || userLevel === 1) {
+                            statisticsMenuLink.style.display = '';
+                            console.log('Statistics menu shown for head sales');
+                        } else {
+                            statisticsMenuLink.style.display = 'none';
+                            console.log('Statistics menu hidden for sales level:', userLevel);
+                        }
+                    } else {
+                        console.log('Statistics menu link not found');
+                    }
+
                     // Show sales list menu only for head sales (level 1)
                     const salesListMenuLink = document.getElementById('salesListMenuLink');
                     if (salesListMenuLink) {
@@ -189,6 +243,22 @@
                         }
                     } else {
                         console.log('Sales List menu link not found');
+                    }
+
+                    // Show AI menu only for head sales (level 1)
+                    const aiMenuSection = document.getElementById('aiMenuSection');
+                    const aiKnowledgeMenuLink = document.getElementById('aiKnowledgeMenuLink');
+                    const aiPromptMenuLink = document.getElementById('aiPromptMenuLink');
+                    if (aiMenuSection) {
+                        if (userLevel === '1' || userLevel === 1) {
+                            aiMenuSection.style.display = '';
+                            if (aiKnowledgeMenuLink) aiKnowledgeMenuLink.style.display = '';
+                            if (aiPromptMenuLink) aiPromptMenuLink.style.display = '';
+                            console.log('AI menu shown for head sales');
+                        } else {
+                            aiMenuSection.style.display = 'none';
+                            console.log('AI menu hidden for sales level:', userLevel);
+                        }
                     }
                 } catch (error) {
                     console.error('Error checking user level:', error);
@@ -205,6 +275,7 @@
             // Also check after a short delay in case localStorage is updated
             setTimeout(checkUserLevelAndShowMenu, 100);
         })();
+
     </script>
     @stack('scripts')
 </body>

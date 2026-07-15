@@ -25,6 +25,11 @@ class TemplateFollup extends Model
 
     public $timestamps = false;
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', '!=', 'N');
+    }
+
     public function produk_rel()
     {
         return $this->belongsTo(Produk::class, 'produk_id', 'id');

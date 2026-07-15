@@ -18,12 +18,17 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SendFollowupCron::class,
         \App\Console\Commands\RabbitMQStatus::class,
         \App\Console\Commands\SendTrainerReminderCron::class,
+        \App\Console\Commands\BackfillKodeOrder::class,
+        \App\Console\Commands\CancelUnpaidOrdersCron::class,
+        \App\Console\Commands\SendScheduledBroadcastCron::class,
     ];
     
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('followup:send')->hourly();
-        $schedule->command('trainer:reminder')->hourly();
+        $schedule->command('followup:send')->hourly()->withoutOverlapping();
+        $schedule->command('trainer:reminder')->hourly()->withoutOverlapping();
+        $schedule->command('orders:cancel-unpaid')->daily()->withoutOverlapping();
+        $schedule->command('broadcast:send-scheduled')->everyMinute()->withoutOverlapping();
         // $schedule->command('inspire')->hourly();
     }
 

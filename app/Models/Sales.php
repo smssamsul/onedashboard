@@ -16,6 +16,8 @@ class Sales extends Model
     protected $fillable = [
         'user_id',
         'woowa_key',
+        'no_wa',
+        'baileys_session_id',
         'urutan',
         'last_update_lead',
         'create_at',

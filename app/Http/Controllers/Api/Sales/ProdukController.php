@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Produk;
 use App\Models\Webinar;
 use App\Models\ProdukBundling;
+use App\Models\ProdukJadwal;
+use App\Models\Post;
 use App\Services\ZoomService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +20,7 @@ class ProdukController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['showByKode']);;
+        $this->middleware('auth:api')->except(['showByKode', 'publicSeminarSchedules']);
     }
 
     /**
@@ -124,16 +126,22 @@ class ProdukController extends Controller
                     if ($savedPath) {
                         $component['content']['src'] = $savedPath;
                     }
+
+                    Log::info("Image uploaded: " . $savedPath);
                 }
                 // Cek apakah ada file upload untuk image ini
                 elseif (isset($component['content']['src']) && 
                     (strpos($component['content']['src'], 'http') === 0 || 
                      strpos($component['content']['src'], '/storage/') === 0 ||
                      strpos($component['content']['src'], 'produk/landingpage/') === 0)) {
+
+                        Log::info("Image already uploaded: " . $component['content']['src']);
                     // Sudah URL/path yang valid, skip
                     continue;
                 }
                 else {
+
+                    Log::info("Image not uploaded: " . $component['content']['src']);
                     // Cek file upload via form
                     $fileKey = $componentId ? "landingpage_image_{$componentId}" : null;
                     if ($fileKey && $request->hasFile($fileKey)) {
@@ -261,21 +269,42 @@ class ProdukController extends Controller
   
     public function index(Request $request)
     {
-        $query = Produk::select(array_diff(
-            Schema::getColumnListing('produk'),
-            ['landingpage']
-        ))
-        ->with([
-            'kategori_rel:id,nama',
-            'user_rel:id,nama',
-            'trainer_rel:id,nama',
-            'bundling_rel:id,produk,nama,harga,status'
-        ])
-        ->where('status', '!=', 'N') 
-        ->orderBy('create_at', 'desc');
+        $columns = Schema::getColumnListing('produk');
+
+        // buang kolom landingpage
+        $columns = array_diff($columns, ['landingpage']);
+        
+        $driver = Schema::getConnection()->getDriverName();
+        $sumExpr = $driver === 'pgsql'
+            ? 'COALESCE(SUM(CAST(NULLIF(TRIM(total_harga::text), \'\') AS DECIMAL(15,2))), 0)'
+            : 'COALESCE(SUM(CAST(NULLIF(TRIM(total_harga), \'\') AS DECIMAL(15,2))), 0)';
+
+        $query = Produk::select($columns)
+            ->selectSub(function ($query) use ($sumExpr) {
+                $query->from('order_customer')
+                    ->selectRaw($sumExpr)
+                    ->whereColumn('order_customer.produk', 'produk.id')
+                    ->where('order_customer.status', '!=', 'N')
+                    ->where(function ($q) {
+                        $q->whereIn('order_customer.status_pembayaran', ['2', 2])
+                            ->orWhereIn('order_customer.status_order', ['2', 2]);
+                    });
+            }, 'total_revenue')
+            ->with([
+                'kategori_rel:id,nama',
+                'user_rel:id,nama',
+                'trainer_rel:id,nama',
+                'bundling_rel:id,produk,nama,harga,status',
+                'jadwal_rel:id,produk_id,nama_jadwal,waktu_mulai,waktu_selesai,kuota,status',
+            ])
+            ->when(!$request->boolean('quick_order'), function ($q) {
+                $q->whereNotNull('landingpage');
+            })
+            ->where('status', '!=', 'N')
+            ->orderBy('create_at', 'desc');
 
         // Jika parameter all=true, return semua data tanpa pagination
-        if ($request->has('all') && $request->all == 'true') {
+        // if ($request->has('all') && $request->all == 'true') {
             $produk = $query->get();
             
             return response()->json([
@@ -283,22 +312,22 @@ class ProdukController extends Controller
                 'data' => $produk,
                 'total' => $produk->count()
             ]);
-        }
+        // }
 
         // Pagination
-        $perPage = $request->get('per_page', 15);
-        $produk = $query->paginate($perPage);
+        // $perPage = $request->get('per_page', 15);
+        // $produk = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data' => $produk->items(),
-            'pagination' => [
-                'current_page' => $produk->currentPage(),
-                'last_page' => $produk->lastPage(),
-                'per_page' => $produk->perPage(),
-                'total' => $produk->total(),
-            ]
-        ]);
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => $produk->items(),
+        //     'pagination' => [
+        //         'current_page' => $produk->currentPage(),
+        //         'last_page' => $produk->lastPage(),
+        //         'per_page' => $produk->perPage(),
+        //         'total' => $produk->total(),
+        //     ]
+        // ]);
     }
 
   
@@ -341,8 +370,11 @@ class ProdukController extends Controller
             'assign' => 'nullable|array',
             'status' => 'nullable|string',
             'landingpage' => 'nullable|array',
-            'header' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'kota' => 'nullable|string',
+            'tempat' => 'nullable|string',
+            'alamat' => 'nullable|string',
+            'header' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
+            'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
             'gambar.*.caption' => 'nullable|string',
             'custom_field' => 'nullable|array',
             'custom_field.*.nama_field' => 'required_with:custom_field|string',
@@ -351,14 +383,19 @@ class ProdukController extends Controller
             'list_point.*.nama' => 'required_with:list_point|string',
             'list_point.*.urutan' => 'nullable|integer',
             'testimoni' => 'nullable|array',
-            'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
             'testimoni.*.nama' => 'nullable|string',
             'testimoni.*.deskripsi' => 'nullable|string',
             'fb_pixel' => 'nullable|array',
             'event_fb_pixel' => 'nullable|array',
             'gtm' => 'nullable|array',
             'video' => 'nullable|array',
-            'video.*' => 'nullable|string'
+            'video.*' => 'nullable|string',
+            'post' => 'nullable|array',
+            'post.*' => 'nullable|integer|exists:post,id',
+            'jadwal' => 'nullable|array',
+            'jadwal.*.nama_jadwal' => 'required_with:jadwal|string',
+            'jadwal.*.waktu_mulai' => 'required_with:jadwal',
         ]);
 
 
@@ -428,7 +465,9 @@ class ProdukController extends Controller
             'tanggal_event' => $tanggalEvent,
             'gambar' => json_encode($gambarArray),
             'lainnya' => $request->lainnya,
+            'tampil_jadwal' => $request->has('tampil_jadwal') ? filter_var($request->tampil_jadwal, FILTER_VALIDATE_BOOLEAN) : true,
             'trainer' => $request->trainer,
+            'post' => json_encode($request->post ?? []),
             'create_at' => now(),
             'status' => $request->status ?? '1',
             'assign' => json_encode($request->assign ?? []),
@@ -457,6 +496,22 @@ class ProdukController extends Controller
                         'nama' => $bundlingItem['nama'],
                         'harga' => $bundlingItem['harga'],
                         'status' => $bundlingItem['status'] ?? 'A', // Default 'A' jika tidak ada
+                    ]);
+                }
+            }
+        }
+        
+        // Process jadwal - simpan ke table produk_jadwal
+        if ($request->has('jadwal') && is_array($request->jadwal)) {
+            foreach ($request->jadwal as $jadwalItem) {
+                if (isset($jadwalItem['nama_jadwal']) && isset($jadwalItem['waktu_mulai'])) {
+                    ProdukJadwal::create([
+                        'produk_id' => $produk->id,
+                        'nama_jadwal' => $jadwalItem['nama_jadwal'],
+                        'waktu_mulai' => $jadwalItem['waktu_mulai'],
+                        'waktu_selesai' => $jadwalItem['waktu_selesai'] ?? null,
+                        'kuota' => $jadwalItem['kuota'] ?? null,
+                        'status' => $jadwalItem['status'] ?? 'A',
                     ]);
                 }
             }
@@ -517,7 +572,8 @@ class ProdukController extends Controller
             'kategori_rel:id,nama',
             'user_rel:id,nama',
             'trainer_rel:id,nama',
-            'bundling_rel:id,produk,nama,harga,status'
+            'bundling_rel:id,produk,nama,harga,status',
+            'jadwal_rel:id,produk_id,nama_jadwal,waktu_mulai,waktu_selesai,kuota,status'
         ])
         ->where('status', '!=', 'N') 
         ->where('id', $id)
@@ -561,6 +617,8 @@ class ProdukController extends Controller
             'video',
             'bundling',
             'landingpage',
+            'post',
+            'jadwal',
         ];
 
         foreach ($jsonFields as $field) {
@@ -584,8 +642,11 @@ class ProdukController extends Controller
             'bundling' => 'nullable|array',
             'tanggal_event' => 'nullable',
             'landingpage' => 'nullable|array',
-            'header' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'kota' => 'nullable|string',
+            'tempat' => 'nullable|string',
+            'alamat' => 'nullable|string',
+            'header' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
+            'gambar.*.file' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
             'gambar.*.caption' => 'nullable|string',
             'assign' => 'nullable|array',
             'custom_field' => 'nullable|array',
@@ -595,14 +656,19 @@ class ProdukController extends Controller
             'list_point.*.nama' => 'required_with:list_point|string',
             'list_point.*.urutan' => 'nullable|integer',
             'testimoni' => 'nullable|array',
-            'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'testimoni.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp,heic|max:2048',
             'testimoni.*.nama' => 'nullable|string',
             'testimoni.*.deskripsi' => 'nullable|string',
             'fb_pixel' => 'nullable|array',
             'event_fb_pixel' => 'nullable|array',
             'gtm' => 'nullable|array',
             'video' => 'nullable|array',
-            'video.*' => 'nullable|string'
+            'video.*' => 'nullable|string',
+            'post' => 'nullable|array',
+            'post.*' => 'nullable|integer|exists:post,id',
+            'jadwal' => 'nullable|array',
+            'jadwal.*.nama_jadwal' => 'required_with:jadwal|string',
+            'jadwal.*.waktu_mulai' => 'required_with:jadwal',
         ]);
 
         // Update header (hapus lama jika ada file baru)
@@ -650,6 +716,11 @@ class ProdukController extends Controller
             ProdukBundling::where('produk', $id)->delete();
         }
 
+        // Hapus jadwal lama jika ada jadwal baru
+        if ($request->has('jadwal')) {
+            ProdukJadwal::where('produk_id', $id)->delete();
+        }
+
         // Parse tanggal_event dari ISO format jika perlu
         $tanggalEvent = $produk->tanggal_event;
         if ($request->has('tanggal_event') && $request->tanggal_event) {
@@ -682,7 +753,9 @@ class ProdukController extends Controller
             'bundling' => null, // Tidak lagi menyimpan bundling di field ini
             'deskripsi' => $request->deskripsi ?? $produk->deskripsi,
             'tanggal_event' => $tanggalEvent,
+            'tampil_jadwal' => $request->has('tampil_jadwal') ? filter_var($request->tampil_jadwal, FILTER_VALIDATE_BOOLEAN) : $produk->tampil_jadwal,
             'landingpage' => $landingpageData,
+            'post' => json_encode($request->post ?? json_decode($produk->post, true) ?? []),
             'update_at' => now(),
 
             // Field tambahan (disimpan sebagai JSON)
@@ -705,6 +778,22 @@ class ProdukController extends Controller
                         'nama' => $bundlingItem['nama'],
                         'harga' => $bundlingItem['harga'],
                         'status' => $bundlingItem['status'] ?? 'A', // Default 'A' jika tidak ada
+                    ]);
+                }
+            }
+        }
+
+        // Process jadwal - simpan ke table produk_jadwal
+        if ($request->has('jadwal') && is_array($request->jadwal)) {
+            foreach ($request->jadwal as $jadwalItem) {
+                if (isset($jadwalItem['nama_jadwal']) && isset($jadwalItem['waktu_mulai'])) {
+                    ProdukJadwal::create([
+                        'produk_id' => $produk->id,
+                        'nama_jadwal' => $jadwalItem['nama_jadwal'],
+                        'waktu_mulai' => $jadwalItem['waktu_mulai'],
+                        'waktu_selesai' => $jadwalItem['waktu_selesai'] ?? null,
+                        'kuota' => $jadwalItem['kuota'] ?? null,
+                        'status' => $jadwalItem['status'] ?? 'A',
                     ]);
                 }
             }
@@ -802,7 +891,8 @@ class ProdukController extends Controller
             ->with([
                 'kategori_rel:id,nama', 
                 'user_rel:id,nama',
-                'bundling_rel:id,produk,nama,harga,status'
+                'bundling_rel:id,produk,nama,harga,status',
+                'jadwal_rel:id,produk_id,nama_jadwal,waktu_mulai,waktu_selesai,kuota,status'
             ])
             ->first();
 
@@ -812,6 +902,23 @@ class ProdukController extends Controller
                 'message' => 'Produk tidak ditemukan'
             ], 404);
         }
+
+        // Ambil data pixel dari tabel pixel_meta
+        $fbPixelIds = is_string($produk->fb_pixel) ? json_decode($produk->fb_pixel, true) : $produk->fb_pixel;
+        if (!is_array($fbPixelIds)) {
+            $fbPixelIds = [];
+        }
+        
+        $validIds = array_filter($fbPixelIds, function($val) {
+            return is_numeric($val) && $val <= 2147483647;
+        });
+
+        $pixels = \App\Models\PixelMeta::whereIn('pixel', $fbPixelIds)
+            ->when(!empty($validIds), function ($query) use ($validIds) {
+                return $query->orWhereIn('id', $validIds);
+            })->get();
+
+        $produk->pixel_list = $pixels;
 
         return response()->json([
             'success' => true,
@@ -832,13 +939,22 @@ class ProdukController extends Controller
             ], 404);
         }
 
-        // Validasi trainer (harus user yang ada di tabel user)
         $request->validate([
-            'trainer' => 'required|integer',
+            'trainer' => 'nullable|integer|exists:user,id',
+            'fee_trainer' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        // Update trainer saja
-        $produk->trainer   = $request->trainer;
+        if ($request->trainer === null || $request->trainer === '') {
+            $produk->trainer = null;
+            $produk->fee_trainer = null;
+        } else {
+            $produk->trainer = $request->trainer;
+            if ($request->has('fee_trainer')) {
+                $v = $request->input('fee_trainer');
+                $produk->fee_trainer = $v === null || $v === '' ? null : round((float) $v, 2);
+            }
+        }
+
         $produk->update_at = now();
         $produk->save();
 
@@ -849,6 +965,67 @@ class ProdukController extends Controller
             'success' => true,
             'message' => 'Trainer produk berhasil diperbarui',
             'data'    => $produk,
+        ]);
+    }
+
+    public function updatePost(Request $request, $id)
+    {
+        $produk = Produk::find($id);
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        // Decode JSON string jika ada
+        if ($request->has('post') && is_string($request->post)) {
+            $decoded = json_decode($request->post, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['post' => $decoded]);
+            }
+        }
+
+        $request->validate([
+            'post' => 'nullable|array',
+            'post.*' => 'nullable|integer|exists:post,id',
+        ]);
+
+        $produk->post = json_encode($request->post ?? []);
+        $produk->update_at = now();
+        $produk->save();
+
+        $produk->load(['kategori_rel:id,nama', 'user_rel:id,nama']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Post produk berhasil diperbarui',
+            'data' => $produk,
+        ]);
+    }
+
+    public function publicSeminarSchedules(Request $request)
+    {
+        // Kategori 3 = Seminar
+        $produk = Produk::with(['jadwal_rel' => function ($query) {
+            $query->where('waktu_mulai', '>=', now())
+                  ->where('status', '!=', 'N')
+                  ->orderBy('waktu_mulai', 'asc');
+        }])
+        ->where('kategori', 3) // Seminar
+        ->where('tampil_jadwal', true)
+        ->where('status', '!=', 'N') // Assuming N means inactive/deleted
+        ->whereHas('jadwal_rel', function ($query) {
+            $query->where('waktu_mulai', '>=', now())
+                  ->where('status', '!=', 'N');
+        })
+        ->orderBy('create_at', 'desc')
+        ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $produk
         ]);
     }
 }

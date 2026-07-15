@@ -23,6 +23,7 @@ class Customer extends Authenticatable implements JWTSubject
         'instagram',
         'password',
         'wa',
+        'wa2',
         'profesi',
         'pendapatan_bln',
         'industri_pekerjaan',
@@ -44,7 +45,21 @@ class Customer extends Authenticatable implements JWTSubject
         'sapaan',
         'kode_pos',
         'sales_id',
-        'status'
+        'riwayat_order',
+        'total_spend',
+        'status',
+        'last_login_at',
+        // === Lead vs Customer ===
+        'customer_type',
+        // === Scoring Scaffold (logika diisi nanti) ===
+        'rule_score',
+        'ai_score',
+        'total_score',
+        'score_label',
+        'ai_reasoning',
+        'ai_recommended_action',
+        'ai_sentiment',
+        'score_updated_at',
     ];
 
     protected $hidden = [
@@ -77,6 +92,31 @@ class Customer extends Authenticatable implements JWTSubject
     public function sales_rel()
     {
         return $this->belongsTo(User::class, 'sales_id', 'id');
+    }
+
+    /**
+     * Relasi ke OrderCustomerArsip (Data Lama/Arsip)
+     */
+    public function order_arsip()
+    {
+        return $this->hasMany(OrderCustomerArsip::class, 'customer_id', 'id')
+            ->orderBy('tanggal', 'desc');
+    }
+
+    /**
+     * Scope: hanya lead (belum pernah bayar)
+     */
+    public function scopeLeads($query)
+    {
+        return $query->where('customer_type', 'lead');
+    }
+
+    /**
+     * Scope: hanya customer (sudah pernah bayar)
+     */
+    public function scopeCustomers($query)
+    {
+        return $query->where('customer_type', 'customer');
     }
 
 }

@@ -69,9 +69,9 @@ class SendTrainerReminderCron extends Command
                 continue;
             }
 
-            $template = TemplateFollup::where('produk_id', $produk->id)
+            $template = TemplateFollup::active()
+                ->where('produk_id', $produk->id)
                 ->where('type', 11)
-                ->where('status', '!=', 'N')
                 ->first();
 
             if (!$template) {
@@ -154,16 +154,8 @@ class SendTrainerReminderCron extends Command
             }
 
             try {
-                $response = Http::asJson()
-                    ->withHeaders([
-                        'Content-Type' => 'application/json',
-                        'Accept'       => 'application/json'
-                    ])
-                    ->post('https://notifapi.com/send_message', [
-                        'phone_no' => $produk->trainer_rel->no_telp,
-                        'key'      => $woowaKey,
-                        'message'  => $message,
-                    ]);
+                $waSender = app(\App\Services\WhatsAppSenderService::class);
+                $response = $waSender->sendMessage($produk->trainer_rel->no_telp, $message, null, $woowaKey);
 
                 if ($response->successful()) {
                     $this->info("Reminder terkirim ke trainer {$produk->trainer_rel->nama}");

@@ -41,7 +41,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            'throttle:api',
+            // Tanpa throttle global: batasi hanya route yang eksplisit (otp, order, webhook, dll.).
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];

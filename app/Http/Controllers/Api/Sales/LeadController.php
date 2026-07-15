@@ -650,7 +650,7 @@ class LeadController extends Controller
             ], 400);
         }
 
-        $woowaKey = env('WOOWA_KEY');
+        $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
         if (!$woowaKey) {
             return response()->json([
                 'success' => false,
@@ -659,16 +659,9 @@ class LeadController extends Controller
         }
 
         try {
-            $response = Http::asJson()
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->post('https://notifapi.com/send_message', [
-                    'phone_no' => $lead->customer_rel->wa,
-                    'key' => $woowaKey,
-                    'message' => $request->message,
-                ]);
+            $waSender = app(\App\Services\WhatsAppSenderService::class);
+            $salesId = $lead->customer_rel->sales_id ?? null;
+            $response = $waSender->sendMessage($lead->customer_rel->wa, $request->message, $salesId, $woowaKey);
 
             if ($response->successful()) {
                 $userId = auth('api')->user()->userData->id ?? null;
@@ -735,7 +728,7 @@ class LeadController extends Controller
             ], 422);
         }
 
-        $woowaKey = env('WOOWA_KEY');
+        $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
         if (!$woowaKey) {
             return response()->json([
                 'success' => false,

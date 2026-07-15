@@ -25,9 +25,8 @@ class HrAbsensi extends Model
         'long_check_in',
         'lat_check_out',
         'long_check_out',
-        'latitude',
-        'longitude',
         'notes',
+        'emosi',
         'status',
         'create_at',
         'update_at',
@@ -37,8 +36,6 @@ class HrAbsensi extends Model
 
     protected $casts = [
         // 'tanggal' => 'date', // Dihapus karena field tanggal adalah varchar(10), bukan date
-        'latitude' => 'float',
-        'longitude' => 'float',
     ];
 
     /**

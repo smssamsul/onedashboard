@@ -19,14 +19,14 @@ class CustomerDashboardController extends Controller
         $customer = Customer::find(auth('customer')->user()->id);
 
         // Check jika customer belum diverifikasi (verifikasi = 0)
-        if ($customer->verifikasi == 0 || $customer->verifikasi === '0' || $customer->verifikasi === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun Anda belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.',
-                'redirect' => '/customer/verify-otp',
-                'verifikasi' => false
-            ], 403);
-        }
+        // if ($customer->verifikasi == 0 || $customer->verifikasi === '0' || $customer->verifikasi === null) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Akun Anda belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.',
+        //         'redirect' => '/customer/verify-otp',
+        //         'verifikasi' => false
+        //     ], 403);
+        // }
 
         // Ambil order aktif (yang sudah dibayar - status_pembayaran = '1')
         $ordersAktif = OrderCustomer::with([
@@ -73,6 +73,12 @@ class CustomerDashboardController extends Controller
                 }
             }
 
+            // Ambil post_rel dari produk (otomatis dari accessor)
+            $postRel = [];
+            if ($produk && isset($produk->post_rel)) {
+                $postRel = $produk->post_rel;
+            }
+
             $orderData = [
                 'id' => $order->id,
                 'produk' => $produk->id ?? null,
@@ -81,12 +87,14 @@ class CustomerDashboardController extends Controller
                 'kategori_nama' => $kategori->nama ?? null,
                 'tipe_produk' => $tipeProduk,
                 'gambar' => $gambarProduk,
+                'post_rel' => $postRel,
                 'total_harga' => $order->total_harga,
                 'total_harga_formatted' => 'Rp ' . number_format($order->total_harga, 0, ',', '.'),
                 'tanggal_order' => $order->create_at ? $order->create_at->format('d/m/Y H:i') : null,
                 'tanggal_order_raw' => $order->create_at,
                 'status_pembayaran' => $order->status_pembayaran,
                 'status_order' => $order->status_order,
+                'metode_bayar' => $order->metode_bayar,
             ];
 
             // Jika seminar, tambahkan info webinar
@@ -273,6 +281,7 @@ class CustomerDashboardController extends Controller
             'tanggal_lahir',
             'alamat',
             'wa',
+            'wa2',
             'provinsi',
             'kabupaten',
             'kecamatan',
@@ -295,6 +304,14 @@ class CustomerDashboardController extends Controller
             $updateData['password'] = Hash::make($request->password);
         }
 
+        // Format phone numbers jika ada
+        if (isset($updateData['wa']) && $updateData['wa']) {
+            $updateData['wa'] = $this->formatPhoneNumber($updateData['wa']);
+        }
+        if (isset($updateData['wa2']) && $updateData['wa2']) {
+            $updateData['wa2'] = $this->formatPhoneNumber($updateData['wa2']);
+        }
+
         // Jika ada data yang akan diupdate, tambahkan update_at
         if (!empty($updateData)) {
             $updateData['update_at'] = now();
@@ -308,6 +325,18 @@ class CustomerDashboardController extends Controller
         ], 200);
     }
 
-  
- 
+    private function formatPhoneNumber($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
+        }
+
+        if (substr($phone, 0, 2) !== '62') {
+            $phone = '62' . ltrim($phone, '0');
+        }
+
+        return $phone;
+    }
 }

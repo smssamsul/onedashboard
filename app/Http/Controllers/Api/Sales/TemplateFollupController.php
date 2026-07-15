@@ -8,6 +8,27 @@ use App\Models\TemplateFollup;
 
 class TemplateFollupController extends Controller
 {
+    /**
+     * Urutan kirim / tampilan: reminder type 1 diurutkan naik berdasarkan event (hari lalu jam).
+     */
+    public static function eventSortKey(?string $event): int
+    {
+        if ($event === null || $event === '' || strpos($event, '-') === false) {
+            return 0;
+        }
+        try {
+            [$hariPart, $jamPart] = explode('-', $event, 2);
+            $jumlahHari = (int) str_replace(['d', 'D'], '', strtolower($hariPart));
+            $jamKirim = trim((string) $jamPart) ?: '09:00';
+            $parts = explode(':', $jamKirim);
+            $h = (int) ($parts[0] ?? 9);
+            $m = (int) ($parts[1] ?? 0);
+
+            return max(0, $jumlahHari) * 1440 + max(0, min(23, $h)) * 60 + max(0, min(59, $m));
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
 
     public function __construct()
     {
@@ -16,21 +37,35 @@ class TemplateFollupController extends Controller
     
     public function index(Request $request)
     {
-        $produkId = $request->produk_id;
+        $produkId = $request->input('produk_id') ?? $request->query('produk_id');
+        if ($produkId === null || $produkId === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'produk_id wajib diisi',
+            ], 422);
+        }
 
-        $data = TemplateFollup::where('status', '!=', 'N')
-        ->where('produk_id',$produkId)
-        ->get();
+        $all = TemplateFollup::active()
+            ->where('produk_id', $produkId)
+            ->orderBy('type')
+            ->orderBy('id')
+            ->get();
+
+        [$ones, $rest] = $all->partition(fn ($t) => (string) $t->type === '1');
+        $sortedOnes = $ones->sortBy(fn ($t) => self::eventSortKey($t->event))->values();
+        $sortedRest = $rest->sortBy(fn ($t) => (string) $t->type)->values();
+        $data = $sortedOnes->concat($sortedRest)->values();
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
    public function store(Request $request)
     {
         $request->validate([
+            'id' => 'nullable|integer',
             'nama' => 'required|string|max:255',
             'text' => 'required|string',
             'produk' => 'required|integer',
@@ -39,10 +74,28 @@ class TemplateFollupController extends Controller
             'event' => 'nullable|string|max:100',
         ]);
 
-        $existing = TemplateFollup::where('produk_id', $request->produk)
-            ->when($request->event, fn($q) => $q->where('event', $request->event))
-            ->when($request->type, fn($q) => $q->where('type', $request->type))
-            ->first();
+        $produkId = (int) $request->produk;
+
+        // Update by id (modal edit)
+        if ($request->filled('id')) {
+            $existing = TemplateFollup::active()
+                ->where('id', $request->id)
+                ->where('produk_id', $produkId)
+                ->first();
+        } elseif ((string) $request->type === '1') {
+            // Banyak template reminder unpaid dengan type sama (1), bedakan lewat nama + event
+            $existing = TemplateFollup::active()
+                ->where('produk_id', $produkId)
+                ->where('type', '1')
+                ->where('nama', $request->nama)
+                ->first();
+        } else {
+            // Satu template per type (selain reminder unpaid)
+            $existing = TemplateFollup::active()
+                ->where('produk_id', $produkId)
+                ->when($request->type, fn ($q) => $q->where('type', $request->type))
+                ->first();
+        }
 
         if ($existing) {
 
@@ -62,7 +115,7 @@ class TemplateFollupController extends Controller
             $template = TemplateFollup::create([
                 'nama' => $request->nama,
                 'text' => $request->text,
-                'produk_id' => $request->produk,
+                'produk_id' => $produkId,
                 'event' => $request->event,
                 'status' => $request->status,
                 'type' => $request->type,
@@ -77,6 +130,40 @@ class TemplateFollupController extends Controller
             'message' => $message,
             'data' => $template
         ], 201);
+    }
+
+    /**
+     * Nonaktifkan template (soft): status N — data tetap di DB, tidak tampil di daftar/cron.
+     */
+    public function archive(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'produk' => 'required|integer',
+        ]);
+
+        $produkId = (int) $request->produk;
+        $template = TemplateFollup::active()
+            ->where('id', $request->id)
+            ->where('produk_id', $produkId)
+            ->first();
+
+        if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Template tidak ditemukan atau sudah dinonaktifkan',
+            ], 404);
+        }
+
+        $template->update([
+            'status' => 'N',
+            'update_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Template berhasil dinonaktifkan',
+        ]);
     }
 
     // public function show($id)
@@ -125,26 +212,26 @@ class TemplateFollupController extends Controller
     //     ]);
     // }
 
-    // public function destroy($id)
-    // {
-    //     $template = TemplateFollup::find($id);
+    public function destroy($id)
+    {
+        $template = TemplateFollup::find($id);
 
-    //     if (!$template) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Template Follow-up tidak ditemukan'
-    //         ], 404);
-    //     }
+        if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Template Follow-up tidak ditemukan'
+            ], 404);
+        }
 
-    //     $template->update([
-    //         'status'    => "2"
-    //     ]);
+        $template->update([
+            'status'    => "2"
+        ]);
 
-    //     $template->delete();
+        $template->delete();
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Template Follow-up berhasil dihapus'
-    //     ]);
-    // }
+        return response()->json([
+            'success' => true,
+            'message' => 'Template Follow-up berhasil dihapus'
+        ]);
+    }
 }

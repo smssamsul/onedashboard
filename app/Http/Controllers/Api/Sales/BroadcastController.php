@@ -11,6 +11,8 @@ use App\Models\Customer;
 use App\Models\Produk;
 use App\Models\Sales;
 use App\Jobs\SendBroadcastJob;
+use App\Jobs\SendBroadcastExcelJob;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -24,7 +26,7 @@ class BroadcastController extends Controller
 
     public function index(Request $request)
     {
-        $query = Broadcast::query()->orderBy('create_at', 'desc');
+        $query = Broadcast::query()->where('status', '!=', 'N')->orderBy('create_at', 'desc');
 
         // Jika tidak ada request page dan per_page, tampilkan semua data
         if (!$request->has('page') && !$request->has('per_page')) {
@@ -120,54 +122,75 @@ class BroadcastController extends Controller
             'pesan' => 'required|string',
             'tanggal_kirim' => 'nullable|date',
             'target' => 'required|array',
+            'target.tipe' => 'nullable|string|in:filter,excel',
             'target.produk' => 'nullable',
             'target.status_pembayaran' => 'nullable|string',
             'target.status_order' => 'nullable|string',
+            'target.excel_data' => 'nullable|array',
+            'target.sender_sales_id' => 'nullable|integer',
             'status' => 'nullable|string|max:2',
             'langsung_kirim' => 'nullable|boolean',
         ]);
 
-        if (isset($validated['target']['produk']) && !is_array($validated['target']['produk'])) {
-            if (is_numeric($validated['target']['produk'])) {
-                $produkId = (int) $validated['target']['produk'];
-                $exists = Produk::where('id', $produkId)->exists();
-                if (!$exists) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
-                    ], 422);
-                }
-                $validated['target']['produk'] = [$produkId];
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'target.produk harus berupa integer atau array integer'
-                ], 422);
-            }
-        }
+        $tipeTarget = $validated['target']['tipe'] ?? 'filter';
+        $excelData  = $validated['target']['excel_data'] ?? [];
 
-        // Validasi array produk jika sudah menjadi array
-        if (isset($validated['target']['produk']) && is_array($validated['target']['produk'])) {
-            foreach ($validated['target']['produk'] as $produkId) {
-                if (!is_numeric($produkId)) {
+        // Validasi dan proses produk — hanya untuk tipe filter, skip untuk excel
+        if ($tipeTarget !== 'excel') {
+            if (isset($validated['target']['produk']) && !is_array($validated['target']['produk'])) {
+                if (is_numeric($validated['target']['produk'])) {
+                    $produkId = (int) $validated['target']['produk'];
+                    $exists = Produk::where('id', $produkId)->exists();
+                    if (!$exists) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
+                        ], 422);
+                    }
+                    $validated['target']['produk'] = [$produkId];
+                } else {
                     return response()->json([
                         'success' => false,
-                        'message' => 'target.produk.* harus berupa integer'
-                    ], 422);
-                }
-                $produkId = (int) $produkId;
-                $exists = Produk::where('id', $produkId)->exists();
-                if (!$exists) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
+                        'message' => 'target.produk harus berupa integer atau array integer'
                     ], 422);
                 }
             }
+
+            // Validasi array produk jika sudah menjadi array
+            if (isset($validated['target']['produk']) && is_array($validated['target']['produk'])) {
+                foreach ($validated['target']['produk'] as $produkId) {
+                    if (!is_numeric($produkId)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'target.produk.* harus berupa integer'
+                        ], 422);
+                    }
+                    $produkId = (int) $produkId;
+                    $exists = Produk::where('id', $produkId)->exists();
+                    if (!$exists) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Produk dengan ID ' . $produkId . ' tidak ditemukan'
+                        ], 422);
+                    }
+                }
+            }
         }
 
-        // Hitung total target berdasarkan kondisi
-        $totalTarget = $this->countTarget($validated['target']);
+        // Validasi excel_data wajib ada jika tipe excel
+        if ($tipeTarget === 'excel' && empty($excelData)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload file Excel terlebih dahulu'
+            ], 422);
+        }
+
+        // Hitung total target
+        if ($tipeTarget === 'excel') {
+            $totalTarget = count($excelData);
+        } else {
+            $totalTarget = $this->countTarget($validated['target']);
+        }
 
         // Jika langsung kirim, set tanggal_kirim ke null (akan dikirim sekarang)
         // Jika jadwalkan, gunakan tanggal_kirim yang diberikan
@@ -180,7 +203,7 @@ class BroadcastController extends Controller
             'nama' => $validated['nama'],
             'pesan' => $validated['pesan'],
             'tanggal_kirim' => $tanggalKirim,
-            'target' => json_encode($validated['target']),
+            'target' => $validated['target'],
             'total_target' => (string) $totalTarget,
             'status' => $validated['status'] ?? '1',
             'create_by' => $userId,
@@ -188,54 +211,140 @@ class BroadcastController extends Controller
             'update_at' => now(),
         ]);
 
-        // Jika langsung kirim, proses ke queue RabbitMQ
+        // Jika langsung kirim, proses ke queue
         $sentCount = 0;
         $failedCount = 0;
         $totalOrders = 0;
         
         if (!empty($validated['langsung_kirim']) && $validated['langsung_kirim']) {
             try {
-                // Ambil orders berdasarkan target
-                $orders = $this->getOrdersByTarget($validated['target']);
-                $totalOrders = $orders->count();
+                // Update status broadcast ke 3 (Terkirim) karena langsung dikirim
+                $broadcast->update([
+                    'status' => '3',
+                    'update_at' => now(),
+                ]);
 
-                if ($orders->isNotEmpty()) {
-                    $userId = auth()->user()->user;
+                if ($tipeTarget === 'excel') {
+                    // ======= PROSES EXCEL =======
+                    $totalOrders = count($excelData);
+                    $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
+                    
+                    $senderSalesId = $validated['target']['sender_sales_id'] ?? null;
+                    if ($senderSalesId) {
+                        $selectedSales = Sales::where('user_id', $senderSalesId)->first();
+                        if ($selectedSales && $selectedSales->woowa_key) {
+                            $woowaKey = $selectedSales->woowa_key;
+                            Log::channel('broadcast')->info('Menggunakan Woowa Key dari Sales Terpilih (Excel)', [
+                                'sales_user_id' => $senderSalesId,
+                                'sales_name' => $selectedSales->user_rel?->nama,
+                                'woowa_key' => $woowaKey,
+                            ]);
+                        } else {
+                            Log::channel('broadcast')->warning('Sales terpilih tidak memiliki Woowa Key (Excel), fallback ke .env', [
+                                'sales_user_id' => $senderSalesId,
+                            ]);
+                        }
+                    } else {
+                        $creatorSales = Sales::where('user_id', $userId)->first();
+                        if ($creatorSales && $creatorSales->woowa_key) {
+                            $woowaKey = $creatorSales->woowa_key;
+                            Log::channel('broadcast')->info('Menggunakan Woowa Key dari Creator Sales (Excel)', [
+                                'creator_user_id' => $userId,
+                                'sales_name' => $creatorSales->user_rel?->nama,
+                                'woowa_key' => $woowaKey,
+                            ]);
+                        } else {
+                            Log::channel('broadcast')->info('Tidak ada sales pengirim terpilih & creator bukan sales, menggunakan key default .env (Excel)', [
+                                'woowa_key' => $woowaKey,
+                            ]);
+                        }
+                    }
 
-                    // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
-                    // Satu customer hanya dapat 1 pesan per broadcast, ambil order pertama saja
-                    $uniqueOrdersByCustomer = $orders->unique('customer')->values();
-
-                    foreach ($uniqueOrdersByCustomer as $order) {
+                    foreach ($excelData as $kontak) {
                         try {
-                            // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
-                            $customer = $order->customer_rel ?? Customer::find($order->customer);
-                            $woowaKey = $this->getWoowaKeyFromSales($customer);
+                            $phone = $kontak['phone'] ?? $kontak['wa'] ?? $kontak['no_wa'] ?? null;
+                            $nama  = $kontak['name'] ?? $kontak['nama'] ?? 'Customer';
 
-                            // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
-                            SendBroadcastJob::dispatch(
+                            if (!$phone) {
+                                Log::channel('broadcast')->warning('Kontak excel tidak memiliki nomor telepon, skip.', [
+                                    'broadcast_id' => $broadcast->id,
+                                    'kontak' => $kontak,
+                                ]);
+                                $failedCount++;
+                                continue;
+                            }
+
+                            SendBroadcastExcelJob::dispatch(
                                 $broadcast->id,
                                 $broadcast->pesan,
                                 $woowaKey,
-                                $order->id,
-                                $order->customer,
+                                $phone,
+                                $nama,
                                 $userId
                             );
 
                             $sentCount++;
                         } catch (\Exception $e) {
-                            Log::error('Gagal dispatch broadcast job saat langsung kirim', [
+                            Log::channel('broadcast')->error('Gagal dispatch SendBroadcastExcelJob di store()', [
                                 'broadcast_id' => $broadcast->id,
-                                'order_id' => $order->id,
-                                'customer_id' => $order->customer,
-                                'error' => $e->getMessage()
+                                'error' => $e->getMessage(),
                             ]);
                             $failedCount++;
                         }
                     }
+                } else {
+                    // ======= PROSES FILTER =======
+                    $orders = $this->getOrdersByTarget($validated['target']);
+                    $totalOrders = $orders->count();
+
+                    if ($orders->isNotEmpty()) {
+                        $userId = auth()->user()->user;
+
+                        // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
+                        // Satu customer hanya dapat 1 pesan per broadcast, ambil order pertama saja
+                        $uniqueOrdersByCustomer = $orders->unique('customer')->values();
+
+                        foreach ($uniqueOrdersByCustomer as $order) {
+                            try {
+                                // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
+                                $customer = $order->customer_rel ?? Customer::find($order->customer);
+                                
+                                $senderSalesId = $validated['target']['sender_sales_id'] ?? null;
+                                if ($senderSalesId) {
+                                    $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
+                                    $selectedSales = Sales::where('user_id', $senderSalesId)->first();
+                                    if ($selectedSales && $selectedSales->woowa_key) {
+                                        $woowaKey = $selectedSales->woowa_key;
+                                    }
+                                } else {
+                                    $woowaKey = $this->getWoowaKeyFromSales($customer);
+                                }
+
+                                // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
+                                SendBroadcastJob::dispatch(
+                                    $broadcast->id,
+                                    $broadcast->pesan,
+                                    $woowaKey,
+                                    $order->id,
+                                    $order->customer,
+                                    $userId
+                                );
+
+                                $sentCount++;
+                            } catch (\Exception $e) {
+                                Log::channel('broadcast')->error('Gagal dispatch broadcast job saat langsung kirim', [
+                                    'broadcast_id' => $broadcast->id,
+                                    'order_id' => $order->id,
+                                    'customer_id' => $order->customer,
+                                    'error' => $e->getMessage()
+                                ]);
+                                $failedCount++;
+                            }
+                        }
+                    }
                 }
             } catch (\Exception $e) {
-                Log::error('Error saat proses langsung kirim broadcast', [
+                Log::channel('broadcast')->error('Error saat proses langsung kirim broadcast', [
                     'broadcast_id' => $broadcast->id,
                     'error' => $e->getMessage()
                 ]);
@@ -401,7 +510,7 @@ class BroadcastController extends Controller
 
                             $sentCount++;
                         } catch (\Exception $e) {
-                            Log::error('Gagal dispatch broadcast job saat langsung kirim untuk sales sendiri', [
+                            Log::channel('broadcast')->error('Gagal dispatch broadcast job saat langsung kirim untuk sales sendiri', [
                                 'broadcast_id' => $broadcast->id,
                                 'order_id' => $order->id,
                                 'customer_id' => $order->customer,
@@ -413,7 +522,7 @@ class BroadcastController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                Log::error('Error saat proses langsung kirim broadcast untuk sales sendiri', [
+                Log::channel('broadcast')->error('Error saat proses langsung kirim broadcast untuk sales sendiri', [
                     'broadcast_id' => $broadcast->id,
                     'sales_id' => $user->id,
                     'error' => $e->getMessage()
@@ -586,7 +695,17 @@ class BroadcastController extends Controller
             try {
                 // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
                 $customer = $order->customer_rel ?? Customer::find($order->customer);
-                $woowaKey = $this->getWoowaKeyFromSales($customer);
+                
+                $senderSalesId = $target['sender_sales_id'] ?? null;
+                if ($senderSalesId) {
+                    $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
+                    $selectedSales = Sales::where('user_id', $senderSalesId)->first();
+                    if ($selectedSales && $selectedSales->woowa_key) {
+                        $woowaKey = $selectedSales->woowa_key;
+                    }
+                } else {
+                    $woowaKey = $this->getWoowaKeyFromSales($customer);
+                }
 
                 // onQueue sudah di-set di constructor SendBroadcastJob, jadi tidak perlu dipanggil lagi
                 SendBroadcastJob::dispatch(
@@ -600,7 +719,7 @@ class BroadcastController extends Controller
 
                 $sentCount++;
             } catch (\Exception $e) {
-                Log::error('Gagal dispatch broadcast job', [
+                Log::channel('broadcast')->error('Gagal dispatch broadcast job', [
                     'broadcast_id' => $broadcast->id,
                     'order_id' => $order->id,
                     'error' => $e->getMessage()
@@ -871,7 +990,7 @@ class BroadcastController extends Controller
 
                 $sentCount++;
             } catch (\Exception $e) {
-                Log::error('Gagal dispatch broadcast job untuk sales sendiri', [
+                Log::channel('broadcast')->error('Gagal dispatch broadcast job untuk sales sendiri', [
                     'broadcast_id' => $broadcast->id,
                     'order_id' => $order->id,
                     'user_id' => $userId,
@@ -915,12 +1034,12 @@ class BroadcastController extends Controller
 
     /**
      * Ambil woowa_key dari sales berdasarkan customer
-     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     * Jika tidak ditemukan, fallback ke SalesSetting::getWoowaUtama()
      */
     private function getWoowaKeyFromSales($customer)
     {
         if (!$customer || !$customer->sales_id) {
-            return env('WOOWA_KEY');
+            return \App\Models\SalesSetting::getWoowaUtama();
         }
 
         $sales = Sales::where('user_id', $customer->sales_id)->first();
@@ -929,8 +1048,89 @@ class BroadcastController extends Controller
             return $sales->woowa_key;
         }
 
-        // Fallback ke env jika tidak ditemukan
-        return env('WOOWA_KEY');
+        // Fallback jika tidak ditemukan
+        return \App\Models\SalesSetting::getWoowaUtama();
+    }
+
+    /**
+     * Parse file Excel untuk mendapatkan daftar kontak broadcast
+     * Format Excel: Kolom A = Nama, Kolom B = No WhatsApp
+     */
+    public function parseExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
+
+            $excelData = [];
+            $firstRow = true;
+
+            foreach ($rows as $row) {
+                // Skip header row
+                if ($firstRow) {
+                    $firstRow = false;
+                    // Cek apakah baris pertama adalah header (mengandung teks, bukan nomor)
+                    $cellA = strtolower(trim((string)($row['A'] ?? '')));
+                    $cellB = strtolower(trim((string)($row['B'] ?? '')));
+                    if (in_array($cellA, ['nama', 'name', 'no', 'no.']) || in_array($cellB, ['wa', 'whatsapp', 'no wa', 'no. wa', 'phone', 'nomor'])) {
+                        continue; // skip header
+                    }
+                }
+
+                $nama  = trim((string)($row['A'] ?? ''));
+                $phone = trim((string)($row['B'] ?? ''));
+
+                if (empty($nama) && empty($phone)) {
+                    continue; // skip baris kosong
+                }
+
+                // Bersihkan format nomor telepon
+                $phone = preg_replace('/[^0-9+]/', '', $phone);
+                if (empty($phone)) {
+                    continue;
+                }
+
+                // Normalisasi nomor: 08xx -> 628xx
+                if (str_starts_with($phone, '08')) {
+                    $phone = '62' . substr($phone, 1);
+                } elseif (str_starts_with($phone, '8') && !str_starts_with($phone, '62')) {
+                    $phone = '62' . $phone;
+                }
+
+                $excelData[] = [
+                    'name'  => $nama ?: 'Customer',
+                    'phone' => $phone,
+                ];
+            }
+
+            if (empty($excelData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data kontak yang valid dalam file Excel. Pastikan format: Kolom A = Nama, Kolom B = No WhatsApp'
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => count($excelData) . ' kontak berhasil dibaca dari Excel',
+                'data' => $excelData,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::channel('broadcast')->error('Gagal parsing file Excel broadcast', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses file Excel: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

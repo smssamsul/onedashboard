@@ -20,6 +20,8 @@ class OrderPayment extends Model
         'payment_type',
         'tanggal',
         'bukti_pembayaran',
+        'nama_pengirim',
+        'no_rek_pengirim',
         'status',
         'catatan',
     ];

@@ -18,7 +18,6 @@ class HrDepartemenController extends Controller
     {
         $query = HrDepartemen::query();
 
-        // Search berdasarkan nama
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where('nama', 'ILIKE', "%{$search}%");
@@ -122,8 +121,6 @@ class HrDepartemenController extends Controller
                 'message' => 'Departemen tidak ditemukan'
             ], 404);
         }
-
-        // Cek apakah ada karyawan yang menggunakan departemen ini
         $hasKaryawan = $departemen->karyawan()->count() > 0;
 
         if ($hasKaryawan) {

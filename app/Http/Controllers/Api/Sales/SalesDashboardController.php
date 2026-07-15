@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserLogin;
 use App\Models\Customer;
 use App\Models\Lead;
+use App\Models\Produk;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -408,6 +409,396 @@ class SalesDashboardController extends Controller
                     'lost_leads' => $lostLeads,
                     'active_leads' => $activeLeads,
                 ]
+            ]
+        ]);
+    }
+
+    /**
+     * Statistik produk per sales
+     * Menampilkan data customer, paid, dan unpaid untuk setiap produk yang di-assign ke sales
+     */
+    public function produkStatistics(Request $request)
+    {
+        $userLogin = auth('api')->user();
+        
+        if (!$userLogin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User data not found'
+            ], 404);
+        }
+
+        $salesId = $user->id;
+
+        // Ambil semua produk yang di-assign ke sales ini
+        // Field assign berisi array user_id (JSON), filter di PHP untuk kompatibilitas database
+        $allProduk = Produk::where('status', '!=', 'N')
+            ->select('id', 'nama', 'kode', 'harga_asli', 'assign')
+            ->orderBy('nama', 'asc')
+            ->get();
+
+        // Filter produk yang assign nya mengandung sales_id
+        $produkList = $allProduk->filter(function($produk) use ($salesId) {
+            $assign = $produk->assign;
+            
+            // Handle jika assign adalah array
+            if (is_array($assign)) {
+                // Cek apakah sales_id ada di array (handle string dan integer)
+                return in_array($salesId, $assign) || in_array((string)$salesId, $assign) || in_array((int)$salesId, $assign);
+            }
+            
+            // Handle jika assign adalah string JSON
+            if (is_string($assign)) {
+                $decoded = json_decode($assign, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return in_array($salesId, $decoded) || in_array((string)$salesId, $decoded) || in_array((int)$salesId, $decoded);
+                }
+            }
+            
+            return false;
+        })->values();
+
+        $produkStatistics = $produkList->map(function($produk) use ($salesId) {
+            // Ambil semua order untuk produk ini dari customer yang sales_id nya = salesId
+            $orders = OrderCustomer::where('produk', $produk->id)
+                ->where('status', '!=', 'N')
+                ->whereHas('customer_rel', function($query) use ($salesId) {
+                    $query->where('status', '!=', 'N');
+                })
+                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama'])
+                ->get();
+
+            // Total customer yang order produk ini
+            $totalCustomers = $orders->pluck('customer')->unique()->count();
+
+            // Hitung paid dan unpaid
+            $paidOrders = $orders->filter(function($order) {
+                // Paid jika status_pembayaran = 2 atau status_order = 2
+                return ($order->status_pembayaran == '2' || $order->status_order == '2');
+            });
+
+            $unpaidOrders = $orders->filter(function($order) {
+                // Unpaid jika status_pembayaran != 2 dan status_order != 2
+                return ($order->status_pembayaran != '2' && $order->status_order != '2');
+            });
+
+            $totalPaid = $paidOrders->count();
+            $totalUnpaid = $unpaidOrders->count();
+
+            // Hitung total revenue dari paid orders
+            $totalRevenue = $paidOrders->sum(function($order) {
+                return (float) ($order->total_harga ?? 0);
+            });
+
+            // Hitung total pending revenue dari unpaid orders
+            $totalPendingRevenue = $unpaidOrders->sum(function($order) {
+                return (float) ($order->total_harga ?? 0);
+            });
+
+            // Group by sales untuk melihat distribusi per sales (untuk konsistensi format)
+            $salesDistribution = $orders->groupBy(function($order) {
+                return $order->customer_rel->sales_id ?? 'unassigned';
+            })->map(function($salesOrders, $salesId) {
+                $salesPaid = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran == '2' || $order->status_order == '2');
+                })->count();
+                
+                $salesUnpaid = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran != '2' && $order->status_order != '2');
+                })->count();
+
+                $salesRevenue = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran == '2' || $order->status_order == '2');
+                })->sum(function($order) {
+                    return (float) ($order->total_harga ?? 0);
+                });
+
+                $sales = null;
+                if ($salesId !== 'unassigned' && $salesId) {
+                    $sales = User::find($salesId);
+                }
+
+                return [
+                    'sales_id' => $salesId !== 'unassigned' ? (int)$salesId : null,
+                    'sales_nama' => $sales ? $sales->nama : 'Unassigned',
+                    'total_customers' => $salesOrders->pluck('customer')->unique()->count(),
+                    'total_paid' => $salesPaid,
+                    'total_unpaid' => $salesUnpaid,
+                    'total_revenue' => $salesRevenue,
+                    'total_revenue_formatted' => 'Rp ' . number_format($salesRevenue, 0, ',', '.'),
+                ];
+            })->values();
+
+            // Detail customer (paid dan unpaid) - limit untuk performa
+            $customersPaid = $paidOrders->take(50)->map(function($order) {
+                return [
+                    'customer_id' => $order->customer_rel->id ?? null,
+                    'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
+                    'customer_email' => $order->customer_rel->email ?? null,
+                    'customer_wa' => $order->customer_rel->wa ?? null,
+                    'sales_id' => $order->customer_rel->sales_id ?? null,
+                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'order_id' => $order->id,
+                    'total_harga' => (float) ($order->total_harga ?? 0),
+                    'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
+                    'status_pembayaran' => $order->status_pembayaran,
+                    'status_order' => $order->status_order,
+                    'create_at' => $order->create_at ? Carbon::parse($order->create_at)->format('Y-m-d H:i:s') : null,
+                ];
+            })->values();
+
+            $customersUnpaid = $unpaidOrders->take(50)->map(function($order) {
+                return [
+                    'customer_id' => $order->customer_rel->id ?? null,
+                    'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
+                    'customer_email' => $order->customer_rel->email ?? null,
+                    'customer_wa' => $order->customer_rel->wa ?? null,
+                    'sales_id' => $order->customer_rel->sales_id ?? null,
+                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'order_id' => $order->id,
+                    'total_harga' => (float) ($order->total_harga ?? 0),
+                    'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
+                    'status_pembayaran' => $order->status_pembayaran,
+                    'status_order' => $order->status_order,
+                    'create_at' => $order->create_at ? Carbon::parse($order->create_at)->format('Y-m-d H:i:s') : null,
+                ];
+            })->values();
+
+            return [
+                'produk_id' => $produk->id,
+                'produk_nama' => $produk->nama,
+                'produk_kode' => $produk->kode,
+                'produk_harga' => (float) ($produk->harga_asli ?? 0),
+                'produk_harga_formatted' => 'Rp ' . number_format((float) ($produk->harga_asli ?? 0), 0, ',', '.'),
+                'total_customers' => $totalCustomers,
+                'total_paid' => $totalPaid,
+                'total_unpaid' => $totalUnpaid,
+                'total_revenue' => $totalRevenue,
+                'total_revenue_formatted' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
+                'total_pending_revenue' => $totalPendingRevenue,
+                'total_pending_revenue_formatted' => 'Rp ' . number_format($totalPendingRevenue, 0, ',', '.'),
+                'sales_distribution' => $salesDistribution,
+                'customers_paid' => $customersPaid,
+                'customers_unpaid' => $customersUnpaid,
+            ];
+        });
+
+        // Summary
+        $summary = [
+            'total_produk' => $produkList->count(),
+            'total_customers_all' => $produkStatistics->sum('total_customers'),
+            'total_paid_all' => $produkStatistics->sum('total_paid'),
+            'total_unpaid_all' => $produkStatistics->sum('total_unpaid'),
+            'total_revenue_all' => $produkStatistics->sum('total_revenue'),
+            'total_revenue_all_formatted' => 'Rp ' . number_format($produkStatistics->sum('total_revenue'), 0, ',', '.'),
+            'total_pending_revenue_all' => $produkStatistics->sum('total_pending_revenue'),
+            'total_pending_revenue_all_formatted' => 'Rp ' . number_format($produkStatistics->sum('total_pending_revenue'), 0, ',', '.'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'nama' => $user->nama,
+                    'email' => $userLogin->email,
+                    'level' => $user->level,
+                ],
+                'summary' => $summary,
+                'produk_statistics' => $produkStatistics,
+            ]
+        ]);
+    }
+
+    /**
+     * Statistik semua produk untuk head sales
+     * Menampilkan data customer, paid, dan unpaid untuk semua produk
+     */
+    public function produkStatisticsAll(Request $request)
+    {
+        $userLogin = auth('api')->user();
+        
+        if (!$userLogin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User data not found'
+            ], 404);
+        }
+
+        // Ambil semua produk (tidak filter berdasarkan assign)
+        $produkList = Produk::where('status', '!=', 'N')
+            ->select('id', 'nama', 'kode', 'harga_asli', 'assign')
+            ->orderBy('nama', 'asc')
+            ->get();
+
+        $produkStatistics = $produkList->map(function($produk) {
+            // Ambil semua order untuk produk ini (tidak filter berdasarkan sales_id)
+            $orders = OrderCustomer::where('produk', $produk->id)
+                ->where('status', '!=', 'N')
+                ->whereHas('customer_rel', function($query) {
+                    $query->where('status', '!=', 'N');
+                })
+                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama'])
+                ->get();
+
+            // Total customer yang order produk ini
+            $totalCustomers = $orders->pluck('customer')->unique()->count();
+
+            // Hitung paid dan unpaid
+            $paidOrders = $orders->filter(function($order) {
+                // Paid jika status_pembayaran = 2 atau status_order = 2
+                return ($order->status_pembayaran == '2' || $order->status_order == '2');
+            });
+
+            $unpaidOrders = $orders->filter(function($order) {
+                // Unpaid jika status_pembayaran != 2 dan status_order != 2
+                return ($order->status_pembayaran != '2' && $order->status_order != '2');
+            });
+
+            $totalPaid = $paidOrders->count();
+            $totalUnpaid = $unpaidOrders->count();
+
+            // Hitung total revenue dari paid orders
+            $totalRevenue = $paidOrders->sum(function($order) {
+                return (float) ($order->total_harga ?? 0);
+            });
+
+            // Hitung total pending revenue dari unpaid orders
+            $totalPendingRevenue = $unpaidOrders->sum(function($order) {
+                return (float) ($order->total_harga ?? 0);
+            });
+
+            // Group by sales untuk melihat distribusi per sales
+            $salesDistribution = $orders->groupBy(function($order) {
+                return $order->customer_rel->sales_id ?? 'unassigned';
+            })->map(function($salesOrders, $salesId) {
+                $salesPaid = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran == '2' || $order->status_order == '2');
+                })->count();
+                
+                $salesUnpaid = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran != '2' && $order->status_order != '2');
+                })->count();
+
+                $salesRevenue = $salesOrders->filter(function($order) {
+                    return ($order->status_pembayaran == '2' || $order->status_order == '2');
+                })->sum(function($order) {
+                    return (float) ($order->total_harga ?? 0);
+                });
+
+                $sales = null;
+                if ($salesId !== 'unassigned' && $salesId) {
+                    $sales = User::find($salesId);
+                }
+
+                return [
+                    'sales_id' => $salesId !== 'unassigned' ? (int)$salesId : null,
+                    'sales_nama' => $sales ? $sales->nama : 'Unassigned',
+                    'total_customers' => $salesOrders->pluck('customer')->unique()->count(),
+                    'total_paid' => $salesPaid,
+                    'total_unpaid' => $salesUnpaid,
+                    'total_revenue' => $salesRevenue,
+                    'total_revenue_formatted' => 'Rp ' . number_format($salesRevenue, 0, ',', '.'),
+                ];
+            })->values();
+
+            // Detail customer (paid dan unpaid) - limit untuk performa
+            $customersPaid = $paidOrders->take(50)->map(function($order) {
+                return [
+                    'customer_id' => $order->customer_rel->id ?? null,
+                    'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
+                    'customer_email' => $order->customer_rel->email ?? null,
+                    'customer_wa' => $order->customer_rel->wa ?? null,
+                    'sales_id' => $order->customer_rel->sales_id ?? null,
+                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'order_id' => $order->id,
+                    'total_harga' => (float) ($order->total_harga ?? 0),
+                    'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
+                    'status_pembayaran' => $order->status_pembayaran,
+                    'status_order' => $order->status_order,
+                    'create_at' => $order->create_at ? Carbon::parse($order->create_at)->format('Y-m-d H:i:s') : null,
+                ];
+            })->values();
+
+            $customersUnpaid = $unpaidOrders->take(50)->map(function($order) {
+                return [
+                    'customer_id' => $order->customer_rel->id ?? null,
+                    'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
+                    'customer_email' => $order->customer_rel->email ?? null,
+                    'customer_wa' => $order->customer_rel->wa ?? null,
+                    'sales_id' => $order->customer_rel->sales_id ?? null,
+                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'order_id' => $order->id,
+                    'total_harga' => (float) ($order->total_harga ?? 0),
+                    'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
+                    'status_pembayaran' => $order->status_pembayaran,
+                    'status_order' => $order->status_order,
+                    'create_at' => $order->create_at ? Carbon::parse($order->create_at)->format('Y-m-d H:i:s') : null,
+                ];
+            })->values();
+
+            return [
+                'produk_id' => $produk->id,
+                'produk_nama' => $produk->nama,
+                'produk_kode' => $produk->kode,
+                'produk_harga' => (float) ($produk->harga_asli ?? 0),
+                'produk_harga_formatted' => 'Rp ' . number_format((float) ($produk->harga_asli ?? 0), 0, ',', '.'),
+                'total_customers' => $totalCustomers,
+                'total_paid' => $totalPaid,
+                'total_unpaid' => $totalUnpaid,
+                'total_revenue' => $totalRevenue,
+                'total_revenue_formatted' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
+                'total_pending_revenue' => $totalPendingRevenue,
+                'total_pending_revenue_formatted' => 'Rp ' . number_format($totalPendingRevenue, 0, ',', '.'),
+                'sales_distribution' => $salesDistribution,
+                'customers_paid' => $customersPaid,
+                'customers_unpaid' => $customersUnpaid,
+            ];
+        });
+
+        // Summary
+        $summary = [
+            'total_produk' => $produkList->count(),
+            'total_customers_all' => $produkStatistics->sum('total_customers'),
+            'total_paid_all' => $produkStatistics->sum('total_paid'),
+            'total_unpaid_all' => $produkStatistics->sum('total_unpaid'),
+            'total_revenue_all' => $produkStatistics->sum('total_revenue'),
+            'total_revenue_all_formatted' => 'Rp ' . number_format($produkStatistics->sum('total_revenue'), 0, ',', '.'),
+            'total_pending_revenue_all' => $produkStatistics->sum('total_pending_revenue'),
+            'total_pending_revenue_all_formatted' => 'Rp ' . number_format($produkStatistics->sum('total_pending_revenue'), 0, ',', '.'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'nama' => $user->nama,
+                    'email' => $userLogin->email,
+                    'level' => $user->level,
+                ],
+                'summary' => $summary,
+                'produk_statistics' => $produkStatistics,
             ]
         ]);
     }

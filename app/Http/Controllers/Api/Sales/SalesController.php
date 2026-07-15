@@ -95,6 +95,8 @@ class SalesController extends Controller
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|integer|exists:user,id',
             'woowa_key' => 'nullable|string|max:150',
+            'no_wa' => 'nullable|string|max:20',
+            'baileys_session_id' => 'nullable|string|max:100',
             'urutan' => 'nullable|string|max:150',
             'last_update_lead' => 'nullable|string|max:20',
         ]);
@@ -125,6 +127,8 @@ class SalesController extends Controller
         $sales = Sales::create([
             'user_id' => $request->user_id,
             'woowa_key' => $request->woowa_key,
+            'no_wa' => $request->no_wa,
+            'baileys_session_id' => $request->baileys_session_id,
             'urutan' => $urutan,
             'last_update_lead' => $request->last_update_lead,
             'create_at' => now()->format('Y-m-d H:i:s'),
@@ -157,6 +161,8 @@ class SalesController extends Controller
         $validator = Validator::make($request->all(), [
             'user_id' => 'nullable|integer|exists:user,id',
             'woowa_key' => 'nullable|string|max:150',
+            'no_wa' => 'nullable|string|max:20',
+            'baileys_session_id' => 'nullable|string|max:100',
             'urutan' => 'nullable|string|max:150',
             'last_update_lead' => 'nullable|string|max:20',
         ]);
@@ -184,6 +190,8 @@ class SalesController extends Controller
 
         $sales->user_id = $request->user_id ?? $sales->user_id;
         $sales->woowa_key = $request->woowa_key ?? $sales->woowa_key;
+        $sales->no_wa = $request->has('no_wa') ? $request->no_wa : $sales->no_wa;
+        $sales->baileys_session_id = $request->has('baileys_session_id') ? $request->baileys_session_id : $sales->baileys_session_id;
         $sales->urutan = $request->urutan ?? $sales->urutan;
         $sales->last_update_lead = $request->last_update_lead ?? $sales->last_update_lead;
         $sales->update_at = now()->format('Y-m-d H:i:s');

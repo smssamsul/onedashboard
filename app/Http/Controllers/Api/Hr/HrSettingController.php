@@ -49,7 +49,6 @@ class HrSettingController extends Controller
             ], 422);
         }
 
-        // Cek apakah sudah ada setting
         $setting = HrSetting::first();
 
         if ($setting) {

@@ -360,12 +360,12 @@ class OtpCustomerController extends Controller
 
     /**
      * Ambil woowa_key dari sales berdasarkan customer
-     * Jika tidak ditemukan, fallback ke env('WOOWA_KEY')
+     * Jika tidak ditemukan, fallback ke SalesSetting::getWoowaUtama()
      */
     private function getWoowaKeyFromSales($customer)
     {
         if (!$customer || !$customer->sales_id) {
-            return env('WOOWA_KEY');
+            return \App\Models\SalesSetting::getWoowaUtama();
         }
 
         $sales = Sales::where('user_id', $customer->sales_id)->first();
@@ -374,7 +374,7 @@ class OtpCustomerController extends Controller
             return $sales->woowa_key;
         }
 
-        // Fallback ke env jika tidak ditemukan
-        return env('WOOWA_KEY');
+        // Fallback ke SalesSetting::getWoowaUtama() jika tidak ditemukan
+        return \App\Models\SalesSetting::getWoowaUtama();
     }
 }

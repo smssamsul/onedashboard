@@ -46,13 +46,13 @@ class SendLeadBroadcastJob implements ShouldQueue
             $lead = Lead::with('customer_rel')->find($this->leadId);
 
             if (!$lead || !$lead->customer_rel || !$lead->customer_rel->wa) {
-                Log::warning('SendLeadBroadcastJob: Lead atau customer tidak memiliki WA', [
+                Log::channel('broadcast')->warning('SendLeadBroadcastJob: Lead atau customer tidak memiliki WA', [
                     'lead_id' => $this->leadId,
                 ]);
                 return;
             }
 
-            Log::info('Mengirim Lead Broadcast via Queue', [
+            Log::channel('broadcast')->info('Mengirim Lead Broadcast via Queue', [
                 'lead_id' => $this->leadId,
                 'phone' => $lead->customer_rel->wa,
                 'customer_id' => $lead->customer_id,
@@ -63,25 +63,18 @@ class SendLeadBroadcastJob implements ShouldQueue
                 $phoneNumber = '62' . substr($phoneNumber, 1);
             }
 
-            $response = Http::asJson()
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->timeout(30)
-                ->post('https://notifapi.com/send_message', [
-                    'phone_no' => $phoneNumber,
-                    'key'      => $this->woowaKey,
-                    'message'  => $this->message,
-                ]);
+            $waSender = app(\App\Services\WhatsAppSenderService::class);
+            
+            // Ambil salesId dari customer
+            $salesId = $lead->customer_rel->sales_id ?? null;
 
-            $responseData = $response->json();
+            $response = $waSender->sendMessage($phoneNumber, $this->message, $salesId, $this->woowaKey);
 
             if ($response->successful()) {
-                Log::info('Lead Broadcast berhasil dikirim via Queue', [
+                Log::channel('broadcast')->info('Lead Broadcast berhasil dikirim via Queue', [
                     'lead_id' => $this->leadId,
                     'phone' => $phoneNumber,
-                    'response' => $responseData
+                    'response' => $response->json()
                 ]);
 
                 // Create aktivitas
@@ -112,18 +105,18 @@ class SendLeadBroadcastJob implements ShouldQueue
                 ]);
 
             } else {
-                Log::error('Gagal kirim Lead Broadcast via Queue', [
+                Log::channel('broadcast')->error('Gagal kirim Lead Broadcast via Queue', [
                     'lead_id' => $this->leadId,
                     'phone' => $phoneNumber,
-                    'status' => $response->status(),
-                    'response' => $responseData
+                    'status_or_response' => $response->status(),
+                    'response_json' => $response->json()
                 ]);
                 
-                throw new \Exception('Gagal mengirim Lead Broadcast: HTTP ' . $response->status());
+                throw new \Exception('Gagal mengirim Lead Broadcast. Status: ' . $response->status());
             }
 
         } catch (\Exception $e) {
-            Log::error('Error di SendLeadBroadcastJob', [
+            Log::channel('broadcast')->error('Error di SendLeadBroadcastJob', [
                 'lead_id' => $this->leadId,
                 'error' => $e->getMessage()
             ]);
@@ -137,7 +130,7 @@ class SendLeadBroadcastJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('SendLeadBroadcastJob gagal setelah semua retry', [
+        Log::channel('broadcast')->error('SendLeadBroadcastJob gagal setelah semua retry', [
             'lead_id' => $this->leadId,
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString()

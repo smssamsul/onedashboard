@@ -284,6 +284,12 @@ a {
     color: var(--text);
 }
 
+.navbar-ai-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .navbar-user {
     display: flex;
     align-items: center;

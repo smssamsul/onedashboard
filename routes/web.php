@@ -5,6 +5,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ZoomSdkController;
 use App\Http\Controllers\WebinarController;
 use App\Http\Controllers\CustomerDashboardController;
+use App\Http\Controllers\GoogleOAuthController;
+
+// Google OAuth2 Callback — untuk setup koneksi Google Contacts (sekali saja)
+Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
+
 
 Route::get('/webinar/join/{meeting_id}', [WebinarController::class, 'join'])->name('webinar.join');
 
@@ -66,6 +71,14 @@ Route::get('/sales/customer', function () {
     return view('sales.customer');
 })->name('sales.customer');
 
+Route::get('/sales/lead-list', function () {
+    return view('sales.lead-list');
+})->name('sales.lead-list');
+
+Route::get('/sales/customer/statistics', function () {
+    return view('sales.statistics');
+})->name('sales.statistics');
+
 Route::get('/sales/order', function () {
     return view('sales.order');
 })->name('sales.order');
@@ -122,6 +135,15 @@ Route::get('/hr/setting', function () {
 Route::get('/hr/laporan', function () {
     return view('hr.laporan');
 })->name('hr.laporan');
+
+// AI Routes (Sales)
+Route::get('/sales/ai/knowledge', function () {
+    return view('sales.ai.knowledge');
+})->name('sales.ai.knowledge');
+
+Route::get('/sales/ai/prompt', function () {
+    return view('sales.ai.prompt');
+})->name('sales.ai.prompt');
 
 Route::get('/finance/dashboard', function () {
     return view('finance.dashboard');
@@ -180,6 +202,14 @@ Route::get('/admin/customer', function () {
 Route::get('/admin/customer-import', function () {
     return view('admin.customer-import');
 })->name('admin.customer-import');
+
+Route::get('/admin/customer-arsip-import', function () {
+    return view('admin.customer-arsip-import');
+})->name('admin.customer-arsip-import');
+
+Route::get('/admin/customer-workshop-import', function () {
+    return view('admin.customer-workshop-import');
+})->name('admin.customer-workshop-import');
 
 Route::get('/admin/order', function () {
     return view('admin.order');

@@ -11,6 +11,7 @@ use App\Models\Sales;
 use App\Models\Produk;
 use App\Models\TemplateFollup;
 use App\Helpers\TemplateHelper;
+use App\Helpers\FacebookPixelLandingpageHelper;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
@@ -21,7 +22,7 @@ class OrderValidationController extends Controller
     public function index(Request $request)
     {
         $query = OrderPayment::with([
-            'order_rel:id,customer,produk,total_harga',
+            'order_rel:id,kode_order,customer,produk,total_harga',
             'order_rel.produk_rel:id,nama,kode',
             'order_rel.customer_rel:id,nama,email,wa'
         ])
@@ -46,6 +47,19 @@ class OrderValidationController extends Controller
 
         if ($request->has('order_id')) {
             $query->where('order_id', $request->order_id);
+        }
+
+        // Filter berdasarkan Produk ID
+        $pIds = $request->input('produk_id') ?? $request->input('product_id') ?? $request->input('produk_id[]') ?? $request->input('product_id[]');
+        if ($pIds) {
+            $produks = is_array($pIds) ? $pIds : [$pIds];
+            $produks = array_filter($produks, fn($val) => !is_null($val) && $val !== '' && $val !== 'undefined');
+            if (!empty($produks)) {
+                $query->whereHas('order_rel', function($q) use ($produks) {
+                    $q->whereIn('produk', $produks)
+                      ->orWhereIn('bundling', $produks);
+                });
+            }
         }
 
         $perPage = $request->get('per_page', 15);
@@ -82,7 +96,8 @@ class OrderValidationController extends Controller
     {
         $payment = OrderPayment::with([
             'order_rel:id,customer,produk,total_harga,ongkir',
-            'order_rel.produk_rel:id,nama,kode,harga_asli',
+            'order_rel.produk_rel:id,nama,kode,harga_asli,kategori,landingpage,event_fb_pixel',
+            'order_rel.produk_rel.kategori_rel:id,nama',
             'order_rel.customer_rel:id,nama,email,wa,alamat'
         ])
         ->where('status', '!=', 'N')
@@ -96,6 +111,10 @@ class OrderValidationController extends Controller
         }
 
         $order = $payment->order_rel;
+        $produkRel = $order->produk_rel;
+        $fbPixelFromLanding = FacebookPixelLandingpageHelper::extractPixelIdsFromLandingpage(
+            $produkRel ? $produkRel->landingpage : null
+        );
 
         return response()->json([
             'success' => true,
@@ -109,6 +128,8 @@ class OrderValidationController extends Controller
                 'payment_type' => $payment->payment_type,
                 'tanggal' => $payment->tanggal,
                 'bukti_pembayaran' => $payment->bukti_pembayaran ? asset('storage/' . $payment->bukti_pembayaran) : null,
+                'nama_pengirim' => $payment->nama_pengirim,
+                'no_rek_pengirim' => $payment->no_rek_pengirim,
                 'status' => $payment->status,
                 'catatan' => $payment->catatan,
                 'customer' => [
@@ -119,11 +140,20 @@ class OrderValidationController extends Controller
                     'alamat' => $order->customer_rel->alamat ?? null,
                 ],
                 'produk' => [
-                    'id' => $order->produk_rel->id ?? null,
-                    'nama' => $order->produk_rel->nama ?? null,
-                    'kode' => $order->produk_rel->kode ?? null,
+                    'id' => $produkRel?->id,
+                    'nama' => $produkRel?->nama,
+                    'kode' => $produkRel?->kode,
+                    'fb_pixel' => $fbPixelFromLanding,
+                    'event_fb_pixel' => $produkRel?->event_fb_pixel ?? [],
+                    'kategori_rel' => ($produkRel && $produkRel->kategori_rel)
+                        ? [
+                            'id' => $produkRel->kategori_rel->id,
+                            'nama' => $produkRel->kategori_rel->nama,
+                        ]
+                        : null,
                 ],
                 'order' => [
+                    'kode_order' => $order->kode_order ?? null,
                     'total_harga' => $order->total_harga ?? null,
                     'ongkir' => $order->ongkir ?? null,
                 ],
@@ -161,7 +191,42 @@ class OrderValidationController extends Controller
             'catatan' => $request->catatan ?? $payment->catatan,
         ]);
 
-        $order = OrderCustomer::with('customer_rel')->find($payment->order_id);
+        $order = OrderCustomer::with(['customer_rel', 'produk_rel', 'bundling_rel'])->find($payment->order_id);
+        
+        // Update keanggotaan customer jika kategori produk adalah workshop (6)
+        if ($order && $order->produk_rel && $order->customer_rel) {
+            $produk = $order->produk_rel;
+            
+            // Cek jika kategori produk adalah 6 (workshop)
+            if ($produk->kategori == 6 || $produk->kategori == '6') {
+                // Ambil nama bundling dari order
+                if ($order->bundling_rel && $order->bundling_rel->nama) {
+                    $namaBundling = $order->bundling_rel->nama;
+                    
+                    // Update keanggotaan customer dengan nama bundling
+                    $order->customer_rel->update([
+                        'keanggotaan' => $namaBundling
+                    ]);
+                    
+                    \Log::info('Finance approve - Update keanggotaan customer', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                        'customer_id' => $order->customer_rel->id,
+                        'kategori_produk' => $produk->kategori,
+                        'nama_bundling' => $namaBundling,
+                        'keanggotaan_updated' => $namaBundling,
+                    ]);
+                } else {
+                    \Log::warning('Finance approve - Bundling tidak ditemukan untuk order workshop', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                        'produk_id' => $produk->id,
+                        'kategori_produk' => $produk->kategori,
+                        'order_bundling_id' => $order->bundling,
+                    ]);
+                }
+            }
+        }
         if ($order) {
             $totalPaid = OrderPayment::where('order_id', $order->id)
                 ->where('status', '!=', 'N')
@@ -177,6 +242,42 @@ class OrderValidationController extends Controller
                     'status_order' => '2',
                     'update_at' => now(),
                 ]);
+
+                // Auto-promote: lead → customer saat pembayaran lunas disetujui finance
+                if ($order->customer_rel && $order->customer_rel->customer_type === 'lead') {
+                    $order->customer_rel->update(['customer_type' => 'customer']);
+
+                    // Update semua lead aktif terkait → CONVERTED
+                    \App\Models\Lead::where('customer_id', $order->customer_rel->id)
+                        ->where('status', '!=', 'N')
+                        ->whereNotIn('status', ['CONVERTED', 'LOST'])
+                        ->update(['status' => 'CONVERTED', 'update_at' => now()]);
+
+                    \Log::info('Finance approve - Lead dipromote ke customer', [
+                        'payment_id'  => $payment->id,
+                        'order_id'    => $order->id,
+                        'customer_id' => $order->customer_rel->id,
+                    ]);
+                }
+
+                // Auto-dispatch Biteship shipping untuk produk fisik
+                if (env('BITESHIP_AUTO_SHIPPING_ENABLED', true)) {
+                    try {
+                        $autoShipping = app(\App\Services\AutoBiteshipShippingService::class)->dispatchIfPhysical($order);
+                        \Log::info('Finance approve - Auto Biteship shipping', [
+                            'order_id' => $order->id,
+                            'payment_id' => $payment->id,
+                            'auto_shipping_success' => $autoShipping['success'],
+                            'auto_shipping_message' => $autoShipping['message'],
+                            'resi_id' => $autoShipping['resi']?->id,
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::error('Finance approve - Auto Biteship shipping gagal', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
         }
 
@@ -221,16 +322,8 @@ class OrderValidationController extends Controller
                 ]);
 
                 if ($woowaKey) {
-                    $response = Http::asJson()
-                        ->withHeaders([
-                            'Content-Type' => 'application/json',
-                            'Accept' => 'application/json'
-                        ])
-                        ->post('https://notifapi.com/send_message', [
-                            'phone_no' => $customer->wa,
-                            'key'      => $woowaKey,
-                            'message'  => $message,
-                        ]);
+                    $waSender = app(\App\Services\WhatsAppSenderService::class);
+                    $response = $waSender->sendMessage($customer->wa, $message, null, $woowaKey);
 
                     \Log::info('Finance approve - Response WhatsApp', [
                         'payment_id' => $payment->id,
@@ -284,8 +377,14 @@ class OrderValidationController extends Controller
             'success' => true,
             'message' => 'Pembayaran berhasil disetujui',
             'data' => [
-                'id' => $payment->id,
-                'status' => $payment->status,
+                'id'           => $payment->id,
+                'status'       => $payment->status,
+                'auto_shipping' => isset($autoShipping) ? [
+                    'success' => $autoShipping['success'],
+                    'message' => $autoShipping['message'],
+                    'resi_id' => $autoShipping['resi']?->id,
+                    'biteship_order_id' => $autoShipping['resi']?->biteship_order_id,
+                ] : null,
             ]
         ]);
     }

@@ -4,63 +4,110 @@ namespace App\Http\Controllers\Api\Hr;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\HrKaryawan;
+use App\Models\HrAbsensi;
+use App\Models\HrCuti;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class HRDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Data dummy untuk HR Dashboard
+        $today = Carbon::today()->format('Y-m-d');
+        $sevenDaysAgo = Carbon::today()->subDays(6)->format('Y-m-d');
+
+        // Statistik karyawan
+        $totalKaryawan = HrKaryawan::where('status', '!=', 'N')->count();
+        $karyawanAktif = HrKaryawan::where('status', '1')->where('status', '!=', 'N')->count();
+        $karyawanResign = HrKaryawan::whereNotNull('tanggal_resign')
+            ->where('status', '!=', 'N')
+            ->count();
+
+        // Statistik cuti (berdasarkan hr_cuti)
+        $cutiAktif = HrCuti::where('status', '!=', 'N')
+            ->where('status_cuti', 'disetujui')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->count();
+
+        $cutiPending = HrCuti::where('status', '!=', 'N')
+            ->where('status_cuti', 'pending')
+            ->count();
+
+        // Statistik absensi hari ini
+        $hadirHariIni = HrAbsensi::where('status', '!=', 'N')
+            ->where('tanggal', $today)
+            ->where('status_absensi', 'Hadir')
+            ->count();
+
+        $telatHariIni = HrAbsensi::where('status', '!=', 'N')
+            ->where('tanggal', $today)
+            ->where('status_absensi', 'Telat')
+            ->count();
+
+        $totalHadirHariIni = HrAbsensi::where('status', '!=', 'N')
+            ->where('tanggal', $today)
+            ->whereIn('status_absensi', ['Hadir', 'Telat'])
+            ->count();
+
+        $persentaseKehadiran = $totalKaryawan > 0
+            ? round(($totalHadirHariIni / $totalKaryawan) * 100, 1)
+            : 0;
+
+        // Chart absensi 7 hari terakhir (berdasarkan tabel hr_absensi)
+        $chartAbsensiRaw = HrAbsensi::select(
+                'tanggal',
+                DB::raw("COUNT(CASE WHEN status_absensi = 'Hadir' THEN 1 END) as hadir"),
+                DB::raw("COUNT(CASE WHEN status_absensi = 'Telat' THEN 1 END) as telat")
+            )
+            ->whereBetween('tanggal', [$sevenDaysAgo, $today])
+            ->where('status', '!=', 'N')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $chartAbsensi = $chartAbsensiRaw->map(function ($row) {
+            return [
+                'label' => $row->tanggal,
+                'hadir' => (int) $row->hadir,
+                'telat' => (int) $row->telat,
+            ];
+        });
+
+        // Karyawan terbaru
+        $karyawanTerbaru = HrKaryawan::where('status', '!=', 'N')
+            ->orderByDesc('create_at')
+            ->limit(5)
+            ->get(['id', 'nama', 'jabatan', 'departemen', 'tanggal_join', 'status']);
+
+        // Cuti terbaru
+        $cutiTerbaru = HrCuti::with(['karyawan_rel', 'type_rel'])
+            ->where('status', '!=', 'N')
+            ->orderByDesc('create_at')
+            ->limit(5)
+            ->get();
+
         return response()->json([
             'success' => true,
             'data' => [
                 'statistik' => [
-                    'total_karyawan' => 156,
-                    'karyawan_aktif' => 148,
-                    'karyawan_cuti' => 5,
-                    'karyawan_resign' => 3,
-                    'karyawan_baru_bulan_ini' => 12,
+                    'total_karyawan' => $totalKaryawan,
+                    'karyawan_aktif' => $karyawanAktif,
+                    'karyawan_resign' => $karyawanResign,
                 ],
                 'absensi' => [
-                    'hadir_hari_ini' => 142,
-                    'terlambat_hari_ini' => 6,
-                    'tidak_hadir_hari_ini' => 4,
-                    'persentase_kehadiran' => 93.4,
+                    'hadir_hari_ini' => $hadirHariIni,
+                    'terlambat_hari_ini' => $telatHariIni,
+                    'persentase_kehadiran' => $persentaseKehadiran,
                 ],
-                'rekrutmen' => [
-                    'lowongan_aktif' => 8,
-                    'kandidat_screening' => 24,
-                    'kandidat_interview' => 12,
-                    'kandidat_offered' => 5,
+                'cuti' => [
+                    'cuti_aktif_hari_ini' => $cutiAktif,
+                    'cuti_pending' => $cutiPending,
                 ],
-                'training' => [
-                    'program_aktif' => 6,
-                    'peserta_training' => 89,
-                    'training_selesai' => 4,
-                    'rata_nilai' => 87.5,
-                ],
-                'chart_absensi' => [
-                    ['label' => 'Sen', 'hadir' => 145, 'tidak_hadir' => 3],
-                    ['label' => 'Sel', 'hadir' => 144, 'tidak_hadir' => 4],
-                    ['label' => 'Rab', 'hadir' => 146, 'tidak_hadir' => 2],
-                    ['label' => 'Kam', 'hadir' => 143, 'tidak_hadir' => 5],
-                    ['label' => 'Jum', 'hadir' => 142, 'tidak_hadir' => 6],
-                    ['label' => 'Sab', 'hadir' => 45, 'tidak_hadir' => 0],
-                    ['label' => 'Min', 'hadir' => 0, 'tidak_hadir' => 0],
-                ],
-                'chart_rekrutmen' => [
-                    ['label' => 'Jan', 'applied' => 45, 'hired' => 8],
-                    ['label' => 'Feb', 'applied' => 52, 'hired' => 10],
-                    ['label' => 'Mar', 'applied' => 38, 'hired' => 6],
-                    ['label' => 'Apr', 'applied' => 61, 'hired' => 12],
-                    ['label' => 'Mei', 'applied' => 49, 'hired' => 9],
-                    ['label' => 'Jun', 'applied' => 55, 'hired' => 11],
-                ],
-                'karyawan_terbaru' => [
-                    ['nama' => 'Siti Nurhaliza', 'posisi' => 'Sales Manager', 'tanggal_bergabung' => '15 Nov 2025', 'status' => 'Aktif'],
-                    ['nama' => 'Budi Santoso', 'posisi' => 'Marketing Specialist', 'tanggal_bergabung' => '12 Nov 2025', 'status' => 'Aktif'],
-                    ['nama' => 'Indah Permata', 'posisi' => 'HR Assistant', 'tanggal_bergabung' => '10 Nov 2025', 'status' => 'Aktif'],
-                    ['nama' => 'Ahmad Fauzi', 'posisi' => 'Developer', 'tanggal_bergabung' => '08 Nov 2025', 'status' => 'Aktif'],
-                ],
+                'chart_absensi' => $chartAbsensi,
+                'karyawan_terbaru' => $karyawanTerbaru,
+                'cuti_terbaru' => $cutiTerbaru,
             ]
         ]);
     }

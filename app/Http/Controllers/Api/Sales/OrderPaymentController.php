@@ -22,6 +22,19 @@ class OrderPaymentController extends Controller
             $query->where('order_id', $request->order_id);
         }
 
+        // Filter berdasarkan Produk ID
+        $pIds = $request->input('produk_id') ?? $request->input('product_id') ?? $request->input('produk_id[]') ?? $request->input('product_id[]');
+        if ($pIds) {
+            $produks = is_array($pIds) ? $pIds : [$pIds];
+            $produks = array_filter($produks, fn($val) => !is_null($val) && $val !== '' && $val !== 'undefined');
+            if (!empty($produks)) {
+                $query->whereHas('order_rel', function($q) use ($produks) {
+                    $q->whereIn('produk', $produks)
+                      ->orWhereIn('bundling', $produks);
+                });
+            }
+        }
+
         if ($request->has('status') && $request->status !== '' && $request->status !== null) {
             $query->where('status', $request->status);
         }

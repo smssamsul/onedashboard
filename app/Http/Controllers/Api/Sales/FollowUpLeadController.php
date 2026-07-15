@@ -131,7 +131,7 @@ class FollowUpLeadController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'lead_id' => 'required|exists:leads,id',
+            'lead_id' => 'required|exists:ai_leads,id',
             'follow_up_date' => 'required|date',
             'channel' => 'nullable|string|max:50',
             'note' => 'nullable|string',

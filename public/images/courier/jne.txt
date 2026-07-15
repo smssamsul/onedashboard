@@ -1,0 +1,2 @@
+PLACEHOLDER - Replace this file with the actual JNE logo image (PNG format, ideally 200x60px or similar)
+Filename: jne.png

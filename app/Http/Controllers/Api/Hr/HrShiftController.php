@@ -19,18 +19,15 @@ class HrShiftController extends Controller
     {
         $query = HrShift::query();
 
-        // Search berdasarkan nama
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where('nama', 'ILIKE', "%{$search}%");
         }
 
-        // Filter berdasarkan is_flexible
         if ($request->has('is_flexible') && $request->is_flexible !== null) {
             $query->where('is_flexible', $request->is_flexible);
         }
 
-        // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
             $shifts = $query->orderBy('id', 'desc')->get();
             
@@ -41,7 +38,6 @@ class HrShiftController extends Controller
             ]);
         }
 
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $shifts = $query->orderBy('id', 'desc')->paginate($perPage);
 
@@ -118,20 +114,20 @@ class HrShiftController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:100',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'is_flexible' => 'nullable|boolean',
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'nama' => 'required|string|max:100',
+        //     'start_time' => 'required|date_format:H:i',
+        //     'end_time' => 'required|date_format:H:i|after:start_time',
+        //     'is_flexible' => 'nullable|boolean',
+        // ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        // if ($validator->fails()) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Validasi gagal',
+        //         'errors' => $validator->errors()
+        //     ], 422);
+        // }
 
         $shift->nama = $request->nama ?? $shift->nama;
         $shift->start_time = $request->start_time ?? $shift->start_time;
@@ -158,7 +154,6 @@ class HrShiftController extends Controller
             ], 404);
         }
 
-        // Check if shift is used by any karyawan
         $karyawanCount = \App\Models\HrKaryawan::where('shift', $id)->count();
         if ($karyawanCount > 0) {
             return response()->json([

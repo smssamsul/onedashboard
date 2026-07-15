@@ -100,6 +100,13 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
         ],
 
+        'webhook_baileys' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/webhook_baileys.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
+
         'errorlog' => [
             'driver' => 'errorlog',
             'level' => env('LOG_LEVEL', 'debug'),
@@ -117,6 +124,27 @@ return [
         'followup' => [
             'driver' => 'daily',
             'path' => storage_path('logs/followup.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+        ],
+
+        'broadcast' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/broadcast.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+        ],
+
+        'ai' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/ai.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+        ],
+
+        'woowa' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/woowa.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 30,
         ],

@@ -8,6 +8,8 @@ use App\Models\HrAbsensi;
 use App\Models\HrKaryawan;
 use App\Models\HrShift;
 use App\Models\HrSetting;
+use App\Models\TodoList;
+use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -29,12 +31,10 @@ class HrAbsensiController extends Controller
     {
         $query = HrAbsensi::with('karyawan_rel');
 
-        // Filter berdasarkan karyawan
         if ($request->has('karyawan') && $request->karyawan) {
             $query->where('karyawan', $request->karyawan);
         }
 
-        // Filter berdasarkan tanggal berjangka (prioritas lebih tinggi dari filter tanggal tunggal)
         if ($request->has('tanggal_mulai') && $request->has('tanggal_akhir') && 
             $request->tanggal_mulai && $request->tanggal_akhir) {
             $query->whereBetween('tanggal', [
@@ -42,30 +42,25 @@ class HrAbsensiController extends Controller
                 Carbon::parse($request->tanggal_akhir)->format('Y-m-d')
             ]);
         }
-        // Filter berdasarkan tanggal tunggal (jika tidak ada filter tanggal berjangka)
         elseif ($request->has('tanggal') && $request->tanggal) {
             $query->where('tanggal', $request->tanggal);
         }
 
-        // Filter berdasarkan bulan
         if ($request->has('bulan') && $request->bulan) {
-            $query->whereMonth('tanggal', Carbon::parse($request->bulan)->month)
-                  ->whereYear('tanggal', Carbon::parse($request->bulan)->year);
+            $bulanFormat = Carbon::parse($request->bulan)->format('Y-m');
+            $query->where('tanggal', 'like', $bulanFormat . '%');
         }
 
-        // Filter berdasarkan status absensi
         if ($request->has('status_absensi') && $request->status_absensi) {
             $query->where('status_absensi', $request->status_absensi);
         }
 
-        // Filter status aktif
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
         } else {
             $query->where('status', '!=', 'N');
         }
 
-        // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
             $absensi = $query->orderBy('tanggal', 'desc')->orderBy('id', 'desc')->get();
             
@@ -76,7 +71,6 @@ class HrAbsensiController extends Controller
             ]);
         }
 
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $absensi = $query->orderBy('tanggal', 'desc')->orderBy('id', 'desc')->paginate($perPage);
 
@@ -103,7 +97,6 @@ class HrAbsensiController extends Controller
             ], 401);
         }
 
-        // Cari karyawan berdasarkan user_id
         $karyawan = HrKaryawan::where('user_id', $user->user)
             ->where('status', '!=', 'N')
             ->first();
@@ -118,7 +111,6 @@ class HrAbsensiController extends Controller
         $query = HrAbsensi::with('karyawan_rel')
             ->where('karyawan', $karyawan->id);
 
-        // Filter berdasarkan tanggal berjangka (prioritas lebih tinggi dari filter tanggal tunggal)
         if ($request->has('tanggal_mulai') && $request->has('tanggal_akhir') && 
             $request->tanggal_mulai && $request->tanggal_akhir) {
             $query->whereBetween('tanggal', [
@@ -126,30 +118,25 @@ class HrAbsensiController extends Controller
                 Carbon::parse($request->tanggal_akhir)->format('Y-m-d')
             ]);
         }
-        // Filter berdasarkan tanggal tunggal (jika tidak ada filter tanggal berjangka)
         elseif ($request->has('tanggal') && $request->tanggal) {
             $query->where('tanggal', $request->tanggal);
         }
 
-        // Filter berdasarkan bulan
         if ($request->has('bulan') && $request->bulan) {
-            $query->whereMonth('tanggal', Carbon::parse($request->bulan)->month)
-                  ->whereYear('tanggal', Carbon::parse($request->bulan)->year);
+            $bulanFormat = Carbon::parse($request->bulan)->format('Y-m');
+            $query->where('tanggal', 'like', $bulanFormat . '%');
         }
 
-        // Filter berdasarkan status absensi
         if ($request->has('status_absensi') && $request->status_absensi) {
             $query->where('status_absensi', $request->status_absensi);
         }
 
-        // Filter status aktif
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
         } else {
             $query->where('status', '!=', 'N');
         }
 
-        // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
             $absensi = $query->orderBy('tanggal', 'desc')->orderBy('id', 'desc')->get();
             
@@ -160,7 +147,6 @@ class HrAbsensiController extends Controller
             ]);
         }
 
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $absensi = $query->orderBy('tanggal', 'desc')->orderBy('id', 'desc')->paginate($perPage);
 
@@ -178,7 +164,6 @@ class HrAbsensiController extends Controller
 
     public function show($id)
     {
-        // Validasi bahwa $id harus berupa integer
         if (!is_numeric($id) || (int)$id != $id) {
             return response()->json([
                 'success' => false,
@@ -216,9 +201,8 @@ class HrAbsensiController extends Controller
             'long_check_in' => 'nullable|string|max:60',
             'lat_check_out' => 'nullable|string|max:60',
             'long_check_out' => 'nullable|string|max:60',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
             'notes' => 'nullable|string',
+            'emosi' => 'nullable|string|max:50|in:joyful,happy,relaxed,sad,angry',
             'status' => 'nullable|string|max:1',
         ]);
 
@@ -230,7 +214,6 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Validasi lokasi jika ada lat/long (untuk store manual dari HR)
         if ($request->has('lat_check_in') && $request->has('long_check_in') && 
             $request->lat_check_in && $request->long_check_in) {
             $locationCheck = $this->validateLocation(
@@ -246,7 +229,6 @@ class HrAbsensiController extends Controller
             }
         }
 
-        // Handle photo upload jika ada
         $checkInPhoto = $request->check_in_photo;
         $checkOutPhoto = $request->check_out_photo;
 
@@ -258,13 +240,11 @@ class HrAbsensiController extends Controller
             $checkOutPhoto = $this->uploadPhoto($request->file('check_out_photo_file'), 'check_out');
         }
 
-        // Format tanggal ke Y-m-d (10 karakter) untuk varchar(10)
         $tanggal = $request->tanggal;
         if ($tanggal) {
             try {
                 $tanggal = Carbon::parse($tanggal)->format('Y-m-d');
             } catch (\Exception $e) {
-                // Jika parsing gagal, gunakan as-is atau default ke hari ini
                 $tanggal = Carbon::today()->format('Y-m-d');
             }
         }
@@ -282,9 +262,8 @@ class HrAbsensiController extends Controller
             'long_check_in' => $request->long_check_in,
             'lat_check_out' => $request->lat_check_out,
             'long_check_out' => $request->long_check_out,
-            'latitude' => $request->latitude ?? $request->lat_check_in,
-            'longitude' => $request->longitude ?? $request->long_check_in,
             'notes' => $request->notes,
+            'emosi' => $request->emosi,
             'status' => $request->status ?? '1',
             'create_at' => now()->format('Y-m-d H:i:s'),
         ]);
@@ -322,8 +301,6 @@ class HrAbsensiController extends Controller
             'long_check_in' => 'nullable|string|max:60',
             'lat_check_out' => 'nullable|string|max:60',
             'long_check_out' => 'nullable|string|max:60',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
             'notes' => 'nullable|string',
             'status' => 'nullable|string|max:1',
         ]);
@@ -336,12 +313,10 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Handle photo upload jika ada
         $checkInPhoto = $absensi->check_in_photo;
         $checkOutPhoto = $absensi->check_out_photo;
 
         if ($request->hasFile('check_in_photo_file')) {
-            // Hapus foto lama jika ada
             if ($checkInPhoto && Storage::disk('public')->exists($checkInPhoto)) {
                 Storage::disk('public')->delete($checkInPhoto);
             }
@@ -351,7 +326,6 @@ class HrAbsensiController extends Controller
         }
 
         if ($request->hasFile('check_out_photo_file')) {
-            // Hapus foto lama jika ada
             if ($checkOutPhoto && Storage::disk('public')->exists($checkOutPhoto)) {
                 Storage::disk('public')->delete($checkOutPhoto);
             }
@@ -360,12 +334,10 @@ class HrAbsensiController extends Controller
             $checkOutPhoto = $request->check_out_photo;
         }
 
-        // Format tanggal ke Y-m-d (10 karakter) untuk varchar(10)
         if ($request->has('tanggal') && $request->tanggal) {
             try {
                 $absensi->tanggal = Carbon::parse($request->tanggal)->format('Y-m-d');
             } catch (\Exception $e) {
-                // Jika parsing gagal, skip update tanggal
             }
         }
 
@@ -380,8 +352,6 @@ class HrAbsensiController extends Controller
         $absensi->long_check_in = $request->long_check_in ?? $absensi->long_check_in;
         $absensi->lat_check_out = $request->lat_check_out ?? $absensi->lat_check_out;
         $absensi->long_check_out = $request->long_check_out ?? $absensi->long_check_out;
-        $absensi->latitude = $request->latitude ?? $absensi->latitude;
-        $absensi->longitude = $request->longitude ?? $absensi->longitude;
         $absensi->notes = $request->notes ?? $absensi->notes;
         $absensi->status = $request->status ?? $absensi->status;
         $absensi->update_at = now()->format('Y-m-d H:i:s');
@@ -407,7 +377,6 @@ class HrAbsensiController extends Controller
             ], 404);
         }
 
-        // Hapus foto jika ada
         if ($absensi->check_in_photo && Storage::disk('public')->exists($absensi->check_in_photo)) {
             Storage::disk('public')->delete($absensi->check_in_photo);
         }
@@ -415,7 +384,6 @@ class HrAbsensiController extends Controller
             Storage::disk('public')->delete($absensi->check_out_photo);
         }
 
-        // Soft delete
         $absensi->status = 'N';
         $absensi->update_at = now()->format('Y-m-d H:i:s');
         $absensi->save();
@@ -426,9 +394,6 @@ class HrAbsensiController extends Controller
         ]);
     }
 
-    /**
-     * Check in absensi
-     */
     public function checkIn(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -437,6 +402,11 @@ class HrAbsensiController extends Controller
             'lat_check_in' => 'nullable|string|max:60',
             'long_check_in' => 'nullable|string|max:60',
             'notes' => 'nullable|string',
+            'emosi' => 'nullable|string|max:50|in:joyful,happy,relaxed,sad,angry',
+            'todo_ids' => 'nullable|array',
+            'todo_ids.*' => 'nullable|integer|exists:todo_list,id',
+            'manual_todos' => 'nullable|array',
+            'manual_todos.*' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -447,7 +417,6 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Validasi lokasi - WAJIB untuk check in
         if (!$request->has('lat_check_in') || !$request->has('long_check_in') || 
             empty($request->lat_check_in) || empty($request->long_check_in)) {
             return response()->json([
@@ -468,32 +437,26 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Upload foto
         $photoPath = $this->uploadPhoto($request->file('check_in_photo'), 'check_in');
 
-        // Get karyawan dan shift untuk menentukan status absensi
         $karyawan = HrKaryawan::with('shift_rel')->find($request->karyawan);
         $statusAbsensi = 'Hadir';
         $shiftId = null;
 
-        // Tentukan status absensi berdasarkan shift
         if ($karyawan && $karyawan->shift_rel) {
             $shift = $karyawan->shift_rel;
             $shiftId = $shift->id;
 
-            // Jika shift tidak fleksibel, cek telat
             if (!$shift->is_flexible) {
                 $checkInTime = now()->format('H:i:s');
                 $startTime = $shift->start_time;
 
-                // Bandingkan waktu check in dengan start time shift
                 if ($checkInTime > $startTime) {
                     $statusAbsensi = 'Telat';
                 }
             }
         }
 
-        // Cek apakah sudah ada absensi hari ini
         $today = Carbon::today()->format('Y-m-d');
         $absensi = HrAbsensi::where('karyawan', $request->karyawan)
             ->where('tanggal', $today)
@@ -501,20 +464,17 @@ class HrAbsensiController extends Controller
             ->first();
 
         if ($absensi) {
-            // Update check in
             $absensi->check_in = now()->format('H:i:s');
             $absensi->check_in_photo = $photoPath;
             $absensi->lat_check_in = $request->lat_check_in ?? null;
             $absensi->long_check_in = $request->long_check_in ?? null;
-            $absensi->latitude = $request->lat_check_in ?? null;
-            $absensi->longitude = $request->long_check_in ?? null;
             $absensi->notes = $request->notes ?? $absensi->notes;
+            $absensi->emosi = $request->emosi ?? $absensi->emosi;
             $absensi->status_absensi = $statusAbsensi;
             $absensi->shift = $shiftId;
             $absensi->update_at = now()->format('Y-m-d H:i:s');
             $absensi->save();
         } else {
-            // Create new
             $absensi = HrAbsensi::create([
                 'karyawan' => $request->karyawan,
                 'tanggal' => $today,
@@ -522,14 +482,57 @@ class HrAbsensiController extends Controller
                 'check_in_photo' => $photoPath,
                 'lat_check_in' => $request->lat_check_in ?? null,
                 'long_check_in' => $request->long_check_in ?? null,
-                'latitude' => $request->lat_check_in ?? null,
-                'longitude' => $request->long_check_in ?? null,
                 'status_absensi' => $statusAbsensi,
                 'shift' => $shiftId,
                 'notes' => $request->notes,
+                'emosi' => $request->emosi,
                 'status' => '1',
                 'create_at' => now()->format('Y-m-d H:i:s'),
             ]);
+        }
+
+        // Simpan todo list ke tabel todo_list
+        $user = auth()->guard('api')->user();
+        $userId = $user->user ?? null; // User ID dari UserLogin
+        
+        if ($userId) {
+            $today = Carbon::today();
+            
+            // Simpan todo yang dipilih dari list
+            if ($request->has('todo_ids') && is_array($request->todo_ids)) {
+                foreach ($request->todo_ids as $todoId) {
+                    if ($todoId) {
+                        // Update todo yang sudah ada untuk set assigned_to dan due_date
+                        $existingTodo = TodoList::find($todoId);
+                        if ($existingTodo) {
+                            $existingTodo->assigned_to = $userId;
+                            $existingTodo->due_date = $today;
+                            if ($existingTodo->status === 'completed') {
+                                $existingTodo->status = 'in_progress';
+                            }
+                            $existingTodo->save();
+                        }
+                    }
+                }
+            }
+            
+            // Simpan manual todo yang diinput
+            if ($request->has('manual_todos') && is_array($request->manual_todos)) {
+                foreach ($request->manual_todos as $todoTitle) {
+                    if (!empty(trim($todoTitle))) {
+                        TodoList::create([
+                            'title' => trim($todoTitle),
+                            'description' => null,
+                            'created_by' => $userId,
+                            'assigned_to' => $userId,
+                            'priority' => 'medium',
+                            'status' => 'in_progress',
+                            'due_date' => $today,
+                            'is_reminder' => false,
+                        ]);
+                    }
+                }
+            }
         }
 
         $absensi->load('karyawan_rel');
@@ -541,9 +544,6 @@ class HrAbsensiController extends Controller
         ], 201);
     }
 
-    /**
-     * Check out absensi
-     */
     public function checkOut(Request $request, $id)
     {
         $absensi = HrAbsensi::find($id);
@@ -560,6 +560,9 @@ class HrAbsensiController extends Controller
             'lat_check_out' => 'nullable|string|max:60',
             'long_check_out' => 'nullable|string|max:60',
             'notes' => 'nullable|string',
+            'todo_statuses' => 'nullable|array',
+            'todo_statuses.*.id' => 'required|integer|exists:todo_list,id',
+            'todo_statuses.*.status' => 'required|in:pending,in_progress,completed',
         ]);
 
         if ($validator->fails()) {
@@ -570,7 +573,6 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Validasi lokasi - WAJIB untuk check out
         if (!$request->has('lat_check_out') || !$request->has('long_check_out') || 
             empty($request->lat_check_out) || empty($request->long_check_out)) {
             return response()->json([
@@ -591,7 +593,6 @@ class HrAbsensiController extends Controller
             ], 422);
         }
 
-        // Upload foto
         $photoPath = $this->uploadPhoto($request->file('check_out_photo'), 'check_out');
 
         $absensi->check_out = now()->format('H:i:s');
@@ -602,6 +603,20 @@ class HrAbsensiController extends Controller
         $absensi->update_at = now()->format('Y-m-d H:i:s');
         $absensi->save();
 
+        // Update status todo list
+        if ($request->has('todo_statuses') && is_array($request->todo_statuses)) {
+            foreach ($request->todo_statuses as $todoStatus) {
+                $todo = TodoList::find($todoStatus['id']);
+                if ($todo) {
+                    $todo->status = $todoStatus['status'];
+                    if ($todoStatus['status'] === 'completed') {
+                        $todo->completed_at = now();
+                    }
+                    $todo->save();
+                }
+            }
+        }
+
         $absensi->load('karyawan_rel');
 
         return response()->json([
@@ -611,21 +626,14 @@ class HrAbsensiController extends Controller
         ]);
     }
 
-    /**
-     * Upload photo
-     */
     private function uploadPhoto($file, $type = 'absensi')
     {
         $path = $file->store('hr/absensi/' . $type, 'public');
         return $path;
     }
 
-    /**
-     * Validate location berdasarkan setting
-     */
     private function validateLocation($lat, $long)
     {
-        // Jika lat atau long kosong/null, tolak validasi
         if (empty($lat) || empty($long)) {
             return [
                 'valid' => false,
@@ -642,7 +650,6 @@ class HrAbsensiController extends Controller
             ];
         }
 
-        // Pastikan setting memiliki koordinat
         if (empty($setting->lat_absen) || empty($setting->long_long)) {
             return [
                 'valid' => false,
@@ -650,7 +657,6 @@ class HrAbsensiController extends Controller
             ];
         }
 
-        // Pastikan radius sudah disetting
         if (empty($setting->radius) || $setting->radius <= 0) {
             return [
                 'valid' => false,
@@ -664,7 +670,6 @@ class HrAbsensiController extends Controller
         $userLong = (float) $long;
         $radius = (float) $setting->radius;
 
-        // Hitung jarak menggunakan Haversine formula (dalam meter)
         $distance = $this->calculateDistance($settingLat, $settingLong, $userLat, $userLong);
 
         if ($distance > $radius) {
@@ -681,13 +686,9 @@ class HrAbsensiController extends Controller
         ];
     }
 
-    /**
-     * Calculate distance between two coordinates (Haversine formula)
-     * Returns distance in meters
-     */
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
-        $earthRadius = 6371000; // Earth radius in meters
+        $earthRadius = 6371000;
 
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
@@ -701,21 +702,16 @@ class HrAbsensiController extends Controller
         return $earthRadius * $c;
     }
 
-    /**
-     * Export absensi data
-     */
     public function export(Request $request)
     {
-        $format = $request->get('format', 'excel'); // excel, csv, pdf
+        $format = $request->get('format', 'excel');
 
         $query = HrAbsensi::with('karyawan_rel');
 
-        // Filter berdasarkan karyawan
         if ($request->has('karyawan') && $request->karyawan) {
             $query->where('karyawan', $request->karyawan);
         }
 
-        // Filter berdasarkan tanggal berjangka (prioritas lebih tinggi dari filter tanggal tunggal)
         if ($request->has('tanggal_mulai') && $request->has('tanggal_akhir') && 
             $request->tanggal_mulai && $request->tanggal_akhir) {
             $query->whereBetween('tanggal', [
@@ -723,12 +719,10 @@ class HrAbsensiController extends Controller
                 Carbon::parse($request->tanggal_akhir)->format('Y-m-d')
             ]);
         }
-        // Filter berdasarkan tanggal tunggal (jika tidak ada filter tanggal berjangka)
         elseif ($request->has('tanggal') && $request->tanggal) {
             $query->where('tanggal', $request->tanggal);
         }
 
-        // Filter status aktif
         $query->where('status', '!=', 'N');
 
         $absensi = $query->orderBy('tanggal', 'desc')->orderBy('id', 'desc')->get();
@@ -747,16 +741,12 @@ class HrAbsensiController extends Controller
         ], 400);
     }
 
-    /**
-     * Export to Excel
-     */
     private function exportExcel($absensi)
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Data Absensi');
 
-        // Header
         $headers = ['No', 'Tanggal', 'Nama Karyawan', 'Check In', 'Check Out', 'Status Absensi', 'Lokasi Check In', 'Catatan'];
         $col = 'A';
         foreach ($headers as $header) {
@@ -770,7 +760,6 @@ class HrAbsensiController extends Controller
             $col++;
         }
 
-        // Data
         $row = 2;
         $no = 1;
         foreach ($absensi as $item) {
@@ -789,12 +778,10 @@ class HrAbsensiController extends Controller
             $no++;
         }
 
-        // Auto size columns
         foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        // Set borders
         $sheet->getStyle('A1:H' . ($row - 1))->applyFromArray([
             'borders' => [
                 'allBorders' => [
@@ -814,16 +801,12 @@ class HrAbsensiController extends Controller
         exit;
     }
 
-    /**
-     * Export to CSV
-     */
     private function exportCsv($absensi)
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Data Absensi');
 
-        // Header
         $headers = ['No', 'Tanggal', 'Nama Karyawan', 'Check In', 'Check Out', 'Status Absensi', 'Lokasi Check In', 'Catatan'];
         $col = 'A';
         foreach ($headers as $header) {
@@ -831,7 +814,6 @@ class HrAbsensiController extends Controller
             $col++;
         }
 
-        // Data
         $row = 2;
         $no = 1;
         foreach ($absensi as $item) {
@@ -860,16 +842,12 @@ class HrAbsensiController extends Controller
         header('Cache-Control: max-age=0');
         header('Pragma: public');
 
-        // Add BOM for UTF-8
         echo "\xEF\xBB\xBF";
 
         $writer->save('php://output');
         exit;
     }
 
-    /**
-     * Export to PDF
-     */
     private function exportPdf($absensi)
     {
         $html = '<!DOCTYPE html>
@@ -996,7 +974,6 @@ class HrAbsensiController extends Controller
 
         $filename = 'absensi_' . date('Y-m-d') . '.html';
         
-        // Return HTML that can be printed as PDF
         header('Content-Type: text/html; charset=UTF-8');
         header('Content-Disposition: inline;filename="' . $filename . '"');
         

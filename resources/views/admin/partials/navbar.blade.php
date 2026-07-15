@@ -19,6 +19,32 @@
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
+        <!-- AI Menu (only for Head Sales) -->
+        <div class="navbar-ai-menu" id="navbarAiMenu" style="display: none;">
+            <div class="navbar-icon-btn" data-dropdown="aiMenu" title="AI">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div id="aiMenu" class="dropdown-menu">
+                <a href="{{ route('sales.ai.knowledge') }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Knowledge
+                </a>
+                <a href="{{ route('sales.ai.prompt') }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Prompt
+                </a>
+            </div>
+        </div>
         <div class="navbar-user">
             <div class="navbar-user-info">
                 <div class="navbar-user-name" id="navbarUserName">User</div>
@@ -115,4 +141,48 @@
     function toggleDarkMode() {
         document.body.classList.toggle('dark-mode');
     }
+
+    // Show/hide AI menu based on user level (only for Head Sales - level 1)
+    (function() {
+        function checkUserLevelAndShowAiMenu() {
+            try {
+                const userDataStr = localStorage.getItem('user_data');
+                if (!userDataStr) {
+                    return;
+                }
+                
+                const userData = JSON.parse(userDataStr);
+                let userLevel = null;
+                if (userData.level !== undefined) {
+                    userLevel = userData.level;
+                } else if (userData.userData && userData.userData.level !== undefined) {
+                    userLevel = userData.userData.level;
+                } else if (userData.user && userData.user.level !== undefined) {
+                    userLevel = userData.user.level;
+                }
+
+                const aiMenu = document.getElementById('navbarAiMenu');
+                if (aiMenu) {
+                    // Show AI menu only for Head Sales (level 1)
+                    if (userLevel === '1' || userLevel === 1) {
+                        aiMenu.style.display = '';
+                    } else {
+                        aiMenu.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking user level for AI menu:', error);
+            }
+        }
+        
+        // Run on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkUserLevelAndShowAiMenu);
+        } else {
+            checkUserLevelAndShowAiMenu();
+        }
+        
+        // Also check after a short delay in case localStorage is updated
+        setTimeout(checkUserLevelAndShowAiMenu, 100);
+    })();
 </script>

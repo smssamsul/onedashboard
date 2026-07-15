@@ -29,7 +29,7 @@ class WoowaWebhookController extends Controller
         $timestamp = now()->format('Y-m-d H:i:s');
         
         // Log data lengkap
-        Log::info('Woowa Webhook Received', [
+        Log::channel('woowa')->info('Woowa Webhook Received', [
             'timestamp' => $timestamp,
             'raw_content' => $rawContent,
             'decoded_data' => $data,

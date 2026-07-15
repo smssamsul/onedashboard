@@ -24,14 +24,12 @@ class HrKaryawanController extends Controller
     {
         $query = HrKaryawan::with(['departemen_rel', 'user_rel']);
 
-        // Filter berdasarkan status
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
         } else {
             $query->where('status', '!=', 'N');
         }
 
-        // Search berdasarkan nama, email, atau notelp
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -41,18 +39,14 @@ class HrKaryawanController extends Controller
             });
         }
 
-        // Filter berdasarkan departemen
         if ($request->has('departemen') && $request->departemen) {
             $query->where('departemen', $request->departemen);
         }
 
-
-        // Filter berdasarkan status_karyawan
         if ($request->has('status_karyawan') && $request->status_karyawan) {
             $query->where('status_karyawan', $request->status_karyawan);
         }
 
-        // Jika parameter all=true, return semua data tanpa pagination
         if ($request->has('all') && $request->all == 'true') {
             $karyawan = $query->orderBy('id', 'desc')->get();
             
@@ -63,7 +57,6 @@ class HrKaryawanController extends Controller
             ]);
         }
 
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $karyawan = $query->orderBy('id', 'desc')->paginate($perPage);
 
@@ -81,7 +74,7 @@ class HrKaryawanController extends Controller
 
     public function show($id)
     {
-        $karyawan = HrKaryawan::with(['departemen_rel', 'user_rel'])->find($id);
+        $karyawan = HrKaryawan::with(['departemen_rel', 'user_rel', 'approval_rel'])->find($id);
 
         if (!$karyawan) {
             return response()->json([
@@ -93,6 +86,24 @@ class HrKaryawanController extends Controller
         return response()->json([
             'success' => true,
             'data' => $karyawan
+        ]);
+    }
+
+    public function getDireksi()
+    {
+        // Get karyawan yang divisinya 9 (Direksi)
+        // Menggunakan join langsung untuk menghindari masalah relasi
+        $direksi = HrKaryawan::select('hr_karyawan.*')
+            ->join('user', 'hr_karyawan.user_id', '=', 'user.id')
+            ->where('user.divisi', '9')
+            ->where('hr_karyawan.status', '!=', 'N')
+            ->with(['user_rel'])
+            ->orderBy('hr_karyawan.nama', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $direksi
         ]);
     }
 
@@ -109,10 +120,12 @@ class HrKaryawanController extends Controller
             'tanggal_resign' => 'nullable|date',
             'status_karyawan' => 'nullable|string|max:50',
             'departemen' => 'nullable|exists:hr_departemen,id',
-            'jabatan' => 'required|integer|in:1,2',
+            'jabatan' => 'required|integer|in:1,2,3,4,5,6,7,8',
             'shift' => 'nullable|exists:hr_shift,id',
             'alamat' => 'nullable|string',
             'avatar_url' => 'nullable|string',
+            'kuota_cuti' => 'nullable|integer|min:0',
+            'approval' => 'nullable|exists:hr_karyawan,id',
             'status' => 'nullable|string|max:1',
         ]);
 
@@ -126,24 +139,21 @@ class HrKaryawanController extends Controller
 
         DB::beginTransaction();
         try {
-            $userId = $request->user;
+            $userId = $request->user ?? null;
             
-            if (!$userId) {
-                // Generate email jika tidak ada
+            // Jika user_id tidak diberikan atau kosong, buat user baru
+            if (empty($userId)) {
                 $email = $request->email;
                 if (!$email) {
-                    // Generate email dari nama atau notelp
                     $baseEmail = strtolower(str_replace(' ', '', $request->nama));
                     $email = $baseEmail . '@company.local';
                     
-                    // Cek apakah email sudah ada, jika ya tambahkan angka
                     $counter = 1;
                     while (UserLogin::where('email', $email)->exists()) {
                         $email = $baseEmail . $counter . '@company.local';
                         $counter++;
                     }
                 } else {
-                    // Cek apakah email sudah ada di user_login
                     if (UserLogin::where('email', $email)->exists()) {
                         return response()->json([
                             'success' => false,
@@ -152,7 +162,6 @@ class HrKaryawanController extends Controller
                     }
                 }
 
-                // Buat user baru
                 $user = User::create([
                     'nama' => $request->nama,
                     'email' => $email,
@@ -160,13 +169,12 @@ class HrKaryawanController extends Controller
                     'tanggal_join' => $request->tanggal_join,
                     'alamat' => $request->alamat,
                     'divisi' => $request->departemen, 
-                    'level' => $request->jabatan, // HR level
+                    'level' => $request->jabatan,
                     'no_telp' => $request->notelp,
                     'status' => $request->status ?? '1',
                     'create_at' => now()->format('Y-m-d H:i:s'),
                 ]);
 
-                // Buat user_login dengan password default 123456
                 $userLogin = UserLogin::create([
                     'email' => $email,
                     'password' => Hash::make('123456'),
@@ -176,7 +184,15 @@ class HrKaryawanController extends Controller
                 $userId = $user->id;
             }
 
-            // Buat karyawan
+            // Pastikan user_id tidak null
+            if (empty($userId)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User ID tidak valid. Silakan coba lagi atau hubungi admin.'
+                ], 422);
+            }
+
             $karyawan = HrKaryawan::create([
                 'user_id' => $userId,
                 'nama' => $request->nama,
@@ -192,16 +208,15 @@ class HrKaryawanController extends Controller
                 'shift' => $request->shift,
                 'alamat' => $request->alamat,
                 'avatar_url' => $request->avatar_url,
+                'kuota_cuti' => $request->kuota_cuti ?? null,
+                'approval' => $request->approval ?? null,
                 'status' => $request->status ?? '1',
                 'create_at' => now()->format('Y-m-d H:i:s'),
             ]);
 
-            // Jika departemen = 3 dan jabatan = 2, buat sales otomatis
             if ($request->departemen == 3 && (int)$request->jabatan == 2) {
-                // Cek apakah sales sudah ada untuk user_id ini
                 $existingSales = Sales::where('user_id', $userId)->first();
                 if (!$existingSales) {
-                    // Hitung urutan berdasarkan jumlah sales yang ada + 1
                     $urutan = Sales::count() + 1;
                     
                     Sales::create([
@@ -255,9 +270,10 @@ class HrKaryawanController extends Controller
             'tanggal_resign' => 'nullable|date',
             'status_karyawan' => 'nullable|string|max:50',
             'departemen' => 'nullable|exists:hr_departemen,id',
-            'jabatan' => 'required|integer|in:1,2',
+            'jabatan' => 'required|integer|in:1,2,3,4,5,6,7,8',
             'alamat' => 'nullable|string',
             'avatar_url' => 'nullable|string',
+            'kuota_cuti' => 'nullable|integer|min:0',
             'status' => 'nullable|string|max:1',
         ]);
 
@@ -272,7 +288,10 @@ class HrKaryawanController extends Controller
         $oldDepartemen = $karyawan->departemen;
         $oldJabatan = $karyawan->jabatan;
         
-        $karyawan->user_id = $request->user ?? $karyawan->user;
+        // Update user_id jika diberikan, jika tidak tetap gunakan yang lama
+        if ($request->has('user') && $request->user) {
+            $karyawan->user_id = $request->user;
+        }
         $karyawan->nama = $request->nama;
         $karyawan->jenis_kelamin = $request->jenis_kelamin ?? $karyawan->jenis_kelamin;
         $karyawan->tanggal_lahir = $request->tanggal_lahir ?? $karyawan->tanggal_lahir;
@@ -286,19 +305,22 @@ class HrKaryawanController extends Controller
         $karyawan->shift = $request->shift ?? $karyawan->shift;
         $karyawan->alamat = $request->alamat ?? $karyawan->alamat;
         $karyawan->avatar_url = $request->avatar_url ?? $karyawan->avatar_url;
+        if ($request->has('kuota_cuti')) {
+            $karyawan->kuota_cuti = $request->kuota_cuti ?? null;
+        }
+        if ($request->has('approval')) {
+            $karyawan->approval = $request->approval ?? null;
+        }
         $karyawan->status = $request->status ?? $karyawan->status;
         $karyawan->update_at = now()->format('Y-m-d H:i:s');
         $karyawan->save();
 
-        // Jika departemen diubah menjadi 3 dan jabatan menjadi 2, buat sales otomatis
         $newDepartemen = $karyawan->departemen;
         $newJabatan = $karyawan->jabatan;
         
         if ($newDepartemen == 3 && $newJabatan == 2) {
-            // Cek apakah sales sudah ada untuk user_id ini
             $existingSales = Sales::where('user_id', $karyawan->user_id)->first();
             if (!$existingSales) {
-                // Hitung urutan berdasarkan jumlah sales yang ada + 1
                 $urutan = Sales::count() + 1;
                 
                 Sales::create([
@@ -332,7 +354,6 @@ class HrKaryawanController extends Controller
             ], 404);
         }
 
-        // Soft delete dengan mengubah status
         $karyawan->status = 'N';
         $karyawan->update_at = now()->format('Y-m-d H:i:s');
         $karyawan->save();
@@ -343,9 +364,6 @@ class HrKaryawanController extends Controller
         ]);
     }
 
-    /**
-     * Get karyawan by current logged in user
-     */
     public function getByCurrentUser(Request $request)
     {
         $user = auth()->guard('api')->user();
@@ -357,17 +375,26 @@ class HrKaryawanController extends Controller
             ], 401);
         }
 
-        // Cari karyawan berdasarkan user_id atau user (cek kedua field)
-        $karyawan = HrKaryawan::where(function($query) use ($user) {
-                $query->where('user_id', $user->user);
-            })
+        // User dari JWT guard('api') adalah UserLogin instance
+        // UserLogin memiliki kolom 'user' yang berisi ID dari tabel user
+        // HrKaryawan memiliki kolom 'user_id' yang merujuk ke ID user
+        $userId = $user->user ?? null;
+        
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User ID tidak ditemukan dari token. Silakan login ulang.'
+            ], 400);
+        }
+
+        $karyawan = HrKaryawan::where('user_id', $userId)
             ->where('status', '!=', 'N')
             ->first();
 
         if (!$karyawan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Karyawan tidak ditemukan untuk us: ' . $user->id
+                'message' => 'Karyawan tidak ditemukan untuk user ID: ' . $userId . '. Silakan hubungi admin untuk membuat data karyawan.'
             ], 404);
         }
 

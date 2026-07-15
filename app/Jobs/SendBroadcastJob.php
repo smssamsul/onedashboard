@@ -53,7 +53,7 @@ class SendBroadcastJob implements ShouldQueue
             $customer = Customer::find($this->customerId);
 
             if (!$order || !$customer || !$customer->wa) {
-                Log::warning('SendBroadcastJob: Data tidak lengkap', [
+                Log::channel('broadcast')->warning('SendBroadcastJob: Data tidak lengkap', [
                     'broadcast_id' => $this->broadcastId,
                     'order_id' => $this->orderId,
                     'customer_id' => $this->customerId
@@ -91,7 +91,7 @@ class SendBroadcastJob implements ShouldQueue
             try {
                 $renderedMessage = TemplateHelper::render($this->message, $templateData);
             } catch (\Exception $renderError) {
-                Log::error('Error rendering broadcast message', [
+                Log::channel('broadcast')->error('Error rendering broadcast message', [
                     'broadcast_id' => $this->broadcastId,
                     'error' => $renderError->getMessage(),
                     'message' => substr($this->message, 0, 100)
@@ -100,7 +100,7 @@ class SendBroadcastJob implements ShouldQueue
                 $renderedMessage = $this->message;
             }
 
-            Log::info('Mengirim Broadcast via Queue', [
+            Log::channel('broadcast')->info('Mengirim Broadcast via Queue', [
                 'broadcast_id' => $this->broadcastId,
                 'phone' => $customer->wa,
                 'customer_id' => $this->customerId,
@@ -108,56 +108,50 @@ class SendBroadcastJob implements ShouldQueue
                 'message_rendered' => substr($renderedMessage, 0, 50) . '...'
             ]);
 
-            $response = Http::asJson()
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->timeout(30)
-                ->post('https://notifapi.com/send_message', [
-                    'phone_no' => $customer->wa,
-                    'key'      => $this->woowaKey,
-                    'message'  => $renderedMessage,
-                ]);
-
-            $responseData = $response->json();
+            $waSender = app(\App\Services\WhatsAppSenderService::class);
+            
+            // Ambil salesId dari customer
+            $salesId = $customer->sales_id ?? null;
+            
+            $response = $waSender->sendMessage($customer->wa, $renderedMessage, $salesId, $this->woowaKey);
 
             if ($response->successful()) {
-                Log::info('Broadcast berhasil dikirim via Queue', [
+                Log::channel('broadcast')->info('Broadcast berhasil dikirim via Queue', [
                     'broadcast_id' => $this->broadcastId,
                     'phone' => $customer->wa,
                     'customer_id' => $this->customerId,
-                    'response' => $responseData
+                    'response' => $response->json()
                 ]);
 
                 // Simpan ke broadcast_penerima dengan status berhasil
                 $this->saveBroadcastPenerima(
                     $customer->wa,
                     '1',
-                    json_encode($responseData),
+                    json_encode($response->json()),
                     $renderedMessage
                 );
             } else {
-                Log::error('Gagal kirim Broadcast via Queue', [
+                Log::channel('broadcast')->error('Gagal kirim Broadcast via Queue', [
                     'broadcast_id' => $this->broadcastId,
                     'phone' => $customer->wa,
-                    'status' => $response->status(),
-                    'response' => $responseData
+                    'status_or_response' => $response->status(),
+                    'response_json' => $response->json(),
+                    'woowa_key' => $this->woowaKey,
                 ]);
 
                 // Simpan ke broadcast_penerima dengan status gagal
                 $this->saveBroadcastPenerima(
                     $customer->wa,
                     '0',
-                    json_encode($responseData),
+                    json_encode($response->json() ?? ['error' => 'Gagal via WA Sender', 'status' => $response->status()]),
                     $renderedMessage
                 );
                 
-                throw new \Exception('Gagal mengirim Broadcast: HTTP ' . $response->status());
+                throw new \Exception('Gagal mengirim Broadcast: ' . json_encode($response->json()));
             }
 
         } catch (\Exception $e) {
-            Log::error('Error di SendBroadcastJob', [
+            Log::channel('broadcast')->error('Error di SendBroadcastJob', [
                 'broadcast_id' => $this->broadcastId,
                 'order_id' => $this->orderId,
                 'customer_id' => $this->customerId,
@@ -211,7 +205,7 @@ class SendBroadcastJob implements ShouldQueue
                 'send_at' => now()->format('Y-m-d H:i:s'),
             ]);
         } catch (\Exception $e) {
-            Log::error('Gagal menyimpan broadcast_penerima', [
+            Log::channel('broadcast')->error('Gagal menyimpan broadcast_penerima', [
                 'broadcast_id' => $this->broadcastId,
                 'customer_id' => $this->customerId,
                 'notelp' => $notelp,
@@ -225,7 +219,7 @@ class SendBroadcastJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('SendBroadcastJob gagal setelah semua retry', [
+        Log::channel('broadcast')->error('SendBroadcastJob gagal setelah semua retry', [
             'broadcast_id' => $this->broadcastId,
             'order_id' => $this->orderId,
             'customer_id' => $this->customerId,
@@ -259,7 +253,7 @@ class SendBroadcastJob implements ShouldQueue
                             $renderedMsg = TemplateHelper::render($this->message, $templateData);
                         }
                     } catch (\Exception $renderError) {
-                        Log::warning('Gagal render message di failed handler', [
+                        Log::channel('broadcast')->warning('Gagal render message di failed handler', [
                             'error' => $renderError->getMessage()
                         ]);
                     }
@@ -273,7 +267,7 @@ class SendBroadcastJob implements ShouldQueue
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Gagal menyimpan broadcast_penerima di failed handler', [
+            Log::channel('broadcast')->error('Gagal menyimpan broadcast_penerima di failed handler', [
                 'broadcast_id' => $this->broadcastId,
                 'error' => $e->getMessage()
             ]);

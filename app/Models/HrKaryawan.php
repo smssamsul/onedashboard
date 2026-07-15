@@ -27,6 +27,8 @@ class HrKaryawan extends Model
         'shift',
         'alamat',
         'avatar_url',
+        'kuota_cuti',
+        'approval',
         'status',
         'create_at',
         'update_at',
@@ -43,7 +45,7 @@ class HrKaryawan extends Model
      */
     public function user_rel()
     {
-        return $this->belongsTo(User::class, 'user', 'id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     /**
@@ -60,6 +62,14 @@ class HrKaryawan extends Model
     public function shift_rel()
     {
         return $this->belongsTo(HrShift::class, 'shift', 'id');
+    }
+
+    /**
+     * Relasi ke HrKaryawan (approval direksi)
+     */
+    public function approval_rel()
+    {
+        return $this->belongsTo(HrKaryawan::class, 'approval', 'id');
     }
 
 }

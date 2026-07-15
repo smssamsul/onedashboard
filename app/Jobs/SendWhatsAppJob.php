@@ -23,7 +23,8 @@ class SendWhatsAppJob implements ShouldQueue
     public function __construct(
         public string $phoneNo,
         public string $message,
-        public string $woowaKey
+        public string $woowaKey,
+        public ?int $salesId = null
     ) {
         // Konfigurasi queue (opsional)
         // $this->onQueue('whatsapp'); // Nama queue spesifik
@@ -35,41 +36,31 @@ class SendWhatsAppJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info('Mengirim WhatsApp via Queue', [
+            Log::channel('woowa')->info('Mengirim WhatsApp via Queue', [
                 'phone' => $this->phoneNo,
                 'message' => substr($this->message, 0, 50) . '...'
             ]);
 
-            $response = Http::asJson()
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
-                ])
-                ->timeout(30)
-                ->post('https://notifapi.com/send_message', [
-                    'phone_no' => $this->phoneNo,
-                    'key'      => $this->woowaKey,
-                    'message'  => $this->message,
-                ]);
+            $waSender = app(\App\Services\WhatsAppSenderService::class);
+            $response = $waSender->sendMessage($this->phoneNo, $this->message, $this->salesId, $this->woowaKey);
 
             if ($response->successful()) {
-                Log::info('WhatsApp berhasil dikirim via Queue', [
+                Log::channel('woowa')->info('WhatsApp berhasil dikirim via Queue', [
                     'phone' => $this->phoneNo,
                     'response' => $response->json()
                 ]);
             } else {
-                Log::error('Gagal kirim WhatsApp via Queue', [
+                Log::channel('woowa')->error('Gagal kirim WhatsApp via Queue', [
                     'phone' => $this->phoneNo,
-                    'status' => $response->status(),
-                    'response' => $response->json()
+                    'status_or_response' => $response->status(),
                 ]);
                 
                 // Throw exception agar job di-retry
-                throw new \Exception('Gagal mengirim WhatsApp: HTTP ' . $response->status());
+                throw new \Exception('Gagal mengirim WhatsApp. Status: ' . $response->status());
             }
 
         } catch (\Exception $e) {
-            Log::error('Error di SendWhatsAppJob', [
+            Log::channel('woowa')->error('Error di SendWhatsAppJob', [
                 'phone' => $this->phoneNo,
                 'error' => $e->getMessage()
             ]);
@@ -84,7 +75,7 @@ class SendWhatsAppJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('SendWhatsAppJob gagal setelah semua retry', [
+        Log::channel('woowa')->error('SendWhatsAppJob gagal setelah semua retry', [
             'phone' => $this->phoneNo,
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString()

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasActivityLog;
 use App\Models\User;
+use App\Models\OrderCustomer;
 use Illuminate\Support\Facades\DB;
 
 class Produk extends Model
@@ -16,6 +17,9 @@ class Produk extends Model
 
     protected $fillable = [
         'kategori',
+        'kota',
+        'tempat',
+        'alamat',
         'user_input',
         'kode',
         'nama',
@@ -41,11 +45,14 @@ class Produk extends Model
         'gtm',
         'video',
         'trainer',
+        'fee_trainer',
+        'post',
+        'tampil_jadwal',
     ];
 
     public $timestamps = false;
 
-    protected $appends = ['assign_users'];
+    protected $appends = ['assign_users', 'post_rel'];
 
     protected $casts = [
         'gambar'    => 'array',
@@ -57,6 +64,8 @@ class Produk extends Model
         'event_fb_pixel' => 'array',
         'gtm' => 'array',
         'video' => 'array',
+        'post' => 'array',
+        'fee_trainer' => 'decimal:2',
     ];
 
     // Accessor untuk landingpage - decode JSON jika string
@@ -104,6 +113,11 @@ class Produk extends Model
         return $this->belongsTo(User::class, 'trainer', 'id');
     }
 
+    public function orders()
+    {
+        return $this->hasMany(OrderCustomer::class, 'produk', 'id');
+    }
+
     public function webinar()
     {
         return $this->hasOne(Webinar::class, 'produk', 'id');
@@ -115,6 +129,90 @@ class Produk extends Model
     public function bundling_rel()
     {
         return $this->hasMany(ProdukBundling::class, 'produk', 'id');
+    }
+
+    /**
+     * Relasi ke ProdukJadwal
+     */
+    public function jadwal_rel()
+    {
+        return $this->hasMany(ProdukJadwal::class, 'produk_id', 'id');
+    }
+
+    /**
+     * Accessor untuk mendapatkan data Post dari array ID
+     */
+    public function getPostRelAttribute()
+    {
+        if (!$this->id) {
+            return [];
+        }
+
+        try {
+            // Ambil raw value dari attributes untuk handle JSON string
+            $rawPost = $this->attributes['post'] ?? null;
+            
+            if (empty($rawPost)) {
+                return [];
+            }
+
+            $postIds = [];
+            
+            // Handle jika berupa string JSON (format: "[1,3]")
+            if (is_string($rawPost)) {
+                $decoded = json_decode($rawPost, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $postIds = $decoded;
+                } else {
+                    // Jika decode gagal, coba decode lagi (double encoded)
+                    $decoded = json_decode($decoded, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $postIds = $decoded;
+                    }
+                }
+            } 
+            // Handle jika sudah berupa array
+            elseif (is_array($rawPost)) {
+                $postIds = $rawPost;
+            }
+            
+            if (empty($postIds) || !is_array($postIds)) {
+                return [];
+            }
+
+            // Filter hanya integer yang valid
+            $validIds = [];
+            foreach ($postIds as $id) {
+                $intId = (int)$id;
+                if ($intId > 0) {
+                    $validIds[] = $intId;
+                }
+            }
+
+            if (empty($validIds)) {
+                return [];
+            }
+
+            $posts = Post::whereIn('id', $validIds)
+                ->select('id', 'title', 'slug', 'status')
+                ->get();
+
+            if ($posts->isEmpty()) {
+                return [];
+            }
+
+            return $posts->map(function($post) {
+                return [
+                    'id' => (int)$post->id,
+                    'title' => $post->title ?? '',
+                    'slug' => $post->slug ?? '',
+                    'status' => $post->status ?? '',
+                ];
+            })->values()->toArray();
+
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     public function getAssignUsersAttribute()
