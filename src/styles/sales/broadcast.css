@@ -1,0 +1,202 @@
+/* ===========================
+BROADCAST PAGE STYLES
+=========================== */
+
+/* Broadcast Table - 9 columns: #, Nama, Pesan, Tanggal Kirim, Target, Total Target, Status, Dibuat, Actions */
+.broadcast-table__wrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.broadcast-table__wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.broadcast-table__wrapper::-webkit-scrollbar-thumb {
+  background: var(--dash-border);
+  border-radius: 999px;
+}
+
+.broadcast-table__wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.broadcast-table {
+  width: 100%;
+  min-width: 1200px;
+  display: grid;
+  gap: 0;
+}
+
+.broadcast-table__head {
+  display: grid;
+  grid-template-columns: 50px minmax(150px, 1.2fr) minmax(200px, 1.5fr) minmax(160px, 1.2fr) minmax(180px, 1.3fr) minmax(100px, 0.9fr) minmax(100px, 0.9fr) minmax(160px, 1.2fr) minmax(100px, 0.8fr);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--dash-bg);
+  border-bottom: 2px solid var(--dash-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dash-muted-strong);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.broadcast-table__body {
+  display: grid;
+  gap: 0;
+}
+
+.broadcast-table__row {
+  display: grid;
+  grid-template-columns: 50px minmax(150px, 1.2fr) minmax(200px, 1.5fr) minmax(160px, 1.2fr) minmax(180px, 1.3fr) minmax(100px, 0.9fr) minmax(100px, 0.9fr) minmax(160px, 1.2fr) minmax(100px, 0.8fr);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  align-items: center;
+}
+
+.broadcast-table__row:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.broadcast-table__cell {
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  min-width: 0;
+  word-break: break-word;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+}
+
+.broadcast-table__cell--strong {
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.broadcast-table__cell--actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.broadcast-action-btn {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.broadcast-action-btn:hover {
+  background: var(--dash-bg);
+  border-color: var(--accent-indigo);
+  color: var(--accent-indigo);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.broadcast-action-btn:active {
+  transform: translateY(0);
+}
+
+.broadcast-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.broadcast-toolbar-buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.broadcast-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.broadcast-button--primary {
+  background: var(--accent-indigo);
+  color: #fff;
+}
+
+.broadcast-button--primary:hover {
+  background: #4f46e5;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+
+.broadcast-button--primary:active {
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .broadcast-table__head,
+  .broadcast-table__row {
+    grid-template-columns: 40px minmax(120px, 1fr) minmax(150px, 1.2fr) minmax(140px, 1fr) minmax(150px, 1.2fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(140px, 1fr) minmax(90px, 0.7fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .broadcast-table__head,
+  .broadcast-table__row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .broadcast-table__head {
+    display: none;
+  }
+
+  .broadcast-table__cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--dash-border);
+  }
+
+  .broadcast-table__cell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--dash-muted-strong);
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  .broadcast-table__cell--actions {
+    justify-content: flex-start;
+  }
+}

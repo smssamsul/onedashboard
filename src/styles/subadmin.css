@@ -1,0 +1,31 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+.subadmin-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f4f6f9;
+}
+
+.subadmin-card {
+  background: #fff;
+  padding: 40px 60px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.subadmin-card h1 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.subadmin-card p {
+  font-size: 16px;
+  color: #555;
+}

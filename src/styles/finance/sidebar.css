@@ -1,0 +1,347 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+:root {
+  --sidebar-width: 16rem;
+  --sidebar-compact-width: 4.5rem;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-accent: #ff6c00;
+  --sidebar-accent-soft: #fff4ea;
+  --sidebar-text: #374151;
+  --sidebar-muted: #9ca3af;
+  --sidebar-shadow: none;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 15rem;
+  padding: 0.9rem;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: width 200ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+
+.sidebar--tablet.sidebar--compact,
+.sidebar--mobile {
+  width: var(--sidebar-compact-width);
+}
+
+.sidebar--mobile {
+  transform: translateX(-110%);
+  padding: 1rem;
+}
+
+.sidebar--mobile.sidebar--open {
+  transform: translateX(0);
+}
+
+.sidebar--mobile.sidebar--closed {
+  pointer-events: none;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-logo,
+.sidebar--tablet.sidebar--compact .sidebar-footer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-logo img {
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
+.sidebar-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.84rem;
+  line-height: 1.25rem;
+  color: var(--sidebar-text);
+  transition: background 140ms ease, color 140ms ease;
+  border: none;
+}
+
+.sidebar-item svg {
+  color: var(--sidebar-muted);
+  transition: color 160ms ease;
+}
+
+.sidebar-item:hover {
+  background: rgba(255, 108, 0, 0.06);
+  color: var(--sidebar-text);
+}
+
+.sidebar-item:hover svg {
+  color: var(--sidebar-muted);
+}
+
+.sidebar-item-active {
+  background: var(--sidebar-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.sidebar-item-active svg {
+  color: #ffffff;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sidebar-border);
+  font-size: 0.8rem;
+  color: var(--sidebar-muted);
+  text-align: center;
+}
+
+.sidebar-toggle-btn {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: var(--sidebar-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  z-index: 60;
+}
+
+.sidebar-toggle-btn:hover,
+.sidebar-toggle-btn--active {
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  border: none;
+  z-index: 40;
+}
+
+/* =======================
+   Compact (tablet) tweaks
+   ======================= */
+.sidebar--tablet.sidebar--compact .sidebar-item {
+  justify-content: center;
+  padding: 0.55rem 0;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item span,
+.sidebar--tablet.sidebar--compact .submenu-list,
+.sidebar--tablet.sidebar--compact .sidebar-footer {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.sidebar--tablet.sidebar--compact .submenu-list {
+  display: none;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item.has-submenu svg:last-child {
+  display: none;
+}
+
+/* =======================
+   Mobile drawer spacing
+   ======================= */
+.sidebar--mobile .sidebar-menu {
+  gap: 0.6rem;
+}
+
+.sidebar--mobile .sidebar-footer {
+  text-align: left;
+}
+
+/* === SUBMENU (Modern + Icon + Smooth) === */
+.submenu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.25rem;
+  margin-left: 1rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid #e5e7eb;
+}
+
+.submenu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  color: #4b5563;
+  border-radius: 0.5rem;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+/* Subtle hover only (professional) */
+.submenu-item:hover {
+  background: rgba(255, 108, 0, 0.06);
+}
+
+.submenu-item-active {
+  background: rgba(255, 108, 0, 0.12);
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+
+/* === Dropdown Header (Products) === */
+.sidebar-item.has-submenu {
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.sidebar-item.has-submenu svg {
+  color: #9ca3af;
+  transition: transform 200ms ease, color 200ms ease;
+}
+
+.sidebar-item.has-submenu.open svg {
+  transform: rotate(90deg);
+  color: var(--sidebar-accent);
+}
+
+/* === FIX: Icon warna saat item aktif / ada submenu === */
+.sidebar-item svg {
+  color: var(--sidebar-muted);
+  transition: color 180ms ease;
+}
+
+/* Hover efek */
+.sidebar-item:hover svg {
+  color: var(--sidebar-accent);
+}
+
+/* Warna ikon saat item aktif */
+.sidebar-item-active svg {
+  color: #ffffff;
+}
+
+/* Item yang punya submenu dan sedang terbuka */
+.sidebar-item.has-submenu.open svg:first-child {
+  color: var(--sidebar-accent);
+}
+
+/* Icon dropdown panah kanan/bawah */
+.sidebar-item.has-submenu svg:last-child {
+  color: #9ca3af;
+  transition: transform 200ms ease, color 200ms ease;
+}
+
+.sidebar-item.has-submenu.open svg:last-child {
+  color: var(--sidebar-accent);
+  transform: rotate(90deg);
+}
+/* Biar pas dibuka tetap gaya hover, bukan full putih/oranye */
+.sidebar-item.has-submenu.open {
+  background: var(--sidebar-accent-soft);
+  color: var(--sidebar-accent);
+  border-color: transparent;
+}
+
+.sidebar-item.has-submenu.open svg:first-child {
+  color: var(--sidebar-accent);
+}
+
+/* panah tetap oranye & muter 90° */
+.sidebar-item.has-submenu.open svg:last-child {
+  color: var(--sidebar-accent);
+  transform: rotate(90deg);
+}
+/* ==========================================================
+   CONTENT POSITIONING SAAT ADA / TIDAK ADA SIDEBAR
+   ========================================================== */
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  transition: margin 200ms ease, width 200ms ease;
+}
+
+.no-sidebar .main-content {
+  margin-left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center horizontal */
+  align-items: center;     /* kalau mau vertikal juga */
+  min-height: 100vh;       /* biar tetap full tinggi */
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    height: 100vh;
+  }
+
+  .main-content {
+    margin-left: var(--sidebar-compact-width);
+    width: calc(100% - var(--sidebar-compact-width));
+  }
+
+  .sidebar--tablet.sidebar--compact + .main-content,
+  .sidebar--mobile + .main-content {
+    margin-left: var(--sidebar-compact-width);
+  }
+
+  .sidebar--mobile + .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    width: min(320px, 85vw);
+    transform: translateX(-110%);
+  }
+
+  .sidebar-toggle-btn {
+    bottom: 1rem;
+    left: 1rem;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}

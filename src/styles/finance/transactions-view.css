@@ -1,0 +1,125 @@
+/* ============================================
+   FINANCE TRANSACTIONS VIEW MODAL - Detail List Style
+   (Mirror dari sales/orders/viewOrders.js tapi dengan style terpisah)
+   ============================================ */
+
+/* Detail List - Tidak ada overflow, biarkan parent yang handle scroll */
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.5rem 0;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.detail-item:hover {
+  background-color: #fafbfc;
+  margin: 0 -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 6px;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #6b7280;
+  min-width: 180px;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+}
+
+.detail-colon {
+  color: #d1d5db;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.detail-value {
+  font-size: 0.9375rem;
+  color: #111827;
+  line-height: 1.6;
+  word-break: break-word;
+  flex: 1;
+  font-weight: 500;
+}
+
+/* Placeholder styling untuk value kosong */
+.detail-value:empty::before {
+  content: "—";
+  color: #9ca3af;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.detail-section {
+  margin-bottom: 1rem;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.75rem;
+  margin-top: 0;
+}
+
+.detail-section-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 1.25rem 0;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .detail-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem 0;
+  }
+
+  .detail-label {
+    font-size: 0.75rem;
+    min-width: auto;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-colon {
+    display: none;
+  }
+
+  .detail-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .detail-section-title {
+    font-size: 0.875rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+    color: #64748b;
+  }
+}

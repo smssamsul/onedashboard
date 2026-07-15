@@ -1,0 +1,51 @@
+/* ====== ERROR 404 PAGE (Animated) ====== */
+body {
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.error404-container {
+  @apply flex flex-col items-center justify-center min-h-screen text-center;
+  background: #F1A124;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.error404-box {
+  @apply bg-white p-10 rounded-2xl shadow-2xl border border-gray-200;
+  animation: fadeIn 1.2s ease-in-out;
+}
+
+.error404-title {
+  @apply text-8xl font-extrabold text-[#F1A124] mb-4;
+  animation: float 3s ease-in-out infinite;
+}
+
+.error404-subtitle {
+  @apply text-2xl font-semibold text-gray-800 mb-2;
+  animation: fadeIn 1.5s ease-in-out;
+}
+
+.error404-desc {
+  @apply text-gray-600 mb-8 max-w-md mx-auto;
+  animation: fadeIn 1.8s ease-in-out;
+}
+
+.error404-btn {
+  @apply inline-block bg-[#F1A124] text-white font-medium px-6 py-2 rounded-xl transition-all duration-300;
+  box-shadow: 0 4px 14px rgba(241, 161, 36, 0.3);
+}
+
+.error404-btn:hover {
+  @apply bg-[#d98f1e];
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(241, 161, 36, 0.4);
+}

@@ -1,0 +1,439 @@
+/* WordPress Classic Editor Styles for ArticleEditor */
+
+.wp-classic-editor-wrapper {
+    background: #f1f1f1;
+    padding: 24px;
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    color: #444;
+}
+
+.wp-title-container {
+    margin-bottom: 20px;
+}
+
+.wp-title-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 1.7em;
+    line-height: normal;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+    outline: none;
+    background-color: #fff;
+    color: #32373c;
+    transition: border-color 0.05s ease-in-out;
+}
+
+.wp-title-input:focus {
+    border-color: #00a0d2;
+    box-shadow: 0 0 2px rgba(0, 160, 210, 0.8);
+}
+
+.wp-title-input::placeholder {
+    color: #aaa;
+}
+
+.wp-permalink-line {
+    margin: -10px 0 15px 5px;
+    font-size: 13px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.permalink-input {
+    border: 1px solid #ddd;
+    padding: 2px 5px;
+    font-size: 13px;
+    color: #666;
+    border-radius: 2px;
+}
+
+.permalink-edit-btn {
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.wp-editor-box {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Menubar Styles */
+.wordpress-menubar-container {
+    background: #fff;
+}
+
+.menubar-top-row {
+    padding: 10px 10px 0 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.wp-add-media-btn {
+    background: #f7f7f7 !important;
+    border: 1px solid #ccc !important;
+    padding: 4px 10px !important;
+    border-radius: 3px !important;
+    font-size: 13px !important;
+    color: #555 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 0 #ccc !important;
+    margin-bottom: 5px !important;
+}
+
+.wp-add-media-btn:hover {
+    background: #fafafa !important;
+    border-color: #999 !important;
+    color: #23282d !important;
+}
+
+.view-mode-switch {
+    display: flex;
+    gap: 2px;
+}
+
+.mode-btn {
+    padding: 5px 12px;
+    background: #ebebeb;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    border-radius: 3px 3px 0 0;
+}
+
+.mode-btn.active {
+    background: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+    color: #32373c;
+}
+
+.wordpress-main-toolbar {
+    padding: 6px 8px;
+    background: #f7f7f7;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.toolbar-left-side {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.wp-format-select {
+    padding: 2px 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #32373c;
+    background: #fff;
+    height: 28px;
+}
+
+.wp-divider {
+    width: 1px;
+    height: 20px;
+    background: #ddd;
+    margin: 0 4px;
+}
+
+.wp-toolbar-btn {
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #f7f7f7 !important;
+    border: 1px solid #ccc !important;
+    border-radius: 3px !important;
+    color: #555 !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 0 #ccc !important;
+    transition: all 0.1s !important;
+    padding: 0 !important;
+}
+
+.wp-toolbar-btn:hover {
+    background: #fafafa !important;
+    border-color: #999 !important;
+    color: #23282d !important;
+}
+
+.wp-toolbar-btn.is-active {
+    background: #eee !important;
+    border-color: #999 !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.wp-toolbar-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* Content Area */
+.wp-visual-area {
+    padding: 20px 30px;
+    min-height: 450px;
+}
+
+.wp-text-area {
+    padding: 0;
+}
+
+.wp-raw-textarea {
+    width: 100%;
+    min-height: 450px;
+    border: none;
+    outline: none;
+    padding: 20px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #32373c;
+    resize: vertical;
+    background: #fff;
+}
+
+.wp-editor-status-footer {
+    padding: 6px 10px;
+    background: #f7f7f7;
+    border-top: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+}
+
+.wp-actions-floating {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-wp-draft {
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    box-shadow: 0 1px 0 #ccc;
+}
+
+.btn-wp-publish {
+    background: #007cba;
+    border-color: #006799;
+    box-shadow: 0 1px 0 #006799;
+    color: #fff;
+    padding: 8px 24px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-wp-publish:hover {
+    background: #008ec2;
+    border-color: #006799;
+    color: #fff;
+}
+
+.btn-wp-publish:disabled {
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+}
+
+/* ArticleWithTags Styles */
+.editor-with-tags {
+    display: flex;
+    flex-direction: column;
+}
+
+.tags-section {
+    padding: 40px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: #1e293b;
+}
+
+.section-header h3 {
+    margin: 0 !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.section-desc {
+    color: #64748b;
+    font-size: 15px;
+    margin-bottom: 30px;
+    max-width: 600px;
+}
+
+.products-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.product-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-checkbox-label:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.product-checkbox-label.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    box-shadow: inset 0 0 0 1px #3b82f6;
+}
+
+.product-checkbox-label input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: #3b82f6;
+}
+
+.product-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.p-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.p-code {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+    outline: none;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #32373c;
+}
+
+.ProseMirror a {
+    color: #2271b1;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ProseMirror a:hover {
+    color: #135e96;
+}
+
+.ProseMirror p {
+    margin-bottom: 1.2em;
+}
+
+.ProseMirror h1 {
+    font-size: 2em;
+    margin: 0.67em 0;
+}
+
+.ProseMirror h2 {
+    font-size: 1.5em;
+    margin: 0.75em 0;
+}
+
+.ProseMirror h3 {
+    font-size: 1.17em;
+    margin: 0.83em 0;
+}
+
+/* List & Quote Styles */
+.ProseMirror ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 1.2em;
+}
+
+.ProseMirror ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+    margin-bottom: 1.2em;
+}
+
+.ProseMirror li {
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror blockquote {
+    border-left: 4px solid #ddd;
+    padding-left: 1em;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 1.2em;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Image styling in editor - Smaller and Centered */
+.ProseMirror img {
+    max-width: 50%;
+    height: auto;
+    display: block;
+    margin: 24px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.ProseMirror img.is-selected {
+    outline: 3px solid #001e3c;
+}

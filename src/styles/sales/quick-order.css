@@ -1,0 +1,109 @@
+/* Order Cepat — mobile & narrow layouts */
+
+.quick-order-root {
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .quick-order-root {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .quick-order-header {
+    margin-bottom: 1rem !important;
+  }
+
+  .quick-order-header-row {
+    align-items: flex-start !important;
+  }
+
+  .quick-order-title-block h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .quick-order-title-block p {
+    font-size: 0.8125rem !important;
+    line-height: 1.45 !important;
+  }
+
+  /* FAB scroll-to-top menutupi form di layar sempit — sembunyikan (scroll manual) */
+  .quick-order-scroll-fab {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Pembeli: satu kolom penuh */
+  .quick-order-buyer-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .quick-order-buyer-row > label {
+    flex: 1 1 auto !important;
+    min-width: 100% !important;
+  }
+
+  /* Kartu produk: konten dulu, tombol lebar penuh */
+  .quick-order-product-card {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .quick-order-product-card .quick-order-order-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .quick-order-root {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+  }
+}
+
+/* Pencarian: ikon + input satu baris (hindari absolute yang lepas dari wrapper) */
+.quick-order-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--dash-border, #e9ecef);
+  border-radius: 0.5rem;
+  background: var(--dash-surface, #ffffff);
+  padding: 0 0.65rem 0 0.75rem;
+  min-height: 2.65rem;
+  box-sizing: border-box;
+}
+
+.quick-order-search-wrap:focus-within {
+  border-color: var(--primary, #ea580c);
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.12);
+}
+
+.quick-order-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--dash-text, #344767);
+  outline: none;
+}
+
+.quick-order-search-input::placeholder {
+  color: var(--dash-muted, #67748e);
+}
+
+.quick-order-search-icon {
+  flex-shrink: 0;
+  color: var(--dash-muted, #67748e);
+}
+
+.quick-order-toolbar {
+  width: 100%;
+}

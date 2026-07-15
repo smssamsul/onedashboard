@@ -1,0 +1,327 @@
+.pengiriman-resi-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.pengiriman-resi-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pengiriman-resi-title-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.pengiriman-resi-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.pengiriman-resi-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: #0f172a;
+}
+
+.pengiriman-resi-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.pengiriman-resi-link-orders {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid #e2e8f0;
+  transition: background 0.15s ease;
+}
+
+.pengiriman-resi-link-orders:hover {
+  background: #e2e8f0;
+}
+
+.pengiriman-resi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pengiriman-resi-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.pengiriman-resi-search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.pengiriman-resi-filter-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pengiriman-resi-filter-status label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pengiriman-resi-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem 0.55rem 2.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #0f172a;
+}
+
+.pengiriman-resi-search .pengiriman-resi-input {
+  padding-left: 2.25rem;
+}
+
+.pengiriman-resi-input-narrow {
+  padding-left: 0.75rem;
+  min-width: 140px;
+  width: auto;
+}
+
+.pengiriman-resi-btn-secondary,
+.pengiriman-resi-btn-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+}
+
+.pengiriman-resi-btn-secondary:hover:not(:disabled),
+.pengiriman-resi-btn-sync:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.pengiriman-resi-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pengiriman-resi-btn-sync {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.pengiriman-resi-table-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: auto;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.pengiriman-resi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.pengiriman-resi-table th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.pengiriman-resi-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #1e293b;
+}
+
+.pengiriman-resi-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pengiriman-resi-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem 1rem !important;
+}
+
+.pengiriman-resi-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+}
+
+.pengiriman-resi-resi {
+  word-break: break-all;
+}
+
+.pengiriman-resi-cell-muted {
+  color: #64748b;
+  max-width: 200px;
+}
+
+.pengiriman-resi-badge {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: #ecfeff;
+  color: #0e7490;
+  font-size: 0.75rem;
+  font-weight: 600;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pengiriman-resi-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pengiriman-resi-pager-info {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.pengiriman-resi-pager-btns {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pengiriman-resi-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.pengiriman-resi-icon-btn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.pengiriman-resi-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pengiriman-resi-btn-sync:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* Tracking button */
+.pengiriman-resi-btn-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pengiriman-resi-btn-track:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* Cetak Resi button */
+.pengiriman-resi-btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pengiriman-resi-btn-label:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.pengiriman-resi-btn-label:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+
+@keyframes pengiriman-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pengiriman-resi-page .spin {
+  animation: pengiriman-spin 0.8s linear infinite;
+}

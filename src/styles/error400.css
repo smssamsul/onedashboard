@@ -1,0 +1,51 @@
+/* ====== ERROR 400 PAGE (Animated) ====== */
+
+.body{
+    font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+
+}
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.error400-container {
+  @apply flex flex-col items-center justify-center min-h-screen text-center;
+  background: #F1A124;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.error400-box {
+  @apply bg-white p-10 rounded-2xl shadow-2xl border border-orange-100;
+  animation: fadeIn 1.2s ease-in-out;
+}
+
+.error400-title {
+  @apply text-8xl font-extrabold text-[#F1A124] mb-4;
+  animation: shake 1.5s ease-in-out infinite;
+}
+
+.error400-subtitle {
+  @apply text-2xl font-semibold text-gray-800 mb-2;
+}
+
+.error400-desc {
+  @apply text-gray-600 mb-8 max-w-md mx-auto;
+}
+
+.error400-btn {
+  @apply inline-block bg-[#F1A124] text-white font-medium px-6 py-2 rounded-xl transition-all duration-300;
+  box-shadow: 0 4px 14px rgba(241, 161, 36, 0.3);
+}
+
+.error400-btn:hover {
+  @apply bg-[#d98f1e];
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(241, 161, 36, 0.4);
+}

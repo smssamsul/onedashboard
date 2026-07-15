@@ -1,0 +1,117 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+/* ====== OTP PAGE STYLE (Ternak Properti Theme - Clean Version) ====== */
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.otp-container {
+  @apply flex flex-col items-center justify-center min-h-screen bg-[#F1A124] text-center;
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.otp-box {
+  @apply bg-white p-8 rounded-2xl shadow-lg border border-gray-200 max-w-md w-full;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.otp-title {
+  @apply text-3xl font-extrabold text-[#F1A124] mb-3;
+  animation: float 3s ease-in-out infinite;
+}
+
+.otp-desc {
+  @apply text-gray-600 text-sm mb-8;
+}
+
+.otp-input-group {
+  @apply flex justify-center gap-3 mb-6;
+}
+
+.otp-input {
+  @apply w-12 h-12 text-center border border-gray-300 rounded-lg text-xl font-bold text-gray-800 focus:outline-none focus:border-[#F1A124];
+  transition: all 0.2s ease;
+}
+
+.otp-input:focus {
+  box-shadow: 0 0 6px rgba(241, 161, 36, 0.25);
+}
+
+.otp-btn {
+  @apply bg-[#F1A124] text-white font-medium px-6 py-2 rounded-xl w-full transition-all duration-300 cursor-pointer;
+  border: none;
+  outline: none;
+  box-shadow: 0 3px 10px rgba(241, 161, 36, 0.25);
+}
+
+.otp-btn--primary {
+  @apply bg-[#F1A124] text-white;
+}
+
+.otp-btn:hover:not(:disabled) {
+  @apply bg-[#d98f1e];
+  transform: translateY(-2px);
+  box-shadow: 0 5px 16px rgba(241, 161, 36, 0.35);
+}
+
+.otp-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.otp-label {
+  @apply block text-sm font-medium text-gray-700 mb-2 text-left;
+}
+
+.otp-phone-input-wrapper {
+  @apply mb-6;
+}
+
+.otp-phone-input {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-800 focus:outline-none focus:border-[#F1A124] transition-all;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.otp-phone-input:focus {
+  box-shadow: 0 0 6px rgba(241, 161, 36, 0.25);
+}
+
+.otp-phone-input:disabled {
+  @apply bg-gray-100 cursor-not-allowed;
+}
+
+.otp-message {
+  @apply text-sm mb-4 font-medium;
+  color: #d97706;
+}
+
+.otp-message--success {
+  color: #059669;
+}
+
+.otp-message--error {
+  color: #dc2626;
+}
+
+/* 🔸 Kirim ulang kode jadi teks link biasa, bukan button */
+.otp-resend {
+  @apply mt-4 text-sm text-[#F1A124] font-medium cursor-pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.otp-resend:hover {
+  @apply text-[#d98f1e];
+  text-decoration: none;
+}

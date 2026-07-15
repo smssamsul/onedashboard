@@ -1,0 +1,93 @@
+/* src/app/sales/sales-list/sales-list.css */
+
+/* Override specific to sales list to avoid overflow if needed */
+.sales-list-table-wrapper .data-table {
+    min-width: auto !important;
+    /* Override the 1200px min-width from shared-table if we want to fit in screen */
+    width: 100%;
+}
+
+.sales-list-header {
+    margin-bottom: 2rem;
+}
+
+.sales-list-header h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.sales-list-header p {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.sales-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.sales-badge.active {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.sales-badge.inactive {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+/* === COPIED FROM DASHBOARD PREMIUM CSS (PANEL STYLES for "Big Card") === */
+.panel {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 1.25rem;
+    /* 20px */
+    padding: 2rem;
+    /* 32px */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    /* 24px */
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    transition: box-shadow 200ms ease;
+    margin-top: 1.5rem;
+}
+
+.panel:hover {
+    box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.12), 0 2px 6px 0 rgba(0, 0, 0, 0.08);
+}
+
+.panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.panel__eyebrow {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #67748e;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.25;
+}
+
+.panel__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #252f40;
+    margin: 0;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}

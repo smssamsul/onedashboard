@@ -1,0 +1,39 @@
+/* Import PrimeReact & Icons - harus di awal sebelum @tailwind */
+@import "primereact/resources/themes/lara-light-blue/theme.css";
+@import "primereact/resources/primereact.min.css";
+@import "primeicons/primeicons.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Style tambahan */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-base: "Inter", "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

@@ -1,0 +1,159 @@
+/* ============================================
+   PROGRESS STEPPER - Onboarding Flow
+   ============================================ */
+
+.onboarding-stepper {
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-8);
+}
+
+.stepper-header {
+    margin-bottom: var(--space-8);
+}
+
+.stepper-header h3 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+}
+
+.stepper-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+/* Connecting Line */
+.stepper-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    /* Half of circle size (48px) */
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--gray-200);
+    z-index: 0;
+    transform: translateY(-50%);
+}
+
+.stepper-item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+}
+
+/* Step Circle */
+.step-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: var(--bg-primary);
+    border: 2px solid var(--gray-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-bold);
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-3);
+    transition: all var(--transition-base);
+    box-shadow: 0 0 0 4px var(--bg-primary);
+    /* Masks the line */
+}
+
+/* Step States */
+.stepper-item.completed .step-circle {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--white);
+}
+
+.stepper-item.active .step-circle {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--white);
+    box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.stepper-item.locked .step-circle {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--gray-400);
+}
+
+/* Content */
+.step-content h4 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--text-secondary);
+    transition: color var(--transition-base);
+}
+
+.stepper-item.active .step-content h4 {
+    color: var(--primary);
+}
+
+.stepper-item.completed .step-content h4 {
+    color: var(--text-primary);
+}
+
+.step-content p {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    max-width: 140px;
+    margin: 0 auto;
+}
+
+/* Active Line Fill Logic would require JS or extra CSS relative to items, 
+   simplifying by relying on state colors */
+
+/* Responsive Vertical Layout */
+@media (max-width: 768px) {
+    .stepper-wrapper {
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    .stepper-wrapper::before {
+        top: 24px;
+        left: 24px;
+        width: 2px;
+        height: 100%;
+        transform: translateX(-50%);
+    }
+
+    .stepper-item {
+        flex-direction: row;
+        align-items: flex-start;
+        text-align: left;
+        gap: var(--space-4);
+    }
+
+    .step-circle {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .step-content p {
+        margin: 0;
+        max-width: none;
+        text-align: left;
+    }
+}

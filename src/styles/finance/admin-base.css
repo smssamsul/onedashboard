@@ -1,0 +1,623 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+/* ===========================
+ADMIN FOLLOWUP PAGE STYLE (MATCH KATEGORI & USERS)
+=========================== */
+
+/* ==== ROOT VARIABLES ==== */
+:root {
+--primary: #3B82F6;
+--primary-hover: #2563EB;
+--success: #4ADE80;
+--warning: #FACC15;
+--danger: #F87171;
+--gray-bg: #F9FAFB;
+--gray-border: #E5E7EB;
+--gray-text: #6B7280;
+--dark-text: #111827;
+--white: #ffffff;
+--radius: 8px;
+--shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* === PAGE BASE === */
+body {
+background: var(--gray-bg);
+color: var(--dark-text);
+font-size: 0.9rem;
+margin: 0;
+padding: 0;
+}
+
+.admin-followup-page {
+max-width: 3000px;
+margin: 0 auto;
+padding: 0;
+font-size: 0.9rem;
+}
+
+/* === HEADER === */
+.admin-followup-page .admin-header {
+background: var(--white);
+border-radius: var(--radius);
+box-shadow: var(--shadow);
+padding: 1rem 1.2rem;
+margin-bottom: 1rem;
+  margin-right: 20px;
+margin-left: 275px;
+margin-top: 20px;
+}
+
+.admin-followup-page .admin-title {
+font-size: 1.1rem;
+font-weight: 600;
+color: var(--dark-text);
+margin-bottom: 0.6rem;
+border-bottom: 1px solid var(--gray-border);
+padding-bottom: 0.5rem;
+
+}
+
+/* === HEADER ACTIONS (BUTTON + SEARCH) === */
+.admin-followup-page .admin-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* start dulu, biar ga meledak ke ujung */
+  gap: -10rem; /* jarak antar action */
+}
+
+.admin-followup-page .admin-header-actions .left-action {
+  /* tombol Add Category tetap normal */
+}
+
+.admin-followup-page .admin-header-actions .right-action {
+  margin-left: auto; /* dorong ke kanan tapi tidak terlalu jauh */
+  max-width: -25px; /* ukuran maksimal search bar */
+  flex-shrink: 0;
+}
+
+
+
+.admin-followup-page .admin-button,
+.admin-followup-page .btn-primary {
+background: var(--primary);
+color: var(--white);
+border: none;
+border-radius: 6px;
+padding: 0.5rem 1rem;
+font-size: 0.85rem;
+font-weight: 500;
+box-shadow: 0 1px 4px rgba(59, 130, 246, 0.25);
+cursor: pointer;
+transition: background 0.25s ease, transform 0.15s ease;
+}
+
+.admin-followup-page .admin-button:hover,
+.admin-followup-page .btn-primary:hover {
+background: var(--primary-hover);
+transform: translateY(-1px);
+}
+
+.admin-followup-page .search-bar {
+position: relative;
+flex: 1;
+min-width: 200px;
+}
+
+.admin-followup-page .search-input {
+padding: 0.45rem 2rem 0.45rem 0.75rem;
+border: 1px solid var(--gray-border);
+border-radius: 6px;
+font-size: 0.85rem;
+color: var(--dark-text);
+width: 100%;
+background: var(--gray-bg);
+transition: all 0.2s ease;
+}
+
+.admin-followup-page .search-input:focus {
+outline: none;
+background: var(--white);
+border-color: var(--primary);
+box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.admin-followup-page .search-icon {
+position: absolute;
+right: 10px;
+top: 50%;
+transform: translateY(-50%);
+color: var(--gray-text);
+font-size: 0.9rem;
+}
+
+/* === FIELD HEADER === */
+.admin-followup-page .field-header {
+display: grid;
+grid-template-columns: 60px 1fr 120px;
+padding: 0.6rem 0.8rem;
+color: var(--gray-text);
+font-weight: 600;
+text-transform: uppercase;
+font-size: 0.75rem;
+background: var(--gray-bg);
+border-radius: var(--radius);
+  margin-right: 20px;
+margin-left: 275px;
+margin-top: 20px;
+}
+
+/* === DATA CARD === */
+.admin-followup-page .data-list {
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+padding: 0;
+}
+
+.admin-followup-page .data-card {
+display: grid;
+grid-template-columns: 60px 1fr 120px;
+background: var(--white);
+border-radius: var(--radius);
+box-shadow: var(--shadow);
+padding: 0.7rem 0.6rem 0.7rem 0.8rem;
+align-items: center;
+transition: all 0.2s ease;
+margin-right: 20px;
+margin-left: 275px;
+margin-top: 20px;
+}
+
+.admin-followup-page .data-card:hover {
+transform: translateY(-2px);
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.admin-followup-page .data-card > :last-child {
+justify-self: end;
+}
+
+.admin-followup-page .data-card span {
+font-size: 0.85rem;
+color: var(--dark-text);
+}
+
+.admin-followup-page .data-card small {
+font-size: 0.78rem;
+color: var(--gray-text);
+}
+
+/* === ACTION BUTTONS === */
+.admin-followup-page .action-buttons {
+display: flex;
+justify-content: flex-end;
+gap: 4px;
+}
+
+.admin-followup-page .btn-icon {
+border: none;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+padding: 0.35rem 0.55rem;
+border-radius: 6px;
+cursor: pointer;
+transition: background 0.2s ease, transform 0.1s ease;
+font-size: 0.85rem;
+}
+
+.admin-followup-page .btn-icon:hover {
+transform: translateY(-1px);
+}
+
+.admin-followup-page .btn-edit {
+background: #E0E7FF;
+color: #1D4ED8;
+}
+.admin-followup-page .btn-edit:hover {
+background: #C7D2FE;
+}
+
+.admin-followup-page .btn-delete {
+background: #FEE2E2;
+color: #DC2626;
+}
+.admin-followup-page .btn-delete:hover {
+background: #FCA5A5;
+}
+
+/* === MODALS === */
+.admin-followup-page .modal-overlay {
+position: fixed;
+inset: 0;
+background: rgba(17, 24, 39, 0.55);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 999;
+backdrop-filter: blur(3px);
+}
+
+.admin-followup-page .modal-card {
+background: var(--white);
+border-radius: var(--radius);
+box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+width: 500px;
+max-width: 90%;
+animation: fadeIn 0.2s ease;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+}
+
+.admin-followup-page .modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 1rem 1.25rem;
+border-bottom: 1px solid var(--gray-border);
+background: var(--gray-bg);
+}
+
+.admin-followup-page .modal-header h2 {
+font-size: 1rem;
+font-weight: 600;
+color: var(--dark-text);
+margin: 0;
+}
+
+.admin-followup-page .modal-close {
+background: none;
+border: none;
+color: var(--gray-text);
+font-size: 1.1rem;
+cursor: pointer;
+transition: color 0.2s ease;
+}
+
+.admin-followup-page .modal-close:hover {
+color: var(--danger);
+}
+
+.admin-followup-page .modal-body {
+padding: 1rem 1.25rem;
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+
+.admin-followup-page .form-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 0.8rem 1rem;
+}
+
+.admin-followup-page .form-group {
+display: flex;
+flex-direction: column;
+}
+
+.admin-followup-page .form-group label {
+font-weight: 500;
+font-size: 0.85rem;
+color: var(--gray-text);
+margin-bottom: 0.35rem;
+}
+
+.admin-followup-page .form-group input,
+.admin-followup-page .form-group select,
+.admin-followup-page .form-group textarea {
+border: 1px solid var(--gray-border);
+border-radius: 6px;
+padding: 0.45rem 0.6rem;
+font-size: 0.85rem;
+color: var(--dark-text);
+background: var(--white);
+transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-followup-page .form-group input:focus,
+.admin-followup-page .form-group select:focus,
+.admin-followup-page .form-group textarea:focus {
+border-color: var(--primary);
+box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+outline: none;
+}
+
+.admin-followup-page .full-width {
+grid-column: 1 / -1;
+}
+
+.admin-followup-page .modal-footer {
+display: flex;
+justify-content: flex-end;
+gap: 0.5rem;
+padding: 0.9rem 1.25rem;
+border-top: 1px solid var(--gray-border);
+background: var(--gray-bg);
+}
+
+.admin-followup-page .btn-cancel {
+background: var(--gray-border);
+color: var(--dark-text);
+border: none;
+border-radius: 6px;
+padding: 0.45rem 1rem;
+cursor: pointer;
+font-size: 0.85rem;
+transition: all 0.2s ease;
+}
+
+.admin-followup-page .btn-cancel:hover {
+background: #d1d5db;
+}
+
+.admin-followup-page .btn-save {
+background: var(--primary);
+color: var(--white);
+border: none;
+border-radius: 6px;
+padding: 0.45rem 1rem;
+font-size: 0.85rem;
+cursor: pointer;
+font-weight: 500;
+transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.admin-followup-page .btn-save:hover {
+background: var(--primary-hover);
+transform: translateY(-1px);
+}
+
+.admin-followup-page .btn-delete {
+background: var(--danger);
+color: var(--white);
+border: none;
+border-radius: 6px;
+padding: 0.45rem 1rem;
+font-size: 0.85rem;
+cursor: pointer;
+font-weight: 500;
+transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.admin-followup-page .btn-delete:hover {
+background: #dc2626;
+transform: translateY(-1px);
+}
+
+/* === SPECIAL DELETE MODAL === */
+.admin-followup-page .modal-delete .modal-body {
+text-align: center;
+}
+
+.admin-followup-page .modal-delete p {
+font-size: 0.9rem;
+color: var(--dark-text);
+margin-bottom: 0.5rem;
+}
+
+.admin-followup-page .text-muted {
+color: var(--gray-text);
+font-size: 0.8rem;
+}
+
+/* === TOAST === */
+.admin-followup-page .toast {
+position: fixed;
+top: 30px;
+left: 50%;
+transform: translateX(-50%);
+background: #22c55e;
+color: white;
+padding: 14px 22px;
+border-radius: 8px;
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+font-weight: 500;
+font-size: 15px;
+z-index: 9999;
+animation: slideDown 0.4s ease, fadeOut 0.4s ease 2s forwards;
+}
+
+.admin-followup-page .toast-error {
+background: #ef4444;
+}
+
+.admin-followup-page .toast-warning {
+background: #facc15;
+color: #473a00;
+}
+
+@keyframes slideDown {
+from {
+opacity: 0;
+transform: translate(-50%, -20px);
+}
+to {
+opacity: 1;
+transform: translate(-50%, 0);
+}
+}
+
+@keyframes fadeOut {
+to {
+opacity: 0;
+transform: translate(-50%, -15px);
+}
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 992px) {
+.admin-followup-page .data-card {
+grid-template-columns: 1fr;
+row-gap: 0.5rem;
+}
+
+.admin-followup-page .data-card span {
+display: flex;
+justify-content: space-between;
+}
+
+.admin-followup-page .data-card span::before {
+content: attr(data-label);
+color: var(--gray-text);
+font-weight: 600;
+}
+
+.admin-followup-page .action-buttons {
+justify-content: flex-start;
+}
+}
+
+@media (max-width: 600px) {
+.admin-followup-page .modal-card {
+width: 90%;
+}
+
+.admin-followup-page .form-grid {
+grid-template-columns: 1fr;
+}
+
+.admin-followup-page .header-actions {
+flex-direction: column;
+align-items: stretch;
+gap: 0.5rem;
+}
+
+.admin-followup-page .admin-button,
+.admin-followup-page .search-input {
+width: 100%;
+}
+
+.admin-followup-page .data-card {
+padding: 0.6rem;
+font-size: 0.8rem;
+}
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeIn {
+from {
+opacity: 0;
+transform: scale(0.97);
+}
+to {
+opacity: 1;
+transform: scale(1);
+}
+}
+/* === TABLE STYLE === */
+.admin-followup-page .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.admin-followup-page .admin-table th,
+.admin-followup-page .admin-table td {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--gray-border);
+  font-size: 0.85rem;
+  color: var(--dark-text);
+}
+
+.admin-followup-page .admin-table th {
+  background: var(--gray-bg);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.admin-followup-page .admin-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.admin-followup-page .status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--white);
+}
+
+.admin-followup-page .status-badge.success {
+  background-color: var(--success);
+}
+
+.admin-followup-page .status-badge.failed {
+  background-color: var(--danger);
+}
+
+/* === RESPONSIVE TABLE === */
+@media (max-width: 768px) {
+  .admin-followup-page .admin-table,
+  .admin-followup-page .admin-table thead,
+  .admin-followup-page .admin-table tbody,
+  .admin-followup-page .admin-table th,
+  .admin-followup-page .admin-table td,
+  .admin-followup-page .admin-table tr {
+    display: block;
+  }
+
+  .admin-followup-page .admin-table thead tr {
+    display: none;
+  }
+
+  .admin-followup-page .admin-table tbody tr {
+    margin-bottom: 1rem;
+    background: var(--white);
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .admin-followup-page .admin-table td {
+    padding: 0.5rem 0.75rem;
+    text-align: right;
+    position: relative;
+  }
+
+  .admin-followup-page .admin-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-text);
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 1024px){
+.admin-followup-page .admin-header{
+margin-right: 0px;
+margin-left: 0px;
+margin-top: 20px;
+}
+.admin-followup-page .field-header {
+margin-right: 0px;
+margin-left: 0px;
+margin-top: 0px;
+}
+.admin-followup-page .data-card {
+margin-right: 0px;
+margin-left: 0px;
+margin-top: 0px;
+}
+.admin-followup-page .data-list {
+margin-right: 0px;
+margin-left: 0px;
+margin-top: 0px;
+}
+.admin-followup-page .admin-header-actions {
+  gap: 0;
+}
+}

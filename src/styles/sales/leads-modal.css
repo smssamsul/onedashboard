@@ -1,0 +1,307 @@
+/* ============================================
+   LEADS MODAL - PrimeReact Components Styling
+   ============================================ */
+
+/* Dropdown Styling - Match form inputs */
+.modal-body--form .p-dropdown {
+  width: 100%;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  background: var(--dash-surface);
+  transition: all var(--transition-base);
+}
+
+.modal-body--form .p-dropdown:not(.p-disabled):hover {
+  border-color: rgba(251, 133, 0, 0.4);
+  background: #ffffff;
+}
+
+.modal-body--form .p-dropdown:not(.p-disabled).p-focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(251, 133, 0, 0.1);
+  outline: none;
+}
+
+.modal-body--form .p-dropdown .p-dropdown-label {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  background: transparent;
+  border: none;
+  line-height: 1.5;
+}
+
+.modal-body--form .p-dropdown .p-dropdown-label.p-placeholder {
+  color: var(--dash-muted);
+}
+
+.modal-body--form .p-dropdown .p-dropdown-trigger {
+  width: 2.5rem;
+  color: var(--dash-muted);
+  border-left: 1px solid var(--dash-border);
+  background: transparent;
+}
+
+.modal-body--form .p-dropdown .p-dropdown-trigger:hover {
+  background: rgba(251, 133, 0, 0.05);
+  color: var(--accent-primary);
+}
+
+/* Dropdown Panel */
+.modal-body--form .p-dropdown-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  background: var(--dash-surface);
+  margin-top: 0.25rem;
+}
+
+.modal-body--form .p-dropdown-panel .p-dropdown-items-wrapper {
+  padding: 0.25rem 0;
+}
+
+.modal-body--form .p-dropdown-panel .p-dropdown-item {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  border-radius: 0;
+  margin: 0.125rem 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.modal-body--form .p-dropdown-panel .p-dropdown-item:hover {
+  background: rgba(251, 133, 0, 0.08);
+  color: var(--accent-primary);
+}
+
+.modal-body--form .p-dropdown-panel .p-dropdown-item.p-highlight {
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.modal-body--form .p-dropdown-panel .p-dropdown-item.p-highlight:hover {
+  background: var(--accent-primary-dark);
+}
+
+/* Calendar Styling - Match form inputs */
+.modal-body--form .p-calendar {
+  width: 100%;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  background: var(--dash-surface);
+  transition: all var(--transition-base);
+}
+
+.modal-body--form .p-calendar:not(.p-disabled):hover {
+  border-color: rgba(251, 133, 0, 0.4);
+  background: #ffffff;
+}
+
+.modal-body--form .p-calendar:not(.p-disabled).p-focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(251, 133, 0, 0.1);
+  outline: none;
+}
+
+.modal-body--form .p-calendar .p-inputtext {
+  width: 100%;
+  padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  line-height: 1.5;
+}
+
+.modal-body--form .p-calendar .p-inputtext::placeholder {
+  color: var(--dash-muted);
+}
+
+.modal-body--form .p-calendar .p-inputtext:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.modal-body--form .p-calendar .p-datepicker-trigger {
+  width: 2.5rem;
+  color: var(--dash-muted);
+  border-left: 1px solid var(--dash-border);
+  background: transparent;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.modal-body--form .p-calendar .p-datepicker-trigger:hover {
+  background: rgba(251, 133, 0, 0.05);
+  color: var(--accent-primary);
+}
+
+/* Calendar Panel */
+.modal-body--form .p-datepicker-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  background: var(--dash-surface);
+  margin-top: 0.25rem;
+}
+
+/* InputNumber Styling */
+.modal-body--form .p-inputnumber {
+  width: 100%;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  background: var(--dash-surface);
+  transition: all var(--transition-base);
+}
+
+.modal-body--form .p-inputnumber:not(.p-disabled):hover {
+  border-color: rgba(251, 133, 0, 0.4);
+  background: #ffffff;
+}
+
+.modal-body--form .p-inputnumber:not(.p-disabled).p-focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(251, 133, 0, 0.1);
+  outline: none;
+}
+
+.modal-body--form .p-inputnumber .p-inputtext {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  line-height: 1.5;
+}
+
+.modal-body--form .p-inputnumber .p-inputtext:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* MultiSelect Styling */
+.modal-body--form .p-multiselect {
+  width: 100%;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  background: var(--dash-surface);
+  transition: all var(--transition-base);
+}
+
+.modal-body--form .p-multiselect:not(.p-disabled):hover {
+  border-color: rgba(251, 133, 0, 0.4);
+  background: #ffffff;
+}
+
+.modal-body--form .p-multiselect:not(.p-disabled).p-focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(251, 133, 0, 0.1);
+  outline: none;
+}
+
+.modal-body--form .p-multiselect .p-multiselect-label {
+  padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  background: transparent;
+  border: none;
+  line-height: 1.5;
+}
+
+.modal-body--form .p-multiselect .p-multiselect-label.p-placeholder {
+  color: var(--dash-muted);
+}
+
+.modal-body--form .p-multiselect .p-multiselect-trigger {
+  width: 2.5rem;
+  color: var(--dash-muted);
+  border-left: 1px solid var(--dash-border);
+  background: transparent;
+}
+
+.modal-body--form .p-multiselect .p-multiselect-trigger:hover {
+  background: rgba(251, 133, 0, 0.05);
+  color: var(--accent-primary);
+}
+
+.modal-body--form .p-multiselect-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  background: var(--dash-surface);
+  margin-top: 0.25rem;
+}
+
+.modal-body--form .p-multiselect-panel .p-multiselect-items-wrapper {
+  padding: 0.25rem 0;
+}
+
+.modal-body--form .p-multiselect-panel .p-multiselect-item {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  border-radius: 0;
+  margin: 0.125rem 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.modal-body--form .p-multiselect-panel .p-multiselect-item:hover {
+  background: rgba(251, 133, 0, 0.08);
+  color: var(--accent-primary);
+}
+
+.modal-body--form .p-multiselect-panel .p-multiselect-item.p-highlight {
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* Customer Search Dropdown */
+.leads-customer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 0.25rem;
+}
+
+.leads-customer-dropdown-item {
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-bottom: 1px solid var(--dash-border);
+  transition: all var(--transition-fast);
+  display: block;
+}
+
+.leads-customer-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.leads-customer-dropdown-item:hover {
+  background: rgba(251, 133, 0, 0.08);
+}
+
+.leads-customer-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+  margin-bottom: 0.25rem;
+}
+
+.leads-customer-info {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+

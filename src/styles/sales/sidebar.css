@@ -1,0 +1,648 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+:root {
+  --sidebar-width: 16rem;
+  --sidebar-compact-width: 4.5rem;
+  --sidebar-bg: #f4f4f5;
+  --sidebar-border: #f4f4f5;
+  --sidebar-accent: #fb8500;
+  --sidebar-accent-soft: #fff4ea;
+  --sidebar-text: #212529;
+  --sidebar-muted: #6c757d;
+  --sidebar-shadow: none;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: var(--sidebar-width);
+  padding: 0;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 200ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+
+/* Custom Scrollbar - Tipis dan Halus */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  transition: background 200ms ease;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Firefox */
+.sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.sidebar--tablet.sidebar--compact,
+.sidebar--mobile,
+.sidebar--desktop.sidebar--collapsed {
+  width: var(--sidebar-compact-width);
+}
+
+.sidebar--mobile {
+  transform: translateX(-110%);
+  padding: 1rem;
+}
+
+.sidebar--mobile.sidebar--open {
+  transform: translateX(0);
+}
+
+.sidebar--mobile.sidebar--closed {
+  pointer-events: none;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-footer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-logo {
+  padding: 1rem 0.5rem;
+  opacity: 1;
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  margin-bottom: 0;
+  border-bottom: none;
+  flex-shrink: 0;
+}
+
+.sidebar-logo img {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+  transition: width 200ms ease, height 200ms ease;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-logo img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.sidebar-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.375rem 0.5rem 1.5rem;
+  min-height: 0;
+}
+
+/* === SIDEBAR SECTION HEADERS === */
+.sidebar-section-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
+.sidebar-section-wrapper:first-child {
+  margin-top: 0;
+}
+
+.sidebar-section-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8892b0;
+  padding: 0.5rem 0.75rem 0.25rem;
+  margin-top: 0.15rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.sidebar-section-wrapper:first-child .sidebar-section-header {
+  margin-top: 0;
+  padding-top: 0.375rem;
+}
+
+.sidebar-item-wrapper {
+  list-style: none;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--sidebar-text);
+  transition: background 200ms ease, color 200ms ease;
+  border: none;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.sidebar-item span:not(.sidebar-item-icon-wrapper) {
+  flex: 1;
+}
+
+/* Wrapper untuk icon dengan kotak berwarna */
+.sidebar-item-icon-wrapper {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  transition: all 200ms ease;
+}
+
+.sidebar-item-icon-wrapper svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Icon untuk item tidak aktif - background putih, icon hitam */
+.sidebar-item:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
+  background: #ffffff;
+}
+
+.sidebar-item:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
+  color: #212529;
+}
+
+/* Icon untuk item aktif - background orange, icon putih */
+.sidebar-item-active .sidebar-item-icon-wrapper {
+  background: var(--sidebar-accent);
+}
+
+.sidebar-item-active .sidebar-item-icon-wrapper svg {
+  color: #ffffff;
+}
+
+/* Hover state untuk item tidak aktif */
+.sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper {
+  background: rgba(251, 133, 0, 0.1);
+}
+
+.sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
+  color: var(--sidebar-accent);
+}
+
+/* Chevron icon (panah) tidak pakai background */
+.sidebar-item.has-submenu > svg:last-child,
+.sidebar-item.has-submenu .flex + svg {
+  background: transparent !important;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Hover state untuk item tidak aktif */
+.sidebar-item:not(.sidebar-item-active):hover {
+  background: rgba(251, 133, 0, 0.06);
+  color: var(--sidebar-text);
+}
+
+/* Active state - background putih */
+.sidebar-item-active {
+  background: #ffffff;
+  color: var(--sidebar-text);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-item-active span:not(.sidebar-item-icon-wrapper) {
+  color: var(--sidebar-text);
+}
+
+.sidebar-footer {
+  display: none;
+}
+
+.sidebar-bottom {
+  display: none;
+}
+
+
+.sidebar-toggle-btn {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: var(--sidebar-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  z-index: 60;
+}
+
+.sidebar-toggle-btn:hover,
+.sidebar-toggle-btn--active {
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  border: none;
+  z-index: 40;
+}
+
+/* =======================
+   Compact (tablet) tweaks
+   ======================= */
+.sidebar--tablet.sidebar--compact .sidebar-item,
+.sidebar--desktop.sidebar--collapsed .sidebar-item {
+  justify-content: center;
+  padding: 0.5rem 0;
+  gap: 0;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item .flex,
+.sidebar--desktop.sidebar--collapsed .sidebar-item .flex {
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item-icon-wrapper,
+.sidebar--desktop.sidebar--collapsed .sidebar-item-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item-icon-wrapper svg,
+.sidebar--desktop.sidebar--collapsed .sidebar-item-icon-wrapper svg {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item > span:not(.sidebar-item-icon-wrapper),
+.sidebar--tablet.sidebar--compact .sidebar-item .flex > span,
+.sidebar--tablet.sidebar--compact .sidebar-footer,
+.sidebar--desktop.sidebar--collapsed .sidebar-item > span:not(.sidebar-item-icon-wrapper),
+.sidebar--desktop.sidebar--collapsed .sidebar-item .flex > span,
+.sidebar--desktop.sidebar--collapsed .sidebar-footer {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Pastikan flex container untuk item dengan submenu tidak menyembunyikan icon wrapper */
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu .flex {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  flex: 0;
+}
+
+/* Pastikan item dengan submenu tetap terlihat saat collapsed */
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu .sidebar-item-icon-wrapper {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: static !important;
+  width: 28px;
+  height: 28px;
+}
+
+/* Pastikan icon wrapper untuk item dengan submenu memiliki warna yang sama dengan item biasa */
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
+  background: #ffffff;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
+  color: #212529;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active .sidebar-item-icon-wrapper {
+  background: var(--sidebar-accent);
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active .sidebar-item-icon-wrapper svg {
+  color: #ffffff;
+}
+
+/* Hover state untuk item dengan submenu saat collapsed */
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper {
+  background: rgba(251, 133, 0, 0.1);
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
+  color: var(--sidebar-accent);
+}
+
+/* Submenu disembunyikan saat collapsed - hanya menu utama yang tampil */
+.sidebar--desktop.sidebar--collapsed .submenu-list {
+  display: none !important;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar--desktop.sidebar--collapsed .submenu-item {
+  display: none !important;
+}
+
+.sidebar--desktop.sidebar--collapsed .submenu-item::before {
+  display: none;
+}
+
+.sidebar--desktop.sidebar--collapsed .submenu-item span,
+.sidebar--desktop.sidebar--collapsed .submenu-item a {
+  display: none !important;
+}
+
+/* Section header tetap ditampilkan kecil saat collapsed */
+.sidebar--desktop.sidebar--collapsed .sidebar-section-header {
+  opacity: 1;
+  pointer-events: auto;
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  font-size: 0.6rem;
+  padding: 0.5rem 0.25rem 0.25rem;
+  text-align: center;
+  line-height: 1;
+}
+
+
+.sidebar--tablet.sidebar--compact .submenu-list {
+  display: none;
+}
+
+.sidebar--tablet.sidebar--compact .sidebar-item.has-submenu > svg:last-child,
+.sidebar--tablet.sidebar--compact .sidebar-item.has-submenu .flex + svg,
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu > svg:last-child,
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu .flex + svg {
+  display: none;
+}
+
+/* =======================
+   Mobile drawer spacing
+   ======================= */
+.sidebar--mobile .sidebar-menu {
+  gap: 0.6rem;
+}
+
+.sidebar--mobile .sidebar-footer {
+  text-align: left;
+}
+
+/* === SUBMENU (Modern + Icon + Smooth) === */
+.submenu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid #e5e7eb;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: max-height 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+              margin-top 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+              padding-top 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+              padding-bottom 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.submenu-list.submenu-open {
+  max-height: 500px;
+  opacity: 1;
+  margin-top: 0.25rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.25rem;
+}
+
+.submenu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.82rem;
+  color: #4b5563;
+  border-radius: 0.5rem;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+/* Subtle hover only (professional) */
+.submenu-item:hover {
+  background: rgba(251, 133, 0, 0.08);
+  color: var(--sidebar-text);
+}
+
+.submenu-item-active {
+  background: rgba(251, 133, 0, 0.15);
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+
+/* === Dropdown Header (Products) === */
+.sidebar-item.has-submenu {
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+/* Chevron icon (panah kanan/bawah) - tidak pakai background kotak */
+.sidebar-item.has-submenu .flex + svg,
+.sidebar-item.has-submenu > svg:last-child {
+  color: #9ca3af;
+  transition: transform 300ms ease, color 200ms ease;
+  background: transparent !important;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-item.has-submenu.open .flex + svg,
+.sidebar-item.has-submenu.open > svg:last-child {
+  transform: rotate(90deg);
+  color: var(--sidebar-accent);
+}
+
+.sidebar-item-active.has-submenu .flex + svg,
+.sidebar-item-active.has-submenu > svg:last-child {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* === FIX: Icon warna saat item aktif / ada submenu === */
+.sidebar-item svg {
+  color: var(--sidebar-muted);
+  transition: color 180ms ease;
+}
+
+/* Hover efek */
+.sidebar-item:hover svg {
+  color: white;
+}
+
+/* Warna ikon saat item aktif */
+.sidebar-item-active svg {
+  color: #ffffff;
+}
+
+/* Item yang punya submenu dan sedang terbuka */
+.sidebar-item.has-submenu.open svg:first-child {
+  color: var(--sidebar-accent);
+}
+
+/* Icon dropdown panah kanan/bawah */
+.sidebar-item.has-submenu svg:last-child {
+  color: #9ca3af;
+  transition: transform 200ms ease, color 200ms ease;
+}
+
+.sidebar-item.has-submenu.open svg:last-child {
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+/* Biar pas dibuka tetap gaya hover, bukan full putih/oranye */
+.sidebar-item.has-submenu.open:not(.sidebar-item-active) {
+  background: #ffffff;
+  color: var(--sidebar-accent);
+  border-color: transparent;
+}
+
+.sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
+  background: rgba(251, 133, 0, 0.15);
+}
+
+.sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
+  color: var(--sidebar-accent);
+}
+
+/* Saat collapsed, item dengan submenu yang terbuka tetap terlihat normal */
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
+  background: #ffffff;
+}
+
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
+  color: #212529;
+}
+
+/* panah tetap oranye & muter 90° */
+.sidebar-item.has-submenu.open svg:last-child {
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+/* ==========================================================
+   CONTENT POSITIONING SAAT ADA / TIDAK ADA SIDEBAR
+   ========================================================== */
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  transition: margin 200ms ease, width 200ms ease;
+}
+
+.no-sidebar .main-content {
+  margin-left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center horizontal */
+  align-items: center;     /* kalau mau vertikal juga */
+  min-height: 100vh;       /* biar tetap full tinggi */
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    height: 100vh;
+  }
+
+  .main-content {
+    margin-left: var(--sidebar-compact-width);
+    width: calc(100% - var(--sidebar-compact-width));
+  }
+
+  .sidebar--tablet.sidebar--compact + .main-content,
+  .sidebar--mobile + .main-content {
+    margin-left: var(--sidebar-compact-width);
+  }
+
+  .sidebar--mobile + .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    width: min(320px, 85vw);
+    transform: translateX(-110%);
+  }
+
+  .sidebar-toggle-btn {
+    bottom: 1rem;
+    left: 1rem;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,200 @@
+:root, body 
+{
+  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import PrimeReact & Icons setelah Tailwind */
+@import "primereact/resources/themes/lara-light-blue/theme.css";
+@import "primereact/resources/primereact.min.css";
+@import "primeicons/primeicons.css";
+
+/* ==== SIDEBAR STYLE ==== */
+.sidebar-wrap {
+  @apply relative;
+}
+
+/* === MAIN SIDEBAR === */
+.sidebar {
+  @apply bg-white h-screen flex flex-col border-r border-gray-200;
+  transition: transform 220ms ease, box-shadow 220ms ease, width 200ms ease;
+  width: 15rem;
+  padding: 0.9rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  box-shadow: none;
+}
+
+/* === TITLE === */
+.sidebar-title {
+  @apply font-semibold tracking-tight text-[#374151];
+  font-size: 0.75rem;
+  line-height: 1rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+/* === MENU === */
+.sidebar-menu {
+  @apply flex-1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-item {
+  @apply flex items-center gap-3 font-medium text-gray-700;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.25rem;
+  border: none;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.sidebar-item-active {
+  background: #ff6c00;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* === FOOTER === */
+.sidebar-footer {
+  @apply text-gray-500 mt-auto border-t transition-all duration-300;
+  font-size: 0.8rem;
+  padding-top: 1rem;
+}
+
+/* Tooltip untuk collapsed menu */
+.sidebar-tooltip {
+  @apply absolute left-full top-1/2 -translate-y-1/2 ml-3
+  bg-gray-800 text-white text-sm px-3 py-1.5 rounded-lg 
+  shadow-lg opacity-0 translate-x-2 transition-all duration-200 whitespace-nowrap pointer-events-none;
+}
+
+/* === BURGER BUTTON === */
+.sidebar-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #ff6c00;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  transition: none;
+  box-shadow: none;
+  z-index: 60;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================
+   RESPONSIVE (TABLET & MOBILE ≤1024px)
+   ========================================================== */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+.sidebar.expanded-mobile {
+  transform: translateX(0);
+}
+
+
+  /* tombol tetap stay */
+.sidebar.expanded-mobile ~ .sidebar-toggle-btn {
+  left: calc(15rem - 2rem);
+}
+
+  .sidebar-item-active {
+    background: #fff4ea;
+    color: #ff6c00;
+  }
+
+  .sidebar:not(.expanded-mobile) .sidebar-title,
+  .sidebar:not(.expanded-mobile) .sidebar-item span,
+  .sidebar:not(.expanded-mobile) .sidebar-footer {
+    display: none !important;
+  }
+}
+
+/* ==========================================================
+   DESKTOP (≥1025px)
+   ========================================================== */
+@media (min-width: 1025px) {
+  .sidebar {
+    transform: none !important;
+    position: relative;
+  }
+
+  .sidebar-toggle-btn {
+    display: none !important; /* ❌ burger hilang di desktop */
+  }
+
+  .sidebar-item-active {
+    background: #fff4ea;
+    color: #ff6c00;
+  }
+}
+/* ==========================================================
+   CONTENT POSITIONING SAAT ADA / TIDAK ADA SIDEBAR
+   ========================================================== */
+
+/* default: ada sidebar */
+.main-content {
+  margin-left: 15rem;
+  width: calc(100% - 15rem);
+  transition: margin 200ms ease, width 200ms ease;
+}
+
+/* kalau sidebar tidak ada */
+.no-sidebar .main-content {
+  margin-left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center horizontal */
+  align-items: center;     /* kalau mau vertikal juga */
+  min-height: 100vh;       /* biar tetap full tinggi */
+}
+
+/* ==========================================================
+   DESKTOP (≥1025px)
+   ========================================================== */
+@media (min-width: 1025px) {
+  .sidebar {
+    position: fixed !important; /* tetap nempel kiri */
+    top: 0;
+    left: 0;
+    height: 100vh; /* full tinggi layar */
+    transform: none !important;
+  }
+
+  .sidebar-toggle-btn {
+    display: none !important; /* burger hilang di desktop */
+  }
+
+  .sidebar-item-active {
+    background: #fff4ea;
+    color: #ff6c00;
+    border-color: rgba(255, 108, 0, 0.24);
+  }
+
+  /* biar konten utama ga ketimpa sidebar */
+  .main-content {
+    margin-left: 15rem; /* sama kayak lebar sidebar */
+    width: calc(100% - 15rem);
+  }
+}
+
+/* Simple hover (professional) */
+.sidebar-item:hover {
+  background: rgba(255, 108, 0, 0.06);
+  color: #374151;
+}
