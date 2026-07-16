@@ -1020,7 +1020,13 @@ class ProdukController extends Controller
             $query->where('waktu_mulai', '>=', now())
                   ->where('status', '!=', 'N');
         })
-        ->orderBy('create_at', 'desc')
+        ->orderByRaw('(
+            SELECT MIN(waktu_mulai)
+            FROM jadwal_produk
+            WHERE jadwal_produk.produk_id = produk.id
+              AND jadwal_produk.waktu_mulai >= NOW()
+              AND jadwal_produk.status != \'N\'
+        ) ASC NULLS LAST')
         ->get();
 
         return response()->json([
