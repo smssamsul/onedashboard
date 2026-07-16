@@ -1022,10 +1022,10 @@ class ProdukController extends Controller
         })
         ->orderByRaw('(
             SELECT MIN(waktu_mulai)
-            FROM jadwal_produk
-            WHERE jadwal_produk.produk_id = produk.id
-              AND jadwal_produk.waktu_mulai >= NOW()
-              AND jadwal_produk.status != \'N\'
+            FROM produk_jadwal
+            WHERE produk_jadwal.produk_id = produk.id
+              AND produk_jadwal.waktu_mulai >= NOW()
+              AND produk_jadwal.status != \'N\'
         ) ASC NULLS LAST')
         ->get();
 
