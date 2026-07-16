@@ -1,5 +1,7 @@
 # One Dashboard (onedashboard)
 
+> **Catatan untuk AI/Claude Code:** jangan mengubah isi file `CLAUDE.md` ini. Kalau ada informasi yang perlu diperbarui, tanyakan dulu ke pemilik repo.
+
 Monorepo untuk platform Ternak Properti: dashboard sales/CRM, seminar/produk, follow-up WhatsApp otomatis, dan landing page publik.
 
 ## Struktur repo
@@ -59,6 +61,7 @@ Selalu backup file yang akan ditimpa di server dulu sebelum deploy, dan verifika
 - **Jangan push langsung ke `main`.** Semua perubahan lewat branch + Pull Request.
 - Merge ke `main` di-review dulu (untuk sekarang oleh pemilik repo), karena `main` terhubung ke jalur deploy produksi.
 - Sebelum mulai kerja, `git pull` (atau checkout branch orang lain kalau mau lanjutkan kerjaan yang belum di-merge).
+- **Semua pesan commit ditulis dalam Bahasa Indonesia** (termasuk yang dibuat AI/Claude Code).
 
 ## Yang perlu diingat soal keamanan
 
