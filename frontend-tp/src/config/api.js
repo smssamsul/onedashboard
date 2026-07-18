@@ -76,11 +76,11 @@ export const API_ENDPOINTS = {
     createAdmin: '/order-admin',
   },
 
-  // Midtrans Payment
-  midtrans: {
-    createSnapCC: '/midtrans/create-snap-cc',
-    createSnapEwallet: '/midtrans/create-snap-ewallet',
-    createSnapVA: '/midtrans/create-snap-va',
+  // DOKU Payment
+  doku: {
+    createPaymentCC: '/doku/create-payment-cc',
+    createPaymentEwallet: '/doku/create-payment-ewallet',
+    createPaymentVA: '/doku/create-payment-va',
   },
 };
 

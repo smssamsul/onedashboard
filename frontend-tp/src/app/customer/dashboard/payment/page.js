@@ -98,7 +98,7 @@ export default function PaymentPage() {
           paymentMethod: paymentMethod,
           tanggalOrder: order.tanggal_order || "-",
           statusPembayaran: order.status_pembayaran || order.status_pembayaran_id,
-          // Simpan data lengkap untuk Midtrans
+          // Simpan data lengkap untuk DOKU
           nama: order.nama || (isMatchingOrder ? localStorageOrderData?.nama : "") || data?.customer?.nama || data?.customer?.nama_lengkap || session?.user?.nama || "",
           email: order.email || (isMatchingOrder ? localStorageOrderData?.email : "") || data?.customer?.email || session?.user?.email || "",
           downPayment: order.down_payment || (isMatchingOrder ? localStorageOrderData?.downPayment : ""),
@@ -140,20 +140,7 @@ export default function PaymentPage() {
   useEffect(() => {
     loadUnpaidOrders();
 
-    // Load Midtrans Snap script
-    const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
-    const snapScript = isProduction 
-      ? "https://app.midtrans.com/snap/snap.js" 
-      : "https://app.sandbox.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-v9Kjzq0WcEjk4-W7";
-
-    if (!document.querySelector(`script[src="${snapScript}"]`)) {
-      const script = document.createElement("script");
-      script.src = snapScript;
-      script.setAttribute("data-client-key", clientKey);
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    // DOKU Checkout tidak butuh script client-side - customer di-redirect ke halaman hosted DOKU.
   }, [loadUnpaidOrders]);
 
   const handleContinuePayment = async (order) => {
@@ -163,8 +150,8 @@ export default function PaymentPage() {
 
     console.log("[PAYMENT_PAGE] Processing Payment:", { orderId, paymentMethod, productName });
 
-    // Jika metode pembayaran adalah E-Payment (ewallet, cc, va, midtrans)
-    const isEpayment = ["ewallet", "cc", "va", "midtrans"].includes(paymentMethod);
+    // Jika metode pembayaran adalah E-Payment (ewallet, cc, va, doku)
+    const isEpayment = ["ewallet", "cc", "va", "doku"].includes(paymentMethod);
 
     if (isEpayment) {
       const session = getCustomerSession();
@@ -192,11 +179,11 @@ export default function PaymentPage() {
         setLoading(true);
 
         // Tentukan endpoint berdasarkan metode pembayaran
-        let endpoint = "/api/midtrans/create-snap-va";
+        let endpoint = "/api/doku/create-payment-va";
         if (paymentMethod === "ewallet") {
-          endpoint = "/api/midtrans/create-snap-ewallet";
+          endpoint = "/api/doku/create-payment-ewallet";
         } else if (paymentMethod === "cc") {
-          endpoint = "/api/midtrans/create-snap-cc";
+          endpoint = "/api/doku/create-payment-cc";
         }
 
         console.log("[PAYMENT_PAGE] Triggering API:", endpoint);
@@ -215,39 +202,16 @@ export default function PaymentPage() {
 
         const data = await response.json();
 
-        if (data.success && data.redirect_url) {
-          // Simpan order IDs untuk tracking
-          sessionStorage.setItem("midtrans_order_id", String(orderId));
-          if (data.order_id) {
-            // Unique ID dari backend
-            sessionStorage.setItem("midtrans_order_id_midtrans", data.order_id);
-          }
-          if (data.snap_token) {
-            sessionStorage.setItem("midtrans_snap_token", data.snap_token);
+        if (data.success && data.payment_url) {
+          // Simpan order id untuk tracking
+          sessionStorage.setItem("doku_order_id", String(orderId));
+          if (data.invoice_number) {
+            sessionStorage.setItem("doku_invoice_number", data.invoice_number);
           }
 
-          if (window.snap && data.snap_token) {
-            window.snap.pay(data.snap_token, {
-              onSuccess: function (result) {
-                toast.success("Pembayaran berhasil!");
-                loadUnpaidOrders();
-              },
-              onPending: function (result) {
-                toast.success("Menunggu pembayaran!");
-                loadUnpaidOrders();
-              },
-              onError: function (result) {
-                toast.error("Pembayaran gagal!");
-              },
-              onClose: function () {
-                toast.error("Popup pembayaran ditutup tanpa penyelesaian.");
-              }
-            });
-          } else {
-            // Fallback jika window.snap gagal dimuat
-            toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
-            window.open(data.redirect_url, "_blank");
-          }
+          // DOKU Checkout: redirect ke halaman pembayaran hosted DOKU
+          toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
+          window.location.href = data.payment_url;
         } else {
           toast.error(data.message || "Gagal membuat sesi pembayaran online.");
           // Fallback manual

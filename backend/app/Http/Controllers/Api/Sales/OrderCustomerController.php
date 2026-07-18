@@ -2453,7 +2453,7 @@ class OrderCustomerController extends Controller
     {
         $order = OrderCustomer::with([
             'customer_rel:id,nama,email,wa,alamat,provinsi,kabupaten,kecamatan,kode_pos',
-            'produk_rel:id,nama,landingpage,assign',
+            'produk_rel:id,nama,landingpage,assign,fb_pixel',
             'order_payment_rel:id,order_id,amount,status,payment_method,payment_type,payment_ke,tanggal,bukti_pembayaran,nama_pengirim,no_rek_pengirim,create_at',
         ])->where(function ($query) use ($id) {
             $query->where('kode_order', $id)
@@ -2465,8 +2465,22 @@ class OrderCustomerController extends Controller
         }
 
         if ($order->produk_rel) {
-            $fbPixel = \App\Helpers\FacebookPixelLandingpageHelper::extractPixelsWithEvents($order->produk_rel->landingpage);
-            $order->produk_rel->fb_pixel = $fbPixel;
+            // Sumber pixel sama seperti ProdukController@show: relasi ke pixel_meta via kolom fb_pixel
+            $fbPixelIds = is_string($order->produk_rel->fb_pixel) ? json_decode($order->produk_rel->fb_pixel, true) : $order->produk_rel->fb_pixel;
+            if (!is_array($fbPixelIds)) {
+                $fbPixelIds = [];
+            }
+
+            $validIds = array_filter($fbPixelIds, function ($val) {
+                return is_numeric($val) && $val <= 2147483647;
+            });
+
+            $pixels = \App\Models\PixelMeta::whereIn('pixel', $fbPixelIds)
+                ->when(!empty($validIds), function ($query) use ($validIds) {
+                    return $query->orWhereIn('id', $validIds);
+                })->get();
+
+            $order->produk_rel->pixel_list = $pixels;
             unset($order->produk_rel->landingpage);
         }
 

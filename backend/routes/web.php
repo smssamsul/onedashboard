@@ -25,11 +25,6 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
-Route::get('/midtrans', function () {
-    return view('midtrans');
-});
-
-
 Route::get('/login', function () {
     return view('login');
 });

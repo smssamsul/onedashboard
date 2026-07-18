@@ -293,16 +293,16 @@ function VerifyOrderOTPPageContent() {
 
     switch (method) {
       case "ewallet":
-        console.log("[VERIFY_ORDER] Calling Midtrans e-wallet");
-        callMidtrans("ewallet", dataToUse);
+        console.log("[VERIFY_ORDER] Calling DOKU e-wallet");
+        callDoku("ewallet", dataToUse);
         break;
       case "cc":
-        console.log("[VERIFY_ORDER] Calling Midtrans credit card");
-        callMidtrans("cc", dataToUse);
+        console.log("[VERIFY_ORDER] Calling DOKU credit card");
+        callDoku("cc", dataToUse);
         break;
       case "va":
-        console.log("[VERIFY_ORDER] Calling Midtrans virtual account");
-        callMidtrans("va", dataToUse);
+        console.log("[VERIFY_ORDER] Calling DOKU virtual account");
+        callDoku("va", dataToUse);
         break;
       case "manual":
       default:
@@ -332,13 +332,13 @@ function VerifyOrderOTPPageContent() {
     }
   };
 
-  // Call Midtrans API
-  const callMidtrans = async (type, orderDataParam = null) => {
+  // Call DOKU API
+  const callDoku = async (type, orderDataParam = null) => {
     // Gunakan parameter jika ada, jika tidak gunakan state
     const dataToUse = orderDataParam || orderData;
 
     if (!dataToUse) {
-      console.error("[VERIFY_ORDER] Order data tidak ditemukan untuk Midtrans");
+      console.error("[VERIFY_ORDER] Order data tidak ditemukan untuk DOKU");
       toast.error("Data order tidak ditemukan. Silakan coba lagi.");
       return;
     }
@@ -349,13 +349,13 @@ function VerifyOrderOTPPageContent() {
     let endpoint = "";
     switch (type) {
       case "ewallet":
-        endpoint = `${API_BASE}/midtrans/create-snap-ewallet`;
+        endpoint = `${API_BASE}/doku/create-payment-ewallet`;
         break;
       case "cc":
-        endpoint = `${API_BASE}/midtrans/create-snap-cc`;
+        endpoint = `${API_BASE}/doku/create-payment-cc`;
         break;
       case "va":
-        endpoint = `${API_BASE}/midtrans/create-snap-va`;
+        endpoint = `${API_BASE}/doku/create-payment-va`;
         break;
       default:
         console.error("[VERIFY_ORDER] Payment type tidak valid:", type);
@@ -363,7 +363,7 @@ function VerifyOrderOTPPageContent() {
         return;
     }
 
-    console.log("[VERIFY_ORDER] Calling Midtrans endpoint:", endpoint);
+    console.log("[VERIFY_ORDER] Calling DOKU endpoint:", endpoint);
     console.log("[VERIFY_ORDER] Payload:", { name: nama, email, amount: totalHarga, product_name: productName, order_id: orderId });
 
     try {
@@ -382,31 +382,28 @@ function VerifyOrderOTPPageContent() {
       });
 
       const json = await response.json();
-      console.log("[VERIFY_ORDER] Midtrans response:", json);
+      console.log("[VERIFY_ORDER] DOKU response:", json);
 
-      // Sesuai dokumentasi: response harus memiliki success: true dan redirect_url
-      if (json.success === true && json.redirect_url) {
-        console.log("[VERIFY_ORDER] Opening Midtrans in new tab:", json.redirect_url);
+      // Response harus memiliki success: true dan payment_url
+      if (json.success === true && json.payment_url) {
+        console.log("[VERIFY_ORDER] Opening DOKU in new tab:", json.payment_url);
 
-        // Simpan snap_token dan order_id dari Midtrans jika ada
-        if (json.snap_token) {
-          sessionStorage.setItem("midtrans_snap_token", json.snap_token);
-        }
-        if (json.order_id) {
-          sessionStorage.setItem("midtrans_order_id_midtrans", json.order_id);
+        // Simpan invoice_number dan order_id dari DOKU jika ada
+        if (json.invoice_number) {
+          sessionStorage.setItem("doku_invoice_number", json.invoice_number);
         }
         if (orderId) {
-          sessionStorage.setItem("midtrans_order_id", String(orderId));
+          sessionStorage.setItem("doku_order_id", String(orderId));
         }
 
-        // Buka Midtrans payment page di tab baru sesuai dokumentasi
-        window.open(json.redirect_url, "_blank");
+        // Buka DOKU payment page di tab baru
+        window.open(json.payment_url, "_blank");
 
         // Redirect halaman verify-order kembali ke landing page dan kosongkan data
         const landingUrl = dataToUse?.landingUrl || "/";
         clearAndRedirect(landingUrl);
       } else {
-        console.error("[VERIFY_ORDER] Midtrans tidak mengembalikan redirect_url atau success false:", json);
+        console.error("[VERIFY_ORDER] DOKU tidak mengembalikan payment_url atau success false:", json);
         toast.error(json.message || "Gagal membuat transaksi");
         // Jika gagal, redirect ke payment page manual
         const query = new URLSearchParams({
@@ -416,7 +413,7 @@ function VerifyOrderOTPPageContent() {
         router.push(`/payment?${query.toString()}`);
       }
     } catch (err) {
-      console.error("[VERIFY_ORDER] Midtrans error:", err);
+      console.error("[VERIFY_ORDER] DOKU error:", err);
       toast.error("Terjadi kesalahan saat memproses pembayaran");
       // Jika error, redirect ke payment page manual
       const query = new URLSearchParams({

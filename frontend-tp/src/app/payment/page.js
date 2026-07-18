@@ -1,6 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
+import Script from "next/script";
 import { toast } from "react-hot-toast";
 
 import { getCustomerSession } from "@/lib/customerAuth";
@@ -50,7 +51,11 @@ function BankTransferPageContent() {
   const [serverOrderData, setServerOrderData] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [customerData, setCustomerData] = useState(null);
-  const [loadingMidtrans, setLoadingMidtrans] = useState(false);
+  const [loadingPayment, setLoadingPayment] = useState(false);
+
+  // Facebook Pixel - sumber ID sama seperti ProductClient.js (pixel_list dari tabel pixel_meta)
+  const [fbPixelIds, setFbPixelIds] = useState([]);
+  const [fbPurchaseParams, setFbPurchaseParams] = useState(null);
 
   // States untuk WA Sales PIC & Template Followup
   const [salesPicWa, setSalesPicWa] = useState(null);
@@ -144,24 +149,7 @@ function BankTransferPageContent() {
     }
   }, [downPaymentFromQuery, orderIdFromQuery]);
 
-  // Load Midtrans Snap Script
-  useEffect(() => {
-    if (paymentMethod && paymentMethod !== "manual") {
-      const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
-      const snapScript = isProduction
-        ? "https://app.midtrans.com/snap/snap.js"
-        : "https://app.sandbox.midtrans.com/snap/snap.js";
-      const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-v9Kjzq0WcEjk4-W7";
-
-      if (!document.querySelector(`script[src="${snapScript}"]`)) {
-        const script = document.createElement("script");
-        script.src = snapScript;
-        script.setAttribute("data-client-key", clientKey);
-        script.async = true;
-        document.body.appendChild(script);
-      }
-    }
-  }, [paymentMethod]);
+  // DOKU Checkout tidak butuh script client-side - customer di-redirect ke halaman hosted DOKU.
 
   // === Fetch Sales PIC WA & Template Followup untuk redirect WA ===
   useEffect(() => {
@@ -242,44 +230,14 @@ function BankTransferPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waCountdown]);
 
-  // Facebook Pixel Purchase Event - Trigger langsung saat load dengan mengambil pixel ID & events dari backend berdasarkan produk
+  // Facebook Pixel Purchase Event - ambil ID pixel dari pixel_list (sama seperti ProductClient.js),
+  // lalu fire event 'Purchase' saja (logika khusus halaman payment).
   useEffect(() => {
     if (!orderId) return;
 
-
     let isMounted = true;
 
-    const loadFbeventsScript = (callback) => {
-      if (typeof window === "undefined" || typeof document === "undefined") return;
-      if (!window.fbq) {
-        window.fbq = function () {
-          window.fbq.callMethod ? window.fbq.callMethod.apply(window.fbq, arguments) : window.fbq.queue.push(arguments);
-        };
-        if (!window._fbq) window._fbq = window.fbq;
-        window.fbq.push = window.fbq;
-        window.fbq.loaded = true;
-        window.fbq.version = '2.0';
-        window.fbq.queue = [];
-      }
-      const existing = document.getElementById("fb-pixel-payment-loader");
-      if (existing) {
-        callback();
-        return;
-      }
-      const s = document.createElement("script");
-      s.id = "fb-pixel-payment-loader";
-      s.async = true;
-      s.src = "https://connect.facebook.net/en_US/fbevents.js";
-      const first = document.getElementsByTagName("script")[0];
-      if (first && first.parentNode) {
-        first.parentNode.insertBefore(s, first);
-      } else {
-        document.head.appendChild(s);
-      }
-      callback();
-    };
-
-      const fetchOrderAndTrack = async () => {
+    const fetchOrderAndPreparePixel = async () => {
       try {
         const searchParams = new URLSearchParams(window.location.search);
         const hargaFromQuery = searchParams.get("harga") || harga;
@@ -298,110 +256,43 @@ function BankTransferPageContent() {
           return;
         }
 
-        console.log("[FB PIXEL] Fetching order data for pixel tracking. Order ID:", orderId);
         const res = await fetch(`/api/public-order/${orderId}`);
         if (!res.ok) {
           throw new Error("Failed to fetch order from public API");
         }
         const result = await res.json();
-        if (result.success && result.data && isMounted) {
-          const orderData = result.data;
-          const produk = orderData.produk_rel;
+        if (!result.success || !result.data || !isMounted) return;
 
-          if (produk && produk.fb_pixel && Array.isArray(produk.fb_pixel) && produk.fb_pixel.length > 0) {
-            console.log("[FB PIXEL] Found pixel configuration from backend:", produk.fb_pixel);
+        const orderData = result.data;
+        const produk = orderData.produk_rel;
 
-            const finalValue = parseFloat(hargaFromQuery) || parseFloat(orderData.total_harga) || 0;
+        // ✅ Sama seperti ProductClient.js: sumber ID pixel dari pixel_list (relasi ke pixel_meta)
+        const pixelIds = (produk?.pixel_list || []).map((p) => p.pixel).filter(Boolean);
 
-            loadFbeventsScript(() => {
-              if (typeof window.fbq !== "function") {
-                console.warn("[FB PIXEL] fbq tidak tersedia setelah load script");
-                return;
-              }
-              if (!window.__fbSalesPixelInited) {
-                window.__fbSalesPixelInited = new Set();
-              }
-
-              produk.fb_pixel.forEach((pixelItem) => {
-                const pid = pixelItem.pixel_id;
-                if (!pid) return;
-
-                // Init pixel if not done yet
-                try {
-                  if (!window.__fbSalesPixelInited.has(pid)) {
-                    window.fbq("init", pid);
-                    window.__fbSalesPixelInited.add(pid);
-                    console.log("[FB PIXEL] Init pixel ID:", pid);
-                  }
-                } catch (e) {
-                  console.error("[FB PIXEL] Init failed for:", pid, e);
-                }
-
-                // Di halaman payment (penyelesaian transaksi), kita HANYA ingin men-trigger event 'Purchase'.
-                // Semua event bawaan landing page builder (seperti ViewContent) diabaikan di sini agar statistik konversi tetap bersih.
-                const eventsToTrack = [{ name: "Purchase", params: {} }];
-
-                eventsToTrack.forEach((event) => {
-                  const eventName = event.name || event.event || "Purchase";
-                  const eventParams = {
-                    content_ids: produk.id != null ? [String(produk.id)] : [],
-                    content_type: "product",
-                    content_name: produk.nama || "Product",
-                    value: finalValue,
-                    currency: "IDR",
-                    order_id: orderData.kode_order || String(orderId),
-                    ...event.params
-                  };
-
-                  try {
-                    window.fbq("track", eventName, eventParams);
-                    console.log(`[FB PIXEL] Event "${eventName}" tracked on pixel ${pid}`, eventParams);
-
-                    // Log log crosscheck ke backend
-                    fetch('/api/pixel-log', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        order_id: orderData.id,
-                        produk_id: produk.id,
-                        pixel_id: pid,
-                        event_name: eventName,
-                        source: 'payment_page',
-                        status: '1',
-                        payload: eventParams
-                      })
-                    }).catch(e => console.error('[FB PIXEL LOG] Failed to send crosscheck log:', e));
-
-                  } catch (err) {
-                    console.error(`[FB PIXEL] Failed to track event "${eventName}" on pixel ${pid}:`, err);
-
-                    fetch('/api/pixel-log', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        order_id: orderData.id,
-                        produk_id: produk.id,
-                        pixel_id: pid,
-                        event_name: eventName,
-                        source: 'payment_page',
-                        status: '0',
-                        payload: { error: err.message, params: eventParams }
-                      })
-                    }).catch(e => console.error('[FB PIXEL LOG] Failed to send failure crosscheck log:', e));
-                  }
-                });
-              });
-            });
-          } else {
-            console.log("[FB PIXEL] No pixel configuration found for this product.");
-          }
+        if (pixelIds.length === 0) {
+          console.log("[FB PIXEL] No pixel configuration found for this product.");
+          return;
         }
+
+        const finalValue = parseFloat(hargaFromQuery) || parseFloat(orderData.total_harga) || 0;
+
+        setFbPixelIds(pixelIds);
+        setFbPurchaseParams({
+          content_ids: produk.id != null ? [String(produk.id)] : [],
+          content_type: "product",
+          content_name: produk.nama || "Product",
+          value: finalValue,
+          currency: "IDR",
+          order_id: orderData.kode_order || String(orderId),
+          _order_db_id: orderData.id,
+          _produk_id: produk.id,
+        });
       } catch (e) {
         console.error("[FB PIXEL] Error in fetching/tracking:", e);
       }
     };
 
-    fetchOrderAndTrack();
+    fetchOrderAndPreparePixel();
     return () => {
       isMounted = false;
     };
@@ -484,13 +375,13 @@ function BankTransferPageContent() {
   const handleLanjutkanPembayaran = async () => {
     if (!customerData) return;
 
-    setLoadingMidtrans(true);
+    setLoadingPayment(true);
     try {
-      const endpoint = paymentMethod === "cc" ? "create-snap-cc" :
-        paymentMethod === "ewallet" ? "create-snap-ewallet" :
-          "create-snap-va";
+      const endpoint = paymentMethod === "cc" ? "create-payment-cc" :
+        paymentMethod === "ewallet" ? "create-payment-ewallet" :
+          "create-payment-va";
 
-      const res = await fetch(`/api/midtrans/${endpoint}`, {
+      const res = await fetch(`/api/doku/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -503,31 +394,17 @@ function BankTransferPageContent() {
       });
 
       const data = await res.json();
-      if (data.success && data.snap_token) {
-        window.snap.pay(data.snap_token, {
-          onSuccess: function (result) {
-            toast.success("Pembayaran berhasil!");
-            window.location.href = "/customer/dashboard";
-          },
-          onPending: function (result) {
-            toast.success("Menunggu pembayaran...");
-            window.location.href = "/customer/dashboard";
-          },
-          onError: function (result) {
-            toast.error("Pembayaran gagal!");
-          },
-          onClose: function () {
-            toast.error("Popup ditutup.");
-          }
-        });
+      if (data.success && data.payment_url) {
+        // DOKU Checkout: redirect ke halaman pembayaran hosted DOKU
+        window.location.href = data.payment_url;
       } else {
-        toast.error(data.message || "Gagal mendapatkan token pembayaran");
+        toast.error(data.message || "Gagal mendapatkan link pembayaran");
       }
     } catch (err) {
-      console.error("Error Midtrans", err);
+      console.error("Error DOKU", err);
       toast.error("Terjadi kesalahan");
     } finally {
-      setLoadingMidtrans(false);
+      setLoadingPayment(false);
     }
   };
 
@@ -535,6 +412,54 @@ function BankTransferPageContent() {
 
   return (
     <div className="saas-payment-page">
+      {/* Facebook Pixel - init + track Purchase, sama pola dengan ProductClient.js */}
+      {fbPixelIds.length > 0 && fbPurchaseParams && (
+        <Script id="fb-pixel-payment" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+
+            try {
+              var pixelIds = ${JSON.stringify(fbPixelIds)};
+              var eventParams = ${JSON.stringify(fbPurchaseParams)};
+              var orderDbId = eventParams._order_db_id;
+              var produkId = eventParams._produk_id;
+              delete eventParams._order_db_id;
+              delete eventParams._produk_id;
+
+              pixelIds.forEach(function(id) {
+                if (!id) return;
+                try {
+                  fbq('init', id);
+                  fbq('track', 'Purchase', eventParams);
+                  console.log('[FB PIXEL] Purchase tracked on pixel', id, eventParams);
+                  fetch('/api/pixel-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', source: 'payment_page', status: '1', payload: eventParams })
+                  }).catch(function () {});
+                } catch (err) {
+                  console.error('[FB PIXEL] Failed to track Purchase on pixel', id, err);
+                  fetch('/api/pixel-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', source: 'payment_page', status: '0', payload: { error: String(err), params: eventParams } })
+                  }).catch(function () {});
+                }
+              });
+            } catch (e) {
+              console.error('[FB PIXEL] Error initializing pixels:', e);
+            }
+          `}
+        </Script>
+      )}
+
       <div className="saas-container">
 
         {/* Main Success Container */}
@@ -691,14 +616,14 @@ function BankTransferPageContent() {
                 )}
               </>
             ) : (
-              <div className="midtrans-section" style={{ padding: "2rem", textAlign: "center" }}>
+              <div className="doku-payment-section" style={{ padding: "2rem", textAlign: "center" }}>
                 {/* <p style={{ color: "#64748b", marginBottom: "1.5rem" }}>
                   Metode pembayaran: <strong>{paymentMethod.toUpperCase()}</strong>
                 </p> */}
                 <button
                   className="btn-primary"
                   onClick={handleLanjutkanPembayaran}
-                  disabled={loadingMidtrans}
+                  disabled={loadingPayment}
                   style={{
                     width: "100%",
                     padding: "1rem",
@@ -706,12 +631,12 @@ function BankTransferPageContent() {
                     color: "white",
                     borderRadius: "12px",
                     fontWeight: "600",
-                    cursor: loadingMidtrans ? "not-allowed" : "pointer",
-                    opacity: loadingMidtrans ? 0.7 : 1,
+                    cursor: loadingPayment ? "not-allowed" : "pointer",
+                    opacity: loadingPayment ? 0.7 : 1,
                     border: "none"
                   }}
                 >
-                  {loadingMidtrans ? "Memproses..." : "Lanjutkan Pembayaran"}
+                  {loadingPayment ? "Memproses..." : "Lanjutkan Pembayaran"}
                 </button>
               </div>
             )}

@@ -1,25 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { BACKEND_URL } from "@/config/env";
 
 export async function POST(request) {
   try {
-    // Handle FormData atau JSON
-    let body;
-    const contentType = request.headers.get('content-type');
-    
-    if (contentType?.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      body = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        amount: formData.get('amount'),
-        product_name: formData.get('product_name'),
-        order_id: formData.get('order_id'),
-      };
-    } else {
-      body = await request.json();
-    }
-
+    const body = await request.json();
     const { name, email, amount, product_name, order_id } = body;
 
     if (!name || !email || !amount) {
@@ -29,7 +14,6 @@ export async function POST(request) {
       );
     }
 
-    // Proxy ke backend
     const payload = {
       name,
       email,
@@ -38,10 +22,7 @@ export async function POST(request) {
       order_id: order_id ? parseInt(order_id, 10) : null,
     };
 
-    console.log('[MIDTRANS_EWALLET] Forwarding to backend:', `${BACKEND_URL}/api/midtrans/create-snap-ewallet`);
-    console.log('[MIDTRANS_EWALLET] Payload:', JSON.stringify(payload, null, 2));
-
-    const response = await fetch(`${BACKEND_URL}/api/midtrans/create-snap-ewallet`, {
+    const response = await fetch(`${BACKEND_URL}/api/doku/create-payment-va`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,16 +31,13 @@ export async function POST(request) {
       body: JSON.stringify(payload),
     });
 
-    console.log('[MIDTRANS_EWALLET] Backend response status:', response.status);
-
     const responseText = await response.text();
     let data;
 
     try {
       data = JSON.parse(responseText);
-      console.log('[MIDTRANS_EWALLET] Backend response data:', JSON.stringify(data, null, 2));
     } catch (err) {
-      console.error('[MIDTRANS_EWALLET] Non-JSON response:', responseText);
+      console.error('[DOKU_VA] Non-JSON response:', responseText);
       return NextResponse.json(
         { success: false, message: 'Backend error: Response bukan JSON' },
         { status: 500 }
@@ -67,23 +45,22 @@ export async function POST(request) {
     }
 
     if (!response.ok) {
-      console.error('Midtrans E-Wallet Backend Error:', data);
+      console.error('DOKU VA Backend Error:', data);
       return NextResponse.json(
         {
           success: false,
-          message: data?.message || 'Gagal membuat transaksi Midtrans',
+          message: data?.message || 'Gagal membuat transaksi DOKU',
           error: data,
         },
         { status: response.status }
       );
     }
 
-    // Return response dari backend (sudah dalam format yang benar)
     return NextResponse.json(data, {
       status: response.status,
     });
   } catch (error) {
-    console.error('Midtrans E-Wallet API Proxy Error:', error);
+    console.error('DOKU VA API Proxy Error:', error);
     return NextResponse.json(
       {
         success: false,

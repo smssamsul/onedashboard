@@ -837,7 +837,8 @@ export default function QuickOrderSalesPage() {
                 }}
               >
                 <option value="">-- Pilih Sumber --</option>
-                <option value="leadig">leadig</option>
+                <option value="leadig">sosmedtp</option>
+                <option value="leadig">sosmedda</option>
                 <option value="lpwa">lpwa</option>
                 <option value="lainnya">Lainnya (Input manual)</option>
               </select>

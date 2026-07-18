@@ -2571,8 +2571,8 @@ export default function EditProductsPage() {
         parsedJadwal = produkData.jadwal_rel.map(item => ({
           id: item.id,
           nama_jadwal: item.nama_jadwal || '',
-          waktu_mulai: item.waktu_mulai ? new Date(item.waktu_mulai) : null,
-          waktu_selesai: item.waktu_selesai ? new Date(item.waktu_selesai) : null,
+          waktu_mulai: item.waktu_mulai ? parseServerDate(item.waktu_mulai) : null,
+          waktu_selesai: item.waktu_selesai ? parseServerDate(item.waktu_selesai) : null,
           kuota: item.kuota || 9999,
           status: item.status || 'A',
         }));
@@ -2716,6 +2716,36 @@ export default function EditProductsPage() {
       setLoading(false);
     }
   }, [productId]);
+
+  // Format Date lokal (bukan UTC) ke string "YYYY-MM-DD HH:mm:ss" untuk dikirim ke backend.
+  // Jangan pakai date.toISOString() / JSON.stringify(date) langsung - itu convert ke UTC
+  // dan menyebabkan jam yang tersimpan bergeser dari yang dipilih user.
+  const formatDateForBackend = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const pad = (v) => (v < 10 ? `0${v}` : v);
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    const seconds = pad(d.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const formatJadwalForBackend = (jadwal) => (jadwal || []).map((j) => ({
+    ...j,
+    waktu_mulai: j.waktu_mulai ? formatDateForBackend(j.waktu_mulai) : null,
+    waktu_selesai: j.waktu_selesai ? formatDateForBackend(j.waktu_selesai) : null,
+  }));
+
+  // Parse tanggal dari backend sebagai waktu lokal (bukan UTC), jaga-jaga kalau
+  // backend masih mengirim sufiks "Z" (Laravel default serializeDate).
+  const parseServerDate = (val) => {
+    if (!val) return null;
+    const cleaned = String(val).replace(" ", "T").replace(/\.\d+Z?$/, "").replace(/Z$/, "");
+    return new Date(cleaned);
+  };
 
   // Fungsi untuk generate kode dari nama (slugify) - Single source of truth
   const formatSlug = (text) => {
@@ -3920,7 +3950,7 @@ export default function EditProductsPage() {
       assign: pengaturanForm.assign,
       status: "1",
       fb_pixel: pengaturanForm.facebook_pixels || [],
-      jadwal: pengaturanForm.jadwal || [],
+      jadwal: formatJadwalForBackend(pengaturanForm.jadwal),
       tampil_jadwal: pengaturanForm.tampil_jadwal ?? true,
       landingpage: landingpageArray,
       // LOKASI

@@ -2206,6 +2206,28 @@ export default function AddProducts3Page() {
     }
   };
 
+  // Format Date lokal (bukan UTC) ke string "YYYY-MM-DD HH:mm:ss" untuk dikirim ke backend.
+  // Jangan pakai date.toISOString() / JSON.stringify(date) langsung - itu convert ke UTC
+  // dan menyebabkan jam yang tersimpan bergeser dari yang dipilih user.
+  const formatDateForBackend = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const pad = (v) => (v < 10 ? `0${v}` : v);
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    const seconds = pad(d.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const formatJadwalForBackend = (jadwal) => (jadwal || []).map((j) => ({
+    ...j,
+    waktu_mulai: j.waktu_mulai ? formatDateForBackend(j.waktu_mulai) : null,
+    waktu_selesai: j.waktu_selesai ? formatDateForBackend(j.waktu_selesai) : null,
+  }));
+
   // Fungsi untuk generate kode dari nama (slugify) - Single source of truth
   const formatSlug = (text) => {
     if (!text) return "";
@@ -3187,7 +3209,7 @@ export default function AddProducts3Page() {
       assign: pengaturanForm.assign,
       status: "1",
       fb_pixel: pengaturanForm.facebook_pixels || [],
-      jadwal: pengaturanForm.jadwal || [],
+      jadwal: formatJadwalForBackend(pengaturanForm.jadwal),
       tampil_jadwal: pengaturanForm.tampil_jadwal ?? true,
       landingpage: landingpageArray,
       // LOKASI
@@ -3317,7 +3339,7 @@ export default function AddProducts3Page() {
       assign: pengaturanForm.assign || [],
       status: "0", // ✅ DRAFT STATUS (bukan "1" untuk publish)
       fb_pixel: pengaturanForm.facebook_pixels || [],
-      jadwal: pengaturanForm.jadwal || [],
+      jadwal: formatJadwalForBackend(pengaturanForm.jadwal),
       tampil_jadwal: pengaturanForm.tampil_jadwal ?? true,
       landingpage: landingpageArray,
       // LOKASI

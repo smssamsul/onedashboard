@@ -23,7 +23,7 @@ use App\Http\Controllers\Api\Sales\{
     OrderUtmController,
     OrderPaymentController,
     OtpCustomerController,
-    MidtransController,
+    DokuController,
     WebinarController,
     ZoomRecordController,
     OrderResiController,
@@ -101,13 +101,13 @@ Route::post('/biteship/webhook', [BiteshipWebhookController::class, 'handle'])
 // testing n8n otomatisasi
 Route::post('/laporan/minggu-ini', [OrderCustomerController::class, 'laporanMingguIni']);
 
-// Midtrans (Public - untuk webhook)
-Route::prefix('midtrans')->group(function () {
-    Route::post('/create-snap', [MidtransController::class, 'createSnapTokenGeneral']);
-    Route::post('/create-snap-cc', [MidtransController::class, 'createSnapTokenCC']);
-    Route::post('/create-snap-va', [MidtransController::class, 'createSnapTokenVA']);
-    Route::post('/create-snap-ewallet', [MidtransController::class, 'createSnapTokenEwallet']);
-    Route::post('/notification', [MidtransController::class, 'notificationHandler']);
+// DOKU (Public - untuk webhook)
+Route::prefix('doku')->group(function () {
+    Route::post('/create-payment', [DokuController::class, 'createPaymentGeneral']);
+    Route::post('/create-payment-cc', [DokuController::class, 'createPaymentCC']);
+    Route::post('/create-payment-va', [DokuController::class, 'createPaymentVA']);
+    Route::post('/create-payment-ewallet', [DokuController::class, 'createPaymentEwallet']);
+    Route::post('/notification', [DokuController::class, 'notificationHandler']);
 });
 
 // WhatsApp Bot Webhook

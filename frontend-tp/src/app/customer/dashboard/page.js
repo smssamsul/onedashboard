@@ -113,20 +113,7 @@ export default function DashboardPage() {
       setCurrentTime(Date.now());
     }, 1000);
 
-    // Load Midtrans Snap script
-    const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
-    const snapScript = isProduction 
-      ? "https://app.midtrans.com/snap/snap.js" 
-      : "https://app.sandbox.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-v9Kjzq0WcEjk4-W7";
-
-    if (!document.querySelector(`script[src="${snapScript}"]`)) {
-      const script = document.createElement("script");
-      script.src = snapScript;
-      script.setAttribute("data-client-key", clientKey);
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    // DOKU Checkout tidak butuh script client-side - customer di-redirect ke halaman hosted DOKU.
 
     return () => clearInterval(interval);
   }, []);
@@ -177,7 +164,7 @@ export default function DashboardPage() {
     console.log("[DASHBOARD] Processing payment:", { orderId, paymentMethod, productName });
 
     // Jika metode pembayaran adalah E-Payment
-    const isEpayment = ["ewallet", "cc", "va", "midtrans"].includes(paymentMethod);
+    const isEpayment = ["ewallet", "cc", "va", "doku"].includes(paymentMethod);
 
     if (isEpayment) {
       const session = getCustomerSession();
@@ -207,11 +194,11 @@ export default function DashboardPage() {
         setPaymentLoading(true);
 
         // Tentukan endpoint berdasarkan metode pembayaran
-        let endpoint = "/api/midtrans/create-snap-va";
+        let endpoint = "/api/doku/create-payment-va";
         if (paymentMethod === "ewallet") {
-          endpoint = "/api/midtrans/create-snap-ewallet";
+          endpoint = "/api/doku/create-payment-ewallet";
         } else if (paymentMethod === "cc") {
-          endpoint = "/api/midtrans/create-snap-cc";
+          endpoint = "/api/doku/create-payment-cc";
         }
 
         console.log("[DASHBOARD] Triggering API:", { endpoint, orderId });
@@ -230,45 +217,23 @@ export default function DashboardPage() {
 
         const data = await response.json();
 
-        if (data.success && data.redirect_url) {
-          // Simpan order IDs untuk sesi ini
-          sessionStorage.setItem("midtrans_order_id", String(orderId));
-          if (data.order_id) {
-            sessionStorage.setItem("midtrans_order_id_midtrans", data.order_id);
-          }
-          if (data.snap_token) {
-            sessionStorage.setItem("midtrans_snap_token", data.snap_token);
+        if (data.success && data.payment_url) {
+          // Simpan order id untuk sesi ini
+          sessionStorage.setItem("doku_order_id", String(orderId));
+          if (data.invoice_number) {
+            sessionStorage.setItem("doku_invoice_number", data.invoice_number);
           }
 
-          if (window.snap && data.snap_token) {
-            window.snap.pay(data.snap_token, {
-              onSuccess: function (result) {
-                toast.success("Pembayaran berhasil!");
-                refetchDashboard();
-              },
-              onPending: function (result) {
-                toast.success("Menunggu pembayaran!");
-                refetchDashboard();
-              },
-              onError: function (result) {
-                toast.error("Pembayaran gagal!");
-              },
-              onClose: function () {
-                toast.error("Popup pembayaran ditutup tanpa penyelesaian.");
-              }
-            });
-          } else {
-            // Fallback jika window.snap gagal dimuat
-            toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
-            window.open(data.redirect_url, "_blank");
-          }
+          // DOKU Checkout: redirect ke halaman pembayaran hosted DOKU
+          toast.success(`Membuka pembayaran ${paymentMethod.toUpperCase()}...`);
+          window.location.href = data.payment_url;
         } else {
           toast.error(data.message || "Gagal membuat sesi pembayaran online.");
           // Fallback manual
           router.push(`/payment?product=${encodeURIComponent(productName)}&harga=${amount}&via=manual&order_id=${orderId}&sumber=dashboard`);
         }
       } catch (error) {
-        console.error("[DASHBOARD] Midtrans error:", error);
+        console.error("[DASHBOARD] DOKU error:", error);
         toast.error("Terjadi kesalahan sistem pembayaran.");
       } finally {
         setPaymentLoading(false);

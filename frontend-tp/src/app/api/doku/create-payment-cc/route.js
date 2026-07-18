@@ -23,10 +23,7 @@ export async function POST(request) {
       order_id: order_id ? parseInt(order_id, 10) : null,
     };
 
-    console.log('[MIDTRANS_CC] Forwarding to backend:', `${BACKEND_URL}/api/midtrans/create-snap-cc`);
-    console.log('[MIDTRANS_CC] Payload:', JSON.stringify(payload, null, 2));
-
-    const response = await fetch(`${BACKEND_URL}/api/midtrans/create-snap-cc`, {
+    const response = await fetch(`${BACKEND_URL}/api/doku/create-payment-cc`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,16 +32,13 @@ export async function POST(request) {
       body: JSON.stringify(payload),
     });
 
-    console.log('[MIDTRANS_CC] Backend response status:', response.status);
-
     const responseText = await response.text();
     let data;
 
     try {
       data = JSON.parse(responseText);
-      console.log('[MIDTRANS_CC] Backend response data:', JSON.stringify(data, null, 2));
     } catch (err) {
-      console.error('[MIDTRANS_CC] Non-JSON response:', responseText);
+      console.error('[DOKU_CC] Non-JSON response:', responseText);
       return NextResponse.json(
         { success: false, message: 'Backend error: Response bukan JSON' },
         { status: 500 }
@@ -52,23 +46,22 @@ export async function POST(request) {
     }
 
     if (!response.ok) {
-      console.error('Midtrans CC Backend Error:', data);
+      console.error('DOKU CC Backend Error:', data);
       return NextResponse.json(
         {
           success: false,
-          message: data?.message || 'Gagal membuat transaksi Midtrans',
+          message: data?.message || 'Gagal membuat transaksi DOKU',
           error: data,
         },
         { status: response.status }
       );
     }
 
-    // Return response dari backend (sudah dalam format yang benar)
     return NextResponse.json(data, {
       status: response.status,
     });
   } catch (error) {
-    console.error('Midtrans CC API Proxy Error:', error);
+    console.error('DOKU CC API Proxy Error:', error);
     return NextResponse.json(
       {
         success: false,

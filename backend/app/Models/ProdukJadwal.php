@@ -26,6 +26,16 @@ class ProdukJadwal extends Model
         'kuota' => 'integer',
     ];
 
+    /**
+     * Laravel default menambahkan sufiks "Z" (klaim UTC) saat serialize ke JSON,
+     * padahal kolom ini "timestamp without time zone" berisi jam lokal (WIB) apa adanya.
+     * Tanpa override ini, frontend salah interpretasi jam saat parsing balik jadi Date().
+     */
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id', 'id');
