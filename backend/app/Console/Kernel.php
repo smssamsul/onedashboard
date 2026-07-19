@@ -21,14 +21,16 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\BackfillKodeOrder::class,
         \App\Console\Commands\CancelUnpaidOrdersCron::class,
         \App\Console\Commands\SendScheduledBroadcastCron::class,
+        \App\Console\Commands\SyncMetaAdsInsights::class,
     ];
-    
+
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('followup:send')->hourly()->withoutOverlapping();
         $schedule->command('trainer:reminder')->hourly()->withoutOverlapping();
         $schedule->command('orders:cancel-unpaid')->daily()->withoutOverlapping();
         $schedule->command('broadcast:send-scheduled')->everyMinute()->withoutOverlapping();
+        $schedule->command('meta-ads:sync-insights')->hourly()->withoutOverlapping();
         // $schedule->command('inspire')->hourly();
     }
 

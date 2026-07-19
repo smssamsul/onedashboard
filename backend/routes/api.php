@@ -158,6 +158,28 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/pixel-meta/{id}', [PixelMetaController::class, 'update']);
         Route::delete('/pixel-meta/{id}', [PixelMetaController::class, 'destroy']);
 
+        // Meta Ads - akun (config/kredensial)
+        Route::get('/meta-ads/accounts', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'index']);
+        Route::get('/meta-ads/accounts/{id}', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'show']);
+        Route::post('/meta-ads/accounts', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'store']);
+        Route::put('/meta-ads/accounts/{id}', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'update']);
+        Route::delete('/meta-ads/accounts/{id}', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'destroy']);
+
+        // Meta Ads - performa (read-only, dipakai menu Marketing & Sales)
+        Route::get('/meta-ads/performance/overview', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'overview']);
+        Route::get('/meta-ads/performance/campaigns', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'campaigns']);
+        Route::get('/meta-ads/performance/campaigns/{campaignId}', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'campaignDetail']);
+
+        // Meta Ads - kelola campaign (Marketing only, aksi nyata ke Meta)
+        Route::post('/meta-ads/campaigns', [\App\Http\Controllers\Api\Sales\MetaAdsCampaignController::class, 'store']);
+        Route::post('/meta-ads/campaigns/{campaignId}/pause', [\App\Http\Controllers\Api\Sales\MetaAdsCampaignController::class, 'pause']);
+        Route::post('/meta-ads/campaigns/{campaignId}/resume', [\App\Http\Controllers\Api\Sales\MetaAdsCampaignController::class, 'resume']);
+        Route::put('/meta-ads/campaigns/{campaignId}/budget', [\App\Http\Controllers\Api\Sales\MetaAdsCampaignController::class, 'updateBudget']);
+
+        // Meta Ads - crosscheck Pixel/CAPI vs data Meta
+        Route::get('/meta-ads/crosscheck', [\App\Http\Controllers\Api\Sales\MetaAdsCrosscheckController::class, 'crosscheck']);
+        Route::get('/meta-ads/crosscheck/summary', [\App\Http\Controllers\Api\Sales\MetaAdsCrosscheckController::class, 'crosscheckSummary']);
+
 
         // Dashboard
         Route::get('/dashboard', [SalesDashboardController::class, 'index']);

@@ -34,6 +34,7 @@ import {
   Zap,
   Truck,
   UserPlus,
+  Megaphone,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
@@ -305,6 +306,7 @@ export default function Sidebar({
           items: [
             { label: "Follow Up Logs", href: `${basePath}/followup/report`, icon: <Activity size={18} /> },
             { label: "Log Pixel", href: `${basePath}/log-pixel`, icon: <Activity size={18} /> },
+            { label: "Meta Ads", href: `${basePath}/meta-ads-report`, icon: <BarChart3 size={18} /> },
           ],
         },
         {
@@ -376,6 +378,15 @@ export default function Sidebar({
             { label: "Cuti Saya", href: "/marketing/cuti-saya", icon: <CalendarDays size={18} /> },
             { label: "Izin Saya", href: "/marketing/izin-saya", icon: <FileText size={18} /> },
             { label: "Todo List Saya", href: `${basePath}/todo-list-saya`, icon: <ListTodo size={18} /> },
+          ],
+        },
+        {
+          section: "META ADS",
+          items: [
+            { label: "Overview", href: `${basePath}/meta-ads`, icon: <BarChart3 size={18} /> },
+            { label: "Kelola Campaign", href: `${basePath}/meta-ads/campaigns`, icon: <Megaphone size={18} /> },
+            { label: "Pixel Crosscheck", href: `${basePath}/meta-ads/crosscheck`, icon: <Activity size={18} /> },
+            { label: "Setting Akun", href: `${basePath}/meta-ads/accounts`, icon: <Settings size={18} /> },
           ],
         },
       ];
