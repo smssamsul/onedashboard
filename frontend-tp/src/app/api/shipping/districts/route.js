@@ -14,7 +14,7 @@ export async function GET(request) {
     if (!cityId) {
       return NextResponse.json(
         { success: false, message: "city_id wajib diisi", data: [] },
-        { status: 200 }
+        { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
       );
     }
 
@@ -42,13 +42,13 @@ export async function GET(request) {
 
     return NextResponse.json(
       { success: true, message: "Berhasil mengambil data kecamatan", data },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
     );
   } catch (error) {
     console.error("[SHIPPING_DISTRICTS]", error);
     return NextResponse.json(
       { success: false, message: error.message || "Terjadi kesalahan", data: [] },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
     );
   }
 }

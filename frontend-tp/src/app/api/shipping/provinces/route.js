@@ -27,13 +27,13 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, message: "Berhasil mengambil data provinsi", data },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
     );
   } catch (error) {
     console.error("[SHIPPING_PROVINCES]", error);
     return NextResponse.json(
       { success: false, message: error.message || "Terjadi kesalahan", data: [] },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
     );
   }
 }
