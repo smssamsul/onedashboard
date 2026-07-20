@@ -3,7 +3,7 @@
 import { InputText } from "primereact/inputtext";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function ScrollTargetComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index }) {
+export default function ScrollTargetComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const target = data.target || "";
 
   const handleChange = (value) => {
@@ -17,6 +17,8 @@ export default function ScrollTargetComponent({ data = {}, onUpdate, onMoveUp, o
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="scroll-target-component-content">
         <div className="form-field-group">

@@ -2,7 +2,7 @@
 
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function FAQComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, productKategori }) {
+export default function FAQComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, productKategori, isExpanded, onToggleExpand }) {
   return (
     <ComponentWrapper
       title="FAQ"
@@ -10,6 +10,8 @@ export default function FAQComponent({ data = {}, onUpdate, onMoveUp, onMoveDown
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="faq-component-content">
         <div className="faq-info-box" style={{ 

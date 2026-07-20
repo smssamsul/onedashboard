@@ -2,20 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { buildImageUrl, convertToWebp } from "@/lib/image";
+import { flushSync } from "react-dom";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Slider } from "primereact/slider";
-import { Image as ImageIcon, Info, ChevronDown as ChevronDownIcon, Pencil, Trash2, Eye, Settings, X } from "lucide-react";
+import { Dropdown } from "primereact/dropdown";
+import { InputSwitch } from "primereact/inputswitch";
+import {
+  Image as ImageIcon, Info, ChevronDown as ChevronDownIcon, ChevronUp,
+  Pencil, Trash2, Eye, Settings, X, ChevronDown, ChevronUp as ChevronUpIcon,
+  ArrowDown, ArrowUp
+} from "lucide-react";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
-  const src = data.src || "";
-  const alt = data.alt || "";
-  const caption = data.caption || "";
-  const [showAdvance, setShowAdvance] = useState(false);
-  const [showImageActions, setShowImageActions] = useState(false);
+export default function ImageSliderComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
+  const images = data.images || [];
+  const sliderType = data.sliderType || "gallery"; // gallery, banner
+  const autoslide = data.autoslide || false;
+  const autoslideDuration = data.autoslideDuration || 5;
+  const showCaption = data.showCaption || false;
 
-  // Advanced settings state
+  // Advanced settings state (sama seperti ImageComponent)
   const [alignment, setAlignment] = useState(data.alignment || "center");
   const [imageWidth, setImageWidth] = useState(data.imageWidth || 100);
   const [imageFit, setImageFit] = useState(data.imageFit || "fill");
@@ -28,27 +35,14 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
   const [paddingRight, setPaddingRight] = useState(data.paddingRight || 0);
   const [paddingBottom, setPaddingBottom] = useState(data.paddingBottom || 0);
   const [paddingLeft, setPaddingLeft] = useState(data.paddingLeft || 0);
-  const [componentId, setComponentId] = useState(data.componentId || `img-${Math.random().toString(36).substr(2, 9)}`);
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        const webpDataUrl = await convertToWebp(file);
-        onUpdate?.({ ...data, src: webpDataUrl, file: file });
-      } catch (err) {
-        console.error("Failed to convert image", err);
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          onUpdate?.({ ...data, src: event.target.result, file: file });
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
+  const [componentId, setComponentId] = useState(data.componentId || `img-slider-${Math.random().toString(36).substr(2, 9)}`);
+  const [showAdvance, setShowAdvance] = useState(false);
+  const [showImageActions, setShowImageActions] = useState({});
 
   const handleChange = (field, value) => {
-    onUpdate?.({ ...data, [field]: value });
+    flushSync(() => {
+      onUpdate?.({ ...data, [field]: value });
+    });
   };
 
   // Update component when advanced settings change
@@ -71,6 +65,87 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
     });
   }, [alignment, imageWidth, imageFit, aspectRatio, backgroundType, backgroundColor, backgroundImage, device, paddingTop, paddingRight, paddingBottom, paddingLeft, componentId]);
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        const newImage = {
+          src: webpDataUrl,
+          file: file,
+          alt: "",
+          caption: "",
+          link: ""
+        };
+        handleChange("images", [...images, newImage]);
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const newImage = {
+            src: event.target.result,
+            file: file,
+            alt: "",
+            caption: "",
+            link: ""
+          };
+          handleChange("images", [...images, newImage]);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const handleImageFileChange = async (imageIndex, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const webpDataUrl = await convertToWebp(file);
+        const newImages = [...images];
+        newImages[imageIndex] = {
+          ...newImages[imageIndex],
+          src: webpDataUrl,
+          file: file
+        };
+        handleChange("images", newImages);
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const newImages = [...images];
+          newImages[imageIndex] = {
+            ...newImages[imageIndex],
+            src: event.target.result,
+            file: file
+          };
+          handleChange("images", newImages);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const removeImage = (imageIndex) => {
+    const newImages = images.filter((_, i) => i !== imageIndex);
+    handleChange("images", newImages);
+  };
+
+  const moveImage = (imageIndex, direction) => {
+    if (direction === "up" && imageIndex === 0) return;
+    if (direction === "down" && imageIndex === images.length - 1) return;
+
+    const newImages = [...images];
+    const newIndex = direction === "up" ? imageIndex - 1 : imageIndex + 1;
+    [newImages[imageIndex], newImages[newIndex]] = [newImages[newIndex], newImages[imageIndex]];
+    handleChange("images", newImages);
+  };
+
+  const updateImage = (imageIndex, field, value) => {
+    const newImages = [...images];
+    newImages[imageIndex] = { ...newImages[imageIndex], [field]: value };
+    handleChange("images", newImages);
+  };
+
   const handleBackgroundFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -90,7 +165,7 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
 
   return (
     <ComponentWrapper
-      title="Gambar"
+      title="Image Slider"
       index={index}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
@@ -106,22 +181,45 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
         </span>
       </div>
 
-      {/* Upload Area */}
-      <div className="component-upload-area">
-        {src ? (
+      {/* Images List */}
+      {images.map((image, i) => (
+        <div key={i} className="image-slider-item" style={{ marginBottom: "16px" }}>
           <div className="uploaded-image-container">
             <div
               className="uploaded-image-preview-box"
-              onMouseEnter={() => setShowImageActions(true)}
-              onMouseLeave={() => setShowImageActions(false)}
+              onMouseEnter={() => setShowImageActions({ ...showImageActions, [i]: true })}
+              onMouseLeave={() => setShowImageActions({ ...showImageActions, [i]: false })}
             >
-              <img src={buildImageUrl(src)} alt="Preview" className="uploaded-image-preview-img" />
-              {showImageActions && (
+              <img
+                src={buildImageUrl(image.src)}
+                alt="Preview"
+                className="uploaded-image-preview-img"
+              />
+              {showImageActions[i] && (
                 <div className="image-action-overlay">
-                  <button className="image-action-btn" title="Edit">
-                    <Pencil size={16} />
+                  <button
+                    className="image-action-btn"
+                    title={i === 0 ? "Tidak bisa pindah ke atas" : "Pindah ke atas"}
+                    onClick={() => moveImage(i, "up")}
+                    disabled={i === 0}
+                    style={{ opacity: i === 0 ? 0.5 : 1 }}
+                  >
+                    <ArrowUp size={16} />
                   </button>
-                  <button className="image-action-btn" title="Hapus" onClick={() => onUpdate?.({ ...data, src: "" })}>
+                  <button
+                    className="image-action-btn"
+                    title={i === images.length - 1 ? "Tidak bisa pindah ke bawah" : "Pindah ke bawah"}
+                    onClick={() => moveImage(i, "down")}
+                    disabled={i === images.length - 1}
+                    style={{ opacity: i === images.length - 1 ? 0.5 : 1 }}
+                  >
+                    <ArrowDown size={16} />
+                  </button>
+                  <button
+                    className="image-action-btn"
+                    title="Hapus"
+                    onClick={() => removeImage(i)}
+                  >
                     <Trash2 size={16} />
                   </button>
                   <button className="image-action-btn" title="Lihat">
@@ -136,33 +234,119 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
             <input
               type="file"
               accept=".jpg,.jpeg,.png,.webp,.gif,.heic"
-              onChange={handleFileChange}
+              onChange={(e) => handleImageFileChange(i, e)}
               className="component-file-input"
-              id={`image-replace-${index}`}
+              id={`image-replace-${index}-${i}`}
             />
-            <label htmlFor={`image-replace-${index}`} className="replace-image-label">
+            <label htmlFor={`image-replace-${index}-${i}`} className="replace-image-label">
               Ganti Gambar
             </label>
           </div>
-        ) : (
-          <>
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,.gif,.heic"
-              onChange={handleFileChange}
-              className="component-file-input"
-              id={`image-upload-${index}`}
+
+          {/* Image Details */}
+          <div className="form-field-group" style={{ marginTop: "8px" }}>
+            <InputText
+              value={image.alt || ""}
+              onChange={(e) => updateImage(i, "alt", e.target.value)}
+              placeholder="Alt Text"
+              className="w-full form-input"
+              style={{ marginBottom: "8px" }}
             />
-            <label htmlFor={`image-upload-${index}`} className="component-upload-label">
-              <div className="upload-icon-wrapper">
-                <ImageIcon size={32} />
-              </div>
-              <span className="upload-text">Upload Gambar *</span>
-              <span className="upload-formats">.jpg, .jpeg, .png, .webp, .gif, .heic</span>
-            </label>
-          </>
-        )}
+            <InputText
+              value={image.caption || ""}
+              onChange={(e) => updateImage(i, "caption", e.target.value)}
+              placeholder="Caption"
+              className="w-full form-input"
+              style={{ marginBottom: "8px" }}
+            />
+            {sliderType === "banner" && (
+              <InputText
+                value={image.link || ""}
+                onChange={(e) => updateImage(i, "link", e.target.value)}
+                placeholder="Link (untuk aksi klik)"
+                className="w-full form-input"
+              />
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Add Image Button */}
+      <div style={{ marginTop: "16px", marginBottom: "16px" }}>
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.heic"
+          onChange={handleFileChange}
+          className="component-file-input"
+          id={`image-upload-${index}`}
+        />
+        <label htmlFor={`image-upload-${index}`} className="add-image-link">
+          + Tambah Gambar
+        </label>
       </div>
+
+      {/* Divider */}
+      <div style={{ height: "1px", backgroundColor: "#e5e7eb", margin: "16px 0" }} />
+
+      {/* Settings (hanya muncul jika lebih dari 1 gambar) */}
+      {images.length > 1 && (
+        <>
+          <div className="form-field-group">
+            <label className="form-label-small">Tipe</label>
+            <Dropdown
+              value={sliderType}
+              onChange={(e) => handleChange("sliderType", e.value)}
+              options={[
+                { label: "Gallery", value: "gallery" },
+                { label: "Banner", value: "banner" },
+              ]}
+              className="w-full"
+            />
+          </div>
+
+          <div className="component-info-box" style={{ marginTop: "8px", marginBottom: "16px" }}>
+            <Info size={16} />
+            <span>
+              Gunakan tipe 'Banner' untuk dapat mengaktifkan aksi klik pada gambar
+            </span>
+          </div>
+
+          <div className="form-field-group">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+              <InputSwitch
+                checked={autoslide}
+                onChange={(e) => handleChange("autoslide", e.value)}
+              />
+              <label className="form-label-small" style={{ margin: 0 }}>Autoslide Gambar</label>
+            </div>
+            {autoslide && (
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <InputNumber
+                  value={autoslideDuration}
+                  onValueChange={(e) => handleChange("autoslideDuration", e.value || 5)}
+                  min={1}
+                  max={60}
+                  className="form-input"
+                  style={{ flex: 1 }}
+                />
+                <button className="advance-toggle-btn" style={{ padding: "8px 16px" }}>
+                  Detik
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="form-field-group">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <InputSwitch
+                checked={showCaption}
+                onChange={(e) => handleChange("showCaption", e.value)}
+              />
+              <label className="form-label-small" style={{ margin: 0 }}>Tampil Caption di Gambar Depan</label>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Advance Section */}
       <div className="component-advance-section">
@@ -179,28 +363,6 @@ export default function ImageComponent({ data = {}, onUpdate, onMoveUp, onMoveDo
 
         {showAdvance && (
           <div className="component-advance-content">
-            {/* Alt Text */}
-            <div className="form-field-group">
-              <label className="form-label-small">Alt Text</label>
-              <InputText
-                value={alt}
-                onChange={(e) => handleChange("alt", e.target.value)}
-                placeholder="Deskripsi gambar"
-                className="w-full"
-              />
-            </div>
-
-            {/* Caption */}
-            <div className="form-field-group">
-              <label className="form-label-small">Caption</label>
-              <InputText
-                value={caption}
-                onChange={(e) => handleChange("caption", e.target.value)}
-                placeholder="Caption gambar (opsional)"
-                className="w-full"
-              />
-            </div>
-
             {/* Desain Section */}
             <div className="advance-section-group">
               <label className="advance-section-label">Desain</label>

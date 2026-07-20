@@ -3,7 +3,7 @@
 import { InputTextarea } from "primereact/inputtextarea";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function HTMLComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index }) {
+export default function HTMLComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const code = data.code || "";
 
   const handleChange = (value) => {
@@ -17,6 +17,8 @@ export default function HTMLComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="html-component-content">
         <div className="form-field-group">

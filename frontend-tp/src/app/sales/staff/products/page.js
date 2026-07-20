@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { useProducts } from "@/hooks/sales/useProducts";
 import { useRouter } from "next/navigation";
+import { getApiUrl } from "@/config/api";
 import { Package, CheckCircle, Search } from "lucide-react";
 import DeleteProductModal from "./deleteProductModal";
 import "@/styles/sales/dashboard.css";
@@ -19,16 +20,6 @@ function useDebouncedValue(value, delay = 250) {
   return debounced;
 }
 
-function getCurrentUserId() {
-  if (typeof window === "undefined") return null;
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    return user?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export default function AdminProductsPage() {
   const { products, loading, error, handleDelete, handleDuplicate, setProducts } = useProducts();
   const [searchInput, setSearchInput] = useState("");
@@ -36,7 +27,25 @@ export default function AdminProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const router = useRouter();
-  const currentUserId = useMemo(() => getCurrentUserId(), []);
+
+  // localStorage.user.id itu ID user_login (tabel auth), BUKAN User.id yang
+  // dipakai di produk.assign - harus ambil dari /user/profile biar cocok.
+  const [currentUserId, setCurrentUserId] = useState(null);
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(getApiUrl("user/profile"), {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        const json = await res.json();
+        if (json.success) setCurrentUserId(json.data.id);
+      } catch (e) {
+        console.error("Gagal memuat profile user:", e);
+      }
+    }
+    loadProfile();
+  }, []);
 
   // State untuk modal hapus
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -184,12 +193,6 @@ export default function AdminProductsPage() {
               <p className="panel__eyebrow">Directory</p>
               <h3 className="panel__title">Product roster</h3>
             </div>
-            <button
-              className="customers-button customers-button--primary"
-              onClick={() => router.push("/sales/staff/products/addProducts3")}
-            >
-              + Tambah Produk
-            </button>
           </div>
 
           {error && (

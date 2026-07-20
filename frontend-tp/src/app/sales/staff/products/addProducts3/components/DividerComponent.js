@@ -4,7 +4,7 @@ import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function DividerComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index }) {
+export default function DividerComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const style = data.style || "solid";
   const color = data.color || "#e5e7eb";
 
@@ -19,6 +19,8 @@ export default function DividerComponent({ data = {}, onUpdate, onMoveUp, onMove
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="divider-component-content">
         <div className="form-field-group">

@@ -2,9 +2,10 @@
 
 import { Button } from "primereact/button";
 import { Trash2 } from "lucide-react";
+import { convertToWebp } from "@/lib/image";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function SliderComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index }) {
+export default function SliderComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const images = data.images || [];
 
   const addImage = () => {
@@ -17,16 +18,24 @@ export default function SliderComponent({ data = {}, onUpdate, onMoveUp, onMoveD
     onUpdate?.({ ...data, images: newImages });
   };
 
-  const handleImageUpload = (index, e) => {
+  const handleImageUpload = async (index, e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
+      try {
+        const webpDataUrl = await convertToWebp(file);
         const newImages = [...images];
-        newImages[index] = { ...newImages[index], src: event.target.result };
+        newImages[index] = { ...newImages[index], src: webpDataUrl };
         onUpdate?.({ ...data, images: newImages });
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error("Failed to convert image", err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const newImages = [...images];
+          newImages[index] = { ...newImages[index], src: event.target.result };
+          onUpdate?.({ ...data, images: newImages });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -43,6 +52,8 @@ export default function SliderComponent({ data = {}, onUpdate, onMoveUp, onMoveD
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="slider-component-content">
         {images.map((img, i) => (

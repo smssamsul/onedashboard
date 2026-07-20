@@ -96,7 +96,7 @@ export default function ScheduleList({ products }) {
                             const selesai = jadwal.waktu_selesai ? formatTime(jadwal.waktu_selesai) : 'Selesai';
                             return (
                               <span key={jadwal.id}>
-                                {mulai} WIB - {selesai} {product.jadwal_rel.length > 1 ? `(${jadwal.nama_jadwal})` : ''}
+                                {mulai} - {selesai} {product.jadwal_rel.length > 1 ? `(${jadwal.nama_jadwal})` : ''}
                               </span>
                             );
                           })

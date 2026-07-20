@@ -21,6 +21,7 @@ const SIZE_PRESET_OPTIONS = Object.entries(BUTTON_SIZE_PRESETS).map(([value, { l
 
 export default function ButtonComponent({
   data = {},
+  allBlocks = [],
   onUpdate,
   onMoveUp,
   onMoveDown,
@@ -30,7 +31,7 @@ export default function ButtonComponent({
   onToggleExpand,
 }) {
   const text = data.text || "Klik Disini";
-  const link = data.link || "#";
+  const link = data.link || "#form-pemesanan";
   const style = data.style || "primary";
   const sizePreset = data.sizePreset || "default";
   const fontSize = data.fontSize ?? null;
@@ -40,6 +41,8 @@ export default function ButtonComponent({
   const textColor = data.textColor ?? "";
   const borderRadius = data.borderRadius ?? null;
   const fullWidth = Boolean(data.fullWidth);
+  const fixedBottom = Boolean(data.fixedBottom);
+  const fbPixelEvent = data.fbPixelEvent || "";
 
   const handleChange = (field, value) => {
     onUpdate?.({ ...data, [field]: value });
@@ -85,6 +88,19 @@ export default function ButtonComponent({
     });
   };
 
+  const sectionOptions = allBlocks
+    .filter(b => b.type !== "button" && b.type !== "settings" && b.id !== data.componentId)
+    .map((b, idx) => {
+      const typeLabel = b.type.charAt(0).toUpperCase() + b.type.slice(1);
+      return {
+        label: `Scroll ke: ${typeLabel} (${idx + 1})`,
+        value: `#${b.config?.componentId || b.id}`
+      };
+    });
+
+  const isKnownLink = link === "#form-pemesanan" || sectionOptions.some(opt => opt.value === link);
+  const dropdownValue = isKnownLink ? link : "custom";
+
   return (
     <ComponentWrapper
       title="Tombol"
@@ -107,12 +123,53 @@ export default function ButtonComponent({
         </div>
 
         <div className="form-field-group">
-          <label className="form-label-small">Link / URL</label>
-          <InputText
-            value={link}
-            onChange={(e) => handleChange("link", e.target.value)}
-            placeholder="#"
-            className="w-full form-input"
+          <label className="form-label-small">Tujuan Link</label>
+          <Dropdown
+            value={dropdownValue}
+            onChange={(e) => {
+              if (e.value !== "custom") {
+                handleChange("link", e.value);
+              } else {
+                handleChange("link", "");
+              }
+            }}
+            options={[
+              { label: "Form Pemesanan", value: "#form-pemesanan" },
+              ...sectionOptions,
+              { label: "Kustom Link", value: "custom" },
+            ]}
+            className="w-full"
+          />
+        </div>
+
+        {dropdownValue === "custom" && (
+          <div className="form-field-group" style={{ marginTop: 10 }}>
+            <label className="form-label-small">Link / URL Kustom</label>
+            <InputText
+              value={link}
+              onChange={(e) => handleChange("link", e.target.value)}
+              placeholder="https://... atau #section-id"
+              className="w-full form-input"
+            />
+          </div>
+        )}
+
+        <div className="form-field-group">
+          <label className="form-label-small">Event Pixel Facebook</label>
+          <Dropdown
+            value={fbPixelEvent}
+            onChange={(e) => handleChange("fbPixelEvent", e.value)}
+            options={[
+              { label: "Tidak Ada (Default)", value: "" },
+              { label: "Lead", value: "Lead" },
+              { label: "AddToCart", value: "AddToCart" },
+              { label: "InitiateCheckout", value: "InitiateCheckout" },
+              { label: "Purchase", value: "Purchase" },
+              { label: "Contact", value: "Contact" },
+              { label: "ViewContent", value: "ViewContent" }
+            ]}
+            className="w-full"
+            placeholder="Pilih Event Pixel"
           />
         </div>
 
@@ -161,7 +218,7 @@ export default function ButtonComponent({
               <InputNumber
                 value={paddingY}
                 onValueChange={(e) => handleChange("paddingY", e.value)}
-                min={0}
+                min={-9999}
                 max={48}
                 showButtons
                 className="w-full"
@@ -172,7 +229,7 @@ export default function ButtonComponent({
               <InputNumber
                 value={paddingX}
                 onValueChange={(e) => handleChange("paddingX", e.value)}
-                min={0}
+                min={-9999}
                 max={64}
                 showButtons
                 className="w-full"
@@ -267,6 +324,13 @@ export default function ButtonComponent({
           <InputSwitch checked={fullWidth} onChange={(e) => handleChange("fullWidth", e.value)} />
           <label className="form-label-small" style={{ margin: 0, cursor: "pointer" }} onClick={() => handleChange("fullWidth", !fullWidth)}>
             Lebar penuh (100%)
+          </label>
+        </div>
+
+        <div className="form-field-group" style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+          <InputSwitch checked={fixedBottom} onChange={(e) => handleChange("fixedBottom", e.value)} />
+          <label className="form-label-small" style={{ margin: 0, cursor: "pointer" }} onClick={() => handleChange("fixedBottom", !fixedBottom)}>
+            Fixed di bawah layar
           </label>
         </div>
       </div>

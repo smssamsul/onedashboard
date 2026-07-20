@@ -3,7 +3,7 @@
 import { Dropdown } from "primereact/dropdown";
 import ComponentWrapper from "./ComponentWrapper";
 
-export default function AnimationComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index }) {
+export default function AnimationComponent({ data = {}, onUpdate, onMoveUp, onMoveDown, onDelete, index, isExpanded, onToggleExpand }) {
   const type = data.type || "fade";
 
   const handleChange = (value) => {
@@ -17,6 +17,8 @@ export default function AnimationComponent({ data = {}, onUpdate, onMoveUp, onMo
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onDelete={onDelete}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     >
       <div className="animation-component-content">
         <div className="form-field-group">

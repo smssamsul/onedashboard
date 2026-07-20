@@ -20,13 +20,25 @@ class UserController extends Controller
 
     public function getProfile(Request $request)
     {
-        $user = auth()->guard('api')->user();
-        
-        if (!$user) {
+        $userLogin = auth()->guard('api')->user();
+
+        if (!$userLogin) {
             return response()->json([
                 'success' => false,
                 'message' => 'User tidak ditemukan'
             ], 401);
+        }
+
+        // auth()->guard('api')->user() adalah instance UserLogin, bukan User -
+        // resolve ke User model asli lewat kolom FK 'user' supaya id-nya benar
+        // (sama dengan id yang dipakai di produk.assign, dll)
+        $user = User::find($userLogin->user);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data user tidak ditemukan'
+            ], 404);
         }
 
         return response()->json([
