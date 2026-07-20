@@ -90,7 +90,7 @@ class GoogleOAuthController extends Controller
     }
     public function status()
     {
-        $hasToken = !empty(env('GOOGLE_REFRESH_TOKEN'));
+        $hasToken = !empty(config('google.refresh_token'));
         return response()->json([
             'connected' => $hasToken
         ]);

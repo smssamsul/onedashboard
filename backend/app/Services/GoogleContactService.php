@@ -22,14 +22,14 @@ class GoogleContactService
     public function __construct()
     {
         $this->client = new Client();
-        $this->client->setClientId(env('GOOGLE_CLIENT_ID'));
-        $this->client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-        $this->client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
+        $this->client->setClientId(config('google.client_id'));
+        $this->client->setClientSecret(config('google.client_secret'));
+        $this->client->setRedirectUri(config('google.redirect_uri'));
         $this->client->addScope(PeopleService::CONTACTS);
         $this->client->setAccessType('offline');
 
         // Set token dari refresh token
-        $refreshToken = env('GOOGLE_REFRESH_TOKEN');
+        $refreshToken = config('google.refresh_token');
         if ($refreshToken) {
             $this->client->refreshToken($refreshToken);
         }
@@ -42,14 +42,14 @@ class GoogleContactService
      */
     public function isReady(): bool
     {
-        $clientId = env('GOOGLE_CLIENT_ID');
-        $clientSecret = env('GOOGLE_CLIENT_SECRET');
-        
+        $clientId = config('google.client_id');
+        $clientSecret = config('google.client_secret');
+
         if (empty($clientId) || empty($clientSecret)) {
             return false;
         }
 
-        $refreshToken = env('GOOGLE_REFRESH_TOKEN');
+        $refreshToken = config('google.refresh_token');
         
         return !empty($refreshToken);
     }

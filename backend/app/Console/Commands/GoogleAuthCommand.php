@@ -24,7 +24,7 @@ class GoogleAuthCommand extends Command
         $this->info('');
 
         // Cek apakah refresh token sudah ada
-        $existingToken = env('GOOGLE_REFRESH_TOKEN');
+        $existingToken = config('google.refresh_token');
         if ($existingToken) {
             $this->warn('⚠️  GOOGLE_REFRESH_TOKEN sudah ada di .env.');
             if (!$this->confirm('Apakah Anda ingin generate ulang token? (ini akan menggantikan token yang ada)')) {
@@ -49,7 +49,7 @@ class GoogleAuthCommand extends Command
         $this->line('  1. Buka URL di atas di browser');
         $this->line('  2. Login dengan akun Gmail bisnis');
         $this->line('  3. Klik "Allow" / "Izinkan"');
-        $this->line('  4. Browser akan redirect ke: ' . env('GOOGLE_REDIRECT_URI'));
+        $this->line('  4. Browser akan redirect ke: ' . config('google.redirect_uri'));
         $this->line('  5. Halaman akan menampilkan "✅ Google OAuth berhasil!"');
         $this->line('  6. GOOGLE_REFRESH_TOKEN otomatis tersimpan di .env');
         $this->info('');
