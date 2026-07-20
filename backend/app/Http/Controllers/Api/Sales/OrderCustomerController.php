@@ -671,6 +671,11 @@ class OrderCustomerController extends Controller
                 'update_at' => now(),
             ];
 
+            // Backfill sales_id jika customer lama belum pernah punya sales_id
+            if (empty($existingCustomer->sales_id)) {
+                $updateData['sales_id'] = $this->getNextSalesId((int) $request->produk);
+            }
+
             // Update nama jika berbeda
             if ($existingCustomer->nama != $request->nama) {
                 $updateData['nama'] = $request->nama;
@@ -1094,6 +1099,13 @@ class OrderCustomerController extends Controller
                 $existingCustomer->update([
                     'status_order' => json_encode($statusOrder),
                     'update_at' => now(),
+                ]);
+            }
+
+            // Backfill sales_id jika customer lama belum pernah punya sales_id
+            if (empty($existingCustomer->sales_id)) {
+                $existingCustomer->update([
+                    'sales_id' => $this->getNextSalesId((int) $request->produk),
                 ]);
             }
         }
