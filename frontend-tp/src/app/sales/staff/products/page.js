@@ -8,6 +8,7 @@ import { Package, CheckCircle, Search } from "lucide-react";
 import DeleteProductModal from "./deleteProductModal";
 import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
+import "@/styles/sales/shared-table.css";
 
 function useDebouncedValue(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -18,6 +19,16 @@ function useDebouncedValue(value, delay = 250) {
   return debounced;
 }
 
+function getCurrentUserId() {
+  if (typeof window === "undefined") return null;
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminProductsPage() {
   const { products, loading, error, handleDelete, handleDuplicate, setProducts } = useProducts();
   const [searchInput, setSearchInput] = useState("");
@@ -25,10 +36,19 @@ export default function AdminProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const router = useRouter();
+  const currentUserId = useMemo(() => getCurrentUserId(), []);
 
   // State untuk modal hapus
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+
+  // Staff sales cuma boleh lihat produk yang sign ke dirinya sendiri
+  const myProducts = useMemo(() => {
+    if (!currentUserId) return [];
+    return products.filter((p) =>
+      Array.isArray(p.assign_users) && p.assign_users.some((u) => Number(u.id) === Number(currentUserId))
+    );
+  }, [products, currentUserId]);
 
   // Handler untuk buka modal hapus
   const openDeleteModal = (product) => {
@@ -43,7 +63,7 @@ export default function AdminProductsPage() {
 
   const filtered = useMemo(() => {
     const term = debouncedSearch.trim().toLowerCase();
-    return products.filter((p) => {
+    return myProducts.filter((p) => {
       if (!term) return true;
       return (
         p.nama?.toLowerCase().includes(term) ||
@@ -51,7 +71,7 @@ export default function AdminProductsPage() {
         p.user_rel?.nama?.toLowerCase().includes(term)
       );
     });
-  }, [products, debouncedSearch]);
+  }, [myProducts, debouncedSearch]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -63,11 +83,6 @@ export default function AdminProductsPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
-
-  const formatPrice = useCallback((price) => {
-    if (!price) return "Rp 0";
-    return `Rp ${parseInt(price).toLocaleString("id-ID")}`;
-  }, []);
 
   const formatListRupiah = useCallback((value) => {
     const n = Math.round(Number(value ?? 0));
@@ -91,29 +106,29 @@ export default function AdminProductsPage() {
 
   const getStatusBadge = useCallback((status) => {
     if (status === "1") {
-      return <span className="customers-verif-tag is-verified">Active</span>;
+      return (
+        <span style={{
+          background: '#ecfdf5', color: '#059669', border: '1px solid #34d399',
+          padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600
+        }}>Active</span>
+      );
     }
-    return <span className="customers-verif-tag is-unverified">Inactive</span>;
+    return (
+      <span style={{
+        background: '#fef2f2', color: '#dc2626', border: '1px solid #f87171',
+        padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600
+      }}>Inactive</span>
+    );
+  }, []);
+
+  const getAssignNames = useCallback((assignUsers) => {
+    if (!Array.isArray(assignUsers) || assignUsers.length === 0) return "-";
+    return assignUsers.map((u) => u.nama).join(", ");
   }, []);
 
   return (
     <Layout title="Manage Products">
-      <div className="dashboard-shell customers-shell">
-        <section className="dashboard-hero customers-hero">
-          <div className="customers-toolbar">
-            <div className="customers-search">
-              <input
-                type="search"
-                placeholder="Cari produk, kategori, atau pembuat"
-                className="customers-search__input"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-              <span className="customers-search__icon pi pi-search" />
-            </div>
-          </div>
-        </section>
-
+      <div className="dashboard-shell customers-shell table-shell">
         <section className="dashboard-summary products-summary">
           <article className="summary-card summary-card--combined summary-card--three-cols">
             <div className="summary-card__column">
@@ -122,7 +137,7 @@ export default function AdminProductsPage() {
               </div>
               <div>
                 <p className="summary-card__label">Total products</p>
-                <p className="summary-card__value">{products.length}</p>
+                <p className="summary-card__value">{myProducts.length}</p>
               </div>
             </div>
             <div className="summary-card__divider"></div>
@@ -132,7 +147,7 @@ export default function AdminProductsPage() {
               </div>
               <div>
                 <p className="summary-card__label">Active products</p>
-                <p className="summary-card__value">{products.filter((p) => p.status === "1").length}</p>
+                <p className="summary-card__value">{myProducts.filter((p) => p.status === "1").length}</p>
               </div>
             </div>
             <div className="summary-card__divider"></div>
@@ -148,12 +163,33 @@ export default function AdminProductsPage() {
           </article>
         </section>
 
+        <section className="dashboard-hero customers-hero">
+          <div className="customers-toolbar">
+            <div className="customers-search">
+              <input
+                type="search"
+                placeholder="Cari produk, kategori, atau pembuat"
+                className="customers-search__input"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+              <span className="customers-search__icon pi pi-search" />
+            </div>
+          </div>
+        </section>
+
         <section className="panel products-panel">
           <div className="panel__header">
             <div>
               <p className="panel__eyebrow">Directory</p>
               <h3 className="panel__title">Product roster</h3>
             </div>
+            <button
+              className="customers-button customers-button--primary"
+              onClick={() => router.push("/sales/staff/products/addProducts3")}
+            >
+              + Tambah Produk
+            </button>
           </div>
 
           {error && (
@@ -162,80 +198,89 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          <div className="products-table__wrapper">
-            <div className="products-table">
-              <div className="products-table__head">
-                <span>Product</span>
-                <span>Price</span>
-                <span>Revenue</span>
-                <span>Category</span>
-                <span>Status</span>
-                <span>Event Date</span>
-                <span>Created By</span>
-                <span>Assign By</span>
-                <span>Created At</span>
-              </div>
-              <div className="products-table__body">
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="sticky-left-1" style={{ width: '250px', minWidth: '250px' }}>PRODUCT</th>
+                  <th className="sticky-left-2" style={{ left: '250px' }}>CATEGORY</th>
+                  <th style={{ minWidth: "150px", maxWidth: "200px" }}>REVENUE</th>
+                  <th>STATUS</th>
+                  <th>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>JADWAL</span>
+                    </div>
+                  </th>
+                  <th>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>CREATED</span>
+                      <span>BY</span>
+                    </div>
+                  </th>
+                  <th>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>ASSIGN</span>
+                      <span>BY</span>
+                    </div>
+                  </th>
+                  <th>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>CREATED</span>
+                      <span>AT</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {loading ? (
-                  <p className="products-empty">Loading data...</p>
+                  <tr><td colSpan={8} className="table-empty">Loading data...</td></tr>
                 ) : paginatedData.length > 0 ? (
-                  paginatedData.map((p, i) => (
-                    <div className="products-table__row" key={p.id}>
-
-                      <div className="products-table__cell products-table__cell--strong" data-label="Product">
+                  paginatedData.map((p) => (
+                    <tr key={p.id}>
+                      <td className="sticky-left-1" style={{ width: '250px', minWidth: '250px' }}>
                         <div className="product-table__info">
                           <span
                             className="product-table__name"
+                            style={{ display: 'block', fontWeight: 600, color: '#0ea5e9', cursor: 'pointer', marginBottom: '0.25rem' }}
                             onClick={() => router.push(`/sales/staff/products/view/${p.id}`)}
                           >
                             {p.nama || "-"}
                           </span>
-                          <div className="product-table__actions">
+                          <div className="product-table__actions" style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
-                              className="product-table__action-link"
+                              className="action-btn"
+                              style={{ fontSize: '0.7rem' }}
                               onClick={() => {
-                                // Generate slug dari nama jika kode tidak ada atau tidak valid
-                                const generateSlug = (text) =>
-                                  (text || "")
-                                    .toString()
-                                    .toLowerCase()
-                                    .trim()
-                                    .replace(/[^a-z0-9 -]/g, "")
-                                    .replace(/\s+/g, "-")
-                                    .replace(/-+/g, "-");
-                                
+                                const generateSlug = (text) => (text || "").toString().toLowerCase().trim().replace(/[^a-z0-9 -]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
                                 let kodeProduk = p.kode || (p.url ? p.url.replace(/^\//, '') : null);
-                                
-                                // Jika kode mengandung spasi atau karakter tidak valid, generate ulang dari nama
                                 if (!kodeProduk || kodeProduk.includes(' ') || kodeProduk.includes('%20')) {
                                   kodeProduk = generateSlug(p.nama);
                                 }
-                                
-                                if (kodeProduk) {
-                                  window.open(`/landing/${kodeProduk}`, '_blank');
-                                } else {
-                                  alert('Kode produk tidak tersedia');
-                                }
+                                if (kodeProduk) window.open(`/landing/${kodeProduk}`, '_blank');
+                                else alert('Kode produk tidak tersedia');
                               }}
                             >
                               Review
                             </button>
                             <button
-                              className="product-table__action-link"
-                              onClick={() => router.push(`/sales/staff/products/view/${p.id}`)}
+                              className="action-btn"
+                              style={{ fontSize: '0.7rem' }}
+                              onClick={() => router.push(`/sales/staff/products/editProducts/${p.id}`)}
                             >
-                              Detail
+                              Edit
+                            </button>
+                            <button
+                              className="action-btn action-btn--danger"
+                              style={{ fontSize: '0.7rem' }}
+                              onClick={() => openDeleteModal(p)}
+                            >
+                              Delete
                             </button>
                           </div>
                         </div>
-                      </div>
-                      <div className="products-table__cell" data-label="Price">
-                        {formatPrice(p.harga_asli)}
-                      </div>
-                      <div
-                        className="products-table__cell products-table__cell--revenue"
-                        data-label="Revenue"
-                      >
+                      </td>
+                      <td className="sticky-left-2" style={{ left: '250px' }}>{p.kategori_rel?.nama || "-"}</td>
+                      <td style={{ whiteSpace: "normal", verticalAlign: "top" }}>
                         {(() => {
                           const revenue = Number(p.total_revenue ?? 0);
                           const pctRaw = p.fee_trainer;
@@ -249,20 +294,8 @@ export default function AdminProductsPage() {
                             ? Math.round(revenue * (pct / 100))
                             : null;
                           return (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: "0.85rem",
-                                  fontWeight: 600,
-                                  color: "#0f172a",
-                                }}
-                              >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                              <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#111827" }}>
                                 {formatListRupiah(revenue)}
                               </span>
                               {showTrainerFee && (
@@ -273,43 +306,48 @@ export default function AdminProductsPage() {
                             </div>
                           );
                         })()}
-                      </div>
-                      <div className="products-table__cell" data-label="Category">
-                        {p.kategori_rel?.nama || "-"}
-                      </div>
-                      <div className="products-table__cell" data-label="Status">
-                        {getStatusBadge(p.status)}
-                      </div>
-                      <div className="products-table__cell" data-label="Event Date">
+                      </td>
+                      <td>{getStatusBadge(p.status)}</td>
+                      <td>
                         {(() => {
                           const jadwalArr = p.jadwal_rel || [];
-                          if (jadwalArr.length > 0) {
-                            const firstJadwal = jadwalArr[0];
-                            return formatDate(firstJadwal.waktu_mulai);
+                          if (jadwalArr.length === 0) {
+                            return <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>;
                           }
-                          return formatDate(p.tanggal_event);
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {jadwalArr.map((j, idx) => (
+                                <div key={idx} style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  background: '#f0f9ff',
+                                  border: '1px solid #bae6fd',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  minWidth: '130px',
+                                }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0369a1', lineHeight: 1.3 }}>
+                                    {j.nama_jadwal || `Jadwal ${idx + 1}`}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: '#475569', marginTop: '1px' }}>
+                                    {j.waktu_mulai ? formatDate(j.waktu_mulai) : '—'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
                         })()}
-                      </div>
-                      <div className="products-table__cell" data-label="Created By">
-                        {p.user_rel?.nama || "-"}
-                      </div>
-                      <div className="products-table__cell" data-label="Assign By">
-                        {p.assign_rel && p.assign_rel.length > 0
-                          ? p.assign_rel.map((u) => u.nama).join(", ")
-                          : "-"}
-                      </div>
-                      <div className="products-table__cell" data-label="Created At">
-                        {formatDate(p.create_at)}
-                      </div>
-                    </div>
+                      </td>
+                      <td>{p.user_rel?.nama || "-"}</td>
+                      <td>{getAssignNames(p.assign_users)}</td>
+                      <td>{formatDate(p.create_at)}</td>
+                    </tr>
                   ))
                 ) : (
-                  <p className="products-empty">
-                    {products.length ? "Tidak ada hasil pencarian." : "Belum ada produk."}
-                  </p>
+                  <tr><td colSpan={8} className="table-empty">{myProducts.length ? "Tidak ada hasil pencarian." : "Belum ada produk yang sign ke Anda."}</td></tr>
                 )}
-              </div>
-            </div>
+              </tbody>
+            </table>
           </div>
 
           {totalPages > 1 && (

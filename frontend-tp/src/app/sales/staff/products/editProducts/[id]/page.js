@@ -2121,7 +2121,7 @@ export default function Page() {
               />
             </div>
 
-            {/* ASSIGN BY - Penanggung Jawab */}
+            {/* ASSIGN BY - Penanggung Jawab (read-only untuk staff sales) */}
             <div className="form-field-group">
               <label className="form-label">
                 Penanggung Jawab (Assign By)
@@ -2130,14 +2130,14 @@ export default function Page() {
                 className="w-full form-input"
                 value={form.assign}
                 options={userOptions}
-                onChange={(e) => handleChange("assign", e.value || [])}
-                placeholder="Pilih penanggung jawab produk"
+                onChange={() => {}}
+                disabled
+                placeholder="Belum ada penanggung jawab"
                 display="chip"
-                showClear
                 filter
                 filterPlaceholder="Cari user..."
               />
-              <p className="field-hint">Pilih user yang bertanggung jawab menangani produk ini</p>
+              <p className="field-hint">Penanggung jawab produk tidak bisa diubah dari sini - hubungi leader/admin kalau perlu diganti.</p>
             </div>
 
             {/* LANDING PAGE */}

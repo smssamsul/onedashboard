@@ -29,6 +29,8 @@ class HrKaryawan extends Model
         'avatar_url',
         'kuota_cuti',
         'approval',
+        'posisi_x',
+        'posisi_y',
         'status',
         'create_at',
         'update_at',

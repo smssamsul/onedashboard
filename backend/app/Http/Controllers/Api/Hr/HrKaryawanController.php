@@ -22,7 +22,7 @@ class HrKaryawanController extends Controller
 
     public function index(Request $request)
     {
-        $query = HrKaryawan::with(['departemen_rel', 'user_rel']);
+        $query = HrKaryawan::with(['departemen_rel', 'user_rel', 'approval_rel:id,nama']);
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);

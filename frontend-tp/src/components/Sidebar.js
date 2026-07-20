@@ -35,6 +35,7 @@ import {
   Truck,
   UserPlus,
   Megaphone,
+  Network,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
@@ -459,6 +460,7 @@ export default function Sidebar({
           section: "DATA",
           items: [
             { label: "Karyawan", href: `${basePath}/karyawan`, icon: <Users size={18} /> },
+            { label: "Struktur Organisasi", href: `${basePath}/struktur-organisasi`, icon: <Network size={18} /> },
             { label: "Divisi", href: `${basePath}/departemen`, icon: <Building2 size={18} /> },
             { label: "Shift", href: `${basePath}/shift`, icon: <Clock size={18} /> },
           ],
@@ -550,6 +552,7 @@ export default function Sidebar({
               icon: <Users size={18} />,
               submenu: [
                 { label: "Data Karyawan", href: "/direksi/hr/karyawan" },
+                { label: "Struktur Organisasi", href: "/direksi/hr/struktur-organisasi" },
                 { label: "Data Absensi Karyawan", href: "/direksi/hr/absensi" },
                 { label: "Data Cuti Karyawan", href: "/direksi/hr/cuti" },
               ],

@@ -488,7 +488,11 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/karyawan', [HrKaryawanController::class, 'store']);
         Route::put('/karyawan/{id}', [HrKaryawanController::class, 'update']);
         Route::delete('/karyawan/{id}', [HrKaryawanController::class, 'destroy']);
-        
+
+        // Struktur Organisasi (Org Chart)
+        Route::get('/org-chart', [\App\Http\Controllers\Api\Hr\HrOrgChartController::class, 'index']);
+        Route::post('/org-chart/save', [\App\Http\Controllers\Api\Hr\HrOrgChartController::class, 'save']);
+
         // Absensi
         Route::get('/absensi', [HrAbsensiController::class, 'index']);
         // Route spesifik harus didefinisikan sebelum route parameter

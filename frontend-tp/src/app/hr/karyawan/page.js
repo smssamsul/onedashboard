@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
 import { Search, Plus, Edit, Trash2, X } from "lucide-react";
+import { getJabatanLabel } from "@/lib/jabatanLabels";
 
 export default function KaryawanPage() {
   const router = useRouter();
@@ -30,20 +31,6 @@ export default function KaryawanPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
-  const getJabatanLabel = (jabatan) => {
-    const jabatanMap = {
-      1: "Vice President",
-      2: "Assistant Vice President",
-      3: "General Manager",
-      4: "Manager",
-      5: "Supervisor",
-      6: "Officer",
-      7: "Clerical Staff",
-      8: "Internship",
-    };
-    return jabatanMap[jabatan] || "-";
-  };
 
   const [formData, setFormData] = useState({
     nama: "",
@@ -465,6 +452,7 @@ export default function KaryawanPage() {
                     <th>No. Telp</th>
                     <th>Departemen</th>
                     <th>Jabatan</th>
+                    <th>Atasan</th>
                     <th>Kuota Cuti</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -479,6 +467,7 @@ export default function KaryawanPage() {
                       <td>{item.notelp || "-"}</td>
                       <td>{item.departemen_rel?.nama || "-"}</td>
                       <td>{getJabatanLabel(item.jabatan)}</td>
+                      <td>{item.approval_rel?.nama || "-"}</td>
                       <td>{item.kuota_cuti !== null && item.kuota_cuti !== undefined ? `${item.kuota_cuti} hari` : "-"}</td>
                       <td>
                         <span className={`status-badge ${item.status === "1" ? "status-aktif" : "status-resign"}`}>
