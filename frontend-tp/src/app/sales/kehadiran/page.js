@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "@/components/Layout";
 import { QRCodeCanvas } from "qrcode.react";
-import { CheckSquare, Search, Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
+import { CheckSquare, Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
 import { getKehadiran, manualCheckin, deleteKehadiran } from "@/lib/sales/kehadiran";
 import { getProducts, getProductById } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
@@ -23,7 +23,6 @@ function useDebouncedValue(value, delay = 350) {
 
 export default function KehadiranPage() {
   const [produkList, setProdukList] = useState([]);
-  const [produkSearch, setProdukSearch] = useState("");
   const [produkId, setProdukId] = useState("");
   const [jadwalList, setJadwalList] = useState([]);
   const [jadwalId, setJadwalId] = useState("");
@@ -80,14 +79,7 @@ export default function KehadiranPage() {
       .catch(() => setSearchResults([]));
   }, [debouncedSearch]);
 
-  const filteredProdukList = useMemo(() => {
-    const term = produkSearch.trim().toLowerCase();
-    if (!term) return produkList;
-    return produkList.filter((p) => p.nama?.toLowerCase().includes(term));
-  }, [produkList, produkSearch]);
-
   const selectedProduk = produkList.find((p) => String(p.id) === String(produkId));
-  const selectedJadwal = jadwalList.find((j) => String(j.id) === String(jadwalId));
   const checkinLink = jadwalId
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/kehadiran/${jadwalId}`
     : "";
@@ -154,54 +146,106 @@ export default function KehadiranPage() {
         </section>
 
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* KIRI: pilih produk */}
-          <section className="panel users-panel" style={{ width: 280, flexShrink: 0 }}>
-            <div className="panel__header">
-              <div>
-                <p className="panel__eyebrow">Event</p>
-                <h3 className="panel__title">Produk</h3>
+          {/* KIRI: satu card - pilih produk (dropdown), pilih jadwal, dan QR check-in */}
+          <div style={{ width: 340, flexShrink: 0 }}>
+            <section className="panel users-panel">
+              <div className="panel__header">
+                <div>
+                  <p className="panel__eyebrow">Event</p>
+                  <h3 className="panel__title">Produk &amp; QR Check-in</h3>
+                </div>
               </div>
-            </div>
-            <div style={{ padding: "0 1rem 1rem" }}>
-              <div className="customers-search" style={{ marginBottom: 12 }}>
-                <input
-                  type="search"
-                  placeholder="Cari produk..."
-                  className="customers-search__input"
-                  value={produkSearch}
-                  onChange={(e) => setProdukSearch(e.target.value)}
-                />
-                <span className="customers-search__icon pi pi-search" />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 480, overflowY: "auto" }}>
-                {filteredProdukList.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setProdukId(String(p.id))}
-                    style={{
-                      textAlign: "left",
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      border: "1px solid",
-                      borderColor: String(p.id) === String(produkId) ? "#f97316" : "transparent",
-                      background: String(p.id) === String(produkId) ? "#fff7ed" : "transparent",
-                      cursor: "pointer",
-                      fontSize: 14,
-                      fontWeight: String(p.id) === String(produkId) ? 600 : 400,
-                    }}
-                  >
-                    {p.nama}
-                  </button>
-                ))}
-                {filteredProdukList.length === 0 && (
-                  <p style={{ fontSize: 13, color: "#6b7280", padding: "8px 12px" }}>Produk tidak ditemukan.</p>
-                )}
-              </div>
-            </div>
-          </section>
+              <div style={{ padding: "0 1rem 1rem", display: "flex", flexDirection: "column", gap: 16 }}>
+                <div className="form-group full-width">
+                  <label>Produk</label>
+                  <select value={produkId} onChange={(e) => setProdukId(e.target.value)}>
+                    <option value="">-- Pilih Produk --</option>
+                    {produkList.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nama}</option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* KANAN: QR generator + list peserta */}
-          <div style={{ flex: 1, minWidth: 320, display: "flex", flexDirection: "column", gap: 24 }}>
+                {produkId && (
+                  <div className="form-group full-width">
+                    <label>Jadwal untuk QR check-in</label>
+                    <select value={jadwalId} onChange={(e) => setJadwalId(e.target.value)}>
+                      <option value="">-- Pilih Jadwal --</option>
+                      {jadwalList.map((j) => (
+                        <option key={j.id} value={j.id}>
+                          {j.nama_jadwal} — {j.waktu_mulai ? new Date(j.waktu_mulai).toLocaleString("id-ID") : "-"}
+                        </option>
+                      ))}
+                    </select>
+                    <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
+                      Produk ini dipakai berulang cukup dengan edit tanggal jadwal — riwayat kehadiran sesi lama tetap aman tersimpan dengan tanggalnya sendiri.
+                    </p>
+                  </div>
+                )}
+
+                  {jadwalId && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <label style={{ fontSize: 14, fontWeight: 600 }}>
+                        <QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />QR Check-in
+                      </label>
+                      <div style={{ padding: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, alignSelf: "center" }}>
+                        <QRCodeCanvas ref={qrCanvasRef} value={checkinLink} size={220} level="M" includeMargin={false} />
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input type="text" readOnly value={checkinLink} style={{ flex: 1, minWidth: 0 }} />
+                        <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                      <button type="button" className="customers-button customers-button--primary" onClick={handleDownloadQr}>
+                        <Download size={16} /> Download QR
+                      </button>
+                      <a
+                        href={`/kehadiran/${jadwalId}/display`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="customers-button"
+                        style={{ textAlign: "center" }}
+                      >
+                        <Monitor size={16} /> Buka Halaman Display
+                      </a>
+                    </div>
+                  )}
+
+                  {jadwalId && (
+                    <div style={{ position: "relative" }}>
+                      <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
+                        Tandai Hadir Manual
+                      </label>
+                      <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Ketik nama atau nomor WA..."
+                        style={{ width: "100%" }}
+                      />
+                      {searchResults.length > 0 && (
+                        <div style={{ position: "absolute", zIndex: 10, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, width: "100%", maxHeight: 200, overflowY: "auto" }}>
+                          {searchResults.map((c) => (
+                            <div
+                              key={c.id}
+                              style={{ padding: "8px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", fontSize: 13 }}
+                              onClick={() => handleManualCheckin(c)}
+                            >
+                              <span>{c.nama} — {c.wa}</span>
+                              <span style={{ color: "#16a34a" }}>Tandai hadir</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+          </div>
+
+          {/* KANAN: hanya data - daftar hadir semua sesi produk terpilih */}
+          <div style={{ flex: 1, minWidth: 320 }}>
             {!produkId ? (
               <section className="panel users-panel">
                 <p style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
@@ -209,146 +253,61 @@ export default function KehadiranPage() {
                 </p>
               </section>
             ) : (
-              <>
-                <section className="panel users-panel">
-                  <div className="panel__header">
-                    <div>
-                      <p className="panel__eyebrow">Sesi aktif</p>
-                      <h3 className="panel__title">{selectedProduk?.nama}</h3>
-                    </div>
+              <section className="panel users-panel">
+                <div className="panel__header">
+                  <div>
+                    <p className="panel__eyebrow">Directory</p>
+                    <h3 className="panel__title">Daftar Hadir — semua sesi</h3>
                   </div>
-                  <div style={{ padding: "0 1.5rem 1.5rem" }}>
-                    <div className="form-group full-width">
-                      <label>Jadwal untuk QR check-in</label>
-                      <select value={jadwalId} onChange={(e) => setJadwalId(e.target.value)}>
-                        <option value="">-- Pilih Jadwal --</option>
-                        {jadwalList.map((j) => (
-                          <option key={j.id} value={j.id}>
-                            {j.nama_jadwal} — {j.waktu_mulai ? new Date(j.waktu_mulai).toLocaleString("id-ID") : "-"}
-                          </option>
-                        ))}
-                      </select>
-                      <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>
-                        Produk ini dipakai berulang cukup dengan edit tanggal jadwal — QR & link di bawah otomatis ikut jadwal yang dipilih, riwayat kehadiran sesi lama tetap aman tersimpan dengan tanggalnya sendiri.
-                      </p>
-                    </div>
+                </div>
 
-                    {jadwalId && (
-                      <div className="form-group full-width">
-                        <label><QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />QR Check-in</label>
-                        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-                          <div style={{ padding: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12 }}>
-                            <QRCodeCanvas ref={qrCanvasRef} value={checkinLink} size={200} level="M" includeMargin={false} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 8 }}>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <input type="text" readOnly value={checkinLink} style={{ flex: 1 }} />
-                              <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
-                                <Copy size={16} /> Copy
-                              </button>
-                            </div>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button type="button" className="customers-button customers-button--primary" onClick={handleDownloadQr}>
-                                <Download size={16} /> Download QR
-                              </button>
-                              <a
-                                href={`/kehadiran/${jadwalId}/display`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="customers-button"
-                              >
-                                <Monitor size={16} /> Buka Halaman Display
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {jadwalId && (
-                      <div className="form-group full-width" style={{ position: "relative" }}>
-                        <label>Tandai Hadir Manual — cari nama/WA customer</label>
-                        <input
-                          type="text"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Ketik nama atau nomor WA..."
-                        />
-                        {searchResults.length > 0 && (
-                          <div style={{ position: "absolute", zIndex: 10, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, width: "100%", maxHeight: 200, overflowY: "auto" }}>
-                            {searchResults.map((c) => (
-                              <div
-                                key={c.id}
-                                style={{ padding: "8px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
-                                onClick={() => handleManualCheckin(c)}
-                              >
-                                <span>{c.nama} — {c.wa}</span>
-                                <span style={{ color: "#16a34a", fontSize: 13 }}>Tandai hadir</span>
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Sesi</th>
+                        <th>Customer</th>
+                        <th>Sumber</th>
+                        <th>Dicatat Oleh</th>
+                        <th style={{ textAlign: "right" }}>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        <tr><td colSpan={5} className="table-empty">Memuat data...</td></tr>
+                      ) : kehadiran.length > 0 ? (
+                        kehadiran.map((row) => (
+                          <tr key={row.id}>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{row.nama_jadwal_snapshot || "-"}</div>
+                              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                                {row.tanggal_jadwal ? new Date(row.tanggal_jadwal).toLocaleString("id-ID") : "-"}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <section className="panel users-panel">
-                  <div className="panel__header">
-                    <div>
-                      <p className="panel__eyebrow">Directory</p>
-                      <h3 className="panel__title">Daftar Hadir — semua sesi</h3>
-                    </div>
-                  </div>
-
-                  <div className="table-wrapper">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Sesi</th>
-                          <th>Customer</th>
-                          <th>Sumber</th>
-                          <th>Dicatat Oleh</th>
-                          <th style={{ textAlign: "right" }}>Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loading ? (
-                          <tr><td colSpan={5} className="table-empty">Memuat data...</td></tr>
-                        ) : kehadiran.length > 0 ? (
-                          kehadiran.map((row) => (
-                            <tr key={row.id}>
-                              <td>
-                                <div style={{ fontWeight: 500 }}>{row.nama_jadwal_snapshot || "-"}</div>
-                                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                                  {row.tanggal_jadwal ? new Date(row.tanggal_jadwal).toLocaleString("id-ID") : "-"}
-                                </div>
-                              </td>
-                              <td>
-                                <div style={{ fontWeight: 500 }}>{row.customer_rel?.nama || "-"}</div>
-                                <div style={{ fontSize: 12, color: "#6b7280" }}>{row.customer_rel?.wa || "-"}</div>
-                              </td>
-                              <td>{row.source_type === "order" ? "Order" : row.source_type === "invitation" ? "Invitation" : "Walk-in"}</td>
-                              <td>{row.checked_by_rel?.nama || "Self check-in"}</td>
-                              <td style={{ textAlign: "right" }}>
-                                <button
-                                  className="action-btn action-btn--danger"
-                                  title="Batalkan kehadiran"
-                                  onClick={() => handleDelete(row)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr><td colSpan={5} className="table-empty">Belum ada yang check-in untuk produk ini.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              </>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{row.customer_rel?.nama || "-"}</div>
+                              <div style={{ fontSize: 12, color: "#6b7280" }}>{row.customer_rel?.wa || "-"}</div>
+                            </td>
+                            <td>{row.source_type === "order" ? "Order" : row.source_type === "invitation" ? "Invitation" : "Walk-in"}</td>
+                            <td>{row.checked_by_rel?.nama || "Self check-in"}</td>
+                            <td style={{ textAlign: "right" }}>
+                              <button
+                                className="action-btn action-btn--danger"
+                                title="Batalkan kehadiran"
+                                onClick={() => handleDelete(row)}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={5} className="table-empty">Belum ada yang check-in untuk produk ini.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             )}
           </div>
         </div>
