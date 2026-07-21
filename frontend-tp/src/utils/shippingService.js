@@ -8,14 +8,14 @@
  */
 export async function getProvinces() {
   try {
-    const response = await fetch('/api/shipping/provinces');
-    
+    const response = await fetch('https://app.ternakproperti.com/api/shipping/provinces');
+
     if (!response || !response.ok) {
       return [];
     }
 
     const json = await response.json();
-    
+
     if (!json || !json.success) {
       return [];
     }
@@ -38,14 +38,14 @@ export async function getCities(provinceId) {
       return [];
     }
 
-    const response = await fetch(`/api/shipping/cities?province_id=${encodeURIComponent(provinceId)}`);
-    
+    const response = await fetch(`https://app.ternakproperti.com/api/shipping/cities?province_id=${encodeURIComponent(provinceId)}`);
+
     if (!response || !response.ok) {
       return [];
     }
 
     const json = await response.json();
-    
+
     if (!json || !json.success) {
       return [];
     }
@@ -68,14 +68,14 @@ export async function getDistricts(cityId) {
       return [];
     }
 
-    const response = await fetch(`/api/shipping/districts?city_id=${encodeURIComponent(cityId)}`);
-    
+    const response = await fetch(`https://app.ternakproperti.com/api/shipping/districts?city_id=${encodeURIComponent(cityId)}`);
+
     if (!response || !response.ok) {
       return [];
     }
 
     const json = await response.json();
-    
+
     if (!json || !json.success) {
       return [];
     }
@@ -113,7 +113,7 @@ export async function calculateDomesticCost({
       return [];
     }
 
-    const response = await fetch('/api/shipping/calculate-domestic', {
+    const response = await fetch('https://app.ternakproperti.com/api/shipping/calculate-domestic', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -136,7 +136,7 @@ export async function calculateDomesticCost({
     }
 
     const json = await response.json();
-    
+
     if (!json || !json.success) {
       return [];
     }
