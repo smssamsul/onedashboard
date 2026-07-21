@@ -313,6 +313,9 @@ class DokuController extends Controller
                     ->where('type', '7')
                     ->first();
 
+                // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+                $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
                 if ($templateFollup) {
                     $dataText = [
                         'customer_name'  => $customer->nama ?? '',
@@ -331,7 +334,12 @@ class DokuController extends Controller
 
                 $woowaKey = $this->getWoowaKeyFromSales($customer);
 
-                if ($woowaKey) {
+                if (!$autoSendEnabled) {
+                    Log::info('DOKU notification - Auto send Complete dimatikan, WA tidak dikirim', [
+                        'order_customer_id' => $order->id,
+                        'payment_id'        => $payment->id,
+                    ]);
+                } elseif ($woowaKey) {
                     $waSender = app(\App\Services\WhatsAppSenderService::class);
                     $response = $waSender->sendMessage($customer->wa, $message, null, $woowaKey);
 
