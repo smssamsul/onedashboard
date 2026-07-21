@@ -55,7 +55,7 @@ export default function FollowupSection() {
   const params = useParams();
   const produkId = params.id;
 
-  const [activeType, setActiveType] = useState("unlimited");
+  const [activeType, setActiveType] = useState(5);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
