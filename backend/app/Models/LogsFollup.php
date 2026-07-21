@@ -22,6 +22,8 @@ class LogsFollup extends Model
         'update_at',
         'type',
         'order',
+        'invitation',
+        'kehadiran',
         'status'
     ];
 
@@ -38,5 +40,15 @@ class LogsFollup extends Model
     public function order_rel()
     {
         return $this->belongsTo(OrderCustomer::class, 'order', 'id');
+    }
+
+    public function invitation_rel()
+    {
+        return $this->belongsTo(Invitation::class, 'invitation', 'id');
+    }
+
+    public function kehadiran_rel()
+    {
+        return $this->belongsTo(ProdukJadwalKehadiran::class, 'kehadiran', 'id');
     }
 }

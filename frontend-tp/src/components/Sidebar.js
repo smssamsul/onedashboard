@@ -36,6 +36,8 @@ import {
   UserPlus,
   Megaphone,
   Network,
+  Mail,
+  QrCode,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
@@ -210,6 +212,8 @@ export default function Sidebar({
           section: "OPERATIONS",
           items: [
             { label: "Orders", href: `${basePath}/orders`, icon: <ClipboardList size={18} /> },
+            { label: "Invitation", href: `${basePath}/invitation`, icon: <Mail size={18} /> },
+            { label: "Kehadiran", href: `${basePath}/kehadiran`, icon: <QrCode size={18} /> },
             { label: "Pengiriman & Resi", href: `${basePath}/pengiriman`, icon: <Truck size={18} /> },
             { label: "Products", href: `${basePath}/products`, icon: <ShoppingBag size={18} /> },
             { label: "Order Cepat", href: `${basePath}/quick-order`, icon: <Zap size={18} /> },
@@ -278,6 +282,8 @@ export default function Sidebar({
           section: "OPERATIONS",
           items: [
             { label: "Orders", href: `${basePath}/orders`, icon: <ClipboardList size={18} /> },
+            { label: "Invitation", href: `${basePath}/invitation`, icon: <Mail size={18} /> },
+            { label: "Kehadiran", href: `${basePath}/kehadiran`, icon: <QrCode size={18} /> },
             { label: "Pengiriman & Resi", href: `${basePath}/pengiriman`, icon: <Truck size={18} /> },
             { label: "Order Cepat", href: `${basePath}/quick-order`, icon: <Zap size={18} /> },
             {

@@ -45,4 +45,15 @@ class ProdukJadwal extends Model
     {
         return $this->hasMany(OrderCustomer::class, 'jadwal_id', 'id');
     }
+
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'jadwal_id', 'id')
+            ->where('status', '!=', 'N');
+    }
+
+    public function kehadiran()
+    {
+        return $this->hasMany(ProdukJadwalKehadiran::class, 'jadwal_id', 'id');
+    }
 }

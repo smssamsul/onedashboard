@@ -64,6 +64,14 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(3)->by($request->ip());
         });
 
+        RateLimiter::for('invitation', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('kehadiran', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
         RateLimiter::for('otp', function (Request $request) {
             $identifier = $request->phone ?? $request->ip();
             return Limit::perMinute(3)
