@@ -13,15 +13,16 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
 });
 
 const FOLLOWUP_TABS = [
+  { type: 5, label: "Welcome" },
   { type: "unlimited", label: "Followup Reminder" },
-  { type: 5, label: "Register" },
   { type: 6, label: "Processing" },
-  { type: 7, label: "Selesai" },
+  { type: 7, label: "Complete" },
   { type: "upselling", label: "Upselling" },
   { type: 9, label: "Redirect" },
+  { type: 10, label: "Cancel" },
 ];
 
-const INSTANT_SEND_TYPES = [5, 6, 7, 9];
+const INSTANT_SEND_TYPES = [5, 6, 7, 9, 10];
 
 const AUTOTEXT_OPTIONS = [
   { label: "Pilih Autotext", value: "" },
@@ -39,18 +40,22 @@ const AUTOTEXT_OPTIONS = [
 ];
 
 // Mapping nama ke type untuk instant types
+// (nama lama "Register"/"Selesai" dipertahankan untuk kompatibilitas data lama)
 const NAMA_TO_TYPE = {
   "Register": "5",
+  "Welcome": "5",
   "Processing": "6",
   "Selesai": "7",
+  "Complete": "7",
   "Redirect": "9",
+  "Cancel": "10",
 };
 
 export default function FollowupSection() {
   const params = useParams();
   const produkId = params.id;
 
-  const [activeType, setActiveType] = useState("unlimited");
+  const [activeType, setActiveType] = useState(5);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

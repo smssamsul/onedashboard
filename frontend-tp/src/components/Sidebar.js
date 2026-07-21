@@ -316,7 +316,11 @@ export default function Sidebar({
             { label: "Meta Ads", href: `${basePath}/meta-ads-report`, icon: <BarChart3 size={18} /> },
           ],
         },
-        {
+      ];
+
+      // Sales Manager (leader) tidak menampilkan menu Absensi & Cuti — fokus ke dashboard sales saja
+      if (!salesLeaderMenu) {
+        salesItems.push({
           section: "ABSENSI & CUTI",
           items: [
             { label: "Absensi Saya", href: "/sales/absensi-saya", icon: <CheckSquare size={18} /> },
@@ -324,8 +328,8 @@ export default function Sidebar({
             { label: "Izin Saya", href: "/sales/izin-saya", icon: <FileText size={18} /> },
             { label: "Todo List Saya", href: `${basePath}/todo-list-saya`, icon: <ListTodo size={18} /> },
           ],
-        },
-      ];
+        });
+      }
 
       // Add Sales List and Broadcast for Leader (level 1) atau super ops tab Sales
       if (salesLeaderMenu) {
