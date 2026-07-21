@@ -13,8 +13,8 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
 });
 
 const FOLLOWUP_TABS = [
-  { type: "unlimited", label: "Followup Reminder" },
   { type: 5, label: "Welcome" },
+  { type: "unlimited", label: "Followup Reminder" },
   { type: 6, label: "Processing" },
   { type: 7, label: "Complete" },
   { type: "upselling", label: "Upselling" },
