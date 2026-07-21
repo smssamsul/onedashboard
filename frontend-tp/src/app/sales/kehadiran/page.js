@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import { QRCodeCanvas } from "qrcode.react";
 import { CheckSquare, Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
 import { getKehadiran, manualCheckin, deleteKehadiran } from "@/lib/sales/kehadiran";
-import { getProducts, getProductById } from "@/lib/sales/products";
+import { getQuickOrderProducts, getProductById } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
 import { toastSuccess, toastError } from "@/lib/toast";
 import "@/styles/sales/dashboard.css";
@@ -36,7 +36,7 @@ export default function KehadiranPage() {
   const qrCanvasRef = useRef(null);
 
   useEffect(() => {
-    getProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
+    getQuickOrderProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
   }, []);
 
   useEffect(() => {

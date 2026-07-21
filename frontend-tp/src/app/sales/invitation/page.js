@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import dynamic from "next/dynamic";
 import { Mail, Copy, Search, Trash2 } from "lucide-react";
 import { getInvitations, createInvitation, deleteInvitation } from "@/lib/sales/invitation";
-import { getProducts } from "@/lib/sales/products";
+import { getQuickOrderProducts } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
 import { toastSuccess, toastError } from "@/lib/toast";
 import "@/styles/sales/dashboard.css";
@@ -52,7 +52,7 @@ export default function InvitationPage() {
   }, [page, loadInvitations]);
 
   useEffect(() => {
-    getProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
+    getQuickOrderProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
   }, []);
 
   useEffect(() => {
