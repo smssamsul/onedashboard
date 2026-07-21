@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { biteshipFetch, getBiteshipApiKey } from "@/lib/biteship-server";
 
+const RESPONSE_HEADERS = {
+  "Cache-Control": "no-store, must-revalidate",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: RESPONSE_HEADERS });
+}
+
 /**
  * Cek ongkir via Biteship (menggantikan RajaOngkir/Komerce untuk sementara).
  * @see https://biteship.com/en/docs/api/rates/retrieve
@@ -62,7 +73,7 @@ export async function POST(request) {
           message: "weight (gram) wajib diisi",
           data: [],
         },
-        { status: 200 }
+        { status: 200, headers: RESPONSE_HEADERS }
       );
     }
 
@@ -112,7 +123,7 @@ export async function POST(request) {
             "Untuk Biteship, kirim destination_search (nama kec/kota/prov), destination_postal_code, atau destination_area_id",
           data: [],
         },
-        { status: 200 }
+        { status: 200, headers: RESPONSE_HEADERS }
       );
     }
 
@@ -125,7 +136,7 @@ export async function POST(request) {
       const msg = data?.message || data?.error || `Biteship rates error (${status})`;
       return NextResponse.json(
         { success: false, message: msg, data: [] },
-        { status: 200 }
+        { status: 200, headers: RESPONSE_HEADERS }
       );
     }
 
@@ -142,7 +153,7 @@ export async function POST(request) {
           destination: data?.destination || null,
         },
       },
-      { status: 200 }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   } catch (error) {
     console.error("[SHIPPING_CALCULATE_BITESHIP]", error);
@@ -152,7 +163,7 @@ export async function POST(request) {
         message: error.message || "Terjadi kesalahan",
         data: [],
       },
-      { status: 200 }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   }
 }

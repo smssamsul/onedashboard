@@ -6,6 +6,15 @@ import { NextResponse } from "next/server";
  * Sumber wilayah: wilayah.id
  * @see https://wilayah.id/
  */
+const RESPONSE_HEADERS = {
+  "Cache-Control": "no-store, must-revalidate",
+  "Access-Control-Allow-Origin": "*",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: RESPONSE_HEADERS });
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,7 +23,7 @@ export async function GET(request) {
     if (!cityId) {
       return NextResponse.json(
         { success: false, message: "city_id wajib diisi", data: [] },
-        { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
+        { status: 200, headers: RESPONSE_HEADERS }
       );
     }
 
@@ -42,13 +51,13 @@ export async function GET(request) {
 
     return NextResponse.json(
       { success: true, message: "Berhasil mengambil data kecamatan", data },
-      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   } catch (error) {
     console.error("[SHIPPING_DISTRICTS]", error);
     return NextResponse.json(
       { success: false, message: error.message || "Terjadi kesalahan", data: [] },
-      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   }
 }

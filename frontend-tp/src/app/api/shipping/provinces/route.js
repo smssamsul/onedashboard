@@ -9,6 +9,15 @@ import { NextResponse } from "next/server";
  * Response normalized untuk dropdown:
  * [{ id: "11", name: "ACEH" }, ...]
  */
+const RESPONSE_HEADERS = {
+  "Cache-Control": "no-store, must-revalidate",
+  "Access-Control-Allow-Origin": "*",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: RESPONSE_HEADERS });
+}
+
 export async function GET() {
   try {
     const url = "https://wilayah.id/api/provinces.json";
@@ -27,13 +36,13 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, message: "Berhasil mengambil data provinsi", data },
-      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   } catch (error) {
     console.error("[SHIPPING_PROVINCES]", error);
     return NextResponse.json(
       { success: false, message: error.message || "Terjadi kesalahan", data: [] },
-      { status: 200, headers: { "Cache-Control": "no-store, must-revalidate" } }
+      { status: 200, headers: RESPONSE_HEADERS }
     );
   }
 }
