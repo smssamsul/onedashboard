@@ -182,6 +182,7 @@ export default function AdminKategoriPage() {
               <div className="users-table__head">
                 <span>#</span>
                 <span>Nama Kategori</span>
+                <span>Jumlah Produk</span>
                 <span>Actions</span>
               </div>
               <div className="users-table__body">
@@ -193,6 +194,9 @@ export default function AdminKategoriPage() {
                       </div>
                       <div className="users-table__cell" data-label="Nama Kategori">
                         {kat.nama}
+                      </div>
+                      <div className="users-table__cell" data-label="Jumlah Produk">
+                        {kat.produk_count ?? 0}
                       </div>
                       <div className="users-table__cell users-table__cell--actions" data-label="Actions">
                         <button
