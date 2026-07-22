@@ -47,11 +47,23 @@ class SalesDashboardController extends Controller
         $today = Carbon::today();
 
         // Overview statistics
-        $totalOrders = OrderCustomer::count();
-        $totalOrdersPaid = OrderCustomer::where('status_order', '2')->count();
-        $totalOrdersUnpaid = OrderCustomer::where(function ($query) {
-                $query->whereNull('status_order')
-                      ->orWhere('status_order', '!=', '2');
+        // "Paid" konsisten dengan produkStatistics()/produkStatisticsAll(): status_pembayaran = 2 ATAU status_order = 2
+        // Order dengan status = 'N' (cancel/dihapus) dikecualikan, sesuai konvensi status di seluruh proyek
+        $totalOrders = OrderCustomer::where('status', '!=', 'N')->count();
+
+        $totalOrdersPaid = OrderCustomer::where('status', '!=', 'N')
+            ->where(function ($query) {
+                $query->where('status_pembayaran', '2')
+                      ->orWhere('status_order', '2');
+            })->count();
+
+        $totalOrdersUnpaid = OrderCustomer::where('status', '!=', 'N')
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->whereNull('status_pembayaran')->orWhere('status_pembayaran', '!=', '2');
+                })->where(function ($q) {
+                    $q->whereNull('status_order')->orWhere('status_order', '!=', '2');
+                });
             })->count();
 
         // Calculate paid ratio

@@ -36,6 +36,8 @@ import {
   UserPlus,
   Megaphone,
   Network,
+  Mail,
+  QrCode,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
@@ -210,6 +212,8 @@ export default function Sidebar({
           section: "OPERATIONS",
           items: [
             { label: "Orders", href: `${basePath}/orders`, icon: <ClipboardList size={18} /> },
+            { label: "Invitation", href: `${basePath}/invitation`, icon: <Mail size={18} /> },
+            { label: "Kehadiran", href: `${basePath}/kehadiran`, icon: <QrCode size={18} /> },
             { label: "Pengiriman & Resi", href: `${basePath}/pengiriman`, icon: <Truck size={18} /> },
             { label: "Products", href: `${basePath}/products`, icon: <ShoppingBag size={18} /> },
             { label: "Order Cepat", href: `${basePath}/quick-order`, icon: <Zap size={18} /> },
@@ -278,6 +282,8 @@ export default function Sidebar({
           section: "OPERATIONS",
           items: [
             { label: "Orders", href: `${basePath}/orders`, icon: <ClipboardList size={18} /> },
+            { label: "Invitation", href: `${basePath}/invitation`, icon: <Mail size={18} /> },
+            { label: "Kehadiran", href: `${basePath}/kehadiran`, icon: <QrCode size={18} /> },
             { label: "Pengiriman & Resi", href: `${basePath}/pengiriman`, icon: <Truck size={18} /> },
             { label: "Order Cepat", href: `${basePath}/quick-order`, icon: <Zap size={18} /> },
             {
@@ -310,7 +316,11 @@ export default function Sidebar({
             { label: "Meta Ads", href: `${basePath}/meta-ads-report`, icon: <BarChart3 size={18} /> },
           ],
         },
-        {
+      ];
+
+      // Sales Manager (leader) tidak menampilkan menu Absensi & Cuti — fokus ke dashboard sales saja
+      if (!salesLeaderMenu) {
+        salesItems.push({
           section: "ABSENSI & CUTI",
           items: [
             { label: "Absensi Saya", href: "/sales/absensi-saya", icon: <CheckSquare size={18} /> },
@@ -318,8 +328,8 @@ export default function Sidebar({
             { label: "Izin Saya", href: "/sales/izin-saya", icon: <FileText size={18} /> },
             { label: "Todo List Saya", href: `${basePath}/todo-list-saya`, icon: <ListTodo size={18} /> },
           ],
-        },
-      ];
+        });
+      }
 
       // Add Sales List and Broadcast for Leader (level 1) atau super ops tab Sales
       if (salesLeaderMenu) {

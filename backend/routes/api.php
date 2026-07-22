@@ -31,7 +31,9 @@ use App\Http\Controllers\Api\Sales\{
     LeadController,
     SalesController,
     TemplateBroadcastController,
-    BaileysController
+    BaileysController,
+    InvitationController,
+    ProdukJadwalKehadiranController
 };
 
 // Admin Controllers
@@ -90,6 +92,18 @@ Route::post('/pixel-log', [\App\Http\Controllers\Api\Sales\PixelLogController::c
 // Landing Page
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
 Route::get('/seminar/schedules', [ProdukController::class, 'publicSeminarSchedules']);
+
+// Invitation (Public — form via link referral)
+Route::middleware(['throttle:invitation'])->post('/invitation', [InvitationController::class, 'publicStore']);
+Route::get('/public-invitation/{id}', [InvitationController::class, 'publicShow']);
+
+// Attendance / Kehadiran Produk (Public — self check-in via QR scan)
+Route::get('/public-jadwal/{jadwalId}', [ProdukJadwalKehadiranController::class, 'publicJadwalInfo']);
+Route::get('/public-jadwal/{jadwalId}/kehadiran', [ProdukJadwalKehadiranController::class, 'publicKehadiranList']);
+Route::middleware(['throttle:kehadiran'])->group(function () {
+    Route::post('/kehadiran/lookup', [ProdukJadwalKehadiranController::class, 'publicLookup']);
+    Route::post('/kehadiran/checkin', [ProdukJadwalKehadiranController::class, 'publicCheckin']);
+});
 
 // Webinar (Public)
 Route::get('/webinar/join-order/{orderId}', [WebinarController::class, 'joinFromOrder']);
@@ -317,6 +331,18 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/order-konfirmasi/{id}', [OrderCustomerController::class, 'konfirmasi']);
         Route::post('/order-admin', [OrderCustomerController::class, 'store_admin']);
         Route::post('/order-admin/bulk', [OrderCustomerController::class, 'store_admin_bulk']);
+
+        // Invitation
+        Route::get('/invitation', [InvitationController::class, 'index']);
+        Route::get('/invitation/{id}', [InvitationController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/invitation-admin', [InvitationController::class, 'store']);
+        Route::put('/invitation/{id}', [InvitationController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/invitation/{id}', [InvitationController::class, 'destroy'])->where('id', '[0-9]+');
+
+        // Kehadiran Produk (Seminar/Workshop Attendance)
+        Route::get('/kehadiran', [ProdukJadwalKehadiranController::class, 'index']);
+        Route::post('/kehadiran', [ProdukJadwalKehadiranController::class, 'store']);
+        Route::delete('/kehadiran/{id}', [ProdukJadwalKehadiranController::class, 'destroy'])->where('id', '[0-9]+');
 
         // Order Payment
         Route::get('/order-payment', [OrderPaymentController::class, 'index']);

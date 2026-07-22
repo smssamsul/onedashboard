@@ -104,6 +104,34 @@ class Customer extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Relasi ke Invitation (sebagai penerima undangan)
+     */
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'customer', 'id')
+            ->where('status', '!=', 'N')
+            ->orderBy('create_at', 'desc');
+    }
+
+    /**
+     * Relasi ke Invitation yang di-referral-kan oleh customer ini
+     */
+    public function invitations_referred()
+    {
+        return $this->hasMany(Invitation::class, 'referral_customer', 'id')
+            ->where('status', '!=', 'N');
+    }
+
+    /**
+     * Relasi ke ProdukJadwalKehadiran
+     */
+    public function kehadiran()
+    {
+        return $this->hasMany(ProdukJadwalKehadiran::class, 'customer_id', 'id')
+            ->orderBy('waktu_checkin', 'desc');
+    }
+
+    /**
      * Scope: hanya lead (belum pernah bayar)
      */
     public function scopeLeads($query)

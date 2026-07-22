@@ -871,6 +871,9 @@ class OrderCustomerController extends Controller
                                 ->where('type', '5')
                                 ->first();
 
+        // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+        $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
         $totalHargaFloat = (float) preg_replace('/[^\d.]/', '', (string) $totalHarga);
         $dataText = array_merge([
                         'customer_name' => $request->nama ?? '',
@@ -883,6 +886,18 @@ class OrderCustomerController extends Controller
         $message = $templateFollup
             ? TemplateHelper::render($templateFollup->text, $dataText)
             : "Halo {$request->nama}, terima kasih sudah order {$produk->nama}. Total pembayaran: Rp " . number_format($totalHargaFloat, 0, ',', '.') . ".";
+
+        if (!$autoSendEnabled) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order berhasil dibuat (auto send Welcome dimatikan)',
+                'data' => [
+                    'order' => $order,
+                    'customer' => $customer,
+                    'whatsapp_sent' => false,
+                ],
+            ], 200);
+        }
 
         try {
             // Kode Quods (LAMA - DIKOMENTAR)
@@ -1177,6 +1192,9 @@ class OrderCustomerController extends Controller
                                     ->where('type', '5')
                                     ->first();
 
+            // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+            $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
             $totalNotif = (float) preg_replace('/[^\d.]/', '', (string) $totalHargaOrder);
             $dataText = array_merge([
                             'customer_name' => $dataCustomer->nama ?? '',
@@ -1188,6 +1206,18 @@ class OrderCustomerController extends Controller
             $message = $templateFollup
                 ? TemplateHelper::render($templateFollup->text, $dataText)
                 : "Halo {$dataCustomer->nama}, terima kasih sudah order {$produk->nama}. Total pembayaran: Rp " . number_format($totalNotif, 0, ',', '.') . ".";
+
+            if (!$autoSendEnabled) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order berhasil dibuat (auto send Welcome dimatikan)',
+                    'data' => [
+                        'order' => $order,
+                        'customer' => $dataCustomer,
+                        'whatsapp_sent' => false,
+                    ],
+                ], 200);
+            }
 
             try {
                 // Kode Quods (LAMA - DIKOMENTAR)
@@ -1549,11 +1579,14 @@ class OrderCustomerController extends Controller
             $customer = Customer::find($order->customer);
             $produk = Produk::find($order->produk);
 
-            if ($customer && $customer->wa) {
-                $templateFollup = TemplateFollup::where('produk_id', $order->produk)
-                    ->where('type', '6')
-                    ->first();
+            $templateFollup = TemplateFollup::where('produk_id', $order->produk)
+                ->where('type', '6')
+                ->first();
 
+            // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+            $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
+            if ($customer && $customer->wa && $autoSendEnabled) {
                 $dataText = [
                     'customer_name' => $customer->nama ?? '',
                     'product_name'  => $produk->nama ?? '',
@@ -2323,12 +2356,16 @@ class OrderCustomerController extends Controller
                         ->where('type', '6')
                         ->first();
 
+                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+                    $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
                     \Log::info('Customer Upload Bukti - Template followup', [
                         'order_id' => $order->id,
                         'produk_id' => $order->produk,
                         'template_found' => $templateFollup ? true : false,
                         'template_id' => $templateFollup ? $templateFollup->id : null,
                         'template_nama' => $templateFollup ? $templateFollup->nama : null,
+                        'auto_send_enabled' => $autoSendEnabled,
                     ]);
 
                     $dataText = [
@@ -2365,7 +2402,11 @@ class OrderCustomerController extends Controller
                         'woowa_key_length' => $woowaKey ? strlen($woowaKey) : 0,
                     ]);
 
-                    if (!$woowaKey) {
+                    if (!$autoSendEnabled) {
+                        \Log::info('Customer Upload Bukti - Auto send Processing dimatikan, WA tidak dikirim', [
+                            'order_id' => $order->id,
+                        ]);
+                    } elseif (!$woowaKey) {
                         \Log::error('Customer Upload Bukti - Woowa Key tidak ditemukan', [
                             'order_id' => $order->id,
                             'customer_id' => $order->customer,
@@ -2541,9 +2582,9 @@ class OrderCustomerController extends Controller
         $templateFollupPayment = null;
         try {
             if ($order->produk) {
-                // Ambil template follup redirect atau type 9
+                // Ambil template follup redirect atau type 9 (hanya yang "Enable Auto Send" aktif)
                 $template = \App\Models\TemplateFollup::where('produk_id', $order->produk)
-                    ->where('status', '!=', 'N')
+                    ->where('status', '1')
                     ->where(function ($q) {
                         $q->where('type', '9')
                           ->orWhere('type', 'redirect')
@@ -2634,6 +2675,9 @@ class OrderCustomerController extends Controller
                         ->where('type', '6')
                         ->first();
 
+                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+                    $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
                     $dataText = [
                         'customer_name' => $customerData->nama ?? '',
                         'product_name'  => $produk->nama ?? '',
@@ -2654,11 +2698,11 @@ class OrderCustomerController extends Controller
 
                     $woowaKey = $this->getWoowaKeyFromSales($customerData);
 
-                    if ($woowaKey) {
+                    if ($woowaKey && $autoSendEnabled) {
                         $waSender = app(\App\Services\WhatsAppSenderService::class);
                         $salesId = $customerData->sales_id ?? null;
                         $response = $waSender->sendMessage($customerData->wa, $message, $salesId, $woowaKey);
-                        
+
                         $this->logFollowupMessage(
                             $templateFollup,
                             $customerData,

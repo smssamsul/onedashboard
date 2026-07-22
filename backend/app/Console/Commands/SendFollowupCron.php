@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Produk;
 use App\Models\OrderCustomer;
+use App\Models\Invitation;
+use App\Models\ProdukJadwalKehadiran;
 use App\Models\TemplateFollup;
 use App\Models\LogsFollup;
 use App\Models\Customer;
@@ -296,8 +298,110 @@ class SendFollowupCron extends Command
             }
 
             // =============================================
-            // 2. UPSELLING (type 8) — H+ dari tanggal event jadwal lalu
-            //    Target: order yang sudah Completed (status_order = 4)
+            // 1b. INVITATION REMINDER (H-3/H-1 sebelum jadwal) — type 14/15 saja.
+            //     Invitation tidak punya status pembayaran, jadi type berbasis
+            //     payment (1,11,16,17,18,19) tidak relevan untuk source ini.
+            // =============================================
+            $invitationReminderTemplates = $templates->whereIn('type', ['14', '15'])->values();
+
+            if ($invitationReminderTemplates->isNotEmpty()) {
+                $invitations = Invitation::with(['customer_rel'])
+                    ->where('produk', $produk->id)
+                    ->where('status', '!=', 'N')
+                    ->get();
+
+                foreach ($invitationReminderTemplates as $template) {
+                    try {
+                        [$hariPart, $jamPart] = explode('-', $template->event);
+                        $jumlahHari = (int) str_replace('d', '', strtolower($hariPart));
+                        $jamKirim   = $jamPart ?? '09:00';
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
+
+                    $jadwalTerdekat = \App\Models\ProdukJadwal::where('produk_id', $produk->id)
+                        ->where('status', '1')
+                        ->where('waktu_mulai', '>=', Carbon::today())
+                        ->orderBy('waktu_mulai', 'asc')
+                        ->first();
+
+                    if (!$jadwalTerdekat) {
+                        continue; // skip jika tidak ada jadwal terdekat yang aktif
+                    }
+
+                    $eventDateCarbon = Carbon::parse($jadwalTerdekat->waktu_mulai);
+                    $targetTime = $eventDateCarbon->copy()->subDays($jumlahHari)->setTimeFromTimeString($jamKirim);
+
+                    if (Carbon::now()->lt($targetTime)) {
+                        continue; // Belum waktunya
+                    }
+
+                    if (Carbon::now()->startOfDay()->gt($eventDateCarbon->copy()->startOfDay())) {
+                        continue; // Jadwal sudah lewat, jangan blast reminder usang
+                    }
+
+                    foreach ($invitations as $invitation) {
+                        if (!$invitation->customer || !$invitation->customer_rel) continue;
+
+                        $sudahKirim = LogsFollup::where('follup', $template->id)
+                            ->where('customer', $invitation->customer_rel->id)
+                            ->where('invitation', $invitation->id)
+                            ->where('type', $template->type)
+                            ->exists();
+
+                        if ($sudahKirim) continue;
+
+                        $data = [
+                            'customer_name' => $invitation->customer_rel->nama ?? '',
+                            'product_name'  => $produk->nama ?? '',
+                            'jadwal' => trim(($jadwalTerdekat->nama_jadwal ?? '') . ' ' . $eventDateCarbon->format('d-m-Y')),
+                        ];
+
+                        $message = TemplateHelper::render($template->text, $data);
+                        $woowaKey = $this->getWoowaKeyFromSales($invitation->customer_rel, $produk->id);
+
+                        if ($debug) {
+                            $this->line("[DEBUG INVITATION] Kirim ke {$invitation->customer_rel->wa}: {$message}");
+                            continue;
+                        }
+
+                        try {
+                            $waSender = app(\App\Services\WhatsAppSenderService::class);
+                            $salesId = $invitation->customer_rel->sales_id ?? null;
+                            $response = $waSender->sendMessage($invitation->customer_rel->wa, $message, $salesId, $woowaKey);
+
+                            $statusText = $response->successful() ? 'sukses' : 'gagal';
+
+                            LogsFollup::create([
+                                'follup'     => $template->id,
+                                'customer'   => $invitation->customer_rel->id,
+                                'invitation' => $invitation->id,
+                                'type'       => $template->type,
+                                'keterangan' => "Kirim WA reminder invitation type {$template->type} ke {$invitation->customer_rel->wa} ({$invitation->customer_rel->nama}). Status: {$statusText}. Pesan: {$message}",
+                                'create_at'  => now(),
+                                'status'     => $response->successful() ? '1' : '0',
+                            ]);
+                        } catch (\Exception $e) {
+                            LogsFollup::create([
+                                'follup'     => $template->id,
+                                'customer'   => $invitation->customer_rel->id,
+                                'invitation' => $invitation->id,
+                                'type'       => $template->type,
+                                'keterangan' => "Gagal kirim reminder invitation. Error: " . $e->getMessage(),
+                                'create_at'  => now(),
+                                'status'     => '0',
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // =============================================
+            // 2. UPSELLING (type 8) — dikirim ke customer yang tercatat HADIR
+            //    (produk_jadwal_kehadiran). H+ dihitung dari tanggal jadwal yang
+            //    BENAR-BENAR DIHADIRI customer tersebut (bukan jadwal terdekat produk
+            //    secara umum) — jadi tiap kehadiran punya hitungan H+ sendiri-sendiri.
+            //    Tidak hadir = tidak dapat follow-up upsell sama sekali.
             // =============================================
             $upsellingTemplates = TemplateFollup::active()
                 ->where('produk_id', $produk->id)
@@ -309,109 +413,119 @@ class SendFollowupCron extends Command
                 ->values();
 
             if ($upsellingTemplates->isNotEmpty()) {
-                // Cari jadwal produk terakhir yang sudah lewat (paling lalu), termasuk hari ini (untuk H+0)
-                $jadwalSelesai = \App\Models\ProdukJadwal::where('produk_id', $produk->id)
-                    ->where('status', '1')
-                    ->whereDate('waktu_mulai', '<=', Carbon::today())
-                    ->orderBy('waktu_mulai', 'desc')
-                    ->first();
+                // Semua kehadiran (hadir) untuk produk ini yang tanggal jadwalnya sudah lewat.
+                // Pakai kolom snapshot produk_id/tanggal_jadwal (bukan whereHas ke jadwal_rel
+                // yang live) — produk_jadwal sering dipakai ulang dengan tanggal diedit untuk
+                // sesi berikutnya, jadi tanggal yang benar adalah yang dibekukan saat check-in.
+                $kehadiranList = ProdukJadwalKehadiran::with(['customer_rel'])
+                    ->where('produk_id', $produk->id)
+                    ->where('status_hadir', 'hadir')
+                    ->where('status', '!=', 'N')
+                    ->whereDate('tanggal_jadwal', '<=', Carbon::today())
+                    ->get();
 
-                if ($jadwalSelesai) {
-                    $tanggalEventProduk = Carbon::parse($jadwalSelesai->waktu_mulai);
-                    
-                    // Ambil order Completed untuk produk ini
-                    $completedOrders = OrderCustomer::with(['customer_rel'])
-                        ->where('produk', $produk->id)
-                        ->where('status', '!=', 'N')
-                        ->where('status_order', '4') // Completed
-                        ->get();
+                $this->info("Upselling — total kehadiran tercatat: {$kehadiranList->count()}");
 
-                    $this->info("Upselling — Completed orders: {$completedOrders->count()} | tanggal_event: {$tanggalEventProduk->toDateString()}");
+                foreach ($upsellingTemplates as $template) {
+                    $this->info("Upselling Template: {$template->nama} ({$template->event})");
 
-                    foreach ($upsellingTemplates as $template) {
-                        $this->info("Upselling Template: {$template->nama} ({$template->event})");
-                        
-                        try {
-                            [$hariPart, $jamPart] = explode('-', $template->event);
-                            $jumlahHari = (int) str_replace('d', '', strtolower($hariPart));
-                            $jamKirim   = $jamPart ?? '09:00';
-                        } catch (\Throwable $e) {
-                            continue;
-                        }
+                    try {
+                        [$hariPart, $jamPart] = explode('-', $template->event);
+                        $jumlahHari = (int) str_replace('d', '', strtolower($hariPart));
+                        $jamKirim   = $jamPart ?? '09:00';
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
 
-                        // Upselling: H+ dari tanggal event produk jadwal lalu
-                        $targetTime = $tanggalEventProduk->copy()->addDays($jumlahHari)->setTimeFromTimeString($jamKirim);
+                    foreach ($kehadiranList as $absen) {
+                        if (!$absen->customer_rel || !$absen->tanggal_jadwal) continue;
+
+                        // Upselling: H+ dari tanggal jadwal yang dihadiri customer ini (snapshot)
+                        $tanggalHadir = Carbon::parse($absen->tanggal_jadwal);
+                        $targetTime = $tanggalHadir->copy()->addDays($jumlahHari)->setTimeFromTimeString($jamKirim);
+                        // Jendela toleransi 1 hari: kalau sudah lebih dari H+1 dari jadwal kirim
+                        // (misal target-nya H+1 tapi sekarang sudah H+2), pesannya sudah basi,
+                        // jangan dikirim lagi — daripada nge-blast follow-up telat kalau cron
+                        // sempat berhenti beberapa hari.
+                        $expiredTime = $targetTime->copy()->addDay();
 
                         if (Carbon::now()->lt($targetTime)) {
                             continue; // Belum waktunya
                         }
 
-                        foreach ($completedOrders as $order) {
-                            if (!$order->customer || !$order->customer_rel) continue;
+                        if (Carbon::now()->gte($expiredTime)) {
+                            continue; // Sudah lewat lebih dari H+1 dari target kirim, terlalu telat
+                        }
 
-                            $sudahKirim = LogsFollup::where('follup', $template->id)
-                                ->where('customer', $order->customer_rel->id)
-                                ->where('order', $order->id)
-                                ->where('type', '8')
-                                ->exists();
+                        $sudahKirim = LogsFollup::where('follup', $template->id)
+                            ->where('kehadiran', $absen->id)
+                            ->where('type', '8')
+                            ->exists();
 
-                            if ($sudahKirim) continue;
+                        if ($sudahKirim) continue;
 
-                            $customData = json_decode($order->custom_value, true) ?? [];
-
-                            $data = array_merge([
-                                'customer_name' => $order->customer_rel->nama ?? '',
-                                'product_name'  => $produk->nama ?? '',
-                                'order_date'    => Carbon::parse($order->create_at)->format('d-m-Y'),
-                                'order_total'   => number_format($order->total_harga, 0, ',', '.'),
-                                'event_date'    => $tanggalEventProduk->format('d-m-Y'),
-                            ], $customData);
-
-                            $message = TemplateHelper::render($template->text, $data);
-                            // $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel, $order->produk);
-                            $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
-
-                            if ($debug) {
-                                $this->line("[DEBUG UPSELLING] Kirim ke {$order->customer_rel->wa}: {$message}");
-                                continue;
+                        // Data tambahan dari order asal (jika kehadiran ini berasal dari order)
+                        $customData = [];
+                        if ($absen->source_type === 'order' && $absen->source_id) {
+                            $sourceOrder = OrderCustomer::find($absen->source_id);
+                            if ($sourceOrder) {
+                                $customData = json_decode($sourceOrder->custom_value, true) ?? [];
                             }
+                        }
 
-                            try {
-                                $response = Http::asJson()
-                                    ->withHeaders([
-                                        'Content-Type' => 'application/json',
-                                        'Accept' => 'application/json'
-                                    ])
-                                    ->post('https://notifapi.com/send_message', [
-                                        'phone_no' => $order->customer_rel->wa,
-                                        'key'      => $woowaKey,
-                                        'message'  => $message,
-                                    ]);
+                        $data = array_merge([
+                            'customer_name' => $absen->customer_rel->nama ?? '',
+                            'product_name'  => $produk->nama ?? '',
+                            'event_date'    => $tanggalHadir->format('d-m-Y'),
+                        ], $customData);
 
-                                $statusText = $response->successful() ? 'sukses' : 'gagal';
-                                $keterangan = "Kirim WA upselling type 8 ke {$order->customer_rel->wa} ({$order->customer_rel->nama}). Status: {$statusText}. Pesan: {$message}";
+                        $message = TemplateHelper::render($template->text, $data);
+                        $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
 
-                                LogsFollup::create([
-                                    'follup'     => $template->id,
-                                    'customer'   => $order->customer_rel->id,
-                                    'order'      => $order->id,
-                                    'type'       => '8',
-                                    'keterangan' => $keterangan,
-                                    'create_at'  => now(),
-                                    'status'     => $response->successful() ? '1' : '0',
+                        if ($debug) {
+                            $this->line("[DEBUG UPSELLING] Kirim ke {$absen->customer_rel->wa} (hadir {$tanggalHadir->toDateString()}): {$message}");
+                            continue;
+                        }
+
+                        try {
+                            $response = Http::asJson()
+                                ->withHeaders([
+                                    'Content-Type' => 'application/json',
+                                    'Accept' => 'application/json'
+                                ])
+                                ->post('https://notifapi.com/send_message', [
+                                    'phone_no' => $absen->customer_rel->wa,
+                                    'key'      => $woowaKey,
+                                    'message'  => $message,
                                 ]);
 
-                            } catch (\Exception $e) {
-                                LogsFollup::create([
-                                    'follup'     => $template->id,
-                                    'customer'   => $order->customer_rel->id,
-                                    'order'      => $order->id,
-                                    'type'       => '8',
-                                    'keterangan' => "Gagal kirim upselling. Error: " . $e->getMessage(),
-                                    'create_at'  => now(),
-                                    'status'     => '0',
-                                ]);
-                            }
+                            $statusText = $response->successful() ? 'sukses' : 'gagal';
+                            $namaJadwal = $absen->nama_jadwal_snapshot ?? '-';
+                            $keterangan = "Kirim WA upselling type 8 ke {$absen->customer_rel->wa} ({$absen->customer_rel->nama}), hadir di jadwal \"{$namaJadwal}\" ({$tanggalHadir->format('d-m-Y')}). Status: {$statusText}. Pesan: {$message}";
+
+                            LogsFollup::create([
+                                'follup'     => $template->id,
+                                'customer'   => $absen->customer_rel->id,
+                                'order'      => $absen->source_type === 'order' ? $absen->source_id : null,
+                                'invitation' => $absen->source_type === 'invitation' ? $absen->source_id : null,
+                                'kehadiran'  => $absen->id,
+                                'type'       => '8',
+                                'keterangan' => $keterangan,
+                                'create_at'  => now(),
+                                'status'     => $response->successful() ? '1' : '0',
+                            ]);
+                        } catch (\Exception $e) {
+                            LogsFollup::create([
+                                'follup'     => $template->id,
+                                'customer'   => $absen->customer_rel->id,
+                                'order'      => $absen->source_type === 'order' ? $absen->source_id : null,
+                                'invitation' => $absen->source_type === 'invitation' ? $absen->source_id : null,
+                                'kehadiran'  => $absen->id,
+                                'type'       => '8',
+                                'keterangan' => "Gagal kirim upselling. Error: " . $e->getMessage(),
+                                'create_at'  => now(),
+                                'status'     => '0',
+                            ]);
                         }
                     }
                 }

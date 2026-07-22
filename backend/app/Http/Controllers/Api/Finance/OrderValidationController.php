@@ -292,6 +292,9 @@ class OrderValidationController extends Controller
                     ->where('type', '7') // Asumsi type 7 untuk pembayaran berhasil diverifikasi
                     ->first();
 
+                // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
+                $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+
                 // Jika tidak ada template, gunakan pesan default
                 if ($templateFollup) {
                     $dataText = [
@@ -321,7 +324,12 @@ class OrderValidationController extends Controller
                     'woowa_key_found' => $woowaKey ? true : false,
                 ]);
 
-                if ($woowaKey) {
+                if (!$autoSendEnabled) {
+                    \Log::info('Finance approve - Auto send Complete dimatikan, WA tidak dikirim', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                    ]);
+                } elseif ($woowaKey) {
                     $waSender = app(\App\Services\WhatsAppSenderService::class);
                     $response = $waSender->sendMessage($customer->wa, $message, null, $woowaKey);
 
