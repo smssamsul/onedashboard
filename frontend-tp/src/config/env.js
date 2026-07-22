@@ -15,7 +15,10 @@ const getEnv = (key, defaultValue = '') => {
 };
 
 // Backend URL - Menggunakan environment variable
-export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+// Fallback ke domain produksi (bukan localhost) supaya deployment yang lupa
+// set NEXT_PUBLIC_BACKEND_URL (mis. project Vercel baru) tidak diam-diam
+// coba connect ke localhost:8000 yang jelas tidak ada di server manapun.
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.ternakproperti.com';
 
 export const config = {
   // Backend API URL - Hardcode ke URL backend yang ditentukan
