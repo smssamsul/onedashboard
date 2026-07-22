@@ -69,7 +69,10 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('kehadiran', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
+            // Dinaikkan dari 10 ke 60/menit — banyak peserta di venue yang sama biasanya
+            // share satu IP publik (WiFi/NAT), jadi throttle ketat per-IP bisa nolak
+            // check-in yang sah pas lagi rame (bukan cuma nahan spam/bot).
+            return Limit::perMinute(60)->by($request->ip());
         });
 
         RateLimiter::for('otp', function (Request $request) {

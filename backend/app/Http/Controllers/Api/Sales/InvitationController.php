@@ -125,6 +125,19 @@ class InvitationController extends Controller
 
         $customer = $this->findOrCreateCustomer($validated, (int) $validated['produk']);
 
+        $existingInvitation = Invitation::where('customer', $customer->id)
+            ->where('produk', $validated['produk'])
+            ->where('status', '!=', 'N')
+            ->first();
+
+        if ($existingInvitation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer ini sudah punya invitation untuk produk ini',
+                'data' => $existingInvitation->load('customer_rel', 'produk_rel:id,nama'),
+            ], 409);
+        }
+
         $now = now();
         $invitation = DB::transaction(function () use ($validated, $customer, $now) {
             $kode = $this->generateKodeInvitation(Carbon::parse($now));
