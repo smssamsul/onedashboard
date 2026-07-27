@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Produk;
 use App\Models\OrderCustomer;
@@ -14,6 +13,8 @@ use App\Models\LogsFollup;
 use App\Models\Customer;
 use App\Models\Sales;
 use App\Helpers\TemplateHelper;
+use App\Jobs\SendFollowupMessageJob;
+use App\Jobs\SendUpsellingMessageJob;
 use Carbon\Carbon;
 
 class SendFollowupCron extends Command
@@ -39,6 +40,13 @@ class SendFollowupCron extends Command
             $this->warn('⚠ Mode DEBUG aktif — pesan tidak akan dikirim ke WhatsApp');
             Log::channel('followup')->warning('Mode DEBUG aktif — pesan tidak akan dikirim ke WhatsApp');
         }
+
+        // Jeda acak antar pesan (detik) supaya pengiriman tidak beruntun terlalu cepat.
+        // Delay bertambah kumulatif sepanjang proses, jadi seluruh pesan pada run ini
+        // tersebar sepanjang waktu, bukan cuma jitter individual yang bisa numpuk.
+        $minDelaySeconds = (int) env('FOLLOWUP_DELAY_MIN_SECONDS', 5);
+        $maxDelaySeconds = (int) env('FOLLOWUP_DELAY_MAX_SECONDS', 25);
+        $cumulativeDelay = 0;
 
         // Kode Quods (LAMA - DIKOMENTAR)
         // $deviceKey = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
@@ -164,6 +172,17 @@ class SendFollowupCron extends Command
                         }
                     }
 
+                    // Follow-up berbasis tanggal order (type 1/11/16/17) tidak terikat jadwal event
+                    // terdekat, jadi tanpa batas atas: kalau ada template baru dibuat untuk order lama,
+                    // atau cron sempat berhenti lama, semua backlog matang sekaligus dan diblast dalam
+                    // satu run. Beri toleransi 2 hari sejak target waktu — lewat itu, anggap basi.
+                    if ($eventDateCarbon === null) {
+                        $expiredTime = $targetTime->copy()->addDays(2);
+                        if (Carbon::now()->gte($expiredTime)) {
+                            continue; // Sudah lewat toleransi 2 hari, jangan kirim follow-up basi
+                        }
+                    }
+
                     $sudahKirim = LogsFollup::where('follup', $template->id)
                         ->where('customer', $order->customer_rel->id)
                         ->where('order', $order->id)
@@ -203,97 +222,32 @@ class SendFollowupCron extends Command
                         continue;
                     }
 
-                    try {
-                        // Kode Quods (LAMA - DIKOMENTAR)
-                        // $response = Http::withToken($token)
-                        //     ->asJson()
-                        //     ->withHeaders([
-                        //         'Content-Type' => 'application/json',
-                        //         'Accept' => 'application/json'
-                        //     ])
-                        //     ->post('https://api.quods.id/api/message', [
-                        //         'device_key' => $deviceKey,
-                        //         'data' => [
-                        //             [
-                        //                 'phone'   => $order->customer_rel->wa,
-                        //                 'message' => $message,
-                        //             ]
-                        //         ]
-                        //     ]);
+                    $salesId = $order->customer_rel->sales_id ?? null;
+                    $templateType = $template->type ?? '-';
+                    $cumulativeDelay += rand($minDelaySeconds, $maxDelaySeconds);
 
-                        $waSender = app(\App\Services\WhatsAppSenderService::class);
-                        $salesId = $order->customer_rel->sales_id ?? null;
-                        $response = $waSender->sendMessage($order->customer_rel->wa, $message, $salesId, $woowaKey);
+                    SendFollowupMessageJob::dispatch(
+                        (string) $templateType,
+                        $template->id,
+                        $message,
+                        $order->customer_rel->wa,
+                        $order->customer_rel->nama ?? '',
+                        $order->customer_rel->id,
+                        $order->id,
+                        null,
+                        $salesId,
+                        $woowaKey
+                    )->delay(now()->addSeconds($cumulativeDelay));
 
-                        $templateType = $template->type ?? '-';
-                        $statusText = $response->successful() ? 'sukses' : 'gagal';
-                        $keterangan = "Kirim WA follow up type {$templateType} ke {$order->customer_rel->wa} ({$order->customer_rel->nama}). Status: {$statusText}. Pesan: {$message}";
-                        
-                        if ($response !== null) {
-                            $responseData = $response->json();
-                            $responseText = is_array($responseData) ? json_encode($responseData) : (string) $response->body();
-                            $keterangan .= "\nResponse: {$responseText}";
-                        }
-
-                        LogsFollup::create([
-                            'follup'     => $template->id,
-                            'customer'   => $order->customer_rel->id,
-                            'order'      => $order->id,
-                            'type'       => $template->type,
-                            'keterangan' => $keterangan,
-                            'create_at'  => now(),
-                            'status'     => $response->successful() ? '1' : '0',
-                        ]);
-
-                        if ($response->successful()) {
-                            $this->info("Pesan terkirim ke {$order->customer_rel->nama}");
-                            Log::channel('followup')->info("Pesan berhasil dikirim", [
-                                'customer_id' => $order->customer_rel->id,
-                                'customer_nama' => $order->customer_rel->nama,
-                                'customer_wa' => $order->customer_rel->wa,
-                                'template_id' => $template->id,
-                                'template_type' => $templateType,
-                                'response_status' => $response->status(),
-                            ]);
-                        } else {
-                            $this->warn("Gagal kirim ({$response->status()})");
-                            Log::channel('followup')->error("Pesan gagal dikirim", [
-                                'customer_id' => $order->customer_rel->id,
-                                'customer_nama' => $order->customer_rel->nama,
-                                'customer_wa' => $order->customer_rel->wa,
-                                'template_id' => $template->id,
-                                'template_type' => $templateType,
-                                'response_status' => $response->status(),
-                                'response_body' => $response->body(),
-                            ]);
-                        }
-
-                    } catch (\Exception $e) {
-                        $templateType = $template->type ?? '-';
-                        $keterangan = "Kirim WA follow up type {$templateType} ke {$order->customer_rel->wa} ({$order->customer_rel->nama}). Status: gagal. Pesan: {$message}";
-                        $keterangan .= "\nResponse: Error: " . $e->getMessage();
-
-                        LogsFollup::create([
-                            'follup'     => $template->id,
-                            'customer'   => $order->customer_rel->id,
-                            'order'      => $order->id,
-                            'type'       => $template->type,
-                            'keterangan' => $keterangan,
-                            'create_at'  => now(),
-                            'status'     => '0',
-                        ]);
-
-                        $this->error("⚠ Error kirim pesan: " . $e->getMessage());
-                        Log::channel('followup')->error("Exception saat kirim pesan", [
-                            'customer_id' => $order->customer_rel->id,
-                            'customer_nama' => $order->customer_rel->nama,
-                            'customer_wa' => $order->customer_rel->wa,
-                            'template_id' => $template->id,
-                            'template_type' => $templateType,
-                            'error_message' => $e->getMessage(),
-                            'error_trace' => $e->getTraceAsString(),
-                        ]);
-                    }
+                    $this->info("Pesan dijadwalkan ke {$order->customer_rel->nama} (delay {$cumulativeDelay}s)");
+                    Log::channel('followup')->info("Pesan follow-up dijadwalkan ke queue", [
+                        'customer_id' => $order->customer_rel->id,
+                        'customer_nama' => $order->customer_rel->nama,
+                        'customer_wa' => $order->customer_rel->wa,
+                        'template_id' => $template->id,
+                        'template_type' => $templateType,
+                        'delay_seconds' => $cumulativeDelay,
+                    ]);
                 }
             }
 
@@ -365,33 +319,21 @@ class SendFollowupCron extends Command
                             continue;
                         }
 
-                        try {
-                            $waSender = app(\App\Services\WhatsAppSenderService::class);
-                            $salesId = $invitation->customer_rel->sales_id ?? null;
-                            $response = $waSender->sendMessage($invitation->customer_rel->wa, $message, $salesId, $woowaKey);
+                        $salesId = $invitation->customer_rel->sales_id ?? null;
+                        $cumulativeDelay += rand($minDelaySeconds, $maxDelaySeconds);
 
-                            $statusText = $response->successful() ? 'sukses' : 'gagal';
-
-                            LogsFollup::create([
-                                'follup'     => $template->id,
-                                'customer'   => $invitation->customer_rel->id,
-                                'invitation' => $invitation->id,
-                                'type'       => $template->type,
-                                'keterangan' => "Kirim WA reminder invitation type {$template->type} ke {$invitation->customer_rel->wa} ({$invitation->customer_rel->nama}). Status: {$statusText}. Pesan: {$message}",
-                                'create_at'  => now(),
-                                'status'     => $response->successful() ? '1' : '0',
-                            ]);
-                        } catch (\Exception $e) {
-                            LogsFollup::create([
-                                'follup'     => $template->id,
-                                'customer'   => $invitation->customer_rel->id,
-                                'invitation' => $invitation->id,
-                                'type'       => $template->type,
-                                'keterangan' => "Gagal kirim reminder invitation. Error: " . $e->getMessage(),
-                                'create_at'  => now(),
-                                'status'     => '0',
-                            ]);
-                        }
+                        SendFollowupMessageJob::dispatch(
+                            (string) $template->type,
+                            $template->id,
+                            $message,
+                            $invitation->customer_rel->wa,
+                            $invitation->customer_rel->nama ?? '',
+                            $invitation->customer_rel->id,
+                            null,
+                            $invitation->id,
+                            $salesId,
+                            $woowaKey
+                        )->delay(now()->addSeconds($cumulativeDelay));
                     }
                 }
             }
@@ -487,46 +429,22 @@ class SendFollowupCron extends Command
                             continue;
                         }
 
-                        try {
-                            $response = Http::asJson()
-                                ->withHeaders([
-                                    'Content-Type' => 'application/json',
-                                    'Accept' => 'application/json'
-                                ])
-                                ->post('https://notifapi.com/send_message', [
-                                    'phone_no' => $absen->customer_rel->wa,
-                                    'key'      => $woowaKey,
-                                    'message'  => $message,
-                                ]);
+                        $namaJadwal = $absen->nama_jadwal_snapshot ?? '-';
+                        $cumulativeDelay += rand($minDelaySeconds, $maxDelaySeconds);
 
-                            $statusText = $response->successful() ? 'sukses' : 'gagal';
-                            $namaJadwal = $absen->nama_jadwal_snapshot ?? '-';
-                            $keterangan = "Kirim WA upselling type 8 ke {$absen->customer_rel->wa} ({$absen->customer_rel->nama}), hadir di jadwal \"{$namaJadwal}\" ({$tanggalHadir->format('d-m-Y')}). Status: {$statusText}. Pesan: {$message}";
-
-                            LogsFollup::create([
-                                'follup'     => $template->id,
-                                'customer'   => $absen->customer_rel->id,
-                                'order'      => $absen->source_type === 'order' ? $absen->source_id : null,
-                                'invitation' => $absen->source_type === 'invitation' ? $absen->source_id : null,
-                                'kehadiran'  => $absen->id,
-                                'type'       => '8',
-                                'keterangan' => $keterangan,
-                                'create_at'  => now(),
-                                'status'     => $response->successful() ? '1' : '0',
-                            ]);
-                        } catch (\Exception $e) {
-                            LogsFollup::create([
-                                'follup'     => $template->id,
-                                'customer'   => $absen->customer_rel->id,
-                                'order'      => $absen->source_type === 'order' ? $absen->source_id : null,
-                                'invitation' => $absen->source_type === 'invitation' ? $absen->source_id : null,
-                                'kehadiran'  => $absen->id,
-                                'type'       => '8',
-                                'keterangan' => "Gagal kirim upselling. Error: " . $e->getMessage(),
-                                'create_at'  => now(),
-                                'status'     => '0',
-                            ]);
-                        }
+                        SendUpsellingMessageJob::dispatch(
+                            $template->id,
+                            $message,
+                            $absen->customer_rel->wa,
+                            $absen->customer_rel->nama ?? '',
+                            $absen->customer_rel->id,
+                            $absen->id,
+                            $absen->source_type === 'order' ? $absen->source_id : null,
+                            $absen->source_type === 'invitation' ? $absen->source_id : null,
+                            $namaJadwal,
+                            $tanggalHadir->format('d-m-Y'),
+                            $woowaKey
+                        )->delay(now()->addSeconds($cumulativeDelay));
                     }
                 }
             }
