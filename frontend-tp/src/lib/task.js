@@ -40,9 +40,12 @@ export async function getTaskTimeline(dari, sampai) {
 /**
  * GET /api/task/laporan — ringkasan kartu, komposisi status, beban per orang, aktivitas
  * @param {number} hari - rentang hari untuk kartu aktivitas (default 7)
+ * @param {number|string|null} karyawanId - persempit ke satu anggota tim; null = seluruh cakupan
  */
-export async function getTaskReport(hari = 7) {
-  const res = await api(`${API_ENDPOINTS.task.laporan}?hari=${hari}`, { method: "GET" });
+export async function getTaskReport(hari = 7, karyawanId = null) {
+  const qs = new URLSearchParams({ hari: String(hari) });
+  if (karyawanId) qs.set("karyawan_id", String(karyawanId));
+  const res = await api(`${API_ENDPOINTS.task.laporan}?${qs}`, { method: "GET" });
   return res.success ? res.data : null;
 }
 
