@@ -27,11 +27,47 @@ function todayMinus(days) {
   return d.toISOString().slice(0, 10);
 }
 
+const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+/**
+ * Ubah nilai tanggal dari API jadi Date lokal tengah malam.
+ * Menerima dua bentuk: "YYYY-MM-DD" polos (dibaca apa adanya, karena kalau
+ * dilewatkan Date() string polos dianggap UTC dan bisa mundur sehari) dan
+ * ISO bertimezone (dikonversi ke waktu lokal dulu baru diambil tanggalnya).
+ */
+function parseTanggal(nilai) {
+  if (!nilai) return null;
+  const teks = String(nilai);
+
+  if (teks.includes("T")) {
+    const d = new Date(teks);
+    return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  const [y, m, d] = teks.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+/** "27 Jul" untuk label sumbu yang sempit */
+function fmtTglSingkat(nilai) {
+  const d = parseTanggal(nilai);
+  if (!d) return nilai ?? "";
+  return `${d.getDate()} ${BULAN_SINGKAT[d.getMonth()]}`;
+}
+
+/** "27 Jul 2026" untuk tooltip yang punya ruang lebih */
+function fmtTglPanjang(nilai) {
+  const d = parseTanggal(nilai);
+  if (!d) return nilai ?? "";
+  return `${d.getDate()} ${BULAN_SINGKAT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-      <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>{fmtTglPanjang(label)}</p>
       {payload.map((entry, i) => (
         <p key={i} style={{ color: entry.color, margin: "2px 0" }}>
           {entry.name}: <strong>{entry.name === "Biaya" ? fmtRp(entry.value) : fmt(entry.value)}</strong>
@@ -201,7 +237,7 @@ export default function MetaAdsOverviewContent({
               <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart data={daily}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" fontSize={12} />
+                  <XAxis dataKey="date" fontSize={12} tickFormatter={fmtTglSingkat} />
                   <YAxis yAxisId="left" fontSize={12} />
                   <YAxis yAxisId="right" orientation="right" fontSize={12} />
                   <Tooltip content={<CustomTooltip />} />
