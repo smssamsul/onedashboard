@@ -30,6 +30,27 @@ export const API_ENDPOINTS = {
     orders: '/admin/order',
     orderById: (id) => `/admin/order/${id}`,
     dashboard: '/admin/sales/dashboard',
+    jabatan: '/admin/jabatan',
+    departemen: '/hr/departemen',
+    menu: '/admin/menu',
+    menuById: (id) => `/admin/menu/${id}`,
+    menuAkses: '/admin/menu-akses',
+    menuAksesSave: '/admin/menu-akses/save',
+  },
+
+  // Hak akses menu user yang sedang login
+  me: {
+    menuAccess: '/me/menu-access',
+  },
+
+  // Task lintas divisi
+  task: {
+    saya: '/task',
+    tim: '/task/tim',
+    menungguApprovalSaya: '/task/menunggu-approval-saya',
+    byId: (id) => `/task/${id}`,
+    approve: (id) => `/task/${id}/approve`,
+    reject: (id) => `/task/${id}/reject`,
   },
 
   // Sales

@@ -1,12 +1,8 @@
 export const JABATAN_MAP = {
-  1: "Vice President",
-  2: "Assistant Vice President",
+  1: "Staff",
+  2: "Manager",
   3: "General Manager",
-  4: "Manager",
-  5: "Supervisor",
-  6: "Officer",
-  7: "Clerical Staff",
-  8: "Internship",
+  4: "Direksi",
 };
 
 export function getJabatanLabel(jabatan) {

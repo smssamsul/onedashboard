@@ -617,14 +617,10 @@ export default function KaryawanPage() {
                       required
                     >
                       <option value="">Pilih Jabatan</option>
-                      <option value="1">Vice President</option>
-                      <option value="2">Assistant Vice President</option>
+                      <option value="1">Staff</option>
+                      <option value="2">Manager</option>
                       <option value="3">General Manager</option>
-                      <option value="4">Manager</option>
-                      <option value="5">Supervisor</option>
-                      <option value="6">Officer</option>
-                      <option value="7">Clerical Staff</option>
-                      <option value="8">Internship</option>
+                      <option value="4">Direksi</option>
                     </select>
                   </div>
                 </div>

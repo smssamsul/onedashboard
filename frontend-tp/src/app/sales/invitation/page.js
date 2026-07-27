@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import dynamic from "next/dynamic";
-import { Mail, Copy, Search, Trash2 } from "lucide-react";
+import { Mail, Link2, Trash2 } from "lucide-react";
 import { getInvitations, createInvitation, deleteInvitation } from "@/lib/sales/invitation";
 import { getQuickOrderProducts } from "@/lib/sales/products";
-import { getCustomers } from "@/lib/sales/customer";
 import { toastSuccess, toastError } from "@/lib/toast";
 import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
 import "@/styles/sales/shared-table.css";
 
 const AddInvitationModal = dynamic(() => import("./addInvitation"), { ssr: false });
+const GenerateLinkModal = dynamic(() => import("./generateLinkModal"), { ssr: false });
 
 function useDebouncedValue(value, delay = 350) {
   const [debounced, setDebounced] = useState(value);
@@ -30,61 +30,54 @@ export default function InvitationPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
+  const [showGenerateLink, setShowGenerateLink] = useState(false);
 
-  // Link generator state
-  const [genProdukId, setGenProdukId] = useState("");
-  const [refSearch, setRefSearch] = useState("");
-  const debouncedRefSearch = useDebouncedValue(refSearch);
-  const [refResults, setRefResults] = useState([]);
-  const [refCustomer, setRefCustomer] = useState(null);
-  const [searchingRef, setSearchingRef] = useState(false);
+  // Filter state
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput);
+  const [filterProduk, setFilterProduk] = useState("");
+  const hasActiveFilter = Boolean(debouncedSearch.trim() || filterProduk);
 
-  const loadInvitations = useCallback(async (pageNum = 1) => {
+  const loadInvitations = useCallback(async (pageNum = 1, filters = {}) => {
     setLoading(true);
-    const result = await getInvitations(pageNum, 15);
+    const result = await getInvitations(pageNum, 15, filters);
     setInvitations(result.data);
     setMeta(result.meta);
     setLoading(false);
   }, []);
 
+  const activeFilters = {
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+    ...(filterProduk ? { produk: filterProduk } : {}),
+  };
+
   useEffect(() => {
-    loadInvitations(page);
-  }, [page, loadInvitations]);
+    loadInvitations(page, activeFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, loadInvitations, debouncedSearch, filterProduk]);
+
+  // Setiap filter berubah, balik ke halaman 1 supaya tidak nyangkut di halaman kosong
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filterProduk]);
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setFilterProduk("");
+  };
 
   useEffect(() => {
     getQuickOrderProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
   }, []);
-
-  useEffect(() => {
-    if (!debouncedRefSearch.trim()) {
-      setRefResults([]);
-      return;
-    }
-    setSearchingRef(true);
-    getCustomers(1, 5, { search: debouncedRefSearch.trim() })
-      .then((res) => setRefResults(Array.isArray(res?.data) ? res.data : []))
-      .catch(() => setRefResults([]))
-      .finally(() => setSearchingRef(false));
-  }, [debouncedRefSearch]);
-
-  const selectedProdukForLink = produkList.find((p) => String(p.id) === String(genProdukId));
-  const invitationLink = selectedProdukForLink?.kode
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/invitation/${selectedProdukForLink.kode}${refCustomer ? `?ref=${refCustomer.memberID}` : ""}`
-    : "";
-
-  const handleCopyLink = () => {
-    if (!invitationLink) return;
-    navigator.clipboard.writeText(invitationLink);
-    toastSuccess("Link undangan disalin ke clipboard");
-  };
 
   const handleSaveAdd = async (payload) => {
     try {
       await createInvitation(payload);
       toastSuccess("Invitation berhasil ditambahkan");
       setShowAdd(false);
-      loadInvitations(1);
       setPage(1);
+      loadInvitations(1, activeFilters);
     } catch (err) {
       toastError(err.message || "Gagal menambahkan invitation");
     }
@@ -95,7 +88,7 @@ export default function InvitationPage() {
     try {
       await deleteInvitation(inv.id);
       toastSuccess("Invitation dihapus");
-      loadInvitations(page);
+      loadInvitations(page, activeFilters);
     } catch (err) {
       toastError(err.message || "Gagal menghapus invitation");
     }
@@ -121,77 +114,47 @@ export default function InvitationPage() {
         <section className="panel users-panel">
           <div className="panel__header">
             <div>
-              <p className="panel__eyebrow">Link Generator</p>
-              <h3 className="panel__title">Buat link undangan</h3>
+              <p className="panel__eyebrow">Directory</p>
+              <h3 className="panel__title">Daftar Invitation</h3>
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button className="customers-button customers-button--secondary" onClick={() => setShowGenerateLink(true)}>
+                <Link2 size={16} /> Generate Link
+              </button>
+              <button className="customers-button customers-button--primary" onClick={() => setShowAdd(true)}>
+                + Tambah Manual
+              </button>
             </div>
           </div>
-          <div className="modal-body" style={{ padding: "0 1.5rem 1.5rem" }}>
-            <div className="form-group full-width">
-              <label>Produk</label>
-              <select value={genProdukId} onChange={(e) => setGenProdukId(e.target.value)}>
-                <option value="">-- Pilih Produk --</option>
+
+          <div className="customers-toolbar" style={{ padding: "0 1.5rem 1rem" }}>
+            <div className="customers-search">
+              <input
+                type="search"
+                placeholder="Cari nama, WA, atau email peserta"
+                className="customers-search__input"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+              <span className="customers-search__icon pi pi-search" />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <select
+                value={filterProduk}
+                onChange={(e) => setFilterProduk(e.target.value)}
+                style={{ padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--dash-border)", fontSize: "0.85rem" }}
+              >
+                <option value="">Semua Produk</option>
                 {produkList.map((p) => (
                   <option key={p.id} value={p.id}>{p.nama}</option>
                 ))}
               </select>
-            </div>
-            <div className="form-group full-width" style={{ position: "relative" }}>
-              <label>Referral (opsional) — cari nama/WA customer</label>
-              <input
-                type="text"
-                value={refCustomer ? `${refCustomer.nama} (${refCustomer.wa})` : refSearch}
-                onChange={(e) => {
-                  setRefCustomer(null);
-                  setRefSearch(e.target.value);
-                }}
-                placeholder="Ketik nama atau nomor WA..."
-              />
-              {!refCustomer && refResults.length > 0 && (
-                <div className="customers-search__dropdown" style={{ position: "absolute", zIndex: 10, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, width: "100%", maxHeight: 200, overflowY: "auto" }}>
-                  {refResults.map((c) => (
-                    <div
-                      key={c.id}
-                      style={{ padding: "8px 12px", cursor: "pointer" }}
-                      onClick={() => {
-                        setRefCustomer(c);
-                        setRefSearch("");
-                        setRefResults([]);
-                      }}
-                    >
-                      {c.nama} — {c.wa} {c.memberID ? `(${c.memberID})` : "(belum punya memberID)"}
-                    </div>
-                  ))}
-                </div>
+              {hasActiveFilter && (
+                <button className="customers-button customers-button--secondary" onClick={resetFilters}>
+                  Reset Filter
+                </button>
               )}
             </div>
-            {invitationLink && (
-              <div className="form-group full-width">
-                <label>Link Undangan</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input type="text" readOnly value={invitationLink} style={{ flex: 1 }} />
-                  <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
-                    <Copy size={16} /> Copy
-                  </button>
-                </div>
-                {refCustomer && !refCustomer.memberID && (
-                  <p style={{ color: "#dc2626", fontSize: 13, marginTop: 4 }}>
-                    Customer ini belum punya memberID, referral tidak akan tercatat.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="panel users-panel">
-          <div className="panel__header">
-            <div>
-              <p className="panel__eyebrow">Directory</p>
-              <h3 className="panel__title">Daftar Invitation</h3>
-            </div>
-            <button className="customers-button customers-button--primary" onClick={() => setShowAdd(true)}>
-              + Tambah Manual
-            </button>
           </div>
 
           <div className="table-wrapper">
@@ -268,6 +231,13 @@ export default function InvitationPage() {
             produkList={produkList}
             onClose={() => setShowAdd(false)}
             onSave={handleSaveAdd}
+          />
+        )}
+
+        {showGenerateLink && (
+          <GenerateLinkModal
+            produkList={produkList}
+            onClose={() => setShowGenerateLink(false)}
           />
         )}
       </div>
