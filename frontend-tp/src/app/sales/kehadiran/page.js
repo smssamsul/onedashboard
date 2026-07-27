@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "@/components/Layout";
 import { QRCodeCanvas } from "qrcode.react";
-import { CheckSquare, Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
+import { Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
 import { getKehadiran, manualCheckin, deleteKehadiran } from "@/lib/sales/kehadiran";
 import { getQuickOrderProducts, getProductById } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
@@ -131,23 +131,10 @@ export default function KehadiranPage() {
   return (
     <Layout title="Kehadiran">
       <div className="dashboard-shell customers-shell table-shell">
-        <section className="dashboard-summary kategori-summary">
-          <article className="summary-card summary-card--combined summary-card--two-cols">
-            <div className="summary-card__column">
-              <div className="summary-card__icon accent-orange">
-                <CheckSquare size={22} />
-              </div>
-              <div>
-                <p className="summary-card__label">Total hadir (semua sesi produk ini)</p>
-                <p className="summary-card__value">{kehadiran.length}</p>
-              </div>
-            </div>
-          </article>
-        </section>
-
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* KIRI: satu card - pilih produk (dropdown), pilih jadwal, dan QR check-in */}
-          <div style={{ width: 340, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* ATAS: satu card - pilih produk (dropdown), pilih jadwal, dan QR check-in.
+              Isinya disusun menyamping supaya card tidak memanjang ke bawah. */}
+          <div>
             <section className="panel users-panel">
               <div className="panel__header">
                 <div>
@@ -155,60 +142,30 @@ export default function KehadiranPage() {
                   <h3 className="panel__title">Produk &amp; QR Check-in</h3>
                 </div>
               </div>
-              <div style={{ padding: "0 1rem 1rem", display: "flex", flexDirection: "column", gap: 16 }}>
-                <div className="form-group full-width">
-                  <label>Produk</label>
-                  <select value={produkId} onChange={(e) => setProdukId(e.target.value)}>
-                    <option value="">-- Pilih Produk --</option>
-                    {produkList.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nama}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {produkId && (
+              <div style={{ padding: "0 1rem 1rem", display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+                {/* Kolom pilihan produk / jadwal / hadir manual */}
+                <div style={{ flex: "1 1 280px", minWidth: 260, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div className="form-group full-width">
-                    <label>Jadwal untuk QR check-in</label>
-                    <select value={jadwalId} onChange={(e) => setJadwalId(e.target.value)}>
-                      <option value="">-- Pilih Jadwal --</option>
-                      {jadwalList.map((j) => (
-                        <option key={j.id} value={j.id}>
-                          {j.nama_jadwal} — {j.waktu_mulai ? new Date(j.waktu_mulai).toLocaleString("id-ID") : "-"}
-                        </option>
+                    <label>Produk</label>
+                    <select value={produkId} onChange={(e) => setProdukId(e.target.value)}>
+                      <option value="">-- Pilih Produk --</option>
+                      {produkList.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nama}</option>
                       ))}
                     </select>
-                    <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
-                      Produk ini dipakai berulang cukup dengan edit tanggal jadwal — riwayat kehadiran sesi lama tetap aman tersimpan dengan tanggalnya sendiri.
-                    </p>
                   </div>
-                )}
 
-                  {jadwalId && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      <label style={{ fontSize: 14, fontWeight: 600 }}>
-                        <QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />QR Check-in
-                      </label>
-                      <div style={{ padding: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, alignSelf: "center" }}>
-                        <QRCodeCanvas ref={qrCanvasRef} value={checkinLink} size={220} level="M" includeMargin={false} />
-                      </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input type="text" readOnly value={checkinLink} style={{ flex: 1, minWidth: 0 }} />
-                        <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
-                          <Copy size={16} />
-                        </button>
-                      </div>
-                      <button type="button" className="customers-button customers-button--primary" onClick={handleDownloadQr}>
-                        <Download size={16} /> Download QR
-                      </button>
-                      <a
-                        href={`/kehadiran/${jadwalId}/display`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="customers-button"
-                        style={{ textAlign: "center" }}
-                      >
-                        <Monitor size={16} /> Buka Halaman Display
-                      </a>
+                  {produkId && (
+                    <div className="form-group full-width">
+                      <label>Jadwal untuk QR check-in</label>
+                      <select value={jadwalId} onChange={(e) => setJadwalId(e.target.value)}>
+                        <option value="">-- Pilih Jadwal --</option>
+                        {jadwalList.map((j) => (
+                          <option key={j.id} value={j.id}>
+                            {j.nama_jadwal} — {j.waktu_mulai ? new Date(j.waktu_mulai).toLocaleString("id-ID") : "-"}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
 
@@ -241,15 +198,50 @@ export default function KehadiranPage() {
                     </div>
                   )}
                 </div>
-              </section>
+
+                {/* Kolom QR: gambar QR di kiri, aksi di kanannya */}
+                {jadwalId && (
+                  <div style={{ flex: "1 1 380px", minWidth: 300, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <label style={{ fontSize: 14, fontWeight: 600 }}>
+                      <QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />QR Check-in
+                    </label>
+                    <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div style={{ padding: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, flexShrink: 0 }}>
+                        <QRCodeCanvas ref={qrCanvasRef} value={checkinLink} size={180} level="M" includeMargin={false} />
+                      </div>
+                      <div style={{ flex: "1 1 200px", minWidth: 200, display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input type="text" readOnly value={checkinLink} style={{ flex: 1, minWidth: 0 }} />
+                          <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                        <button type="button" className="customers-button customers-button--primary" onClick={handleDownloadQr}>
+                          <Download size={16} /> Download QR
+                        </button>
+                        <a
+                          href={`/kehadiran/${jadwalId}/display`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="customers-button"
+                          style={{ textAlign: "center" }}
+                        >
+                          <Monitor size={16} /> Buka Halaman Display
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
-          {/* KANAN: hanya data - daftar hadir semua sesi produk terpilih */}
-          <div style={{ flex: 1, minWidth: 320 }}>
+          {/* BAWAH: hanya data - daftar hadir semua sesi produk terpilih */}
+          <div>
             {!produkId ? (
               <section className="panel users-panel">
                 <p style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
-                  Pilih produk di sebelah kiri untuk melihat daftar hadir.
+                  Pilih produk di atas untuk melihat daftar hadir.
                 </p>
               </section>
             ) : (
