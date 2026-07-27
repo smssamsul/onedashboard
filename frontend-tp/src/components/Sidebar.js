@@ -127,6 +127,13 @@ export default function Sidebar({
   // dipetakan balik ke halaman "rumah" user supaya sidebar tetap sesuai divisinya.
   const effectivePathname = useMemo(() => {
     const current = pathname || "";
+
+    // Meta Ads fisiknya di bawah /marketing, tapi head sales juga boleh buka —
+    // untuk mereka sidebar harus tetap ikut menu Sales (bukan jatuh ke menu Marketing).
+    if (current.startsWith("/marketing/meta-ads") && isSales) {
+      return getDivisionHome(userDivisi, userLevel) || current;
+    }
+
     if (KNOWN_MENU_PREFIXES.some((prefix) => current.startsWith(prefix))) {
       return current;
     }
@@ -134,7 +141,7 @@ export default function Sidebar({
       return getDivisionHome(userDivisi, userLevel) || current;
     }
     return current;
-  }, [pathname, userDivisi, userLevel]);
+  }, [pathname, userDivisi, userLevel, isSales]);
 
   const isAddProductsPage = pathname.includes('/sales/products/addProducts') || pathname.includes('/sales/products/addProducts');
 
@@ -356,7 +363,6 @@ export default function Sidebar({
           items: [
             { label: "Follow Up Logs", href: `${basePath}/followup/report`, icon: <Activity size={18} /> },
             { label: "Log Pixel", href: `${basePath}/log-pixel`, icon: <Activity size={18} /> },
-            { label: "Meta Ads", href: `${basePath}/meta-ads-report`, icon: <BarChart3 size={18} /> },
           ],
         },
       ];
@@ -411,6 +417,17 @@ export default function Sidebar({
             icon: <Settings size={18} />
           });
         }
+
+        // Meta Ads (dipakai bareng Marketing, khusus head sales)
+        salesItems.push({
+          section: "META ADS",
+          items: [
+            { label: "Overview", href: "/marketing/meta-ads", icon: <BarChart3 size={18} /> },
+            { label: "Kelola Campaign", href: "/marketing/meta-ads/campaigns", icon: <Megaphone size={18} /> },
+            { label: "Pixel Crosscheck", href: "/marketing/meta-ads/crosscheck", icon: <Activity size={18} /> },
+            { label: "Setting Akun", href: "/marketing/meta-ads/accounts", icon: <Settings size={18} /> },
+          ],
+        });
       }
 
       return salesItems;
@@ -433,15 +450,6 @@ export default function Sidebar({
             { label: "Cuti Saya", href: "/marketing/cuti-saya", icon: <CalendarDays size={18} /> },
             { label: "Izin Saya", href: "/marketing/izin-saya", icon: <FileText size={18} /> },
             { label: "Todo List Saya", href: `${basePath}/todo-list-saya`, icon: <ListTodo size={18} /> },
-          ],
-        },
-        {
-          section: "META ADS",
-          items: [
-            { label: "Overview", href: `${basePath}/meta-ads`, icon: <BarChart3 size={18} /> },
-            { label: "Kelola Campaign", href: `${basePath}/meta-ads/campaigns`, icon: <Megaphone size={18} /> },
-            { label: "Pixel Crosscheck", href: `${basePath}/meta-ads/crosscheck`, icon: <Activity size={18} /> },
-            { label: "Setting Akun", href: `${basePath}/meta-ads/accounts`, icon: <Settings size={18} /> },
           ],
         },
       ];

@@ -104,8 +104,14 @@ export function middleware(req) {
 
     // --- Proteksi MARKETING ---
     if (pathname.startsWith("/marketing")) {
-      // Divisi 6 = Marketing
-      if (userDivisi !== "6" && userDivisi !== 6 && userDivisi !== "marketing") {
+      const isMarketing = userDivisi === "6" || userDivisi === 6 || userDivisi === "marketing";
+      // Meta Ads dibuka juga untuk head sales (divisi 3, bukan staff/level 2)
+      const isSalesLeaderMetaAds =
+        pathname.startsWith("/marketing/meta-ads") &&
+        (userDivisi === "3" || userDivisi === "sales") &&
+        userLevel !== "2";
+
+      if (!isMarketing && !superOps && !isSalesLeaderMetaAds) {
         return handleUnauthorizedRedirect(userDivisi, userLevel, req);
       }
     }
