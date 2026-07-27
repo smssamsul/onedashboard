@@ -68,6 +68,7 @@ use App\Http\Controllers\Api\PostController;
 
 use App\Http\Controllers\Api\KnowledgeSourceController;
 use App\Http\Controllers\Api\TodoListController;
+use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\BiteshipWebhookController;
 
 // ============================================
@@ -590,6 +591,17 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/{id}', [TodoListController::class, 'update']);
         Route::delete('/{id}', [TodoListController::class, 'destroy']);
         Route::post('/{id}/complete', [TodoListController::class, 'complete']);
+    });
+
+    Route::prefix('task')->group(function () {
+        Route::get('/', [TaskController::class, 'index']);
+        Route::get('/tim', [TaskController::class, 'tim']);
+        Route::get('/menunggu-approval-saya', [TaskController::class, 'menungguApprovalSaya']);
+        Route::get('/{id}', [TaskController::class, 'show']);
+        Route::post('/', [TaskController::class, 'store']);
+        Route::put('/{id}', [TaskController::class, 'update']);
+        Route::post('/{id}/approve', [TaskController::class, 'approve']);
+        Route::post('/{id}/reject', [TaskController::class, 'reject']);
     });
 
     Route::prefix('marketing')->group(function () {

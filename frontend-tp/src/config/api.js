@@ -43,6 +43,16 @@ export const API_ENDPOINTS = {
     menuAccess: '/me/menu-access',
   },
 
+  // Task lintas divisi
+  task: {
+    saya: '/task',
+    tim: '/task/tim',
+    menungguApprovalSaya: '/task/menunggu-approval-saya',
+    byId: (id) => `/task/${id}`,
+    approve: (id) => `/task/${id}/approve`,
+    reject: (id) => `/task/${id}/reject`,
+  },
+
   // Sales
   sales: {
     customers: '/sales/customer',

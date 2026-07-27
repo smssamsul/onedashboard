@@ -38,9 +38,28 @@ import {
   Network,
   Mail,
   QrCode,
+  ListChecks,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
+import { getDivisionHome } from "@/lib/divisionRoutes";
+
+// Prefix halaman yang punya menu sidebar sendiri. Halaman lintas-divisi
+// (mis. /task) tidak cocok prefix manapun di sini — untuk halaman begitu,
+// sidebar jatuh balik ke menu "rumah" user (lihat effectivePathname).
+const KNOWN_MENU_PREFIXES = [
+  "/super-ops",
+  "/sales/staff",
+  "/finance/staff",
+  "/direksi",
+  "/hr",
+  "/marketing",
+  "/multimedia",
+  "/it",
+  "/finance",
+  "/sales",
+  "/admin",
+];
 
 const VIEWPORT = {
   DESKTOP: "desktop",
@@ -74,6 +93,9 @@ export default function Sidebar({
   const [isSales, setIsSales] = useState(false);
   const [isFinance, setIsFinance] = useState(false);
   const [isLeader, setIsLeader] = useState(false);
+  // Divisi+level mentah user, dipakai buat fallback menu di halaman lintas-divisi (mis. /task)
+  const [userDivisi, setUserDivisi] = useState(null);
+  const [userLevel, setUserLevel] = useState(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -82,20 +104,37 @@ export default function Sidebar({
       if (userData) {
         try {
           const user = JSON.parse(userData);
-          const userDivisi = user?.divisi || division;
-          setIsSales(userDivisi === 3 || userDivisi === "3");
-          setIsFinance(userDivisi === 4 || userDivisi === "4");
+          const userDivisiVal = user?.divisi || division;
+          setIsSales(userDivisiVal === 3 || userDivisiVal === "3");
+          setIsFinance(userDivisiVal === 4 || userDivisiVal === "4");
           setIsLeader(user?.level === "1" || user?.level === 1);
+          setUserDivisi(userDivisiVal ?? null);
+          setUserLevel(user?.level ?? null);
         } catch (e) {
           setIsSales(division === "3");
           setIsFinance(division === "4");
+          setUserDivisi(division ?? null);
         }
       } else {
         setIsSales(division === "3");
         setIsFinance(division === "4");
+        setUserDivisi(division ?? null);
       }
     }
   }, []);
+
+  // Halaman yang tidak punya menu sidebar sendiri (mis. /task, lintas-divisi)
+  // dipetakan balik ke halaman "rumah" user supaya sidebar tetap sesuai divisinya.
+  const effectivePathname = useMemo(() => {
+    const current = pathname || "";
+    if (KNOWN_MENU_PREFIXES.some((prefix) => current.startsWith(prefix))) {
+      return current;
+    }
+    if (userDivisi != null) {
+      return getDivisionHome(userDivisi, userLevel) || current;
+    }
+    return current;
+  }, [pathname, userDivisi, userLevel]);
 
   const isAddProductsPage = pathname.includes('/sales/products/addProducts') || pathname.includes('/sales/products/addProducts');
 
@@ -120,17 +159,17 @@ export default function Sidebar({
       return "/sales";
     }
     // Check for staff paths first (staff berada di dalam divisi)
-    if (pathname?.startsWith("/sales/staff")) return "/sales/staff";
-    if (pathname?.startsWith("/finance/staff")) return "/finance/staff";
-    if (pathname?.startsWith("/direksi")) return "/direksi";
-    if (pathname?.startsWith("/hr")) return "/hr";
-    if (pathname?.startsWith("/marketing")) return "/marketing";
-    if (pathname?.startsWith("/multimedia")) return "/multimedia";
-    if (pathname?.startsWith("/it")) return "/it";
-    if (pathname?.startsWith("/finance")) return "/finance";
-    if (pathname?.startsWith("/sales")) return "/sales";
+    if (effectivePathname?.startsWith("/sales/staff")) return "/sales/staff";
+    if (effectivePathname?.startsWith("/finance/staff")) return "/finance/staff";
+    if (effectivePathname?.startsWith("/direksi")) return "/direksi";
+    if (effectivePathname?.startsWith("/hr")) return "/hr";
+    if (effectivePathname?.startsWith("/marketing")) return "/marketing";
+    if (effectivePathname?.startsWith("/multimedia")) return "/multimedia";
+    if (effectivePathname?.startsWith("/it")) return "/it";
+    if (effectivePathname?.startsWith("/finance")) return "/finance";
+    if (effectivePathname?.startsWith("/sales")) return "/sales";
     return "/admin";
-  }, [pathname, isSuperOps, superOpsTab]);
+  }, [effectivePathname, isSuperOps, superOpsTab]);
 
   const salesLeaderMenu =
     isSuperOps && superOpsTab === "sales" ? true : isLeader;
@@ -145,7 +184,7 @@ export default function Sidebar({
           : superOpsTab === "hub"
             ? "/super-ops"
             : "/sales"
-      : pathname || "";
+      : effectivePathname || "";
 
     // Super OPS — halaman pusat (link cepat ke divisi)
     if (pathForMenu.startsWith("/super-ops")) {
@@ -174,6 +213,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: "/finance", icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -200,6 +240,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -239,6 +280,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -268,6 +310,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -380,6 +423,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -410,6 +454,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -431,6 +476,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -463,6 +509,7 @@ export default function Sidebar({
           section: "MAIN",
           items: [
             { label: "Dashboard", href: `${basePath}/dashboard`, icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
             ...(isDireksi ? [{ label: "Dashboard Direksi", href: "/direksi", icon: <BarChart3 size={18} /> }] : []),
           ],
         },
@@ -528,6 +575,7 @@ export default function Sidebar({
           section: "OVERVIEW",
           items: [
             { label: "Dashboard", href: "/direksi", icon: <Home size={18} /> },
+            { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
@@ -615,6 +663,7 @@ export default function Sidebar({
         section: "OVERVIEW",
         items: [
           { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+          { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
         ],
       },
       {
@@ -631,7 +680,7 @@ export default function Sidebar({
         ],
       },
     ];
-  }, [pathname, basePath, isLeader, isSuperOps, superOpsTab, salesLeaderMenu]);
+  }, [effectivePathname, basePath, isLeader, isSuperOps, superOpsTab, salesLeaderMenu]);
 
   // === DETECT SCREEN WIDTH ===
   useEffect(() => {
