@@ -16,6 +16,18 @@ class SyncMetaAdsInsights extends Command
 
     protected $description = 'Sync campaign metadata + insight harian dari Meta Marketing API ke tabel cache lokal.';
 
+    /**
+     * Daftar action_type Meta per metrik, diurut prioritas (paling spesifik dulu).
+     * Nilai diambil dari MATCH PERTAMA yang ada supaya tidak dobel hitung
+     * (Meta sering mengirim versi granular + versi "grouped" untuk hal yang sama).
+     * Sesuaikan urutan/isi di sini kalau definisi bisnisnya berubah.
+     */
+    protected const PURCHASE_TYPES = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase'];
+
+    protected const LEAD_TYPES = ['lead', 'offsite_conversion.fb_pixel_lead', 'onsite_conversion.lead_grouped', 'leadgen_grouped'];
+
+    protected const CONTACT_TYPES = ['contact', 'offsite_conversion.fb_pixel_contact', 'onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection'];
+
     public function handle(): int
     {
         $days = max(1, (int) $this->option('days'));
@@ -103,6 +115,8 @@ class SyncMetaAdsInsights extends Command
         $count = 0;
         foreach ($rows as $row) {
             [$conversions, $conversionValue] = $this->extractConversions($row);
+            $leads = $this->extractActionCount($row, self::LEAD_TYPES);
+            $contact = $this->extractActionCount($row, self::CONTACT_TYPES);
 
             MetaAdInsightDaily::updateOrCreate(
                 [
@@ -120,6 +134,8 @@ class SyncMetaAdsInsights extends Command
                     'cpm' => $row['cpm'] ?? null,
                     'ctr' => $row['ctr'] ?? null,
                     'conversions' => $conversions,
+                    'leads' => $leads,
+                    'contact' => $contact,
                     'conversion_value' => $conversionValue,
                     'raw_actions' => [
                         'actions' => $row['actions'] ?? [],
@@ -136,29 +152,39 @@ class SyncMetaAdsInsights extends Command
     }
 
     /**
-     * Cari action type yang setara "Purchase"/konversi utama dari array `actions`/`action_values` Meta.
+     * Cari jumlah (count) & nilai "Purchase"/konversi utama dari array `actions`/`action_values` Meta.
      */
     protected function extractConversions(array $row): array
     {
-        $purchaseTypes = ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase'];
+        $conversions = $this->extractActionCount($row, self::PURCHASE_TYPES);
 
-        $conversions = null;
         $conversionValue = null;
-
-        foreach (($row['actions'] ?? []) as $action) {
-            if (in_array($action['action_type'] ?? null, $purchaseTypes, true)) {
-                $conversions = (int) ($action['value'] ?? 0);
-                break;
-            }
-        }
-
-        foreach (($row['action_values'] ?? []) as $action) {
-            if (in_array($action['action_type'] ?? null, $purchaseTypes, true)) {
-                $conversionValue = (float) ($action['value'] ?? 0);
-                break;
+        foreach (self::PURCHASE_TYPES as $type) {
+            foreach (($row['action_values'] ?? []) as $action) {
+                if (($action['action_type'] ?? null) === $type) {
+                    $conversionValue = (float) ($action['value'] ?? 0);
+                    break 2;
+                }
             }
         }
 
         return [$conversions, $conversionValue];
+    }
+
+    /**
+     * Ambil count dari action_type pertama (menurut urutan prioritas $types) yang ada di baris.
+     * Kembalikan null kalau tidak ada satupun yang cocok, biar bisa dibedakan dari 0 asli.
+     */
+    protected function extractActionCount(array $row, array $types): ?int
+    {
+        foreach ($types as $type) {
+            foreach (($row['actions'] ?? []) as $action) {
+                if (($action['action_type'] ?? null) === $type) {
+                    return (int) ($action['value'] ?? 0);
+                }
+            }
+        }
+
+        return null;
     }
 }

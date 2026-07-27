@@ -10,7 +10,7 @@ import MetaAdsOverviewContent from "@/components/marketing/MetaAdsOverviewConten
 export default function SalesMetaAdsReportPage() {
   return (
     <Layout title="Laporan Meta Ads">
-      <MetaAdsOverviewContent showConnectButton={false} />
+      <MetaAdsOverviewContent showConnectButton={false} showSyncButton={false} />
     </Layout>
   );
 }

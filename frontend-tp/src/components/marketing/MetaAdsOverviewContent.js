@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { RefreshCw } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -32,7 +34,7 @@ function CustomTooltip({ active, payload, label }) {
       <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
       {payload.map((entry, i) => (
         <p key={i} style={{ color: entry.color, margin: "2px 0" }}>
-          {entry.name}: <strong>{entry.name === "Spend" ? fmtRp(entry.value) : fmt(entry.value)}</strong>
+          {entry.name}: <strong>{entry.name === "Biaya" ? fmtRp(entry.value) : fmt(entry.value)}</strong>
         </p>
       ))}
     </div>
@@ -40,12 +42,17 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 /**
- * Konten performa Meta Ads (read-only) - dipakai bareng oleh halaman
+ * Konten performa Meta Ads - dipakai bareng oleh halaman
  * Marketing (/marketing/meta-ads) dan halaman laporan Sales (/sales/meta-ads-report).
- * Cuma baca dari endpoint performance yang sama, tidak ada aksi kelola di sini.
+ * Baca dari endpoint performance yang sama; tombol Sync hanya di sisi Marketing.
  */
-export default function MetaAdsOverviewContent({ connectAccountHref = "/marketing/meta-ads/accounts", showConnectButton = true }) {
+export default function MetaAdsOverviewContent({
+  connectAccountHref = "/marketing/meta-ads/accounts",
+  showConnectButton = true,
+  showSyncButton = true,
+}) {
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [connected, setConnected] = useState(true);
   const [daily, setDaily] = useState([]);
   const [totals, setTotals] = useState(null);
@@ -75,9 +82,10 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
       setConnected(overviewJson.connected !== false);
       setDaily((overviewJson.data?.daily || []).map((d) => ({
         ...d,
-        Spend: Number(d.spend || 0),
-        Reach: Number(d.reach || 0),
-        Konversi: Number(d.conversions || 0),
+        Biaya: Number(d.spend || 0),
+        Leads: Number(d.leads || 0),
+        Contact: Number(d.contact || 0),
+        Purchase: Number(d.conversions || 0),
       })));
       setTotals(overviewJson.data?.totals || null);
       setCampaigns(campaignsJson.data || []);
@@ -93,6 +101,32 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
     load();
   }, [load]);
 
+  const handleSync = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    const t = toast.loading("Menarik data terbaru dari Meta...");
+    try {
+      const res = await fetch(`/api/sales/meta-ads/performance/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
+        body: JSON.stringify({ days: 30 }),
+      });
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        toast.success(json.message || "Sync selesai.", { id: t });
+        await load();
+      } else {
+        toast.error(json.message || "Sync gagal.", { id: t });
+      }
+    } catch (e) {
+      console.error("[META ADS] Gagal sync:", e);
+      toast.error("Gagal menghubungi server untuk sync.", { id: t });
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, load]);
+
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
@@ -101,8 +135,28 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13 }} />
           <span style={{ fontSize: 13, color: "#6b7280" }}>s/d</span>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13 }} />
+          {showSyncButton && (
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              title="Tarik data terbaru dari Meta sekarang"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px",
+                borderRadius: 6, border: "1px solid #F1A124", background: syncing ? "#fff9f0" : "#F1A124",
+                color: syncing ? "#F1A124" : "#fff", fontSize: 13, fontWeight: 600,
+                cursor: syncing ? "not-allowed" : "pointer",
+              }}
+            >
+              <RefreshCw size={15} style={syncing ? { animation: "metaSpin 1s linear infinite" } : undefined} />
+              {syncing ? "Menyinkron..." : "Sync"}
+            </button>
+          )}
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes metaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
 
       {error && <div style={{ color: "#dc2626", marginBottom: 16 }}>{error}</div>}
 
@@ -123,12 +177,13 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
       ) : (
         <>
           {/* KPI Tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 16, marginBottom: 24 }}>
             {[
-              { label: "Total Spend", value: fmtRp(totals?.spend), color: "#111827" },
-              { label: "Total Reach", value: fmt(totals?.reach), color: "#2563eb" },
-              { label: "Total Konversi", value: fmt(totals?.conversions), color: "#16a34a" },
-              { label: "Nilai Konversi", value: fmtRp(totals?.conversion_value), color: "#ca8a04" },
+              { label: "Biaya", value: fmtRp(totals?.spend), color: "#111827" },
+              { label: "Impresi", value: fmt(totals?.impressions), color: "#7c3aed" },
+              { label: "Leads", value: fmt(totals?.leads), color: "#2563eb" },
+              { label: "Contact", value: fmt(totals?.contact), color: "#0d9488" },
+              { label: "Purchase", value: fmt(totals?.conversions), color: "#16a34a" },
             ].map((tile) => (
               <div key={tile.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px" }}>
                 <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{tile.label}</div>
@@ -151,9 +206,10 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
                   <YAxis yAxisId="right" orientation="right" fontSize={12} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Bar yAxisId="left" dataKey="Spend" fill="#111827" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="Reach" stroke="#2563eb" strokeWidth={2} />
-                  <Line yAxisId="right" type="monotone" dataKey="Konversi" stroke="#16a34a" strokeWidth={2} />
+                  <Bar yAxisId="left" dataKey="Biaya" fill="#111827" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" type="monotone" dataKey="Leads" stroke="#2563eb" strokeWidth={2} />
+                  <Line yAxisId="right" type="monotone" dataKey="Contact" stroke="#0d9488" strokeWidth={2} />
+                  <Line yAxisId="right" type="monotone" dataKey="Purchase" stroke="#16a34a" strokeWidth={2} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -168,15 +224,17 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
                   <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left" }}>
                     <th style={{ padding: "8px 12px" }}>Campaign</th>
                     <th style={{ padding: "8px 12px" }}>Status</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Spend</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Reach</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Konversi</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Biaya</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Impresi</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Contact</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Purchase</th>
                   </tr>
                 </thead>
                 <tbody>
                   {campaigns.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                      <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
                         {loading ? "Memuat..." : "Belum ada campaign tersimpan."}
                       </td>
                     </tr>
@@ -190,7 +248,9 @@ export default function MetaAdsOverviewContent({ connectAccountHref = "/marketin
                           </span>
                         </td>
                         <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmtRp(c.spend)}</td>
-                        <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(c.reach)}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(c.impressions)}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(c.leads)}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(c.contact)}</td>
                         <td style={{ padding: "8px 12px", textAlign: "right" }}>{fmt(c.conversions)}</td>
                       </tr>
                     ))
