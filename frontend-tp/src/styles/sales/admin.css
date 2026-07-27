@@ -514,10 +514,10 @@ ADMIN USERS PAGE (Scoped Styles)
   min-width: 0;
 }
 
-/* === KATEGORI TABLE (3 columns: #, Nama Kategori, Actions) === */
+/* === KATEGORI TABLE (4 columns: #, Nama Kategori, Jumlah Produk, Actions) === */
 .users-panel .users-table__head,
 .users-panel .users-table__row {
-  grid-template-columns: 60px 1fr 150px;
+  grid-template-columns: 60px 1fr 140px 150px;
   gap: 1rem;
   align-items: center;
 }
@@ -885,10 +885,10 @@ ADMIN USERS PAGE (Scoped Styles)
     grid-template-columns: 44px minmax(200px, 1.5fr) minmax(110px, 0.7fr) minmax(180px, 1.1fr) minmax(120px, 0.75fr) minmax(120px, 0.65fr);
   }
 
-  /* Kategori table tetap 3 kolom */
+  /* Kategori table tetap 4 kolom */
   .users-panel .users-table__head,
   .users-panel .users-table__row {
-    grid-template-columns: 60px 1fr 150px;
+    grid-template-columns: 60px 1fr 140px 150px;
   }
 
   .customers-table__head,
@@ -997,13 +997,13 @@ ADMIN USERS PAGE (Scoped Styles)
     min-width: 900px;
   }
 
-  /* Kategori table tetap 3 kolom di tablet */
+  /* Kategori table tetap 4 kolom di tablet */
   .users-panel .users-table__head {
     display: grid;
   }
 
   .users-panel .users-table__row {
-    grid-template-columns: 60px 1fr 150px;
+    grid-template-columns: 60px 1fr 140px 150px;
   }
 
   .users-tables__cell,

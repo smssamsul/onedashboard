@@ -16,7 +16,11 @@ class KategoriProdukController extends Controller
 
     public function index()
     {
-        $data = KategoriProduk::where('status', '!=', 'N')->get();
+        $data = KategoriProduk::withCount(['produk' => function ($query) {
+                $query->where('status', '!=', 'N');
+            }])
+            ->where('status', '!=', 'N')
+            ->get();
         return response()->json([
             'success' => true,
             'data' => $data

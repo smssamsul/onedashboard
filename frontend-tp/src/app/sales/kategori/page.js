@@ -188,6 +188,7 @@ export default function AdminKategoriPage() {
                 <tr>
                   <th style={{ width: '80px' }}>#</th>
                   <th>NAMA KATEGORI</th>
+                  <th style={{ width: '160px', textAlign: 'right' }}>JUMLAH PRODUK</th>
                   <th style={{ textAlign: 'right' }}>ACTIONS</th>
                 </tr>
               </thead>
@@ -197,6 +198,7 @@ export default function AdminKategoriPage() {
                     <tr key={kat.id}>
                       <td>{startIndex + i + 1}</td>
                       <td style={{ fontWeight: 500 }}>{kat.nama}</td>
+                      <td style={{ textAlign: 'right' }}>{kat.produk_count ?? 0}</td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                           <button
@@ -218,7 +220,7 @@ export default function AdminKategoriPage() {
                     </tr>
                   ))
                 ) : (
-                  <tr><td colSpan={3} className="table-empty">{kategori.length ? "Tidak ada hasil pencarian." : "Belum ada kategori."}</td></tr>
+                  <tr><td colSpan={4} className="table-empty">{kategori.length ? "Tidak ada hasil pencarian." : "Belum ada kategori."}</td></tr>
                 )}
               </tbody>
             </table>
