@@ -7,6 +7,7 @@ use App\Models\HrKaryawan;
 use App\Models\Task;
 use App\Models\TaskPersetujuan;
 use App\Models\TaskRiwayat;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -103,6 +104,176 @@ class TaskController extends Controller
     }
 
     /**
+     * Task yang boleh saya lihat di timeline/laporan: punya saya sendiri
+     * + punya bawahan langsung. Task yang masih ditolak persetujuan tidak
+     * ikut karena tidak pernah jadi kerjaan nyata.
+     */
+    private function taskTerlihat($karyawanId)
+    {
+        $bawahanIds = HrKaryawan::where('approval', $karyawanId)->pluck('id')->all();
+        $ids = array_merge([$karyawanId], $bawahanIds);
+
+        return Task::whereIn('hr_karyawan_id', $ids)
+            ->where(function ($q) {
+                $q->whereNull('status_persetujuan')
+                    ->orWhere('status_persetujuan', '!=', 'ditolak');
+            });
+    }
+
+    /**
+     * GET /task/timeline?dari=YYYY-MM-DD&sampai=YYYY-MM-DD
+     * Task yang rentang tanggalnya bersinggungan dengan jendela yang diminta.
+     */
+    public function timeline(Request $request)
+    {
+        $karyawan = $this->currentKaryawan();
+        if (!$karyawan) {
+            return response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404);
+        }
+
+        $dari = $request->filled('dari') ? Carbon::parse($request->dari) : Carbon::today()->subDays(14);
+        $sampai = $request->filled('sampai') ? Carbon::parse($request->sampai) : Carbon::today()->addDays(45);
+
+        $tasks = $this->taskTerlihat($karyawan->id)
+            ->with($this->withRelations())
+            ->where(function ($q) use ($dari, $sampai) {
+                // Bar terlihat kalau rentangnya menyentuh jendela. Task tanpa
+                // tenggat dinilai dari tanggal mulainya saja (digambar sebagai milestone).
+                $q->where(function ($sub) use ($dari, $sampai) {
+                    $sub->whereNotNull('tenggat')
+                        ->whereDate('tenggat', '>=', $dari)
+                        ->whereDate('tanggal_mulai', '<=', $sampai);
+                })->orWhere(function ($sub) use ($dari, $sampai) {
+                    $sub->whereNull('tenggat')
+                        ->whereDate('tanggal_mulai', '>=', $dari)
+                        ->whereDate('tanggal_mulai', '<=', $sampai);
+                });
+            })
+            ->orderBy('tanggal_mulai')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $tasks,
+            'meta' => [
+                'dari' => $dari->toDateString(),
+                'sampai' => $sampai->toDateString(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /task/laporan?hari=7
+     * Ringkasan untuk halaman laporan: kartu aktivitas N hari terakhir,
+     * komposisi status, dan feed riwayat terbaru.
+     */
+    public function laporan(Request $request)
+    {
+        $karyawan = $this->currentKaryawan();
+        if (!$karyawan) {
+            return response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404);
+        }
+
+        $hari = (int) $request->input('hari', 7);
+        $hari = max(1, min($hari, 90));
+        $sejak = Carbon::today()->subDays($hari);
+
+        $idsTerlihat = (clone $this->taskTerlihat($karyawan->id))->pluck('id');
+
+        $selesai = (clone $this->taskTerlihat($karyawan->id))
+            ->where('status', 'selesai')
+            ->whereDate('tanggal_selesai', '>=', $sejak)
+            ->count();
+
+        // "Diperbarui" dihitung dari riwayat, bukan updated_at, supaya yang
+        // terhitung memang aksi orang (ubah status/progres/tanggal).
+        $diperbarui = TaskRiwayat::whereIn('task_id', $idsTerlihat)
+            ->whereIn('aksi', ['status_diubah', 'progres_diperbarui', 'tanggal_diubah'])
+            ->where('created_at', '>=', $sejak)
+            ->distinct('task_id')
+            ->count('task_id');
+
+        $baru = (clone $this->taskTerlihat($karyawan->id))
+            ->whereDate('created_at', '>=', $sejak)
+            ->count();
+
+        $jatuhTempo = (clone $this->taskTerlihat($karyawan->id))
+            ->where('status', '!=', 'selesai')
+            ->whereNotNull('tenggat')
+            ->whereDate('tenggat', '>=', Carbon::today())
+            ->whereDate('tenggat', '<=', Carbon::today()->addDays($hari))
+            ->count();
+
+        $telat = (clone $this->taskTerlihat($karyawan->id))
+            ->where('status', '!=', 'selesai')
+            ->whereNotNull('tenggat')
+            ->whereDate('tenggat', '<', Carbon::today())
+            ->count();
+
+        $perStatus = (clone $this->taskTerlihat($karyawan->id))
+            ->select('status', DB::raw('count(*) as jumlah'))
+            ->groupBy('status')
+            ->pluck('jumlah', 'status');
+
+        $menungguApproval = (clone $this->taskTerlihat($karyawan->id))
+            ->where('status_persetujuan', 'menunggu')
+            ->count();
+
+        $total = (clone $this->taskTerlihat($karyawan->id))->count();
+        $jumlahSelesai = (int) ($perStatus['selesai'] ?? 0);
+
+        $aktivitas = TaskRiwayat::whereIn('task_id', $idsTerlihat)
+            ->with(['pelaku:id,nama', 'task:id,judul'])
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
+
+        // Beban per orang — berguna buat atasan lihat siapa yang menumpuk task.
+        $perPemilik = (clone $this->taskTerlihat($karyawan->id))
+            ->with('pemilik:id,nama')
+            ->get()
+            ->groupBy('hr_karyawan_id')
+            ->map(function ($rows) {
+                return [
+                    'nama' => optional($rows->first()->pemilik)->nama ?? '-',
+                    'total' => $rows->count(),
+                    'selesai' => $rows->where('status', 'selesai')->count(),
+                    'berjalan' => $rows->where('status', 'berjalan')->count(),
+                    'belum_mulai' => $rows->where('status', 'belum_mulai')->count(),
+                    'telat' => $rows->filter(function ($t) {
+                        return $t->status !== 'selesai' && $t->tenggat && $t->tenggat->lt(Carbon::today());
+                    })->count(),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'rentang_hari' => $hari,
+                'kartu' => [
+                    'selesai' => $selesai,
+                    'diperbarui' => $diperbarui,
+                    'baru' => $baru,
+                    'jatuh_tempo' => $jatuhTempo,
+                ],
+                'status' => [
+                    'belum_mulai' => (int) ($perStatus['belum_mulai'] ?? 0),
+                    'berjalan' => (int) ($perStatus['berjalan'] ?? 0),
+                    'selesai' => $jumlahSelesai,
+                    'telat' => $telat,
+                    'menunggu_approval' => $menungguApproval,
+                    'total' => $total,
+                    'persen_selesai' => $total > 0 ? (int) round($jumlahSelesai / $total * 100) : 0,
+                ],
+                'per_pemilik' => $perPemilik,
+                'aktivitas' => $aktivitas,
+            ],
+        ]);
+    }
+
+    /**
      * GET /task/{id}
      */
     public function show($id)
@@ -126,7 +297,10 @@ class TaskController extends Controller
             'hr_karyawan_id' => 'required|integer|exists:hr_karyawan,id',
             'judul' => 'required|string|max:200',
             'deskripsi' => 'nullable|string',
-            'tenggat' => 'nullable|date',
+            'tanggal_mulai' => 'nullable|date',
+            'tenggat' => 'nullable|date|after_or_equal:tanggal_mulai',
+        ], [
+            'tenggat.after_or_equal' => 'Target selesai tidak boleh lebih awal dari tanggal mulai.',
         ]);
 
         if ($validator->fails()) {
@@ -156,6 +330,9 @@ class TaskController extends Controller
                 'status' => 'belum_mulai',
                 'persentase_penyelesaian' => 0,
                 'status_persetujuan' => $butuhApproval ? 'menunggu' : null,
+                // Tanpa tanggal mulai eksplisit, anggap task dimulai hari ini —
+                // supaya selalu punya titik awal yang bisa digambar di timeline.
+                'tanggal_mulai' => $request->tanggal_mulai ?: now()->toDateString(),
                 'tenggat' => $request->tenggat,
             ]);
 
@@ -216,6 +393,7 @@ class TaskController extends Controller
         $validator = Validator::make($request->all(), [
             'judul' => 'sometimes|required|string|max:200',
             'deskripsi' => 'nullable|string',
+            'tanggal_mulai' => 'nullable|date',
             'tenggat' => 'nullable|date',
             'status' => 'sometimes|required|in:belum_mulai,berjalan,selesai',
             'persentase_penyelesaian' => 'sometimes|required|integer|min:0|max:100',
@@ -237,6 +415,24 @@ class TaskController extends Controller
             ], 422);
         }
 
+        // Bandingkan terhadap nilai yang akan berlaku setelah update, bukan cuma
+        // yang dikirim — kalau hanya salah satu tanggal diubah, pasangannya diambil
+        // dari data lama supaya rentangnya tetap tidak terbalik.
+        $mulaiBaru = $request->has('tanggal_mulai')
+            ? $request->tanggal_mulai
+            : optional($task->tanggal_mulai)->toDateString();
+        $tenggatBaru = $request->has('tenggat')
+            ? $request->tenggat
+            : optional($task->tenggat)->toDateString();
+
+        if ($mulaiBaru && $tenggatBaru && strtotime($tenggatBaru) < strtotime($mulaiBaru)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => ['tenggat' => ['Target selesai tidak boleh lebih awal dari tanggal mulai.']]
+            ], 422);
+        }
+
         $pelaku = $this->currentKaryawan();
 
         DB::transaction(function () use ($request, $task, $pelaku) {
@@ -246,8 +442,32 @@ class TaskController extends Controller
             if ($request->has('deskripsi')) {
                 $task->deskripsi = $request->deskripsi;
             }
-            if ($request->has('tenggat')) {
+            // Perubahan tanggal dicatat di riwayat karena menggeser bar di timeline
+            // orang lain juga — perlu jejak siapa yang menggeser.
+            if ($request->has('tanggal_mulai') && $request->tanggal_mulai != optional($task->tanggal_mulai)->toDateString()) {
+                $lama = optional($task->tanggal_mulai)->format('d-m-Y') ?: 'kosong';
+                $task->tanggal_mulai = $request->tanggal_mulai;
+                TaskRiwayat::create([
+                    'task_id' => $task->id,
+                    'hr_karyawan_id' => $pelaku->id,
+                    'aksi' => 'tanggal_diubah',
+                    'keterangan' => "Tanggal mulai diubah dari {$lama} ke "
+                        . ($request->tanggal_mulai ? date('d-m-Y', strtotime($request->tanggal_mulai)) : 'kosong') . '.',
+                    'created_at' => now(),
+                ]);
+            }
+
+            if ($request->has('tenggat') && $request->tenggat != optional($task->tenggat)->toDateString()) {
+                $lama = optional($task->tenggat)->format('d-m-Y') ?: 'kosong';
                 $task->tenggat = $request->tenggat;
+                TaskRiwayat::create([
+                    'task_id' => $task->id,
+                    'hr_karyawan_id' => $pelaku->id,
+                    'aksi' => 'tanggal_diubah',
+                    'keterangan' => "Target selesai diubah dari {$lama} ke "
+                        . ($request->tenggat ? date('d-m-Y', strtotime($request->tenggat)) : 'kosong') . '.',
+                    'created_at' => now(),
+                ]);
             }
 
             if ($request->filled('status') && $request->status !== $task->status) {
