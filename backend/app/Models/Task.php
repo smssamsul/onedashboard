@@ -16,12 +16,20 @@ class Task extends Model
         'status',
         'persentase_penyelesaian',
         'status_persetujuan',
+        'tanggal_mulai',
         'tenggat',
         'tanggal_selesai',
     ];
 
+    /**
+     * tanggal_mulai & tenggat sengaja diserialisasi sebagai 'Y-m-d' polos.
+     * Tanpa format eksplisit, cast 'date' dikirim sebagai ISO UTC — di zona
+     * Asia/Jakarta itu jadi pukul 17.00 hari sebelumnya, dan klien yang
+     * membaca 10 karakter pertama akan meleset satu hari di timeline.
+     */
     protected $casts = [
-        'tenggat' => 'date',
+        'tanggal_mulai' => 'date:Y-m-d',
+        'tenggat' => 'date:Y-m-d',
         'tanggal_selesai' => 'datetime',
     ];
 

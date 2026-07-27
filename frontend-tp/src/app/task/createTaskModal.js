@@ -17,8 +17,10 @@ export default function CreateTaskModal({ karyawanList, defaultKaryawanId, onClo
     hr_karyawan_id: defaultKaryawanId || "",
     judul: "",
     deskripsi: "",
+    tanggal_mulai: new Date().toISOString().slice(0, 10),
     tenggat: "",
   });
+  const [errorTanggal, setErrorTanggal] = useState("");
   const [karyawanSearch, setKaryawanSearch] = useState("");
   const debouncedSearch = useDebouncedValue(karyawanSearch);
   const [saving, setSaving] = useState(false);
@@ -38,12 +40,19 @@ export default function CreateTaskModal({ karyawanList, defaultKaryawanId, onClo
     e.preventDefault();
     if (!form.hr_karyawan_id || !form.judul.trim()) return;
 
+    if (form.tanggal_mulai && form.tenggat && form.tenggat < form.tanggal_mulai) {
+      setErrorTanggal("Target selesai tidak boleh lebih awal dari tanggal mulai.");
+      return;
+    }
+    setErrorTanggal("");
+
     setSaving(true);
     try {
       await onSave({
         hr_karyawan_id: parseInt(form.hr_karyawan_id, 10),
         judul: form.judul.trim(),
         deskripsi: form.deskripsi.trim() || undefined,
+        tanggal_mulai: form.tanggal_mulai || undefined,
         tenggat: form.tenggat || undefined,
       });
     } finally {
@@ -104,10 +113,29 @@ export default function CreateTaskModal({ karyawanList, defaultKaryawanId, onClo
               <label>Deskripsi</label>
               <textarea name="deskripsi" value={form.deskripsi} onChange={handleChange} rows={3} />
             </div>
-            <div className="form-group full-width">
-              <label>Target Selesai</label>
-              <input type="date" name="tenggat" value={form.tenggat} onChange={handleChange} />
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div className="form-group" style={{ flex: "1 1 200px" }}>
+                <label>Tanggal Mulai</label>
+                <input type="date" name="tanggal_mulai" value={form.tanggal_mulai} onChange={handleChange} />
+              </div>
+              <div className="form-group" style={{ flex: "1 1 200px" }}>
+                <label>Target Selesai</label>
+                <input
+                  type="date"
+                  name="tenggat"
+                  value={form.tenggat}
+                  min={form.tanggal_mulai || undefined}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
+            {errorTanggal && (
+              <p style={{ fontSize: 12.5, color: "#9a3412", marginTop: -4 }}>{errorTanggal}</p>
+            )}
+            <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+              Dua tanggal ini yang dipakai menggambar bar di tab Timeline. Tanpa target selesai,
+              task cuma muncul sebagai penanda di tanggal mulai.
+            </p>
           </div>
 
           <div className="modal-footer">

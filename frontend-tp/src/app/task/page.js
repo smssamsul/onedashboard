@@ -21,6 +21,8 @@ import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
 
 const CreateTaskModal = dynamic(() => import("./createTaskModal"), { ssr: false });
+const TimelineView = dynamic(() => import("./timelineView"), { ssr: false });
+const ReportView = dynamic(() => import("./reportView"), { ssr: false });
 
 const STATUS_LABEL = { belum_mulai: "Belum Mulai", berjalan: "Berjalan", selesai: "Selesai" };
 
@@ -304,6 +306,8 @@ export default function TaskPage() {
     { key: "saya", label: "Task Saya", count: tasksSaya.length },
     { key: "tim", label: "Task Tim", count: tasksTim.length },
     { key: "approval", label: "Menunggu Approval Saya", count: approvals.length },
+    { key: "timeline", label: "Timeline" },
+    { key: "laporan", label: "Laporan" },
   ];
 
   return (
@@ -339,13 +343,17 @@ export default function TaskPage() {
                   cursor: "pointer",
                 }}
               >
-                {t.label} ({t.count})
+                {t.label}{t.count !== undefined ? ` (${t.count})` : ""}
               </button>
             ))}
           </div>
 
           <div style={{ padding: "1.25rem 1.5rem" }}>
-            {loading ? (
+            {tab === "timeline" ? (
+              <TimelineView />
+            ) : tab === "laporan" ? (
+              <ReportView />
+            ) : loading ? (
               <p style={{ color: "#6b7280", fontSize: 14 }}>Memuat data...</p>
             ) : tab === "saya" ? (
               tasksSaya.length === 0 ? (

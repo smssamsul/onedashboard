@@ -598,6 +598,8 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [TaskController::class, 'index']);
         Route::get('/tim', [TaskController::class, 'tim']);
         Route::get('/menunggu-approval-saya', [TaskController::class, 'menungguApprovalSaya']);
+        Route::get('/timeline', [TaskController::class, 'timeline']);
+        Route::get('/laporan', [TaskController::class, 'laporan']);
         Route::get('/{id}', [TaskController::class, 'show']);
         Route::post('/', [TaskController::class, 'store']);
         Route::put('/{id}', [TaskController::class, 'update']);

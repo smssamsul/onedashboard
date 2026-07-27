@@ -48,6 +48,8 @@ export const API_ENDPOINTS = {
     saya: '/task',
     tim: '/task/tim',
     menungguApprovalSaya: '/task/menunggu-approval-saya',
+    timeline: '/task/timeline',
+    laporan: '/task/laporan',
     byId: (id) => `/task/${id}`,
     approve: (id) => `/task/${id}/approve`,
     reject: (id) => `/task/${id}/reject`,
