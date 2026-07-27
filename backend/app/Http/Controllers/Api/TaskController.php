@@ -108,16 +108,32 @@ class TaskController extends Controller
      * + punya bawahan langsung. Task yang masih ditolak persetujuan tidak
      * ikut karena tidak pernah jadi kerjaan nyata.
      */
-    private function taskTerlihat($karyawanId)
+    private function taskTerlihat($karyawanId, $hanyaMilik = null)
     {
-        $bawahanIds = HrKaryawan::where('approval', $karyawanId)->pluck('id')->all();
-        $ids = array_merge([$karyawanId], $bawahanIds);
+        $ids = $this->cakupanKaryawan($karyawanId);
+
+        // Dipersempit ke satu orang (laporan per anggota tim). Kalau id yang
+        // diminta di luar cakupan, abaikan filternya — jangan sampai atasan
+        // bisa mengintip tim orang lain lewat parameter URL.
+        if ($hanyaMilik && in_array((int) $hanyaMilik, $ids, true)) {
+            $ids = [(int) $hanyaMilik];
+        }
 
         return Task::whereIn('hr_karyawan_id', $ids)
             ->where(function ($q) {
                 $q->whereNull('status_persetujuan')
                     ->orWhere('status_persetujuan', '!=', 'ditolak');
             });
+    }
+
+    /**
+     * Karyawan yang boleh saya lihat datanya: diri sendiri + bawahan langsung.
+     */
+    private function cakupanKaryawan($karyawanId)
+    {
+        $bawahanIds = HrKaryawan::where('approval', $karyawanId)->pluck('id')->all();
+
+        return array_values(array_unique(array_map('intval', array_merge([$karyawanId], $bawahanIds))));
     }
 
     /**
@@ -163,9 +179,13 @@ class TaskController extends Controller
     }
 
     /**
-     * GET /task/laporan?hari=7
+     * GET /task/laporan?hari=7&karyawan_id=12
      * Ringkasan untuk halaman laporan: kartu aktivitas N hari terakhir,
      * komposisi status, dan feed riwayat terbaru.
+     *
+     * Tanpa karyawan_id, cakupannya diri sendiri + seluruh bawahan langsung.
+     * Dengan karyawan_id, dipersempit ke satu orang supaya atasan bisa
+     * menilai anggota timnya satu per satu.
      */
     public function laporan(Request $request)
     {
@@ -178,9 +198,15 @@ class TaskController extends Controller
         $hari = max(1, min($hari, 90));
         $sejak = Carbon::today()->subDays($hari);
 
-        $idsTerlihat = (clone $this->taskTerlihat($karyawan->id))->pluck('id');
+        $filterKaryawan = $request->input('karyawan_id') ?: null;
 
-        $selesai = (clone $this->taskTerlihat($karyawan->id))
+        // Semua hitungan di bawah berangkat dari cakupan yang sama; dibungkus
+        // closure supaya filternya tidak mungkin terlewat di salah satu query.
+        $q = fn () => $this->taskTerlihat($karyawan->id, $filterKaryawan);
+
+        $idsTerlihat = $q()->pluck('id');
+
+        $selesai = $q()
             ->where('status', 'selesai')
             ->whereDate('tanggal_selesai', '>=', $sejak)
             ->count();
@@ -193,33 +219,33 @@ class TaskController extends Controller
             ->distinct('task_id')
             ->count('task_id');
 
-        $baru = (clone $this->taskTerlihat($karyawan->id))
+        $baru = $q()
             ->whereDate('created_at', '>=', $sejak)
             ->count();
 
-        $jatuhTempo = (clone $this->taskTerlihat($karyawan->id))
+        $jatuhTempo = $q()
             ->where('status', '!=', 'selesai')
             ->whereNotNull('tenggat')
             ->whereDate('tenggat', '>=', Carbon::today())
             ->whereDate('tenggat', '<=', Carbon::today()->addDays($hari))
             ->count();
 
-        $telat = (clone $this->taskTerlihat($karyawan->id))
+        $telat = $q()
             ->where('status', '!=', 'selesai')
             ->whereNotNull('tenggat')
             ->whereDate('tenggat', '<', Carbon::today())
             ->count();
 
-        $perStatus = (clone $this->taskTerlihat($karyawan->id))
+        $perStatus = $q()
             ->select('status', DB::raw('count(*) as jumlah'))
             ->groupBy('status')
             ->pluck('jumlah', 'status');
 
-        $menungguApproval = (clone $this->taskTerlihat($karyawan->id))
+        $menungguApproval = $q()
             ->where('status_persetujuan', 'menunggu')
             ->count();
 
-        $total = (clone $this->taskTerlihat($karyawan->id))->count();
+        $total = $q()->count();
         $jumlahSelesai = (int) ($perStatus['selesai'] ?? 0);
 
         $aktivitas = TaskRiwayat::whereIn('task_id', $idsTerlihat)
@@ -229,7 +255,7 @@ class TaskController extends Controller
             ->get();
 
         // Beban per orang — berguna buat atasan lihat siapa yang menumpuk task.
-        $perPemilik = (clone $this->taskTerlihat($karyawan->id))
+        $perPemilik = $q()
             ->with('pemilik:id,nama')
             ->get()
             ->groupBy('hr_karyawan_id')
@@ -248,10 +274,26 @@ class TaskController extends Controller
             ->sortByDesc('total')
             ->values();
 
+        // Daftar orang yang boleh dipilih di laporan. Staff hanya berisi
+        // dirinya sendiri, jadi frontend cukup menyembunyikan pemilihnya
+        // kalau isinya satu — tidak perlu menebak level user.
+        $cakupanIds = $this->cakupanKaryawan($karyawan->id);
+        $tim = HrKaryawan::whereIn('id', $cakupanIds)
+            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$karyawan->id])
+            ->orderBy('nama')
+            ->get(['id', 'nama'])
+            ->map(fn ($k) => [
+                'id' => $k->id,
+                'nama' => $k->nama,
+                'saya' => (int) $k->id === (int) $karyawan->id,
+            ]);
+
         return response()->json([
             'success' => true,
             'data' => [
                 'rentang_hari' => $hari,
+                'karyawan_id' => $filterKaryawan ? (int) $filterKaryawan : null,
+                'tim' => $tim,
                 'kartu' => [
                     'selesai' => $selesai,
                     'diperbarui' => $diperbarui,

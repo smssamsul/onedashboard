@@ -24,18 +24,60 @@ const CreateTaskModal = dynamic(() => import("./createTaskModal"), { ssr: false 
 const TimelineView = dynamic(() => import("./timelineView"), { ssr: false });
 const ReportView = dynamic(() => import("./reportView"), { ssr: false });
 
-const STATUS_LABEL = { belum_mulai: "Belum Mulai", berjalan: "Berjalan", selesai: "Selesai" };
+const STATUS_LABEL = {
+  belum_mulai: "Belum Mulai",
+  berjalan: "Berjalan",
+  selesai: "Selesai",
+  telat: "Lewat Tenggat",
+  menunggu: "Menunggu Approval",
+};
 
-function StatusBadge({ status }) {
+/**
+ * Status yang ditampilkan di badge. "telat" dan "menunggu" bukan nilai kolom
+ * status, melainkan kondisi turunan yang lebih mendesak untuk dilihat — sama
+ * seperti pewarnaan bar di tab Timeline, supaya kedua tampilan tidak berbeda
+ * cerita untuk task yang sama.
+ */
+function statusTampil(task) {
+  if (task.status_persetujuan === "menunggu") return "menunggu";
+  if (task.status === "selesai") return "selesai";
+  if (task.tenggat && task.status !== "selesai") {
+    const tenggat = new Date(`${String(task.tenggat).slice(0, 10)}T00:00:00`);
+    const hariIni = new Date();
+    hariIni.setHours(0, 0, 0, 0);
+    if (tenggat < hariIni) return "telat";
+  }
+  return task.status || "belum_mulai";
+}
+
+function StatusBadge({ task }) {
   const colors = {
     belum_mulai: { bg: "#f3f4f6", text: "#374151" },
     berjalan: { bg: "#e4ecf7", text: "#1e4576" },
     selesai: { bg: "#dff0e7", text: "#2e7d5b" },
+    telat: { bg: "#fbe4e4", text: "#9a3412" },
+    menunggu: { bg: "#f3e4d5", text: "#a85a22" },
   };
-  const c = colors[status] || colors.belum_mulai;
+  const key = statusTampil(task);
+  const c = colors[key] || colors.belum_mulai;
   return (
-    <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 20, background: c.bg, color: c.text }}>
-      {STATUS_LABEL[status] || status}
+    // alignSelf mencegah badge ikut meregang setinggi kolom judul di sebelahnya
+    // (default flex item itu stretch, jadi pil-nya tampak jadi kotak tinggi).
+    <span
+      style={{
+        alignSelf: "flex-start",
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        lineHeight: 1.6,
+        fontSize: 12,
+        fontWeight: 600,
+        padding: "2px 10px",
+        borderRadius: 20,
+        background: c.bg,
+        color: c.text,
+      }}
+    >
+      {STATUS_LABEL[key] || key}
     </span>
   );
 }
@@ -128,7 +170,7 @@ function TaskCard({ task, editable, onUpdated }) {
 
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0, fontWeight: 600, fontSize: 14.5 }}>{task.judul}</p>
           <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "#6b7280" }}>
@@ -138,7 +180,7 @@ function TaskCard({ task, editable, onUpdated }) {
           </p>
           {task.deskripsi && <p style={{ margin: "6px 0 0", fontSize: 13, color: "#374151" }}>{task.deskripsi}</p>}
         </div>
-        <StatusBadge status={task.status} />
+        <StatusBadge task={task} />
       </div>
 
       <PersetujuanBanner task={task} />
@@ -238,6 +280,9 @@ function ApprovalCard({ item, onDecided }) {
 export default function TaskPage() {
   const router = useRouter();
   const [tab, setTab] = useState("saya");
+  // Staff (level 2) tidak memimpin siapa pun, jadi Task Tim & Approval tidak
+  // relevan untuk mereka — tabnya disembunyikan, bukan sekadar dikosongkan.
+  const [isStaff, setIsStaff] = useState(false);
   const [tasksSaya, setTasksSaya] = useState([]);
   const [tasksTim, setTasksTim] = useState([]);
   const [approvals, setApprovals] = useState([]);
@@ -248,13 +293,26 @@ export default function TaskPage() {
   useEffect(() => {
     if (!localStorage.getItem("token")) {
       router.push("/login");
+      return;
+    }
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      setIsStaff(String(user?.level) === "2");
+    } catch {
+      setIsStaff(false);
     }
   }, [router]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [saya, tim, appr] = await Promise.all([getMyTasks(), getTeamTasks(), getPendingApprovals()]);
+      // Staff tidak punya bawahan maupun antrean approval — jangan panggil
+      // endpoint yang hasilnya pasti kosong buat mereka.
+      const [saya, tim, appr] = await Promise.all([
+        getMyTasks(),
+        isStaff ? Promise.resolve([]) : getTeamTasks(),
+        isStaff ? Promise.resolve([]) : getPendingApprovals(),
+      ]);
       setTasksSaya(saya);
       setTasksTim(tim);
       setApprovals(appr);
@@ -263,7 +321,7 @@ export default function TaskPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isStaff]);
 
   useEffect(() => {
     loadAll();
@@ -302,13 +360,19 @@ export default function TaskPage() {
     loadAll();
   };
 
-  const tabs = [
-    { key: "saya", label: "Task Saya", count: tasksSaya.length },
-    { key: "tim", label: "Task Tim", count: tasksTim.length },
-    { key: "approval", label: "Menunggu Approval Saya", count: approvals.length },
-    { key: "timeline", label: "Timeline" },
-    { key: "laporan", label: "Laporan" },
-  ];
+  const tabs = isStaff
+    ? [
+        { key: "saya", label: "Task Saya", count: tasksSaya.length },
+        { key: "timeline", label: "Timeline" },
+        { key: "laporan", label: "Laporan" },
+      ]
+    : [
+        { key: "saya", label: "Task Saya", count: tasksSaya.length },
+        { key: "tim", label: "Task Tim", count: tasksTim.length },
+        { key: "approval", label: "Menunggu Approval Saya", count: approvals.length },
+        { key: "timeline", label: "Timeline" },
+        { key: "laporan", label: "Laporan" },
+      ];
 
   return (
     <Layout title="Task">

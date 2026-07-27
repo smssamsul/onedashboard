@@ -25,19 +25,21 @@ const RENTANG = [7, 14, 30];
 
 export default function ReportView() {
   const [hari, setHari] = useState(7);
+  // null = gabungan seluruh cakupan (diri sendiri + bawahan langsung)
+  const [karyawanId, setKaryawanId] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const muat = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await getTaskReport(hari));
+      setData(await getTaskReport(hari, karyawanId));
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [hari]);
+  }, [hari, karyawanId]);
 
   useEffect(() => {
     muat();
@@ -46,7 +48,11 @@ export default function ReportView() {
   if (loading) return <p style={{ color: "#6b7280", fontSize: 14 }}>Memuat laporan...</p>;
   if (!data) return <p style={{ color: "#6b7280", fontSize: 14 }}>Laporan tidak tersedia.</p>;
 
-  const { kartu, status, per_pemilik: perPemilik, aktivitas } = data;
+  const { kartu, status, per_pemilik: perPemilik, aktivitas, tim = [] } = data;
+
+  // Cuma masuk akal buat yang punya bawahan — staff isinya dirinya sendiri saja.
+  const punyaTim = tim.length > 1;
+  const namaTerpilih = karyawanId ? tim.find((t) => String(t.id) === String(karyawanId))?.nama : null;
 
   const kartuList = [
     { key: "selesai", label: "selesai", sub: `dalam ${hari} hari terakhir`, nilai: kartu.selesai, warna: "#008300", bg: "#e3f2e3", Icon: CheckCircle2 },
@@ -76,7 +82,31 @@ export default function ReportView() {
             </button>
           ))}
         </div>
+
+        {punyaTim && (
+          <>
+            <span style={{ fontSize: 13, color: "#6b7280", marginLeft: 8 }}>Tampilkan:</span>
+            <select
+              value={karyawanId ?? ""}
+              onChange={(e) => setKaryawanId(e.target.value || null)}
+              style={{ padding: ".38rem .6rem", border: "1px solid #d7dee7", borderRadius: 8, fontSize: 13, color: "#374151", background: "#fff" }}
+            >
+              <option value="">Seluruh tim ({tim.length} orang)</option>
+              {tim.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nama}{t.saya ? " (saya)" : ""}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
+
+      {namaTerpilih && (
+        <p style={{ fontSize: 13, color: "#6b7280", margin: "-6px 0 14px" }}>
+          Menampilkan laporan <b style={{ color: "#374151" }}>{namaTerpilih}</b> saja.
+        </p>
+      )}
 
       {/* Kartu ringkas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14, marginBottom: 18 }}>
