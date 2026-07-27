@@ -8,6 +8,7 @@ use App\Models\MetaAdsAccount;
 use App\Models\MetaAdInsightDaily;
 use App\Models\MetaAdCampaign;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
 
 class MetaAdsPerformanceController extends Controller
@@ -48,14 +49,14 @@ class MetaAdsPerformanceController extends Controller
 
         $daily = MetaAdInsightDaily::query()
             ->whereBetween('date', [$start, $end])
-            ->selectRaw('date, SUM(spend) as spend, SUM(impressions) as impressions, SUM(reach) as reach, SUM(clicks) as clicks, SUM(conversions) as conversions, SUM(conversion_value) as conversion_value')
+            ->selectRaw('date, SUM(spend) as spend, SUM(impressions) as impressions, SUM(reach) as reach, SUM(clicks) as clicks, SUM(conversions) as conversions, SUM(leads) as leads, SUM(contact) as contact, SUM(conversion_value) as conversion_value')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
         $totals = MetaAdInsightDaily::query()
             ->whereBetween('date', [$start, $end])
-            ->selectRaw('SUM(spend) as spend, SUM(impressions) as impressions, SUM(reach) as reach, SUM(clicks) as clicks, SUM(conversions) as conversions, SUM(conversion_value) as conversion_value')
+            ->selectRaw('SUM(spend) as spend, SUM(impressions) as impressions, SUM(reach) as reach, SUM(clicks) as clicks, SUM(conversions) as conversions, SUM(leads) as leads, SUM(contact) as contact, SUM(conversion_value) as conversion_value')
             ->first();
 
         return response()->json([
@@ -103,6 +104,8 @@ class MetaAdsPerformanceController extends Controller
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.impressions), 0) as impressions')
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.clicks), 0) as clicks')
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.conversions), 0) as conversions')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.leads), 0) as leads')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.contact), 0) as contact')
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.conversion_value), 0) as conversion_value')
             ->groupBy(
                 'meta_ad_campaigns.id',
@@ -151,5 +154,38 @@ class MetaAdsPerformanceController extends Controller
                 'daily' => $daily,
             ],
         ]);
+    }
+
+    /**
+     * Trigger sync manual dari tombol "Sync" di dashboard.
+     * Jalan sinkron (nunggu selesai) supaya user langsung dapat hasil/errornya.
+     */
+    public function sync(Request $request)
+    {
+        if (!$this->hasConnectedAccount()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada akun Meta Ads yang terhubung.',
+            ], 422);
+        }
+
+        // Batasi rentang biar request-nya gak kelamaan / timeout.
+        $days = (int) $request->get('days', 30);
+        $days = max(1, min($days, 90));
+
+        Artisan::call('meta-ads:sync-insights', ['--days' => $days]);
+        $output = trim(Artisan::output());
+
+        // Command menangkap error Meta per-akun secara internal dan tetap exit 0,
+        // jadi status gagal dideteksi dari teks output biar user tetap dapat feedback.
+        $gagal = str_contains($output, 'Gagal sync') || str_contains($output, 'Error tak terduga');
+
+        return response()->json([
+            'success' => !$gagal,
+            'message' => $gagal
+                ? 'Sebagian/seluruh akun gagal di-sync. Cek detail error.'
+                : 'Sync selesai. Data performa sudah diperbarui.',
+            'output' => $output,
+        ], $gagal ? 422 : 200);
     }
 }

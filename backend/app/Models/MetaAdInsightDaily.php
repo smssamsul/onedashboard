@@ -26,6 +26,8 @@ class MetaAdInsightDaily extends Model
         'cpm',
         'ctr',
         'conversions',
+        'leads',
+        'contact',
         'conversion_value',
         'raw_actions',
         'create_at',
