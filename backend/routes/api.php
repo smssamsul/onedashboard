@@ -38,6 +38,10 @@ use App\Http\Controllers\Api\Sales\{
 
 // Admin Controllers
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Admin\JabatanController;
+use App\Http\Controllers\Api\Admin\MenuController;
+use App\Http\Controllers\Api\Admin\MenuAksesController;
+use App\Http\Controllers\Api\MenuAccessController;
 
 // Customer Controllers
 use App\Http\Controllers\Api\Customer\{
@@ -469,7 +473,24 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/purge-queue', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'purgeQueue']);
             Route::get('/failed-jobs', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getFailedJobs']);
         });
+
+        // Jabatan (referensi statis, read-only)
+        Route::get('/jabatan', [JabatanController::class, 'index']);
+
+        // Menu master
+        Route::get('/menu', [MenuController::class, 'index']);
+        Route::get('/menu/{id}', [MenuController::class, 'show']);
+        Route::post('/menu', [MenuController::class, 'store']);
+        Route::put('/menu/{id}', [MenuController::class, 'update']);
+        Route::delete('/menu/{id}', [MenuController::class, 'destroy']);
+
+        // Matrix hak akses menu (departemen + jabatan)
+        Route::get('/menu-akses', [MenuAksesController::class, 'index']);
+        Route::post('/menu-akses/save', [MenuAksesController::class, 'save']);
     });
+
+    // Hak akses menu user yang sedang login (live dari hr_karyawan)
+    Route::get('/me/menu-access', [MenuAccessController::class, 'index']);
 
     Route::prefix('finance')->group(function () {
         Route::get('/dashboard', [FinanceDashboardController::class, 'index']);
