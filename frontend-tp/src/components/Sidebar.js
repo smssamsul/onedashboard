@@ -270,6 +270,13 @@ export default function Sidebar({
           ],
         },
         {
+          section: "REPORTS",
+          items: [
+            // Lihat-saja: staff tidak dapat tombol Sync/kelola akun seperti head sales.
+            { label: "Meta Ads", href: `${basePath}/meta-ads-report`, icon: <BarChart3 size={18} /> },
+          ],
+        },
+        {
           section: "ABSENSI & CUTI",
           items: [
             { label: "Absensi Saya", href: "/sales/absensi-saya", icon: <CheckSquare size={18} /> },
