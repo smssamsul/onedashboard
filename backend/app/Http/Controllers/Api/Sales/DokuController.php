@@ -17,12 +17,31 @@ class DokuController extends Controller
 {
     protected $doku;
 
+    // Logger khusus payment gateway (di-memoize per request)
+    protected $dokuLogger;
+
     // Notification URL yang didaftarkan di DOKU Back Office (dipakai untuk verifikasi signature)
     const NOTIFICATION_REQUEST_TARGET = '/api/doku/notification';
 
     public function __construct(DokuServices $doku)
     {
         $this->doku = $doku;
+    }
+
+    /**
+     * Channel log khusus payment gateway (DOKU) -> storage/logs/payment_gateway.log.
+     * Pakai on-demand channel (Log::build) supaya tidak perlu mengubah config/logging.php.
+     */
+    private function dokuLog()
+    {
+        if (!$this->dokuLogger) {
+            $this->dokuLogger = Log::build([
+                'driver' => 'single',
+                'path'   => storage_path('logs/payment_gateway.log'),
+            ]);
+        }
+
+        return $this->dokuLogger;
     }
 
     /**
@@ -80,7 +99,7 @@ class DokuController extends Controller
         try {
             $result = $this->doku->createPayment($body);
         } catch (\Throwable $e) {
-            Log::error('DOKU createPayment gagal', [
+            $this->dokuLog()->error('DOKU createPayment gagal', [
                 'error'                => $e->getMessage(),
                 'invoice_number'       => $invoiceNumber,
                 'payment_method_types' => $paymentMethodTypes, // channel yang diminta (mis. QRIS) — kalau ada yang belum aktif, DOKU biasanya menolak di sini
@@ -95,7 +114,7 @@ class DokuController extends Controller
         // Catat respons DOKU untuk diagnosa channel (mis. cek apakah QRIS ikut aktif).
         // Catatan: respons create-payment tidak selalu menyebutkan daftar channel yang
         // dirender; verifikasi final tetap di halaman checkout / DOKU Dashboard.
-        Log::info('DOKU createPayment sukses', [
+        $this->dokuLog()->info('DOKU createPayment sukses', [
             'invoice_number'       => $invoiceNumber,
             'payment_method_types' => $paymentMethodTypes,
             'payment_url'          => $result['response']['payment']['url'] ?? null,
@@ -159,7 +178,7 @@ class DokuController extends Controller
     {
         $rawBody = $request->getContent();
 
-        Log::info('DOKU Notification received', $request->all());
+        $this->dokuLog()->info('DOKU Notification received', $request->all());
 
         $clientId  = $request->header('Client-Id');
         $requestId = $request->header('Request-Id');
@@ -172,11 +191,11 @@ class DokuController extends Controller
                 ? $this->doku->verifyNotificationSignature($clientId, $requestId, $timestamp, self::NOTIFICATION_REQUEST_TARGET, $rawBody, $signature)
                 : false;
         } catch (\Throwable $e) {
-            Log::error('DOKU notification - gagal verifikasi signature', ['error' => $e->getMessage()]);
+            $this->dokuLog()->error('DOKU notification - gagal verifikasi signature', ['error' => $e->getMessage()]);
         }
 
         if (!$isValid) {
-            Log::warning('DOKU notification - signature tidak valid, notifikasi diabaikan', [
+            $this->dokuLog()->warning('DOKU notification - signature tidak valid, notifikasi diabaikan', [
                 'client_id' => $clientId,
                 'request_id' => $requestId,
             ]);
@@ -199,7 +218,7 @@ class DokuController extends Controller
             : null;
 
         if (!$order) {
-            Log::warning('OrderCustomer tidak ditemukan untuk notifikasi DOKU', [
+            $this->dokuLog()->warning('OrderCustomer tidak ditemukan untuk notifikasi DOKU', [
                 'invoice_number' => $invoiceNumber,
             ]);
 
@@ -209,7 +228,7 @@ class DokuController extends Controller
         $isSuccess = $transactionStatus === 'SUCCESS';
 
         if (!$isSuccess) {
-            Log::info('DOKU notification bukan status SUCCESS, order tidak diupdate', [
+            $this->dokuLog()->info('DOKU notification bukan status SUCCESS, order tidak diupdate', [
                 'order_customer_id'  => $order->id,
                 'invoice_number'     => $invoiceNumber,
                 'transaction_status' => $transactionStatus,
@@ -234,7 +253,7 @@ class DokuController extends Controller
                 ->whereNotIn('status', ['CONVERTED', 'LOST'])
                 ->update(['status' => 'CONVERTED', 'update_at' => now()]);
 
-            Log::info('DOKU notification - Lead dipromote ke customer', [
+            $this->dokuLog()->info('DOKU notification - Lead dipromote ke customer', [
                 'order_customer_id' => $order->id,
                 'customer_id'       => $order->customer_rel->id,
             ]);
@@ -244,14 +263,14 @@ class DokuController extends Controller
         if (env('BITESHIP_AUTO_SHIPPING_ENABLED', true)) {
             try {
                 $autoShipping = app(\App\Services\AutoBiteshipShippingService::class)->dispatchIfPhysical($order);
-                Log::info('DOKU notification - Auto Biteship shipping', [
+                $this->dokuLog()->info('DOKU notification - Auto Biteship shipping', [
                     'order_customer_id'     => $order->id,
                     'auto_shipping_success' => $autoShipping['success'],
                     'auto_shipping_message' => $autoShipping['message'],
                     'resi_id'               => $autoShipping['resi']?->id,
                 ]);
             } catch (\Throwable $e) {
-                Log::error('DOKU notification - Auto Biteship shipping gagal', [
+                $this->dokuLog()->error('DOKU notification - Auto Biteship shipping gagal', [
                     'order_customer_id' => $order->id,
                     'error'             => $e->getMessage(),
                 ]);
@@ -298,14 +317,14 @@ class DokuController extends Controller
                         'keanggotaan' => $namaBundling,
                     ]);
 
-                    Log::info('DOKU notification - Update keanggotaan customer', [
+                    $this->dokuLog()->info('DOKU notification - Update keanggotaan customer', [
                         'order_customer_id' => $order->id,
                         'customer_id'       => $order->customer_rel->id,
                         'kategori_produk'   => $produk->kategori,
                         'nama_bundling'     => $namaBundling,
                     ]);
                 } else {
-                    Log::warning('DOKU notification - Bundling tidak ditemukan untuk order workshop', [
+                    $this->dokuLog()->warning('DOKU notification - Bundling tidak ditemukan untuk order workshop', [
                         'order_customer_id' => $order->id,
                         'produk_id'         => $produk->id,
                         'kategori_produk'   => $produk->kategori,
@@ -347,7 +366,7 @@ class DokuController extends Controller
                 $woowaKey = $this->getWoowaKeyFromSales($customer);
 
                 if (!$autoSendEnabled) {
-                    Log::info('DOKU notification - Auto send Complete dimatikan, WA tidak dikirim', [
+                    $this->dokuLog()->info('DOKU notification - Auto send Complete dimatikan, WA tidak dikirim', [
                         'order_customer_id' => $order->id,
                         'payment_id'        => $payment->id,
                     ]);
@@ -355,34 +374,34 @@ class DokuController extends Controller
                     $waSender = app(\App\Services\WhatsAppSenderService::class);
                     $response = $waSender->sendMessage($customer->wa, $message, null, $woowaKey);
 
-                    Log::info('DOKU notification - Response WhatsApp', [
+                    $this->dokuLog()->info('DOKU notification - Response WhatsApp', [
                         'order_customer_id' => $order->id,
                         'payment_id'        => $payment->id,
                         'http_status'       => $response->status(),
                         'successful'        => $response->successful(),
                     ]);
                 } else {
-                    Log::warning('DOKU notification - Woowa Key tidak ditemukan', [
+                    $this->dokuLog()->warning('DOKU notification - Woowa Key tidak ditemukan', [
                         'order_customer_id' => $order->id,
                         'payment_id'        => $payment->id,
                         'customer_id'       => $customer->id,
                     ]);
                 }
             } else {
-                Log::warning('DOKU notification - Customer tidak memiliki nomor WA', [
+                $this->dokuLog()->warning('DOKU notification - Customer tidak memiliki nomor WA', [
                     'order_customer_id' => $order->id,
                     'payment_id'        => $payment->id,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('DOKU notification - Exception saat kirim WhatsApp', [
+            $this->dokuLog()->error('DOKU notification - Exception saat kirim WhatsApp', [
                 'order_customer_id' => $order->id,
                 'payment_id'        => $payment->id ?? null,
                 'error_message'     => $e->getMessage(),
             ]);
         }
 
-        Log::info('OrderCustomer payment success updated from DOKU', [
+        $this->dokuLog()->info('OrderCustomer payment success updated from DOKU', [
             'order_customer_id'  => $order->id,
             'invoice_number'     => $invoiceNumber,
             'transaction_status' => $transactionStatus,
