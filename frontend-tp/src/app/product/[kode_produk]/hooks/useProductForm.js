@@ -183,8 +183,8 @@ export function useProductForm({
                 localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
 
                 toast.success("[TEST MODE] Lanjut ke pembayaran...");
-                window.location.href = `https://app.ternakproperti.com/payment?order_id=${dummyOrderId}&harga=${totalHarga}`;
-                // window.location.href = `/payment?order_id=${dummyOrderId}&harga=${totalHarga}`;
+                // Path relatif (tetap di origin yang sama) + bawa metode di URL supaya tidak hilang saat redirect
+                window.location.href = `/payment?order_id=${dummyOrderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`;
                 return; // STOP di sini, jangan kirim data betulan
             }
 
@@ -239,8 +239,8 @@ export function useProductForm({
             localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
 
             toast.success("Order berhasil! Lanjut ke pembayaran...");
-            window.location.href = `https://app.ternakproperti.com/payment?order_id=${orderId}&harga=${totalHarga}`;
-            // window.location.href = `/payment?order_id=${orderId}&harga=${totalHarga}`;
+            // Path relatif (tetap di origin yang sama) + bawa metode di URL supaya tidak hilang saat redirect
+            window.location.href = `/payment?order_id=${orderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`;
 
         } catch (err) {
             console.error("[SUBMIT ERROR]", err);
