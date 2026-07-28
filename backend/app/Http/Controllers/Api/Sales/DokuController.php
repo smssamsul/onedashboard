@@ -81,8 +81,9 @@ class DokuController extends Controller
             $result = $this->doku->createPayment($body);
         } catch (\Throwable $e) {
             Log::error('DOKU createPayment gagal', [
-                'error' => $e->getMessage(),
-                'invoice_number' => $invoiceNumber,
+                'error'                => $e->getMessage(),
+                'invoice_number'       => $invoiceNumber,
+                'payment_method_types' => $paymentMethodTypes, // channel yang diminta (mis. QRIS) — kalau ada yang belum aktif, DOKU biasanya menolak di sini
             ]);
 
             return response()->json([
@@ -90,6 +91,17 @@ class DokuController extends Controller
                 'message' => 'Gagal membuat pembayaran DOKU',
             ], 500);
         }
+
+        // Catat respons DOKU untuk diagnosa channel (mis. cek apakah QRIS ikut aktif).
+        // Catatan: respons create-payment tidak selalu menyebutkan daftar channel yang
+        // dirender; verifikasi final tetap di halaman checkout / DOKU Dashboard.
+        Log::info('DOKU createPayment sukses', [
+            'invoice_number'       => $invoiceNumber,
+            'payment_method_types' => $paymentMethodTypes,
+            'payment_url'          => $result['response']['payment']['url'] ?? null,
+            'doku_message'         => $result['message'] ?? null,
+            'doku_response'        => $result,
+        ]);
 
         return response()->json([
             'success'        => true,

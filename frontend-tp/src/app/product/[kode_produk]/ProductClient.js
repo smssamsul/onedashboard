@@ -2202,7 +2202,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
               </section> */}
 
               {/* Section: Metode Pembayaran */}
-              {/* <section className="preview-payment-section payment-section" aria-label="Payment methods" style={{ marginBottom: "24px" }}>
+              <section className="preview-payment-section payment-section" aria-label="Payment methods" style={{ marginBottom: "24px" }}>
                 <h2 className="payment-title" style={{ fontSize: "18px", fontWeight: "600", color: "#000000", marginBottom: "16px" }}>
                   Metode Pembayaran
                 </h2>
@@ -2276,7 +2276,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                     </label>
                   )}
                 </div>
-              </section> */}
+              </section>
 
               {/* Submit Button */}
               <div className="preview-form-submit-wrapper">

@@ -41,6 +41,7 @@ function BankTransferPageContent() {
   const harga = params.get("harga");
   const downPaymentFromQuery = params.get("down_payment");
   const orderIdFromQuery = params.get("order_id");
+  const metodeFromQuery = params.get("metode");
 
   const [downPayment, setDownPayment] = useState(downPaymentFromQuery || "");
   const [orderId, setOrderId] = useState(orderIdFromQuery || "");
@@ -113,11 +114,15 @@ function BankTransferPageContent() {
     if (storedCustomerData) {
       try {
         const data = JSON.parse(storedCustomerData);
-        setPaymentMethod(data.paymentMethod || "");
+        // Prioritaskan metode dari URL; localStorage bisa hilang saat redirect lintas-origin
+        setPaymentMethod(metodeFromQuery || data.paymentMethod || "");
         setCustomerData(data);
       } catch (e) {
         console.error("[PAYMENT] Error parsing customer_order_data:", e);
       }
+    } else if (metodeFromQuery) {
+      // localStorage tidak tersedia (mis. redirect lintas-origin) — tetap pakai metode dari URL
+      setPaymentMethod(metodeFromQuery);
     }
 
     if (orderIdFromQuery) {
@@ -147,7 +152,7 @@ function BankTransferPageContent() {
         console.error("[PAYMENT] Error parsing stored order:", e);
       }
     }
-  }, [downPaymentFromQuery, orderIdFromQuery]);
+  }, [downPaymentFromQuery, orderIdFromQuery, metodeFromQuery]);
 
   // DOKU Checkout tidak butuh script client-side - customer di-redirect ke halaman hosted DOKU.
 
@@ -372,6 +377,35 @@ function BankTransferPageContent() {
     }).catch(() => toast.error("Gagal menyalin"));
   };
 
+  // Muat DOKU Jokul Checkout JS sekali, resolve saat window.loadJokulCheckout siap dipakai.
+  // Host script otomatis mengikuti environment payment_url (sandbox vs production).
+  const ensureJokulCheckout = (paymentUrl) =>
+    new Promise((resolve, reject) => {
+      if (typeof window !== "undefined" && typeof window.loadJokulCheckout === "function") {
+        return resolve();
+      }
+      const isSandbox = /sandbox/i.test(paymentUrl || "");
+      const src = isSandbox
+        ? "https://sandbox.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js"
+        : "https://jokul.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js";
+
+      let script = document.querySelector('script[data-doku-checkout="1"]');
+      if (script) {
+        if (typeof window.loadJokulCheckout === "function") return resolve();
+        script.addEventListener("load", () => resolve(), { once: true });
+        script.addEventListener("error", () => reject(new Error("Gagal memuat DOKU Checkout")), { once: true });
+        return;
+      }
+
+      script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.setAttribute("data-doku-checkout", "1");
+      script.addEventListener("load", () => resolve(), { once: true });
+      script.addEventListener("error", () => reject(new Error("Gagal memuat DOKU Checkout")), { once: true });
+      document.body.appendChild(script);
+    });
+
   const handleLanjutkanPembayaran = async () => {
     if (!customerData) return;
 
@@ -395,8 +429,19 @@ function BankTransferPageContent() {
 
       const data = await res.json();
       if (data.success && data.payment_url) {
-        // DOKU Checkout: redirect ke halaman pembayaran hosted DOKU
-        window.location.href = data.payment_url;
+        // DOKU Checkout: tampilkan sebagai modal/popup (overlay) di halaman ini.
+        // Fallback ke redirect penuh kalau library gagal dimuat.
+        try {
+          await ensureJokulCheckout(data.payment_url);
+          if (typeof window.loadJokulCheckout === "function") {
+            window.loadJokulCheckout(data.payment_url);
+          } else {
+            window.location.href = data.payment_url;
+          }
+        } catch (e) {
+          console.error("[DOKU] Gagal memuat popup checkout, fallback redirect:", e);
+          window.location.href = data.payment_url;
+        }
       } else {
         toast.error(data.message || "Gagal mendapatkan link pembayaran");
       }
