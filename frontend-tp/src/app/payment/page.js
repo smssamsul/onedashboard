@@ -407,7 +407,19 @@ function BankTransferPageContent() {
     });
 
   const handleLanjutkanPembayaran = async () => {
-    if (!customerData) return;
+    // Ambil data dari customerData (localStorage) ATAU fallback ke orderPublicData (dari server).
+    // Saat redirect lintas-origin (landing di ternakproperti.com, payment di app.ternakproperti.com)
+    // localStorage tidak terbawa, jadi customerData bisa null — pakai data order dari API.
+    const name = customerData?.nama || orderPublicData?.customer_rel?.nama;
+    const email = customerData?.email || orderPublicData?.customer_rel?.email;
+    const amount = customerData?.totalHarga || orderPublicData?.total_harga || harga;
+    const productName = customerData?.productName || orderPublicData?.produk_rel?.nama || "Produk";
+    const oid = customerData?.orderId || orderPublicData?.id || orderId;
+
+    if (!name || !email || !amount) {
+      toast.error("Data pesanan belum lengkap. Muat ulang halaman lalu coba lagi.");
+      return;
+    }
 
     setLoadingPayment(true);
     try {
@@ -419,11 +431,11 @@ function BankTransferPageContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: customerData.nama,
-          email: customerData.email,
-          amount: customerData.totalHarga,
-          product_name: customerData.productName,
-          order_id: customerData.orderId,
+          name,
+          email,
+          amount,
+          product_name: productName,
+          order_id: oid,
         }),
       });
 
