@@ -127,6 +127,8 @@ Route::prefix('doku')->group(function () {
     Route::post('/create-payment-va', [DokuController::class, 'createPaymentVA']);
     Route::post('/create-payment-ewallet', [DokuController::class, 'createPaymentEwallet']);
     Route::post('/notification', [DokuController::class, 'notificationHandler']);
+    // GET hanya untuk cek manual dari browser (DOKU selalu POST). Mencatat "ping" ke payment_gateway.log.
+    Route::get('/notification', [DokuController::class, 'notificationPing']);
 });
 
 // WhatsApp Bot Webhook
