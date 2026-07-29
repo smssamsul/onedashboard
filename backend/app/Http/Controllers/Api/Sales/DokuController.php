@@ -174,6 +174,28 @@ class DokuController extends Controller
         ]);
     }
 
+    /**
+     * Endpoint GET untuk cek manual dari browser (BUKAN dipakai DOKU).
+     * DOKU selalu mengirim notifikasi via POST. Ini hanya mencatat "ping" ke payment_gateway.log
+     * dan mengembalikan status 200 supaya endpoint bisa dipastikan hidup lewat browser.
+     */
+    public function notificationPing(Request $request)
+    {
+        $this->dokuLog()->info('DOKU webhook - ping (GET manual, bukan dari DOKU)', [
+            'ip'         => $request->ip(),
+            'method'     => $request->method(),
+            'url'        => $request->fullUrl(),
+            'user_agent' => $request->userAgent(),
+            'query'      => $request->query(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'DOKU webhook endpoint aktif. Catatan: DOKU mengirim notifikasi via POST, GET ini hanya untuk cek manual.',
+            'time'    => now()->toIso8601String(),
+        ]);
+    }
+
     public function notificationHandler(Request $request)
     {
         $rawBody = $request->getContent();
