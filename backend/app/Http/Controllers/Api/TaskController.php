@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
+    // Cache per-request (false = belum dihitung; null = sudah dihitung tapi kosong).
+    protected $cachedUser = false;
+    protected $cachedKaryawan = false;
+
     public function __construct()
     {
         $this->middleware('auth:api');
@@ -24,13 +28,17 @@ class TaskController extends Controller
      */
     private function currentUser()
     {
+        if ($this->cachedUser !== false) {
+            return $this->cachedUser;
+        }
+
         $userLogin = auth('api')->user();
         if (!$userLogin) {
-            return null;
+            return $this->cachedUser = null;
         }
         $userLogin->load('userData');
 
-        return $userLogin->userData;
+        return $this->cachedUser = $userLogin->userData;
     }
 
     /**
@@ -38,27 +46,41 @@ class TaskController extends Controller
      */
     private function currentKaryawan()
     {
-        $user = $this->currentUser();
-        if (!$user) {
-            return null;
+        if ($this->cachedKaryawan !== false) {
+            return $this->cachedKaryawan;
         }
 
-        return HrKaryawan::where('user_id', $user->id)->first();
+        $user = $this->currentUser();
+        if (!$user) {
+            return $this->cachedKaryawan = null;
+        }
+
+        return $this->cachedKaryawan = HrKaryawan::where('user_id', $user->id)->first();
     }
 
     /**
-     * Direksi (level/divisi 9) & HR (divisi 5) boleh melihat task SELURUH karyawan,
-     * bukan hanya diri sendiri + bawahan langsung.
+     * Direksi & HR boleh melihat task SELURUH karyawan (bukan hanya diri + bawahan langsung).
+     * - Direksi: jabatan "Direksi" (hr_karyawan.jabatan = 4).
+     * - HR: divisi HR (user.divisi = 5).
+     * - Fallback: level/divisi = 9 (bila kelak dipakai untuk menandai direksi).
      */
     private function bisaLihatSemua(): bool
     {
-        $user = $this->currentUser();
-        if (!$user) {
-            return false;
+        $karyawan = $this->currentKaryawan();
+        if ($karyawan && (int) $karyawan->jabatan === 4) {
+            return true;
         }
 
-        return (string) $user->level === '9'
-            || in_array((string) $user->divisi, ['5', '9'], true);
+        $user = $this->currentUser();
+        if ($user) {
+            $level = (string) ($user->level ?? '');
+            $divisi = (string) ($user->divisi ?? '');
+            if ($level === '9' || in_array($divisi, ['5', '9'], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function withRelations()
