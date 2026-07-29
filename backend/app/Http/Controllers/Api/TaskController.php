@@ -20,15 +20,45 @@ class TaskController extends Controller
     }
 
     /**
+     * User (userData) yang sedang login.
+     */
+    private function currentUser()
+    {
+        $userLogin = auth('api')->user();
+        if (!$userLogin) {
+            return null;
+        }
+        $userLogin->load('userData');
+
+        return $userLogin->userData;
+    }
+
+    /**
      * hr_karyawan milik user yang sedang login.
      */
     private function currentKaryawan()
     {
-        $userLogin = auth('api')->user();
-        $userLogin->load('userData');
-        $user = $userLogin->userData;
+        $user = $this->currentUser();
+        if (!$user) {
+            return null;
+        }
 
         return HrKaryawan::where('user_id', $user->id)->first();
+    }
+
+    /**
+     * Direksi (level/divisi 9) & HR (divisi 5) boleh melihat task SELURUH karyawan,
+     * bukan hanya diri sendiri + bawahan langsung.
+     */
+    private function bisaLihatSemua(): bool
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return false;
+        }
+
+        return (string) $user->level === '9'
+            || in_array((string) $user->divisi, ['5', '9'], true);
     }
 
     private function withRelations()
@@ -68,9 +98,13 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404);
         }
 
-        $bawahanIds = HrKaryawan::where('approval', $karyawan->id)->pluck('id');
+        // Direksi & HR: task seluruh karyawan (selain dirinya, karena itu ada di "task saya").
+        // Selain itu: hanya bawahan langsung.
+        $timIds = $this->bisaLihatSemua()
+            ? HrKaryawan::where('id', '!=', $karyawan->id)->pluck('id')
+            : HrKaryawan::where('approval', $karyawan->id)->pluck('id');
 
-        $tasks = Task::whereIn('hr_karyawan_id', $bawahanIds)
+        $tasks = Task::whereIn('hr_karyawan_id', $timIds)
             ->with($this->withRelations())
             ->orderByDesc('created_at')
             ->get();
@@ -131,6 +165,11 @@ class TaskController extends Controller
      */
     private function cakupanKaryawan($karyawanId)
     {
+        // Direksi & HR: seluruh karyawan.
+        if ($this->bisaLihatSemua()) {
+            return HrKaryawan::pluck('id')->map(fn ($id) => (int) $id)->all();
+        }
+
         $bawahanIds = HrKaryawan::where('approval', $karyawanId)->pluck('id')->all();
 
         return array_values(array_unique(array_map('intval', array_merge([$karyawanId], $bawahanIds))));
