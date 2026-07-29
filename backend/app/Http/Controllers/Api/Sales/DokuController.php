@@ -178,7 +178,21 @@ class DokuController extends Controller
     {
         $rawBody = $request->getContent();
 
-        $this->dokuLog()->info('DOKU Notification received', $request->all());
+        // Catat SETIAP hit ke webhook (valid maupun tidak) dengan detail lengkap ke payment_gateway.log
+        $this->dokuLog()->info('DOKU webhook - request masuk', [
+            'ip'         => $request->ip(),
+            'method'     => $request->method(),
+            'url'        => $request->fullUrl(),
+            'user_agent' => $request->userAgent(),
+            'headers'    => [
+                'Client-Id'         => $request->header('Client-Id'),
+                'Request-Id'        => $request->header('Request-Id'),
+                'Request-Timestamp' => $request->header('Request-Timestamp'),
+                'Signature'         => $request->header('Signature'),
+            ],
+            'raw_body'   => $rawBody,
+            'payload'    => $request->all(),
+        ]);
 
         $clientId  = $request->header('Client-Id');
         $requestId = $request->header('Request-Id');
