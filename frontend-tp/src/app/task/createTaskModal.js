@@ -102,7 +102,9 @@ export default function CreateTaskModal({ karyawanList, defaultKaryawanId, onClo
                 </div>
               )}
               <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                Kalau bukan diri sendiri atau bawahan langsung Anda, task ini akan menunggu persetujuan berjenjang dulu.
+                Untuk diri sendiri atau siapa pun yang ada di bawah Anda (langsung maupun tidak),
+                task langsung aktif. Selain itu, cukup atasan langsung orangnya yang meng-ACC —
+                dia bisa meneruskan ke atasannya kalau perlu.
               </p>
             </div>
             <div className="form-group full-width">

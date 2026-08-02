@@ -83,6 +83,27 @@ class TaskController extends Controller
         return false;
     }
 
+    /**
+     * Rantai atasan seorang karyawan, dari atasan langsung ke atas.
+     * Data hr_karyawan.approval diisi manual, jadi rantainya bisa saja
+     * melingkar (A -> B -> A); daftar id yang sudah dilewati dipakai sebagai
+     * rem supaya penelusuran tidak berputar selamanya.
+     */
+    private function rantaiAtasan($karyawanId): array
+    {
+        $rantai = [];
+        $dilewati = [(int) $karyawanId];
+        $atasanId = HrKaryawan::where('id', $karyawanId)->value('approval');
+
+        while ($atasanId && !in_array((int) $atasanId, $dilewati, true)) {
+            $rantai[] = (int) $atasanId;
+            $dilewati[] = (int) $atasanId;
+            $atasanId = HrKaryawan::where('id', $atasanId)->value('approval');
+        }
+
+        return $rantai;
+    }
+
     private function withRelations()
     {
         return [
@@ -144,6 +165,9 @@ class TaskController extends Controller
             return response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404);
         }
 
+        $atasanId = $karyawan->approval ? (int) $karyawan->approval : null;
+        $namaAtasan = $atasanId ? HrKaryawan::where('id', $atasanId)->value('nama') : null;
+
         $persetujuan = TaskPersetujuan::where('hr_karyawan_id', $karyawan->id)
             ->where('status', 'menunggu')
             ->with(['task.pemilik:id,nama', 'task.pembuat:id,nama'])
@@ -153,6 +177,19 @@ class TaskController extends Controller
                     ->where('status', 'menunggu')
                     ->min('jenjang');
                 return $p->jenjang == $jenjangAktif;
+            })
+            // Tombol "Teruskan" hanya masuk akal kalau saya punya atasan yang
+            // belum pernah menyentuh task ini. Dihitung di sini supaya frontend
+            // tidak perlu menebak struktur organisasi.
+            ->map(function ($p) use ($atasanId, $namaAtasan) {
+                $bisa = $atasanId && !TaskPersetujuan::where('task_id', $p->task_id)
+                    ->where('hr_karyawan_id', $atasanId)
+                    ->exists();
+
+                $p->bisa_diteruskan = (bool) $bisa;
+                $p->atasan_nama = $bisa ? $namaAtasan : null;
+
+                return $p;
             })
             ->values();
 
@@ -421,8 +458,18 @@ class TaskController extends Controller
 
         $pemilik = HrKaryawan::find($request->hr_karyawan_id);
         $isSelf = $pembuat->id == $pemilik->id;
-        $isAtasanLangsung = $pemilik->approval && (int) $pemilik->approval === (int) $pembuat->id;
-        $butuhApproval = !$isSelf && !$isAtasanLangsung;
+
+        // Atasan mana pun di rantai pemilik — bukan cuma atasan langsung — tidak
+        // perlu approval. Kalau Direksi menugaskan staff, GM dan Manager di
+        // antaranya tidak punya kewenangan menolak keputusan atasan mereka
+        // sendiri, jadi meminta ACC mereka cuma menahan task tanpa guna.
+        $isAtasan = in_array((int) $pembuat->id, $this->rantaiAtasan($pemilik->id), true);
+
+        // Pemilik tanpa atasan berarti tidak ada yang bisa meng-ACC — task
+        // langsung aktif. Dihitung di sini (bukan di dalam transaksi) supaya
+        // keterangan di riwayat sesuai dengan yang benar-benar terjadi.
+        $adaAtasanPemilik = (bool) $pemilik->approval;
+        $butuhApproval = !$isSelf && !$isAtasan && $adaAtasanPemilik;
 
         $task = DB::transaction(function () use ($request, $pembuat, $pemilik, $butuhApproval) {
             $task = Task::create([
@@ -444,31 +491,21 @@ class TaskController extends Controller
                 'hr_karyawan_id' => $pembuat->id,
                 'aksi' => 'dibuat',
                 'keterangan' => $butuhApproval
-                    ? 'Task dibuat, menunggu rantai persetujuan.'
+                    ? 'Task dibuat, menunggu persetujuan atasan langsung pemilik task.'
                     : 'Task dibuat dan langsung aktif.',
                 'created_at' => now(),
             ]);
 
             if ($butuhApproval) {
-                $jenjang = 1;
-                $approverId = $pemilik->approval;
-
-                while ($approverId) {
-                    TaskPersetujuan::create([
-                        'task_id' => $task->id,
-                        'hr_karyawan_id' => $approverId,
-                        'jenjang' => $jenjang,
-                        'status' => 'menunggu',
-                    ]);
-                    $approverId = HrKaryawan::where('id', $approverId)->value('approval');
-                    $jenjang++;
-                }
-
-                // Kalau pemilik task tidak punya rantai atasan sama sekali,
-                // tidak ada yang bisa approve -> anggap langsung aktif.
-                if ($jenjang === 1) {
-                    $task->update(['status_persetujuan' => null]);
-                }
+                // Hanya atasan langsung pemilik yang dimintai ACC. Jenjang di
+                // atasnya tidak dibuat di muka — kalau atasan langsung merasa
+                // perlu, dia yang menaikkan lewat tombol "Teruskan ke atasan".
+                TaskPersetujuan::create([
+                    'task_id' => $task->id,
+                    'hr_karyawan_id' => $pemilik->approval,
+                    'jenjang' => 1,
+                    'status' => 'menunggu',
+                ]);
             }
 
             return $task;
@@ -625,6 +662,97 @@ class TaskController extends Controller
     public function reject(Request $request, $id)
     {
         return $this->putuskanJenjang($request, $id, 'ditolak');
+    }
+
+    /**
+     * POST /task/{id}/teruskan
+     * Approver jenjang aktif melempar keputusan ke atasannya sendiri.
+     * Jenjang miliknya ditandai "diteruskan" (bukan disetujui — dia belum
+     * memutuskan apa pun) dan jenjang baru dibuat untuk atasan di atasnya,
+     * yang langsung jadi giliran aktif.
+     */
+    public function teruskan(Request $request, $id)
+    {
+        $task = Task::find($id);
+        if (!$task) {
+            return response()->json(['success' => false, 'message' => 'Task tidak ditemukan'], 404);
+        }
+
+        $approver = $this->currentKaryawan();
+        if (!$approver) {
+            return response()->json(['success' => false, 'message' => 'Data karyawan tidak ditemukan'], 404);
+        }
+
+        $jenjangAktif = TaskPersetujuan::where('task_id', $task->id)
+            ->where('status', 'menunggu')
+            ->orderBy('jenjang')
+            ->first();
+
+        if (!$jenjangAktif) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada persetujuan yang menunggu untuk task ini'], 422);
+        }
+
+        if ((int) $jenjangAktif->hr_karyawan_id !== (int) $approver->id) {
+            return response()->json(['success' => false, 'message' => 'Belum giliran Anda memproses task ini'], 403);
+        }
+
+        $atasanId = $approver->approval ? (int) $approver->approval : null;
+        if (!$atasanId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak punya atasan di atas — tidak ada tujuan untuk diteruskan.'
+            ], 422);
+        }
+
+        // Sudah pernah masuk rantai task ini berarti dia sudah (atau sedang)
+        // memutuskan; meneruskan ke sana cuma bikin lingkaran approval.
+        $sudahDiRantai = TaskPersetujuan::where('task_id', $task->id)
+            ->where('hr_karyawan_id', $atasanId)
+            ->exists();
+
+        if ($sudahDiRantai) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Atasan Anda sudah ada dalam rantai persetujuan task ini.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($task, $jenjangAktif, $approver, $atasanId, $request) {
+            $jenjangAktif->update([
+                'status' => 'diteruskan',
+                'catatan' => $request->catatan,
+                'diputuskan_pada' => now(),
+            ]);
+
+            $jenjangBaru = (int) TaskPersetujuan::where('task_id', $task->id)->max('jenjang') + 1;
+
+            TaskPersetujuan::create([
+                'task_id' => $task->id,
+                'hr_karyawan_id' => $atasanId,
+                'jenjang' => $jenjangBaru,
+                'status' => 'menunggu',
+            ]);
+
+            $namaAtasan = HrKaryawan::where('id', $atasanId)->value('nama') ?? 'atasan';
+
+            TaskRiwayat::create([
+                'task_id' => $task->id,
+                'hr_karyawan_id' => $approver->id,
+                'aksi' => 'diteruskan',
+                'keterangan' => "Persetujuan diteruskan ke {$namaAtasan} (jenjang {$jenjangBaru})"
+                    . ($request->catatan ? ": {$request->catatan}" : '.'),
+                'created_at' => now(),
+            ]);
+
+            // Task tetap menunggu — hanya pemegang giliran yang berubah.
+            $task->update(['status_persetujuan' => 'menunggu']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Persetujuan diteruskan ke atasan Anda',
+            'data' => $task->fresh($this->withRelations())
+        ]);
     }
 
     private function putuskanJenjang(Request $request, $id, string $keputusan)

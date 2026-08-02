@@ -12,11 +12,12 @@ import {
   updateTask,
   approveTask,
   rejectTask,
+  forwardTask,
   getTaskDetail,
 } from "@/lib/task";
 import { getApiUrl } from "@/config/api";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { Plus, Check, X, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
+import { Plus, Check, X, ChevronDown, ChevronUp, ListChecks, ArrowUpCircle } from "lucide-react";
 import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
 
@@ -94,10 +95,18 @@ function PersetujuanBanner({ task }) {
   }
 
   const jenjangAktif = (task.persetujuan || []).find((p) => p.status === "menunggu");
+  // Rantai tidak lagi dibuat penuh di muka, jadi "jenjang 1 dari N" sudah tidak
+  // punya arti. Yang berguna sekarang: siapa yang ditunggu, dan lewat siapa saja
+  // task ini sudah dinaikkan.
+  const diteruskanOleh = (task.persetujuan || [])
+    .filter((p) => p.status === "diteruskan")
+    .map((p) => p.approver?.nama)
+    .filter(Boolean);
+
   return (
     <div style={{ fontSize: 12.5, color: "#a85a22", background: "#f3e4d5", padding: "6px 10px", borderRadius: 8, marginTop: 8 }}>
-      Menunggu persetujuan {jenjangAktif?.approver?.nama || "atasan"} (jenjang {jenjangAktif?.jenjang || "?"}
-      {task.persetujuan?.length ? ` dari ${task.persetujuan.length}` : ""})
+      Menunggu persetujuan {jenjangAktif?.approver?.nama || "atasan"}
+      {diteruskanOleh.length ? ` — diteruskan oleh ${diteruskanOleh.join(", ")}` : ""}
     </div>
   );
 }
@@ -239,6 +248,9 @@ function ApprovalCard({ item, onDecided }) {
       if (keputusan === "disetujui") {
         await approveTask(item.task_id, catatan);
         toastSuccess("Task disetujui");
+      } else if (keputusan === "diteruskan") {
+        await forwardTask(item.task_id, catatan);
+        toastSuccess(`Diteruskan ke ${item.atasan_nama || "atasan Anda"}`);
       } else {
         await rejectTask(item.task_id, catatan);
         toastSuccess("Task ditolak");
@@ -265,14 +277,26 @@ function ApprovalCard({ item, onDecided }) {
         rows={2}
         style={{ width: "100%", padding: "0.5rem", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, marginBottom: 10 }}
       />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button className="customers-button customers-button--primary" onClick={() => handleDecide("disetujui")} disabled={saving}>
           <Check size={16} /> Setujui
         </button>
         <button className="customers-button customers-button--secondary" onClick={() => handleDecide("ditolak")} disabled={saving}>
           <X size={16} /> Tolak
         </button>
+        {/* Muncul hanya kalau saya memang punya atasan yang belum ada di rantai
+            task ini — backend yang menentukan lewat bisa_diteruskan. */}
+        {item.bisa_diteruskan && (
+          <button className="customers-button customers-button--secondary" onClick={() => handleDecide("diteruskan")} disabled={saving}>
+            <ArrowUpCircle size={16} /> Teruskan ke {item.atasan_nama || "Atasan"}
+          </button>
+        )}
       </div>
+      {item.bisa_diteruskan && (
+        <p style={{ margin: "8px 0 0", fontSize: 12, color: "#8695a6" }}>
+          Teruskan kalau keputusan ini di luar wewenang Anda — giliran ACC langsung pindah ke atasan Anda.
+        </p>
+      )}
     </div>
   );
 }
