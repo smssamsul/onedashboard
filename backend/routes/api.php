@@ -607,6 +607,7 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/{id}', [TaskController::class, 'update']);
         Route::post('/{id}/approve', [TaskController::class, 'approve']);
         Route::post('/{id}/reject', [TaskController::class, 'reject']);
+        Route::post('/{id}/teruskan', [TaskController::class, 'teruskan']);
     });
 
     Route::prefix('marketing')->group(function () {

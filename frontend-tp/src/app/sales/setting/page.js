@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
-import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode } from "lucide-react";
+import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode, Timer } from "lucide-react";
 import { toast } from "react-hot-toast";
 import dynamic from "next/dynamic";
 
@@ -18,6 +18,11 @@ export default function SalesSettingPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [woowaUtama, setWoowaUtama] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Jeda antar pesan follow-up (detik)
+  const [delayMin, setDelayMin] = useState("5");
+  const [delayMax, setDelayMax] = useState("25");
+  const [delaySaveLoading, setDelaySaveLoading] = useState(false);
 
   // Baileys Engine State
   const [waEngine, setWaEngine] = useState("woowa"); // 'woowa' | 'baileys'
@@ -103,6 +108,10 @@ export default function SalesSettingPage() {
         if (result.success && result.data) {
           setWoowaUtama(result.data.woowa_utama || "");
           setWaEngine(result.data.wa_engine || "woowa");
+          // Backend selalu mengirim angka efektif (DB atau fallback .env),
+          // jadi tidak perlu menebak default di sini.
+          setDelayMin(String(result.data.followup_delay_min ?? 5));
+          setDelayMax(String(result.data.followup_delay_max ?? 25));
         }
       }
     } catch (error) {
@@ -197,6 +206,48 @@ export default function SalesSettingPage() {
       toast.error("Terjadi kesalahan saat menyimpan engine");
     } finally {
       setEngineSaveLoading(false);
+    }
+  };
+
+  const handleSaveDelay = async (e) => {
+    e.preventDefault();
+
+    const min = Number(delayMin);
+    const max = Number(delayMax);
+
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max < 0) {
+      toast.error("Jeda harus berupa angka bulat, minimal 0 detik");
+      return;
+    }
+    if (max < min) {
+      toast.error("Jeda maksimum tidak boleh lebih kecil dari jeda minimum");
+      return;
+    }
+
+    try {
+      setDelaySaveLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(getApiUrl("sales/setting"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ followup_delay_min: min, followup_delay_max: max }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Jeda follow-up berhasil disimpan");
+      } else {
+        toast.error(result.message || "Gagal menyimpan jeda follow-up");
+      }
+    } catch (error) {
+      console.error("Error saving delay:", error);
+      toast.error("Terjadi kesalahan saat menyimpan jeda follow-up");
+    } finally {
+      setDelaySaveLoading(false);
     }
   };
 
@@ -519,6 +570,67 @@ export default function SalesSettingPage() {
                 className="btn btn-primary"
               >
                 {saveLoading ? "Menyimpan..." : "Simpan Pengaturan"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Card 4: Jeda Pengiriman Follow-up */}
+        <div className="setting-card" style={{ marginTop: "2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
+            <div style={{ background: "#0f766e", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
+              <Timer size={20} color="white" />
+            </div>
+            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Jeda Pengiriman Follow-up</h3>
+          </div>
+
+          <form onSubmit={handleSaveDelay} className="status-container">
+            <p className="description">
+              Jeda acak antar pesan follow-up otomatis. Setiap pesan berikutnya dijadwalkan
+              beberapa detik lebih lambat dari sebelumnya (acak di antara nilai minimum dan
+              maksimum), supaya satu batch tidak terkirim beruntun dalam sekejap dan terbaca
+              sebagai spam oleh WhatsApp.
+            </p>
+
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <div className="form-group" style={{ flex: "1 1 180px" }}>
+                <label htmlFor="delay_min" style={{ fontWeight: "500", color: "#374151" }}>
+                  Jeda minimum (detik)
+                </label>
+                <input
+                  id="delay_min"
+                  type="number"
+                  min="0"
+                  max="3600"
+                  value={delayMin}
+                  onChange={(e) => setDelayMin(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <div className="form-group" style={{ flex: "1 1 180px" }}>
+                <label htmlFor="delay_max" style={{ fontWeight: "500", color: "#374151" }}>
+                  Jeda maksimum (detik)
+                </label>
+                <input
+                  id="delay_max"
+                  type="number"
+                  min="0"
+                  max="3600"
+                  value={delayMax}
+                  onChange={(e) => setDelayMax(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <p className="description" style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+              Contoh: 5–25 detik berarti 100 pesan tersebar kira-kira 25 menit. Isi 0–0 kalau
+              ingin semua dikirim tanpa jeda (tidak disarankan).
+            </p>
+
+            <div className="action-buttons">
+              <button type="submit" disabled={delaySaveLoading} className="btn btn-primary">
+                {delaySaveLoading ? "Menyimpan..." : "Simpan Jeda"}
               </button>
             </div>
           </form>

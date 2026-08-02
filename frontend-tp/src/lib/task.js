@@ -97,3 +97,15 @@ export async function rejectTask(id, catatan = "") {
   });
   return res.data;
 }
+
+/**
+ * POST /api/task/{id}/teruskan — lempar keputusan ke atasan sendiri.
+ * Jenjang saya ditandai "diteruskan", giliran pindah ke atasan di atas saya.
+ */
+export async function forwardTask(id, catatan = "") {
+  const res = await api(API_ENDPOINTS.task.teruskan(id), {
+    method: "POST",
+    body: JSON.stringify({ catatan }),
+  });
+  return res.data;
+}

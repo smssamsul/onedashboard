@@ -39,6 +39,29 @@ const AUTOTEXT_OPTIONS = [
   { label: "Sisa Tagihan (Formatted)", value: "{{amount_remaining_formatted}}" },
 ];
 
+// Cuplikan spin yang disisipkan tombol "Spin Text" — sengaja berisi contoh
+// terisi, bukan kurung kosong, supaya orang langsung paham polanya.
+const SPIN_SNIPPET = "{Halo|Hai|Hi}";
+
+/**
+ * Pratinjau spin text. Aturannya harus sama persis dengan
+ * TemplateHelper::spin() di backend (yang menentukan pesan asli):
+ * hanya kurung berisi "|" yang diacak, bersarang diselesaikan dari dalam,
+ * spasi di sekitar opsi dibuang.
+ */
+const SPIN_PATTERN = /\{([^{}]*\|[^{}]*)\}/;
+
+function spinPreview(text) {
+  let hasil = text || "";
+  for (let i = 0; i < 20 && SPIN_PATTERN.test(hasil); i++) {
+    hasil = hasil.replace(new RegExp(SPIN_PATTERN, "g"), (_, isi) => {
+      const opsi = isi.split("|").map((s) => s.trim());
+      return opsi[Math.floor(Math.random() * opsi.length)];
+    });
+  }
+  return hasil;
+}
+
 // Mapping nama ke type untuk instant types
 // (nama lama "Register"/"Selesai" dipertahankan untuk kompatibilitas data lama)
 const NAMA_TO_TYPE = {
@@ -68,6 +91,7 @@ export default function FollowupSection() {
   const [autoSend, setAutoSend] = useState(false);
   const [selectedAutotextInline, setSelectedAutotextInline] = useState("");
   const [showEmojiPickerInline, setShowEmojiPickerInline] = useState(false);
+  const [previewInline, setPreviewInline] = useState(null);
   const textareaRefInline = useRef(null);
 
   // MODAL STATE (for unlimited type & upselling type)
@@ -84,6 +108,7 @@ export default function FollowupSection() {
   });
   const [selectedAutotextModal, setSelectedAutotextModal] = useState("");
   const [showEmojiPickerModal, setShowEmojiPickerModal] = useState(false);
+  const [previewModal, setPreviewModal] = useState(null);
   const textareaRefModal = useRef(null);
 
   const parseEventValue = (value = "1d-09:00") => {
@@ -99,6 +124,8 @@ export default function FollowupSection() {
     return `${safeDay}d-${safeTime}`;
   };
 
+  // setTextState dipanggil dua cara di bawah (nilai langsung atau updater),
+  // jadi pemanggilnya wajib menerima keduanya — lihat setModalText.
   const insertAtCursor = (value, ref, textState, setTextState) => {
     if (!value) return;
     const textarea = ref.current;
@@ -118,6 +145,15 @@ export default function FollowupSection() {
       textarea.setSelectionRange(newPos, newPos);
     });
   };
+
+  // Adaptor setter untuk textarea di modal. insertAtCursor kadang mengirim
+  // string, kadang updater function; keduanya harus diterima supaya tombol
+  // Insert/Spin tidak error saat ref textarea tersedia.
+  const setModalText = (v) =>
+    setModalData((prev) => ({
+      ...prev,
+      text: typeof v === "function" ? v(prev.text) : v,
+    }));
 
   // Fetch template follow-up per produk
   useEffect(() => {
@@ -469,6 +505,19 @@ export default function FollowupSection() {
             >Insert</button>
           </div>
 
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => insertAtCursor(SPIN_SNIPPET, textareaRefInline, text, setText)}
+            title="Sisipkan spin text"
+          >{"{ } Spin"}</button>
+
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => setPreviewInline(spinPreview(text))}
+          >Contoh Acak</button>
+
           <div className="emoji-wrapper">
             <button
               type="button"
@@ -485,6 +534,22 @@ export default function FollowupSection() {
             )}
           </div>
         </div>
+
+        <p className="spin-hint">
+          <b>Spin text:</b> tulis <code>{"{Halo|Hai|Hi}"}</code> — tiap pengiriman dipilih acak
+          salah satu, jadi pesan ke tiap nomor tidak identik. Boleh bersarang:{" "}
+          <code>{"{Selamat {pagi|siang}|Halo}"}</code>. Placeholder <code>{"{{customer_name}}"}</code> tidak terpengaruh.
+        </p>
+
+        {previewInline !== null && (
+          <div className="spin-preview">
+            <div className="spin-preview-head">
+              <span>Contoh hasil acak</span>
+              <button type="button" onClick={() => setPreviewInline(null)}>Tutup</button>
+            </div>
+            <pre>{previewInline}</pre>
+          </div>
+        )}
 
         <div className="schedule-box">
           <label className="schedule-row">
@@ -555,10 +620,23 @@ export default function FollowupSection() {
                     className="btn-outline"
                     onClick={() => {
                       if (!selectedAutotextModal) return toast.error("Pilih autotext");
-                      insertAtCursor(selectedAutotextModal, textareaRefModal, modalData.text, (v) => setModalData({ ...modalData, text: v(modalData.text) }));
+                      insertAtCursor(selectedAutotextModal, textareaRefModal, modalData.text, setModalText);
                     }}
                   >Insert</button>
                 </div>
+
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => insertAtCursor(SPIN_SNIPPET, textareaRefModal, modalData.text, setModalText)}
+                  title="Sisipkan spin text"
+                >{"{ } Spin"}</button>
+
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => setPreviewModal(spinPreview(modalData.text))}
+                >Contoh Acak</button>
 
                 <div className="emoji-wrapper">
                   <button
@@ -569,13 +647,28 @@ export default function FollowupSection() {
                   {showEmojiPickerModal && (
                     <div className="emoji-popover">
                       <EmojiPicker
-                        onEmojiClick={(e) => insertAtCursor(e.emoji, textareaRefModal, modalData.text, (v) => setModalData({ ...modalData, text: v(modalData.text) }))}
+                        onEmojiClick={(e) => insertAtCursor(e.emoji, textareaRefModal, modalData.text, setModalText)}
                         height={320} width={280} searchDisabled previewConfig={{ showPreview: false }} skinTonesDisabled
                       />
                     </div>
                   )}
                 </div>
               </div>
+
+              <p className="spin-hint">
+                <b>Spin text:</b> <code>{"{Halo|Hai|Hi}"}</code> dipilih acak tiap pengiriman,
+                supaya pesan ke tiap nomor tidak identik. Placeholder <code>{"{{customer_name}}"}</code> tidak terpengaruh.
+              </p>
+
+              {previewModal !== null && (
+                <div className="spin-preview">
+                  <div className="spin-preview-head">
+                    <span>Contoh hasil acak</span>
+                    <button type="button" onClick={() => setPreviewModal(null)}>Tutup</button>
+                  </div>
+                  <pre>{previewModal}</pre>
+                </div>
+              )}
 
               <hr className="dashed-hr" />
 
@@ -836,6 +929,61 @@ export default function FollowupSection() {
 
         .emoji-wrapper { position: relative; }
         .emoji-popover { position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+
+        .spin-hint {
+          margin: 12px 0 0;
+          font-size: 12.5px;
+          line-height: 1.6;
+          color: #64748b;
+        }
+
+        .spin-hint code {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          border-radius: 4px;
+          padding: 1px 5px;
+          font-size: 12px;
+          color: #0f766e;
+        }
+
+        .spin-preview {
+          margin-top: 10px;
+          border: 1px dashed #cbd5e1;
+          border-radius: 8px;
+          background: #f8fafc;
+          overflow: hidden;
+        }
+
+        .spin-preview-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px dashed #cbd5e1;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: #475569;
+        }
+
+        .spin-preview-head button {
+          background: none;
+          border: none;
+          color: #64748b;
+          font-size: 12.5px;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+
+        .spin-preview pre {
+          margin: 0;
+          padding: 12px;
+          font-family: inherit;
+          font-size: 13px;
+          line-height: 1.6;
+          color: #1e293b;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
 
         .dashed-hr {
           border: none;

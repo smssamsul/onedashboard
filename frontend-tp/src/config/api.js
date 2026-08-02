@@ -53,6 +53,7 @@ export const API_ENDPOINTS = {
     byId: (id) => `/task/${id}`,
     approve: (id) => `/task/${id}/approve`,
     reject: (id) => `/task/${id}/reject`,
+    teruskan: (id) => `/task/${id}/teruskan`,
   },
 
   // Sales
