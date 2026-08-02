@@ -44,9 +44,15 @@ class SendFollowupCron extends Command
         // Jeda acak antar pesan (detik) supaya pengiriman tidak beruntun terlalu cepat.
         // Delay bertambah kumulatif sepanjang proses, jadi seluruh pesan pada run ini
         // tersebar sepanjang waktu, bukan cuma jitter individual yang bisa numpuk.
-        $minDelaySeconds = (int) env('FOLLOWUP_DELAY_MIN_SECONDS', 5);
-        $maxDelaySeconds = (int) env('FOLLOWUP_DELAY_MAX_SECONDS', 25);
+        // Rentangnya diatur dari halaman Setting Sales (fallback ke .env).
+        [$minDelaySeconds, $maxDelaySeconds] = \App\Models\SalesSetting::getFollowupDelayRange();
         $cumulativeDelay = 0;
+
+        $this->info("Jeda antar pesan: {$minDelaySeconds}-{$maxDelaySeconds} detik");
+        Log::channel('followup')->info('Rentang jeda antar pesan', [
+            'min_detik' => $minDelaySeconds,
+            'max_detik' => $maxDelaySeconds,
+        ]);
 
         // Kode Quods (LAMA - DIKOMENTAR)
         // $deviceKey = env('QUODS_DEVICE_KEY', 'rCAIkWZDFOCosr3');
