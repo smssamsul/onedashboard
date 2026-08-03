@@ -49,6 +49,19 @@ function warnaRoas(n) {
   return "#ea580c";
 }
 
+/**
+ * KPI lead harian yang dipakai tim: tiap produk yang diiklankan ditargetkan
+ * 30 lead per hari. Satu campaign = satu produk, jadi target dibandingkan
+ * per baris campaign. Ubah angka ini kalau KPI-nya berubah.
+ */
+const TARGET_LEAD_HARIAN = 30;
+
+/** Merah kalau di bawah target, hijau kalau tercapai. */
+function warnaLeadHarian(leadPerHari) {
+  if (leadPerHari === null || leadPerHari === undefined) return "#9ca3af";
+  return leadPerHari >= TARGET_LEAD_HARIAN ? "#16a34a" : "#dc2626";
+}
+
 const LABEL_TARGETING = {
   umur: "Umur",
   gender: "Gender",
@@ -272,6 +285,18 @@ export default function MetaAdsOverviewContent({
   }, [load]);
 
   /**
+   * Jumlah hari dalam rentang, inklusif kedua ujungnya — 1 Juli s/d 1 Juli
+   * dihitung 1 hari, bukan 0. Ini penyebut untuk lead/hari, jadi kalau salah
+   * seluruh perbandingan ke KPI ikut meleset.
+   */
+  const jumlahHari = useMemo(() => {
+    const awal = parseTanggal(startDate);
+    const akhir = parseTanggal(endDate);
+    if (!awal || !akhir) return 1;
+    return Math.max(1, Math.round((akhir - awal) / 86400000) + 1);
+  }, [startDate, endDate]);
+
+  /**
    * Total baris tabel. Sengaja dihitung dari `campaigns` (baris yang benar-benar
    * tampil), bukan dari `totals` milik endpoint overview — supaya totalnya selalu
    * cocok dengan yang dijumlah manual di layar, termasuk saat filter "hanya aktif"
@@ -316,8 +341,13 @@ export default function MetaAdsOverviewContent({
       rasio_lead_to_order: bulat2(leads > 0 ? (order / leads) * 100 : null),
       rasio_order_to_buyer: bulat2(order > 0 ? (buyer / order) * 100 : null),
       roas: bagi(revenue, spendPpn),
+
+      // Target gabungan = 30/hari untuk TIAP campaign, karena KPI-nya per produk.
+      // 11 campaign aktif berarti targetnya 330 lead/hari, bukan 30.
+      lead_per_hari: leads / jumlahHari,
+      target_lead_per_hari: TARGET_LEAD_HARIAN * campaigns.length,
     };
-  }, [campaigns]);
+  }, [campaigns, jumlahHari]);
 
   const handleSync = useCallback(async () => {
     if (syncing) return;
@@ -412,10 +442,23 @@ export default function MetaAdsOverviewContent({
               { label: "Leads", value: fmt(totals?.leads), color: "#2563eb" },
               { label: "Contact", value: fmt(totals?.contact), color: "#0d9488" },
               { label: "Purchase", value: fmt(totals?.conversions), color: "#16a34a" },
+              // Dihitung dari tabel campaign, bukan dari totals endpoint overview,
+              // supaya angkanya persis sama dengan baris TOTAL di bawah.
+              totalTabel
+                ? {
+                    label: `Lead/hari (target ${fmt(totalTabel.target_lead_per_hari)})`,
+                    value: `${fmt(Math.round(totalTabel.lead_per_hari))}`,
+                    color: totalTabel.lead_per_hari >= totalTabel.target_lead_per_hari ? "#16a34a" : "#dc2626",
+                    catatan: `${Math.round((totalTabel.lead_per_hari / totalTabel.target_lead_per_hari) * 100)}% dari target · ${totalTabel.jumlahCampaign} campaign × ${TARGET_LEAD_HARIAN}/hari`,
+                  }
+                : { label: `Lead/hari (target ${TARGET_LEAD_HARIAN}/produk)`, value: "-", color: "#9ca3af" },
             ].map((tile) => (
               <div key={tile.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px" }}>
                 <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{tile.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: tile.color }}>{loading ? "..." : tile.value}</div>
+                {tile.catatan && !loading && (
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{tile.catatan}</div>
+                )}
               </div>
             ))}
           </div>
@@ -468,6 +511,7 @@ export default function MetaAdsOverviewContent({
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Biaya + PPN {ppnPersen}%</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Impresi<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPM</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPL</span></th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Lead<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>/hari · target {TARGET_LEAD_HARIAN}</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Contact</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Purchase<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>Cost/purchase</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPO</span></th>
@@ -483,7 +527,7 @@ export default function MetaAdsOverviewContent({
                 <tbody>
                   {campaigns.length === 0 ? (
                     <tr>
-                      <td colSpan={14} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                      <td colSpan={15} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
                         {loading
                           ? "Memuat..."
                           : tampilkanNonAktif
@@ -506,6 +550,14 @@ export default function MetaAdsOverviewContent({
                         <SelMetrik utama={fmtRp(totalTabel.spend_ppn)} />
                         <SelMetrik utama={fmt(totalTabel.impressions)} bawah={fmtRpOpsional(totalTabel.cpm)} />
                         <SelMetrik utama={fmt(totalTabel.leads)} bawah={fmtRpOpsional(totalTabel.cpl)} />
+                        <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ fontWeight: 700, color: totalTabel.lead_per_hari >= totalTabel.target_lead_per_hari ? "#16a34a" : "#dc2626" }}>
+                            {fmt(Math.round(totalTabel.lead_per_hari))}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                            dari {fmt(totalTabel.target_lead_per_hari)}
+                          </div>
+                        </td>
                         <SelMetrik utama={fmt(totalTabel.contact)} />
                         <SelMetrik utama={fmt(totalTabel.purchase)} bawah={fmtRpOpsional(totalTabel.cost_per_purchase)} />
                         <SelMetrik utama={fmt(totalTabel.order)} bawah={fmtRpOpsional(totalTabel.cpo)} />
@@ -571,6 +623,21 @@ export default function MetaAdsOverviewContent({
                             <SelMetrik utama={fmtRp(c.spend_ppn)} />
                             <SelMetrik utama={fmt(c.impressions)} bawah={fmtRpOpsional(c.cpm)} />
                             <SelMetrik utama={fmt(c.leads)} bawah={fmtRpOpsional(c.cpl)} />
+                            {(() => {
+                              // Satu campaign = satu produk, jadi target 30/hari
+                              // dibandingkan apa adanya per baris.
+                              const perHari = Number(c.leads || 0) / jumlahHari;
+                              return (
+                                <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                                  <div style={{ fontWeight: 700, color: warnaLeadHarian(perHari) }}>
+                                    {perHari.toLocaleString("id-ID", { maximumFractionDigits: 1 })}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                                    {Math.round((perHari / TARGET_LEAD_HARIAN) * 100)}%
+                                  </div>
+                                </td>
+                              );
+                            })()}
                             <SelMetrik utama={fmt(c.contact)} />
                             <SelMetrik utama={fmt(c.purchase)} bawah={fmtRpOpsional(c.cost_per_purchase)} />
                             <SelMetrik utama={fmt(c.order)} bawah={fmtRpOpsional(c.cpo)} />
@@ -585,7 +652,7 @@ export default function MetaAdsOverviewContent({
                               <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(c.roas), marginTop: 2 }}>{fmtRoas(c.roas)}</div>
                             </td>
                           </tr>
-                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={14} />}
+                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={15} />}
                         </Fragment>
                       );
                     })}
