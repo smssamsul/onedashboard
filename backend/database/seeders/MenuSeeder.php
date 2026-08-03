@@ -40,10 +40,10 @@ class MenuSeeder extends Seeder
         $add('sales.leads', 'Leads', '/sales/lead-lpwa', 'UserPlus', 'CUSTOMERS', 3);
         $add('sales.customers.statistik', 'Statistik Customer', '/sales/customers/statistik', 'BarChart3', 'CUSTOMERS', 3);
         $add('sales.orders', 'Orders', '/sales/orders', 'ClipboardList', 'OPERATIONS', 3);
+        $add('sales.quick_order', 'Order Cepat', '/sales/quick-order', 'Zap', 'OPERATIONS', 3);
         $add('sales.invitation', 'Invitation', '/sales/invitation', 'Mail', 'OPERATIONS', 3);
         $add('sales.kehadiran', 'Kehadiran', '/sales/kehadiran', 'QrCode', 'OPERATIONS', 3);
         $add('sales.pengiriman', 'Pengiriman & Resi', '/sales/pengiriman', 'Truck', 'OPERATIONS', 3);
-        $add('sales.quick_order', 'Order Cepat', '/sales/quick-order', 'Zap', 'OPERATIONS', 3);
         $add('sales.kategori', 'Kategori Produk', '/sales/kategori', 'ShoppingBag', 'OPERATIONS', 3);
         $add('sales.products', 'Products', '/sales/products', 'ShoppingBag', 'OPERATIONS', 3);
         $add('sales.bonus', 'Bonus Produk', '/sales/bonus', 'ShoppingBag', 'OPERATIONS', 3);
