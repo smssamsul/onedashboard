@@ -128,14 +128,73 @@ function SelMetrik({ utama, bawah, labelBawah }) {
   );
 }
 
-/** Baris detail: setting ad set + produk yang dipakai buat ambil data order. */
+/** Kolom metrik kecil dipakai bareng oleh panel iklan dan ad set. */
+function MetrikMini({ label, nilai, warna }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: "#9ca3af" }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: warna || "#374151" }}>{nilai}</div>
+    </div>
+  );
+}
+
+/** Baris detail: performa iklan, setting ad set, lalu produk sumber order. */
 function BarisDetailCampaign({ campaign, jumlahKolom }) {
   const adSets = campaign.ad_sets || [];
+  const iklan = campaign.iklan || [];
   const produk = campaign.produk_terkait || [];
 
   return (
     <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
       <td colSpan={jumlahKolom} style={{ padding: "14px 18px" }}>
+        {/* Iklan didahulukan: ini yang dinilai, ad set cuma konteksnya. */}
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 2 }}>
+          Performa Iklan ({iklan.length})
+        </div>
+        <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
+          Diurutkan dari lead terbanyak. Biaya sudah termasuk PPN.
+        </p>
+
+        {iklan.length === 0 ? (
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 14px" }}>
+            Belum ada data iklan. Jalankan Sync untuk menariknya dari Meta.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10, marginBottom: 16 }}>
+            {iklan.map((a) => (
+              <div key={a.ad_id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                  {a.thumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.thumbnail} alt="" width={44} height={44}
+                      style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid #e5e7eb" }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, wordBreak: "break-word" }}>{a.name || a.ad_id}</div>
+                    <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{a.ad_set_nama}</div>
+                  </div>
+                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, whiteSpace: "nowrap", background: a.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: a.status === "ACTIVE" ? "#166534" : "#6b7280" }}>
+                    {a.status || "-"}
+                  </span>
+                </div>
+
+                {a.ada_data ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, borderTop: "1px dashed #e5e7eb", paddingTop: 8 }}>
+                    <MetrikMini label="Biaya" nilai={fmtRp(Math.round(a.spend_ppn))} />
+                    <MetrikMini label="Leads" nilai={fmt(a.leads)} warna={a.leads > 0 ? "#2563eb" : "#9ca3af"} />
+                    <MetrikMini label="CPL" nilai={fmtRpOpsional(a.cpl)} />
+                    <MetrikMini label="CTR" nilai={a.ctr === null ? "-" : `${a.ctr}%`} />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: "#9ca3af", borderTop: "1px dashed #e5e7eb", paddingTop: 8 }}>
+                    Tidak ada belanja di rentang tanggal ini.
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
           Setting Ad Set ({adSets.length})
         </div>
@@ -168,6 +227,17 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
                     <div key={k}><strong>{LABEL_TARGETING[k] || k}:</strong> {v}</div>
                   ))}
                 </div>
+
+                {/* Angka ad set dijumlahkan dari iklan di dalamnya, bukan
+                    panggilan terpisah ke Meta. */}
+                {s.ada_data && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, borderTop: "1px dashed #e5e7eb", marginTop: 8, paddingTop: 8 }}>
+                    <MetrikMini label="Biaya" nilai={fmtRp(Math.round(s.spend_ppn))} />
+                    <MetrikMini label="Leads" nilai={fmt(s.leads)} warna={s.leads > 0 ? "#2563eb" : "#9ca3af"} />
+                    <MetrikMini label="CPL" nilai={fmtRpOpsional(s.cpl)} />
+                    <MetrikMini label="CTR" nilai={s.ctr === null ? "-" : `${s.ctr}%`} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

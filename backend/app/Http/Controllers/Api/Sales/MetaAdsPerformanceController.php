@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\MetaAd;
 use App\Models\MetaAdsAccount;
+use App\Models\MetaAdInsightAdDaily;
 use App\Models\MetaAdInsightDaily;
 use App\Models\MetaAdCampaign;
 use App\Models\MetaAdSet;
@@ -190,7 +192,9 @@ class MetaAdsPerformanceController extends Controller
             ->orderByDesc('spend')
             ->get();
 
-        $adSetPerCampaign = $this->ringkasanAdSet($campaigns->pluck('id'));
+        $performa = $this->performaIklan($start, $end);
+        $adSetPerCampaign = $this->ringkasanAdSet($campaigns->pluck('id'), $performa['adSet']);
+        $iklanPerCampaign = $this->ringkasanIklan($campaigns->pluck('id'), $performa['iklan']);
 
         $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
         $namaProduk = $produkList->pluck('nama', 'id')->all();
@@ -202,7 +206,7 @@ class MetaAdsPerformanceController extends Controller
         $lokasiCampaign = $campaigns->map(fn ($c) => app(LokasiKeywordService::class)->deteksiKota($c->name));
         $jumlahCampaignPerKota = $lokasiCampaign->filter()->countBy();
 
-        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $produkPerCampaign, $namaProduk, $agregatOrder, $jumlahCampaignPerKota) {
+        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $iklanPerCampaign, $produkPerCampaign, $namaProduk, $agregatOrder, $jumlahCampaignPerKota) {
             $spend = (float) $c->spend;
             $spendPpn = round($spend * (1 + self::PPN_PERSEN / 100), 2);
 
@@ -229,6 +233,7 @@ class MetaAdsPerformanceController extends Controller
                 'lifetime_budget' => $c->lifetime_budget !== null ? (float) $c->lifetime_budget : null,
 
                 'ad_sets' => $adSetPerCampaign[$c->id] ?? [],
+                'iklan' => $iklanPerCampaign[$c->id] ?? [],
 
                 'spend' => $spend,
                 'spend_ppn' => $spendPpn,
@@ -295,7 +300,7 @@ class MetaAdsPerformanceController extends Controller
      *
      * @return array<int, array<int, array>>  id campaign lokal => daftar ad set
      */
-    private function ringkasanAdSet($campaignIds): array
+    private function ringkasanAdSet($campaignIds, array $performaAdSet = []): array
     {
         if (count($campaignIds) === 0) {
             return [];
@@ -305,7 +310,7 @@ class MetaAdsPerformanceController extends Controller
             ->orderBy('name')
             ->get()
             ->groupBy('meta_ad_campaign_id')
-            ->map(fn ($rows) => $rows->map(fn ($s) => [
+            ->map(fn ($rows) => $rows->map(fn ($s) => array_merge([
                 'ad_set_id' => $s->ad_set_id,
                 'name' => $s->name,
                 'status' => $s->status,
@@ -316,7 +321,149 @@ class MetaAdsPerformanceController extends Controller
                 'targeting' => $this->ringkasTargeting($s->targeting),
                 'start_time' => $s->start_time?->format('Y-m-d'),
                 'end_time' => $s->end_time?->format('Y-m-d'),
-            ])->values()->all())
+            ], $performaAdSet[$s->ad_set_id] ?? $this->performaKosong()))->values()->all())
+            ->all();
+    }
+
+    /** Bentuk metrik saat sebuah iklan/ad set belum punya baris insight sama sekali. */
+    private function performaKosong(): array
+    {
+        return [
+            'spend' => 0.0,
+            'spend_ppn' => 0.0,
+            'impressions' => 0,
+            'clicks' => 0,
+            'link_clicks' => 0,
+            'leads' => 0,
+            'contact' => 0,
+            'ctr' => null,
+            'cpl' => null,
+            'cpm' => null,
+            'ada_data' => false,
+        ];
+    }
+
+    /**
+     * Agregat insight level-iklan untuk rentang tanggal, dikembalikan dalam tiga
+     * bentuk sekaligus: per iklan, per ad set, dan daftar iklan per campaign.
+     *
+     * Angka ad set dijumlahkan dari iklan-iklan di dalamnya — bukan panggilan
+     * terpisah ke Meta. CTR dan CPL sengaja dihitung ulang dari total, bukan
+     * dirata-rata per hari, dengan alasan yang sama seperti baris TOTAL di tabel.
+     *
+     * `reach` sengaja tidak diikutkan: nilainya tidak bisa dijumlahkan karena
+     * Meta melakukan dedup orang yang sama antar hari dan antar iklan.
+     *
+     * @return array{iklan: array<string, array>, adSet: array<string, array>}
+     */
+    private function performaIklan(string $start, string $end): array
+    {
+        $baris = MetaAdInsightAdDaily::query()
+            ->whereBetween('date', [$start, $end])
+            ->selectRaw('ad_id, ad_set_id')
+            ->selectRaw('SUM(spend) as spend')
+            ->selectRaw('SUM(impressions) as impressions')
+            ->selectRaw('SUM(clicks) as clicks')
+            ->selectRaw('SUM(COALESCE(link_clicks, 0)) as link_clicks')
+            ->selectRaw('SUM(COALESCE(leads, 0)) as leads')
+            ->selectRaw('SUM(COALESCE(contact, 0)) as contact')
+            ->groupBy('ad_id', 'ad_set_id')
+            ->get();
+
+        $bentuk = function ($spend, $impressions, $clicks, $linkClicks, $leads, $contact) {
+            $spend = (float) $spend;
+            $spendPpn = round($spend * (1 + self::PPN_PERSEN / 100), 2);
+            $impressions = (int) $impressions;
+
+            return [
+                'spend' => $spend,
+                'spend_ppn' => $spendPpn,
+                'impressions' => $impressions,
+                'clicks' => (int) $clicks,
+                'link_clicks' => (int) $linkClicks,
+                'leads' => (int) $leads,
+                'contact' => (int) $contact,
+                'ctr' => $impressions > 0 ? round(((int) $clicks / $impressions) * 100, 2) : null,
+                'cpl' => $this->bagi($spendPpn, (int) $leads),
+                'cpm' => $impressions > 0 ? round(($spendPpn / $impressions) * 1000, 2) : null,
+                'ada_data' => true,
+            ];
+        };
+
+        $perIklan = [];
+        $totalAdSet = [];
+
+        foreach ($baris as $b) {
+            $perIklan[$b->ad_id] = $bentuk($b->spend, $b->impressions, $b->clicks, $b->link_clicks, $b->leads, $b->contact);
+
+            $kunci = $b->ad_set_id ?? '(tanpa ad set)';
+            $totalAdSet[$kunci] ??= ['spend' => 0, 'impressions' => 0, 'clicks' => 0, 'link_clicks' => 0, 'leads' => 0, 'contact' => 0];
+            $totalAdSet[$kunci]['spend'] += (float) $b->spend;
+            $totalAdSet[$kunci]['impressions'] += (int) $b->impressions;
+            $totalAdSet[$kunci]['clicks'] += (int) $b->clicks;
+            $totalAdSet[$kunci]['link_clicks'] += (int) $b->link_clicks;
+            $totalAdSet[$kunci]['leads'] += (int) $b->leads;
+            $totalAdSet[$kunci]['contact'] += (int) $b->contact;
+        }
+
+        $perAdSet = [];
+        foreach ($totalAdSet as $adSetId => $t) {
+            $perAdSet[$adSetId] = $bentuk($t['spend'], $t['impressions'], $t['clicks'], $t['link_clicks'], $t['leads'], $t['contact']);
+        }
+
+        return ['iklan' => $perIklan, 'adSet' => $perAdSet];
+    }
+
+    /**
+     * Daftar iklan per campaign, sudah digabung dengan performanya dan diurutkan
+     * dari yang paling banyak menghasilkan lead — pertanyaan yang mau dijawab
+     * panel ini memang "iklan mana yang jalan".
+     *
+     * @return array<int, array>  campaign id lokal => daftar iklan
+     */
+    private function ringkasanIklan($campaignIds, array $performaIklan): array
+    {
+        if (count($campaignIds) === 0) {
+            return [];
+        }
+
+        return MetaAd::query()
+            ->join('meta_ad_sets', 'meta_ads.meta_ad_set_id', '=', 'meta_ad_sets.id')
+            ->whereIn('meta_ad_sets.meta_ad_campaign_id', $campaignIds)
+            ->select(
+                'meta_ads.ad_id',
+                'meta_ads.name',
+                'meta_ads.status',
+                'meta_ads.creative_payload',
+                'meta_ad_sets.ad_set_id',
+                'meta_ad_sets.name as ad_set_nama',
+                'meta_ad_sets.meta_ad_campaign_id'
+            )
+            ->get()
+            ->groupBy('meta_ad_campaign_id')
+            ->map(function ($rows) use ($performaIklan) {
+                return $rows
+                    ->map(function ($a) use ($performaIklan) {
+                        $creative = is_string($a->creative_payload)
+                            ? json_decode($a->creative_payload, true)
+                            : $a->creative_payload;
+
+                        return array_merge([
+                            'ad_id' => $a->ad_id,
+                            'name' => $a->name,
+                            'status' => $a->status,
+                            'ad_set_id' => $a->ad_set_id,
+                            'ad_set_nama' => $a->ad_set_nama,
+                            'thumbnail' => $creative['thumbnail_url'] ?? null,
+                            'judul_materi' => $creative['title'] ?? null,
+                        ], $performaIklan[$a->ad_id] ?? $this->performaKosong());
+                    })
+                    // Lead terbanyak dulu; kalau seri, biaya lebih besar dianggap
+                    // lebih penting untuk dilihat.
+                    ->sortByDesc(fn ($a) => [$a['leads'], $a['spend']])
+                    ->values()
+                    ->all();
+            })
             ->all();
     }
 
