@@ -451,7 +451,8 @@ export default function MetaAdsOverviewContent({
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
               Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.
-              Order, buyer, dan ROAS berasal dari order internal yang dicocokkan lewat keyword lokasi pada nama campaign dan nama produk.
+              Order, buyer, dan ROAS berasal dari order internal. Pencocokan utama memakai <b>utm_campaign</b> pada order;
+              order yang tidak membawa UTM baru dicocokkan lewat keyword lokasi pada nama campaign dan nama produk.
             </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1320 }}>
@@ -528,8 +529,20 @@ export default function MetaAdsOverviewContent({
                                     {c.lokasi ? (
                                       <span style={{ fontSize: 10, background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999 }}>{c.lokasi}</span>
                                     ) : (
-                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Nama campaign tidak menyebut kota, jadi order/buyer/ROAS tidak bisa dihitung">
-                                        lokasi ?
+                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Nama campaign tidak menyebut kota. Order tetap terhitung kalau ada yang membawa utm_campaign cocok.">
+                                        tanpa lokasi
+                                      </span>
+                                    )}
+                                    {/* Asal angka order dibedakan: lewat UTM itu bukti langsung,
+                                        lewat lokasi cuma kesamaan nama kota. */}
+                                    {c.order_dari_utm > 0 && (
+                                      <span style={{ fontSize: 10, background: "#dcfce7", color: "#166534", padding: "1px 7px", borderRadius: 999 }} title="Order yang membawa utm_campaign cocok dengan nama campaign ini - bukti langsung">
+                                        {c.order_dari_utm} via UTM
+                                      </span>
+                                    )}
+                                    {c.order_dari_lokasi > 0 && (
+                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Order tanpa UTM, dicocokkan lewat kesamaan nama kota pada campaign dan produk - perkiraan, bukan bukti">
+                                        {c.order_dari_lokasi} via lokasi
                                       </span>
                                     )}
                                     {c.lokasi_dipakai_bersama && (

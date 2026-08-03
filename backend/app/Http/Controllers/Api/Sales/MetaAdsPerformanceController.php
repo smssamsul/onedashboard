@@ -159,12 +159,12 @@ class MetaAdsPerformanceController extends Controller
 
         $adSetPerCampaign = $this->ringkasanAdSet($campaigns->pluck('id'));
         [$produkPerKota, $namaProduk] = $this->produkPerKota();
-        $orderPerProduk = $this->orderPerProduk($start, $end);
+        $agregatOrder = $this->agregatOrderPerCampaign($start, $end, $campaigns, $produkPerKota);
 
         $lokasiCampaign = $campaigns->map(fn ($c) => app(LokasiKeywordService::class)->deteksiKota($c->name));
         $jumlahCampaignPerKota = $lokasiCampaign->filter()->countBy();
 
-        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $produkPerKota, $namaProduk, $orderPerProduk, $jumlahCampaignPerKota) {
+        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $produkPerKota, $namaProduk, $agregatOrder, $jumlahCampaignPerKota) {
             $spend = (float) $c->spend;
             $spendPpn = round($spend * (1 + self::PPN_PERSEN / 100), 2);
 
@@ -176,18 +176,10 @@ class MetaAdsPerformanceController extends Controller
             $kota = app(LokasiKeywordService::class)->deteksiKota($c->name);
             $produkIds = $kota ? ($produkPerKota[$kota] ?? []) : [];
 
-            $order = 0;
-            $buyer = 0;
-            $revenue = 0.0;
-            foreach ($produkIds as $produkId) {
-                $agg = $orderPerProduk[$produkId] ?? null;
-                if (!$agg) {
-                    continue;
-                }
-                $order += (int) $agg['order'];
-                $buyer += (int) $agg['buyer'];
-                $revenue += (float) $agg['revenue'];
-            }
+            $agg = $agregatOrder[$c->id] ?? ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_lokasi' => 0];
+            $order = (int) $agg['order'];
+            $buyer = (int) $agg['buyer'];
+            $revenue = (float) $agg['revenue'];
 
             return [
                 'id' => $c->id,
@@ -235,6 +227,11 @@ class MetaAdsPerformanceController extends Controller
                 // Kalau satu kota diiklankan >1 campaign, order kota itu terhitung
                 // di tiap campaign — ditandai supaya tidak dibaca sebagai angka bersih.
                 'lokasi_dipakai_bersama' => $kota ? (($jumlahCampaignPerKota[$kota] ?? 0) > 1) : false,
+                // Dari mana order ini dicocokkan. Angka yang datang lewat UTM
+                // adalah bukti langsung; sisanya hasil tebakan nama kota, yang
+                // jauh lebih longgar. Ditampilkan supaya pembaca tahu bedanya.
+                'order_dari_utm' => (int) $agg['dari_utm'],
+                'order_dari_lokasi' => (int) $agg['dari_lokasi'],
             ];
         });
 
@@ -246,7 +243,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Order, buyer, dan revenue berasal dari order internal yang dicocokkan lewat keyword lokasi pada nama campaign dan nama produk — bukan dari Meta. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Pencocokan utama memakai utm_campaign pada order; order yang tidak membawa UTM dicocokkan lewat keyword lokasi pada nama campaign dan nama produk. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -367,29 +364,103 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Agregat order internal per produk dalam rentang tanggal.
+     * Buang semua karakter selain huruf/angka dan turunkan ke lowercase, supaya
+     * "Surabaya" dan "seminar-surabaya" bisa dibandingkan. Nilai utm_campaign
+     * ditulis manual oleh yang memasang iklan, jadi bentuknya tidak konsisten.
+     */
+    private function normalisasi(?string $teks): string
+    {
+        return preg_replace('/[^a-z0-9]/', '', mb_strtolower((string) $teks));
+    }
+
+    /**
+     * Agregat order internal per campaign dalam rentang tanggal.
      * Buyer = order yang pembayarannya sudah diapprove (status_pembayaran = 2),
      * revenue dihitung hanya dari order buyer tersebut.
      *
-     * @return array<int, array{order: int, buyer: int, revenue: float}>
+     * Dua lapis pencocokan, order hanya boleh masuk lewat salah satunya:
+     *
+     * 1. `utm_campaign` — order membawa jejak campaign asalnya, jadi ini bukti
+     *    langsung, bukan tebakan. Ini juga satu-satunya cara menghitung campaign
+     *    yang tidak menyebut kota (Webinar, Buku), karena pencocokan lokasi
+     *    mustahil menjangkaunya.
+     *
+     * 2. Keyword lokasi — cadangan untuk order yang utm_campaign-nya kosong.
+     *    Perlu dipertahankan karena baru sekitar sepertiga order membawa UTM;
+     *    kalau lapis ini dibuang, order yang terhitung anjlok hampir separuh.
+     *
+     * Order yang PUNYA utm tapi tidak cocok ke campaign mana pun sengaja tidak
+     * jatuh ke lapis 2. Utm-nya sudah bilang order itu datang dari tempat lain,
+     * jadi menghitungnya lewat kesamaan nama kota justru salah alamat.
+     *
+     * @param  array<string, int[]>  $produkPerKota
+     * @return array<int, array{order: int, buyer: int, revenue: float, dari_utm: int, dari_lokasi: int}>
      */
-    private function orderPerProduk(string $start, string $end): array
+    private function agregatOrderPerCampaign(string $start, string $end, $campaigns, array $produkPerKota): array
     {
-        return OrderCustomer::query()
+        $svc = app(LokasiKeywordService::class);
+
+        // Nama campaign ternormalisasi, diurutkan dari yang terpanjang: kalau
+        // suatu saat ada campaign "Bandung" dan "Bandung2", yang lebih spesifik
+        // yang menang, bukan yang kebetulan diperiksa duluan.
+        $polaCampaign = [];
+        foreach ($campaigns as $c) {
+            $nama = $this->normalisasi($c->name);
+            if ($nama !== '') {
+                $polaCampaign[] = ['id' => $c->id, 'pola' => $nama, 'panjang' => strlen($nama)];
+            }
+        }
+        usort($polaCampaign, fn ($a, $b) => $b['panjang'] <=> $a['panjang']);
+
+        // Produk id => daftar campaign id yang kotanya cocok. Satu kota bisa
+        // dipakai beberapa campaign sekaligus (lihat lokasi_dipakai_bersama).
+        $campaignPerProduk = [];
+        foreach ($campaigns as $c) {
+            $kota = $svc->deteksiKota($c->name);
+            foreach ($kota ? ($produkPerKota[$kota] ?? []) : [] as $produkId) {
+                $campaignPerProduk[(int) $produkId][] = $c->id;
+            }
+        }
+
+        $hasil = [];
+        foreach ($campaigns as $c) {
+            $hasil[$c->id] = ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_lokasi' => 0];
+        }
+
+        $orders = OrderCustomer::query()
             ->where('status', '!=', 'N')
             ->whereBetween(DB::raw('DATE(create_at)'), [$start, $end])
-            ->groupBy('produk')
-            ->selectRaw('produk')
-            ->selectRaw('COUNT(*) as jumlah_order')
-            ->selectRaw("COUNT(*) FILTER (WHERE status_pembayaran = '2') as jumlah_buyer")
-            ->selectRaw("COALESCE(SUM(CAST(total_harga AS numeric)) FILTER (WHERE status_pembayaran = '2'), 0) as revenue")
-            ->get()
-            ->mapWithKeys(fn ($row) => [(int) $row->produk => [
-                'order' => (int) $row->jumlah_order,
-                'buyer' => (int) $row->jumlah_buyer,
-                'revenue' => (float) $row->revenue,
-            ]])
-            ->all();
+            ->get(['produk', 'utm_campaign', 'status_pembayaran', 'total_harga']);
+
+        foreach ($orders as $o) {
+            $utm = $this->normalisasi($o->utm_campaign);
+
+            if ($utm !== '') {
+                $cocok = [];
+                foreach ($polaCampaign as $p) {
+                    if (str_contains($utm, $p['pola'])) {
+                        $cocok[] = $p['id'];
+                        break; // pola terpanjang menang; sisanya pasti lebih umum
+                    }
+                }
+                $sumber = 'dari_utm';
+            } else {
+                $cocok = $campaignPerProduk[(int) $o->produk] ?? [];
+                $sumber = 'dari_lokasi';
+            }
+
+            $adalahBuyer = (string) $o->status_pembayaran === '2';
+            foreach ($cocok as $campaignId) {
+                $hasil[$campaignId]['order']++;
+                $hasil[$campaignId][$sumber]++;
+                if ($adalahBuyer) {
+                    $hasil[$campaignId]['buyer']++;
+                    $hasil[$campaignId]['revenue'] += (float) $o->total_harga;
+                }
+            }
+        }
+
+        return $hasil;
     }
 
     /**
