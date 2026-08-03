@@ -450,9 +450,9 @@ export default function MetaAdsOverviewContent({
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
               Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.
-              Order, buyer, dan ROAS berasal dari order internal. Hanya order yang membawa <b>utm_campaign</b> yang dihitung, supaya tiap
-              angka punya bukti asal dari iklan. Pencocokan dicoba berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign
-              mengandung nama campaign, terakhir nama campaign yang muncul di <b>nama produk</b> yang dibeli.
+              Order, buyer, dan ROAS berasal dari order internal. Order dari sumber non-iklan (<b>sosmedtp, sosmedda, website</b>) tidak
+              dihitung. Sisanya dicocokkan berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign,
+              terakhir nama campaign yang muncul di <b>nama produk</b> yang dibeli.
               Buyer &amp; revenue mencakup pembayaran <b>Paid</b> maupun <b>Waiting Approval</b>, jadi sebagian kecil masih bisa turun kalau finance menolak.
             </p>
             <div style={{ overflowX: "auto" }}>
