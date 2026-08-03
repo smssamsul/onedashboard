@@ -217,6 +217,9 @@ class MetaAdsPerformanceController extends Controller
 
                 // Rasio dalam persen
                 'rasio_lead_to_purchase' => $leads > 0 ? round(($purchase / $leads) * 100, 2) : null,
+                // Purchase datang dari Meta, order dari sistem internal. Keduanya
+                // dibandingkan ke leads yang sama supaya selisih keduanya kelihatan.
+                'rasio_lead_to_order' => $leads > 0 ? round(($order / $leads) * 100, 2) : null,
                 'rasio_order_to_buyer' => $order > 0 ? round(($buyer / $order) * 100, 2) : null,
 
                 'lokasi' => $kota,

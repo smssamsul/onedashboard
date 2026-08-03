@@ -312,6 +312,7 @@ export default function MetaAdsOverviewContent({
       cpo: bagi(spendPpn, order),
       cpb: bagi(spendPpn, buyer),
       rasio_lead_to_purchase: bulat2(leads > 0 ? (purchase / leads) * 100 : null),
+      rasio_lead_to_order: bulat2(leads > 0 ? (order / leads) * 100 : null),
       rasio_order_to_buyer: bulat2(order > 0 ? (buyer / order) * 100 : null),
       roas: bagi(revenue, spendPpn),
     };
@@ -470,6 +471,9 @@ export default function MetaAdsOverviewContent({
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPO</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Buyer<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPB</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Lead &rarr;<br />Purchase</th>
+                    {/* Ditaruh sebelum Order -> Buyer supaya corongnya terbaca berurutan
+                        dari kiri ke kanan: lead jadi order, order jadi buyer. */}
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads &rarr;<br />Order</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order &rarr;<br />Buyer</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Revenue<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>ROAS</span></th>
                   </tr>
@@ -477,7 +481,7 @@ export default function MetaAdsOverviewContent({
                 <tbody>
                   {campaigns.length === 0 ? (
                     <tr>
-                      <td colSpan={13} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                      <td colSpan={14} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
                         {loading
                           ? "Memuat..."
                           : tampilkanNonAktif
@@ -505,6 +509,7 @@ export default function MetaAdsOverviewContent({
                         <SelMetrik utama={fmt(totalTabel.order)} bawah={fmtRpOpsional(totalTabel.cpo)} />
                         <SelMetrik utama={fmt(totalTabel.buyer)} bawah={fmtRpOpsional(totalTabel.cpb)} />
                         <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_purchase)} />
+                        <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_order)} />
                         <SelMetrik utama={fmtPersen(totalTabel.rasio_order_to_buyer)} />
                         <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <div style={{ fontWeight: 700 }}>{fmtRp(totalTabel.revenue)}</div>
@@ -569,6 +574,7 @@ export default function MetaAdsOverviewContent({
                             <SelMetrik utama={fmt(c.order)} bawah={fmtRpOpsional(c.cpo)} />
                             <SelMetrik utama={fmt(c.buyer)} bawah={fmtRpOpsional(c.cpb)} />
                             <SelMetrik utama={fmtPersen(c.rasio_lead_to_purchase)} />
+                            <SelMetrik utama={fmtPersen(c.rasio_lead_to_order)} />
                             <SelMetrik utama={fmtPersen(c.rasio_order_to_buyer)} />
                             <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                               <div style={{ fontWeight: 600 }}>{fmtRp(c.revenue)}</div>
@@ -577,7 +583,7 @@ export default function MetaAdsOverviewContent({
                               <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(c.roas), marginTop: 2 }}>{fmtRoas(c.roas)}</div>
                             </td>
                           </tr>
-                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={13} />}
+                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={14} />}
                         </Fragment>
                       );
                     })}
