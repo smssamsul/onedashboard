@@ -178,9 +178,7 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
         </div>
         {produk.length === 0 ? (
           <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>
-            {campaign.lokasi
-              ? `Tidak ada produk aktif dengan keyword lokasi "${campaign.lokasi}". Kolom order, buyer, dan ROAS jadi kosong.`
-              : "Nama campaign tidak menyebut kota, jadi tidak bisa dipasangkan ke produk. Kolom order, buyer, dan ROAS jadi kosong."}
+            {`Tidak ada produk aktif yang namanya mengandung "${campaign.name || "nama campaign ini"}". Order hanya bisa masuk lewat utm_campaign.`}
           </p>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -312,6 +310,7 @@ export default function MetaAdsOverviewContent({
       cpo: bagi(spendPpn, order),
       cpb: bagi(spendPpn, buyer),
       rasio_lead_to_purchase: bulat2(leads > 0 ? (purchase / leads) * 100 : null),
+      rasio_lead_to_order: bulat2(leads > 0 ? (order / leads) * 100 : null),
       rasio_order_to_buyer: bulat2(order > 0 ? (buyer / order) * 100 : null),
       roas: bagi(revenue, spendPpn),
     };
@@ -451,8 +450,9 @@ export default function MetaAdsOverviewContent({
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
               Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.
-              Order, buyer, dan ROAS berasal dari order internal. Pencocokan utama memakai <b>utm_campaign</b> pada order;
-              order yang tidak membawa UTM baru dicocokkan lewat keyword lokasi pada nama campaign dan nama produk.
+              Order, buyer, dan ROAS berasal dari order internal. Hanya order yang membawa <b>utm_campaign</b> yang dihitung, supaya tiap
+              angka punya bukti asal dari iklan. Pencocokan dicoba berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign
+              mengandung nama campaign, terakhir nama campaign yang muncul di <b>nama produk</b> yang dibeli.
               Buyer &amp; revenue mencakup pembayaran <b>Paid</b> maupun <b>Waiting Approval</b>, jadi sebagian kecil masih bisa turun kalau finance menolak.
             </p>
             <div style={{ overflowX: "auto" }}>
@@ -470,6 +470,9 @@ export default function MetaAdsOverviewContent({
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPO</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Buyer<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPB</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Lead &rarr;<br />Purchase</th>
+                    {/* Ditaruh sebelum Order -> Buyer supaya corongnya terbaca berurutan
+                        dari kiri ke kanan: lead jadi order, order jadi buyer. */}
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads &rarr;<br />Order</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order &rarr;<br />Buyer</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Revenue<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>ROAS</span></th>
                   </tr>
@@ -477,7 +480,7 @@ export default function MetaAdsOverviewContent({
                 <tbody>
                   {campaigns.length === 0 ? (
                     <tr>
-                      <td colSpan={13} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                      <td colSpan={14} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
                         {loading
                           ? "Memuat..."
                           : tampilkanNonAktif
@@ -505,6 +508,7 @@ export default function MetaAdsOverviewContent({
                         <SelMetrik utama={fmt(totalTabel.order)} bawah={fmtRpOpsional(totalTabel.cpo)} />
                         <SelMetrik utama={fmt(totalTabel.buyer)} bawah={fmtRpOpsional(totalTabel.cpb)} />
                         <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_purchase)} />
+                        <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_order)} />
                         <SelMetrik utama={fmtPersen(totalTabel.rasio_order_to_buyer)} />
                         <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <div style={{ fontWeight: 700 }}>{fmtRp(totalTabel.revenue)}</div>
@@ -541,9 +545,9 @@ export default function MetaAdsOverviewContent({
                                         {c.order_dari_utm} via UTM
                                       </span>
                                     )}
-                                    {c.order_dari_lokasi > 0 && (
-                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Order tanpa UTM, dicocokkan lewat kesamaan nama kota pada campaign dan produk - perkiraan, bukan bukti">
-                                        {c.order_dari_lokasi} via lokasi
+                                    {c.order_dari_produk > 0 && (
+                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Dicocokkan lewat nama campaign yang muncul di nama produk yang dibeli - perkiraan, bukan bukti">
+                                        {c.order_dari_produk} via produk
                                       </span>
                                     )}
                                     {c.lokasi_dipakai_bersama && (
@@ -569,6 +573,7 @@ export default function MetaAdsOverviewContent({
                             <SelMetrik utama={fmt(c.order)} bawah={fmtRpOpsional(c.cpo)} />
                             <SelMetrik utama={fmt(c.buyer)} bawah={fmtRpOpsional(c.cpb)} />
                             <SelMetrik utama={fmtPersen(c.rasio_lead_to_purchase)} />
+                            <SelMetrik utama={fmtPersen(c.rasio_lead_to_order)} />
                             <SelMetrik utama={fmtPersen(c.rasio_order_to_buyer)} />
                             <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                               <div style={{ fontWeight: 600 }}>{fmtRp(c.revenue)}</div>
@@ -577,7 +582,7 @@ export default function MetaAdsOverviewContent({
                               <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(c.roas), marginTop: 2 }}>{fmtRoas(c.roas)}</div>
                             </td>
                           </tr>
-                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={13} />}
+                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={14} />}
                         </Fragment>
                       );
                     })}

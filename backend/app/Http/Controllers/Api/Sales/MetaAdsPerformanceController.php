@@ -158,13 +158,18 @@ class MetaAdsPerformanceController extends Controller
             ->get();
 
         $adSetPerCampaign = $this->ringkasanAdSet($campaigns->pluck('id'));
-        [$produkPerKota, $namaProduk] = $this->produkPerKota();
-        $agregatOrder = $this->agregatOrderPerCampaign($start, $end, $campaigns, $produkPerKota);
 
+        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
+        $namaProduk = $produkList->pluck('nama', 'id')->all();
+        $produkPerCampaign = $this->produkPerCampaign($campaigns, $produkList);
+        $agregatOrder = $this->agregatOrderPerCampaign($start, $end, $campaigns, $produkPerCampaign);
+
+        // Kota hanya dipakai untuk label & penanda "dipakai bersama" di UI.
+        // Pencocokan order sudah tidak lewat kota lagi.
         $lokasiCampaign = $campaigns->map(fn ($c) => app(LokasiKeywordService::class)->deteksiKota($c->name));
         $jumlahCampaignPerKota = $lokasiCampaign->filter()->countBy();
 
-        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $produkPerKota, $namaProduk, $agregatOrder, $jumlahCampaignPerKota) {
+        $data = $campaigns->map(function ($c) use ($adSetPerCampaign, $produkPerCampaign, $namaProduk, $agregatOrder, $jumlahCampaignPerKota) {
             $spend = (float) $c->spend;
             $spendPpn = round($spend * (1 + self::PPN_PERSEN / 100), 2);
 
@@ -174,9 +179,9 @@ class MetaAdsPerformanceController extends Controller
             $purchase = (int) $c->conversions;
 
             $kota = app(LokasiKeywordService::class)->deteksiKota($c->name);
-            $produkIds = $kota ? ($produkPerKota[$kota] ?? []) : [];
+            $produkIds = $produkPerCampaign[$c->id] ?? [];
 
-            $agg = $agregatOrder[$c->id] ?? ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_lokasi' => 0];
+            $agg = $agregatOrder[$c->id] ?? ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_produk' => 0];
             $order = (int) $agg['order'];
             $buyer = (int) $agg['buyer'];
             $revenue = (float) $agg['revenue'];
@@ -217,6 +222,9 @@ class MetaAdsPerformanceController extends Controller
 
                 // Rasio dalam persen
                 'rasio_lead_to_purchase' => $leads > 0 ? round(($purchase / $leads) * 100, 2) : null,
+                // Purchase datang dari Meta, order dari sistem internal. Keduanya
+                // dibandingkan ke leads yang sama supaya selisih keduanya kelihatan.
+                'rasio_lead_to_order' => $leads > 0 ? round(($order / $leads) * 100, 2) : null,
                 'rasio_order_to_buyer' => $order > 0 ? round(($buyer / $order) * 100, 2) : null,
 
                 'lokasi' => $kota,
@@ -227,11 +235,12 @@ class MetaAdsPerformanceController extends Controller
                 // Kalau satu kota diiklankan >1 campaign, order kota itu terhitung
                 // di tiap campaign — ditandai supaya tidak dibaca sebagai angka bersih.
                 'lokasi_dipakai_bersama' => $kota ? (($jumlahCampaignPerKota[$kota] ?? 0) > 1) : false,
-                // Dari mana order ini dicocokkan. Angka yang datang lewat UTM
-                // adalah bukti langsung; sisanya hasil tebakan nama kota, yang
-                // jauh lebih longgar. Ditampilkan supaya pembaca tahu bedanya.
+                // Dari mana order ini dicocokkan. Lewat UTM berarti order membawa
+                // jejak campaign asalnya (bukti langsung); lewat produk berarti
+                // ditebak dari kesamaan nama campaign dengan nama produk yang
+                // dibeli. Dipisah supaya pembaca tahu mana yang bisa dipercaya.
                 'order_dari_utm' => (int) $agg['dari_utm'],
-                'order_dari_lokasi' => (int) $agg['dari_lokasi'],
+                'order_dari_produk' => (int) $agg['dari_produk'],
             ];
         });
 
@@ -243,7 +252,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Pencocokan utama memakai utm_campaign pada order; order yang tidak membawa UTM dicocokkan lewat keyword lokasi pada nama campaign dan nama produk. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Hanya order yang membawa utm_campaign yang dihitung, supaya tiap angka punya bukti asal dari iklan. Pencocokan dicoba berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign, terakhir nama campaign yang muncul di nama produk yang dibeli. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -349,18 +358,39 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Produk aktif dikelompokkan per kota yang terdeteksi dari namanya.
+     * Produk yang diiklankan tiap campaign, dicocokkan dari nama campaign yang
+     * muncul di nama produk ("Webinar" ada di "Webinar Ternak Properti",
+     * "Gorontalo" ada di "Seminar Akuisisi Properti Gorontalo").
      *
-     * @return array{0: array<string, int[]>, 1: array<int, string>}
+     * Menggantikan pemetaan lewat daftar kota. Lebih umum: kota baru tidak perlu
+     * didaftarkan dulu, dan campaign non-kota (Webinar, Buku) ikut tertangani —
+     * dua hal yang dulu jadi lubang.
+     *
+     * Nama campaign yang terlalu pendek diabaikan; potongan 3 huruf gampang
+     * nyangkut di nama produk yang tidak ada hubungannya.
+     *
+     * @return array<int, int[]>  campaign id => daftar produk id
      */
-    private function produkPerKota(): array
+    private function produkPerCampaign($campaigns, $produkList): array
     {
-        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
+        $peta = [];
 
-        return [
-            app(LokasiKeywordService::class)->petakanProdukPerKota($produkList),
-            $produkList->pluck('nama', 'id')->all(),
-        ];
+        foreach ($campaigns as $c) {
+            $peta[$c->id] = [];
+            $nama = $this->normalisasi($c->name);
+
+            if (strlen($nama) < 4) {
+                continue;
+            }
+
+            foreach ($produkList as $p) {
+                if (str_contains($this->normalisasi($p->nama), $nama)) {
+                    $peta[$c->id][] = (int) $p->id;
+                }
+            }
+        }
+
+        return $peta;
     }
 
     /**
@@ -383,53 +413,70 @@ class MetaAdsPerformanceController extends Controller
      * angka buyer/revenue di sini sifatnya sementara sampai finance memutuskan.
      * Revenue dihitung hanya dari order buyer tersebut.
      *
-     * Dua lapis pencocokan, order hanya boleh masuk lewat salah satunya:
+     * Tiga lapis pencocokan, dicoba berurutan dari yang paling pasti. Order
+     * hanya masuk lewat lapis pertama yang berhasil:
      *
-     * 1. `utm_campaign` — order membawa jejak campaign asalnya, jadi ini bukti
-     *    langsung, bukan tebakan. Ini juga satu-satunya cara menghitung campaign
-     *    yang tidak menyebut kota (Webinar, Buku), karena pencocokan lokasi
-     *    mustahil menjangkaunya.
+     * 1. `utm_campaign` berisi ID campaign Meta (angka murni). Ini identitas
+     *    sesungguhnya, nol ambiguitas.
      *
-     * 2. Keyword lokasi — cadangan untuk order yang utm_campaign-nya kosong.
-     *    Perlu dipertahankan karena baru sekitar sepertiga order membawa UTM;
-     *    kalau lapis ini dibuang, order yang terhitung anjlok hampir separuh.
+     * 2. `utm_campaign` mengandung nama campaign ("seminarsurabaya" untuk
+     *    campaign "Surabaya"). Masih bukti langsung dari order.
      *
-     * Order yang PUNYA utm tapi tidak cocok ke campaign mana pun sengaja tidak
-     * jatuh ke lapis 2. Utm-nya sudah bilang order itu datang dari tempat lain,
-     * jadi menghitungnya lewat kesamaan nama kota justru salah alamat.
+     * 3. Nama produk yang dibeli mengandung nama campaign — TAPI hanya untuk
+     *    order yang tetap membawa utm_campaign. Ini menutup kasus penamaan UTM
+     *    yang meleset dari nama campaign: "seminarzoom" untuk produk "Webinar
+     *    Ternak Properti" yang diiklankan campaign "Webinar" tidak akan pernah
+     *    tertangkap lapis 2, padahal jelas berasal dari iklan.
      *
-     * @param  array<string, int[]>  $produkPerKota
-     * @return array<int, array{order: int, buyer: int, revenue: float, dari_utm: int, dari_lokasi: int}>
+     * Lapis 3 menggantikan pencocokan lewat daftar kota, yang punya dua lubang:
+     * kota baru harus didaftarkan manual, dan campaign non-kota (Webinar, Buku)
+     * mustahil dijangkau.
+     *
+     * Order TANPA utm_campaign sama sekali sengaja tidak dihitung ke campaign
+     * mana pun. Tanpa syarat itu, produk yang dijual sepanjang tahun lewat
+     * banyak jalur akan menyeret seluruh ordernya ke satu campaign: diuji di
+     * data produksi, campaign Buku mengklaim 18 order padahal cuma 1 yang
+     * terbukti dari iklan, dan Webinar melonjak jadi 118 dari 39. Lebih baik
+     * melaporkan angka yang lebih kecil tapi setiap barisnya punya bukti.
+     *
+     * Konsekuensinya campaign kota kehilangan order tanpa UTM. Obatnya bukan
+     * melonggarkan aturan ini, melainkan memastikan semua link iklan memakai
+     * UTM sejak awal.
+     *
+     * @param  array<int, int[]>  $produkPerCampaign  campaign id => produk id
+     * @return array<int, array{order: int, buyer: int, revenue: float, dari_utm: int, dari_produk: int}>
      */
-    private function agregatOrderPerCampaign(string $start, string $end, $campaigns, array $produkPerKota): array
+    private function agregatOrderPerCampaign(string $start, string $end, $campaigns, array $produkPerCampaign): array
     {
-        $svc = app(LokasiKeywordService::class);
-
         // Nama campaign ternormalisasi, diurutkan dari yang terpanjang: kalau
         // suatu saat ada campaign "Bandung" dan "Bandung2", yang lebih spesifik
         // yang menang, bukan yang kebetulan diperiksa duluan.
         $polaCampaign = [];
+        $idCampaign = [];
         foreach ($campaigns as $c) {
             $nama = $this->normalisasi($c->name);
             if ($nama !== '') {
                 $polaCampaign[] = ['id' => $c->id, 'pola' => $nama, 'panjang' => strlen($nama)];
             }
+            $idMeta = trim((string) $c->campaign_id);
+            if ($idMeta !== '') {
+                $idCampaign[$idMeta] = $c->id;
+            }
         }
         usort($polaCampaign, fn ($a, $b) => $b['panjang'] <=> $a['panjang']);
 
-        // Produk id => daftar campaign id yang kotanya cocok. Satu kota bisa
-        // dipakai beberapa campaign sekaligus (lihat lokasi_dipakai_bersama).
+        // Dibalik: produk id => daftar campaign id yang mengiklankannya. Satu
+        // produk bisa diiklankan lebih dari satu campaign sekaligus.
         $campaignPerProduk = [];
-        foreach ($campaigns as $c) {
-            $kota = $svc->deteksiKota($c->name);
-            foreach ($kota ? ($produkPerKota[$kota] ?? []) : [] as $produkId) {
-                $campaignPerProduk[(int) $produkId][] = $c->id;
+        foreach ($produkPerCampaign as $campaignId => $produkIds) {
+            foreach ($produkIds as $produkId) {
+                $campaignPerProduk[(int) $produkId][] = $campaignId;
             }
         }
 
         $hasil = [];
         foreach ($campaigns as $c) {
-            $hasil[$c->id] = ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_lokasi' => 0];
+            $hasil[$c->id] = ['order' => 0, 'buyer' => 0, 'revenue' => 0.0, 'dari_utm' => 0, 'dari_produk' => 0];
         }
 
         $orders = OrderCustomer::query()
@@ -438,20 +485,33 @@ class MetaAdsPerformanceController extends Controller
             ->get(['produk', 'utm_campaign', 'status_pembayaran', 'total_harga']);
 
         foreach ($orders as $o) {
+            $utmMentah = trim((string) $o->utm_campaign);
             $utm = $this->normalisasi($o->utm_campaign);
 
-            if ($utm !== '') {
-                $cocok = [];
+            $cocok = [];
+            $sumber = 'dari_utm';
+
+            // Lapis 1: utm berisi ID campaign Meta persis.
+            if ($utmMentah !== '' && isset($idCampaign[$utmMentah])) {
+                $cocok = [$idCampaign[$utmMentah]];
+            }
+
+            // Lapis 2: utm mengandung nama campaign.
+            if (!$cocok && $utm !== '') {
                 foreach ($polaCampaign as $p) {
                     if (str_contains($utm, $p['pola'])) {
-                        $cocok[] = $p['id'];
+                        $cocok = [$p['id']];
                         break; // pola terpanjang menang; sisanya pasti lebih umum
                     }
                 }
-                $sumber = 'dari_utm';
-            } else {
+            }
+
+            // Lapis 3: nama produk yang dibeli mengandung nama campaign.
+            // Syaratnya order tetap membawa utm_campaign — lihat catatan di
+            // docblock soal kenapa order tanpa UTM sama sekali tidak boleh masuk.
+            if (!$cocok && $utmMentah !== '') {
                 $cocok = $campaignPerProduk[(int) $o->produk] ?? [];
-                $sumber = 'dari_lokasi';
+                $sumber = 'dari_produk';
             }
 
             // 2 = Paid (finance approved), 1 = Waiting Approval (bukti sudah masuk,
