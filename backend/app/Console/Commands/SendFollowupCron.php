@@ -228,7 +228,8 @@ class SendFollowupCron extends Command
                         continue;
                     }
 
-                    $salesId = $order->customer_rel->sales_id ?? null;
+                    // Sales PIC order ini (ikut produk), fallback ke sales customer
+                    $salesId = $order->sales_id ?: ($order->customer_rel->sales_id ?? null);
                     $templateType = $template->type ?? '-';
                     $cumulativeDelay += rand($minDelaySeconds, $maxDelaySeconds);
 

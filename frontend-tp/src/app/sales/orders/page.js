@@ -75,6 +75,18 @@ function emptyUtmColumnSelections() {
 
 const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100, ORDER_LIST_PER_PAGE_ALL];
 
+// Sales PIC per order (ikut produk yang dibeli), fallback ke sales customer
+// untuk order lama yang belum punya sales_id sendiri.
+function getOrderSalesNama(order) {
+  return (
+    order?.sales_nama ||
+    order?.sales_rel?.nama ||
+    order?.customer_rel?.sales_rel?.nama ||
+    order?.customer_rel?.sales_nama ||
+    ""
+  );
+}
+
 function orderRowToExportRecord(order) {
   const statusOrderRaw = order.status_order ?? order.status;
   const sk = statusOrderRaw !== undefined && statusOrderRaw !== null ? String(statusOrderRaw) : "";
@@ -101,7 +113,7 @@ function orderRowToExportRecord(order) {
     "Total Harga": order.total_harga ?? "",
     "Total Dibayar": order.total_paid ?? "",
     Sisa: order.remaining ?? "",
-    Sales: order.customer_rel?.sales_rel?.nama || order.customer_rel?.sales_nama || "",
+    Sales: getOrderSalesNama(order) || "",
   };
   UTM_FILTER_FIELDS.forEach(({ key, label }) => {
     row[label] = order[key] != null && String(order[key]).trim() !== "" ? String(order[key]) : "";
@@ -1654,7 +1666,7 @@ export default function DaftarPesanan() {
                               {order.customer_rel?.wa ? `+${order.customer_rel.wa}` : "-"}
                             </span>
                             <span className="customer-detail" style={{ fontSize: "0.75rem", marginTop: "2px", color: "#64748b" }}>
-                              Sales: {order.customer_rel?.sales_rel?.nama || order.customer_rel?.sales_nama || "-"}
+                              Sales: {getOrderSalesNama(order) || "-"}
                             </span>
                           </div>
                         </td>
@@ -1725,7 +1737,7 @@ export default function DaftarPesanan() {
                         {/* Sales */}
                         <td>
                           <span style={{ fontSize: "0.875rem", color: "#111827" }}>
-                            {order.customer_rel?.sales_rel?.nama || order.customer_rel?.sales_nama || "-"}
+                            {getOrderSalesNama(order) || "-"}
                           </span>
                         </td>
 

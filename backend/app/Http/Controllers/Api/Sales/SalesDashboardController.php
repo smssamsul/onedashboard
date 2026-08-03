@@ -487,7 +487,7 @@ class SalesDashboardController extends Controller
                 ->whereHas('customer_rel', function($query) use ($salesId) {
                     $query->where('status', '!=', 'N');
                 })
-                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama'])
+                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama', 'sales_rel:id,nama'])
                 ->get();
 
             // Total customer yang order produk ini
@@ -519,7 +519,8 @@ class SalesDashboardController extends Controller
 
             // Group by sales untuk melihat distribusi per sales (untuk konsistensi format)
             $salesDistribution = $orders->groupBy(function($order) {
-                return $order->customer_rel->sales_id ?? 'unassigned';
+                // Sales PIC order (ikut produk), fallback ke sales customer
+                return $order->sales_id ?: ($order->customer_rel->sales_id ?? 'unassigned');
             })->map(function($salesOrders, $salesId) {
                 $salesPaid = $salesOrders->filter(function($order) {
                     return ($order->status_pembayaran == '2' || $order->status_order == '2');
@@ -558,8 +559,8 @@ class SalesDashboardController extends Controller
                     'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
                     'customer_email' => $order->customer_rel->email ?? null,
                     'customer_wa' => $order->customer_rel->wa ?? null,
-                    'sales_id' => $order->customer_rel->sales_id ?? null,
-                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'sales_id' => $order->sales_id ?: ($order->customer_rel->sales_id ?? null),
+                    'sales_nama' => $order->sales_rel->nama ?? $order->customer_rel->sales_rel->nama ?? 'Unassigned',
                     'order_id' => $order->id,
                     'total_harga' => (float) ($order->total_harga ?? 0),
                     'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
@@ -575,8 +576,8 @@ class SalesDashboardController extends Controller
                     'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
                     'customer_email' => $order->customer_rel->email ?? null,
                     'customer_wa' => $order->customer_rel->wa ?? null,
-                    'sales_id' => $order->customer_rel->sales_id ?? null,
-                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'sales_id' => $order->sales_id ?: ($order->customer_rel->sales_id ?? null),
+                    'sales_nama' => $order->sales_rel->nama ?? $order->customer_rel->sales_rel->nama ?? 'Unassigned',
                     'order_id' => $order->id,
                     'total_harga' => (float) ($order->total_harga ?? 0),
                     'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
@@ -670,7 +671,7 @@ class SalesDashboardController extends Controller
                 ->whereHas('customer_rel', function($query) {
                     $query->where('status', '!=', 'N');
                 })
-                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama'])
+                ->with(['customer_rel:id,nama,email,wa,sales_id', 'customer_rel.sales_rel:id,nama', 'sales_rel:id,nama'])
                 ->get();
 
             // Total customer yang order produk ini
@@ -702,7 +703,8 @@ class SalesDashboardController extends Controller
 
             // Group by sales untuk melihat distribusi per sales
             $salesDistribution = $orders->groupBy(function($order) {
-                return $order->customer_rel->sales_id ?? 'unassigned';
+                // Sales PIC order (ikut produk), fallback ke sales customer
+                return $order->sales_id ?: ($order->customer_rel->sales_id ?? 'unassigned');
             })->map(function($salesOrders, $salesId) {
                 $salesPaid = $salesOrders->filter(function($order) {
                     return ($order->status_pembayaran == '2' || $order->status_order == '2');
@@ -741,8 +743,8 @@ class SalesDashboardController extends Controller
                     'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
                     'customer_email' => $order->customer_rel->email ?? null,
                     'customer_wa' => $order->customer_rel->wa ?? null,
-                    'sales_id' => $order->customer_rel->sales_id ?? null,
-                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'sales_id' => $order->sales_id ?: ($order->customer_rel->sales_id ?? null),
+                    'sales_nama' => $order->sales_rel->nama ?? $order->customer_rel->sales_rel->nama ?? 'Unassigned',
                     'order_id' => $order->id,
                     'total_harga' => (float) ($order->total_harga ?? 0),
                     'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),
@@ -758,8 +760,8 @@ class SalesDashboardController extends Controller
                     'customer_nama' => $order->customer_rel->nama ?? 'Unknown',
                     'customer_email' => $order->customer_rel->email ?? null,
                     'customer_wa' => $order->customer_rel->wa ?? null,
-                    'sales_id' => $order->customer_rel->sales_id ?? null,
-                    'sales_nama' => $order->customer_rel->sales_rel->nama ?? 'Unassigned',
+                    'sales_id' => $order->sales_id ?: ($order->customer_rel->sales_id ?? null),
+                    'sales_nama' => $order->sales_rel->nama ?? $order->customer_rel->sales_rel->nama ?? 'Unassigned',
                     'order_id' => $order->id,
                     'total_harga' => (float) ($order->total_harga ?? 0),
                     'total_harga_formatted' => 'Rp ' . number_format((float) ($order->total_harga ?? 0), 0, ',', '.'),

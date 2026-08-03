@@ -26,10 +26,7 @@ class OrderUtmController extends Controller
         $isStaffSales = $user && (string) $user->divisi === '3' && (string) $user->level === '2';
 
         if ($isStaffSales) {
-            $query->whereHas('customer_rel', function ($q) use ($user) {
-                $q->where('sales_id', $user->id)
-                    ->where('status', '!=', 'N');
-            });
+            $query->ownedBySales($user->id);
         }
         
         // Filter berdasarkan Produk ID

@@ -74,6 +74,9 @@ class OrderCustomerController extends Controller
                 ->orWhereHas('produk_rel', function($produkQuery) use ($search) {
                     $produkQuery->where('nama', 'like', '%' . $search . '%');
                 })
+                ->orWhereHas('sales_rel', function($salesQuery) use ($search) {
+                    $salesQuery->where('nama', 'like', '%' . $search . '%');
+                })
                 ->orWhereHas('customer_rel.sales_rel', function($salesQuery) use ($search) {
                     $salesQuery->where('nama', 'like', '%' . $search . '%');
                 })
@@ -182,6 +185,7 @@ class OrderCustomerController extends Controller
             'produk_rel:id,nama,fee_trainer',
             'customer_rel:id,nama,wa,sales_id',
             'customer_rel.sales_rel:id,nama',
+            'sales_rel:id,nama',
             'order_payment_rel:id,order_id,amount,status,payment_method,payment_type,payment_ke,tanggal,bukti_pembayaran,nama_pengirim,no_rek_pengirim,create_at',
             'bundling_rel:id,produk,nama,harga,status',
             'logs_follup:id,customer,order,type,status',
@@ -237,6 +241,11 @@ class OrderCustomerController extends Controller
                 $order->status_pembayaran = null;
             }
             
+            // Nama sales order ini (per produk), fallback ke sales customer
+            $order->sales_nama = $order->sales_rel->nama
+                ?? $order->customer_rel->sales_rel->nama
+                ?? null;
+
             // Tambahkan nama sales ke dalam customer_rel
             if ($order->customer_rel) {
                 if ($order->customer_rel->sales_rel) {
@@ -321,82 +330,58 @@ class OrderCustomerController extends Controller
 
     public function statistiOrderPerSales()
     {
-        // Ambil semua sales_id yang unik dari customer yang memiliki order
-        $salesIds = Customer::whereHas('orders', function($query) {
-                $query->where('status', '!=', 'N');
+        // Sales dihitung dari order (sales_id per order), digabung dengan sales
+        // customer untuk order lama yang sales_id-nya masih kosong
+        $salesIdsFromOrder = OrderCustomer::query()
+            ->where('status', '!=', 'N')
+            ->whereNotNull('sales_id')
+            ->distinct()
+            ->pluck('sales_id');
+
+        $salesIdsFromCustomer = Customer::whereHas('orders', function($query) {
+                $query->where('status', '!=', 'N')
+                      ->whereNull('sales_id');
             })
             ->where('status', '!=', 'N')
             ->whereNotNull('sales_id')
             ->distinct()
             ->pluck('sales_id');
 
+        $salesIds = $salesIdsFromOrder->merge($salesIdsFromCustomer)->unique()->values();
+
         $result = [];
 
         foreach ($salesIds as $salesId) {
             // Ambil data sales
             $sales = User::find($salesId);
-            
-            // Query order melalui customer yang memiliki sales_id ini
-            $totalOrder = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status', '!=', 'N')
-                ->count();
-            
-            $totalOrderUnpaid = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status', '!=', 'N')
+
+            $baseQuery = fn() => OrderCustomer::ownedBySales($salesId)->where('status', '!=', 'N');
+
+            $totalOrder = $baseQuery()->count();
+
+            $totalOrderUnpaid = $baseQuery()
                 ->where(function($q) {
                     $q->where('status_pembayaran', '0')
                       ->orWhereNull('status_pembayaran');
                 })
                 ->count();
 
-            $totalMenungguValidasi = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status_pembayaran', '1')
-                ->where('status', '!=', 'N')
-                ->count();
+            $totalMenungguValidasi = $baseQuery()->where('status_pembayaran', '1')->count();
 
-            $totalSudahDiapprove = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status_pembayaran', '2')
-                ->where('status', '!=', 'N')
-                ->count();
+            $totalSudahDiapprove = $baseQuery()->where('status_pembayaran', '2')->count();
 
-            $totalDitolak = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status_pembayaran', '3')
-                ->where('status', '!=', 'N')
-                ->count();
+            $totalDitolak = $baseQuery()->where('status_pembayaran', '3')->count();
 
             // Hitung revenue dari order yang sudah diapprove
             // Cast total_harga ke numeric untuk PostgreSQL
-            $revenue = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
+            $revenue = $baseQuery()
                 ->where('status_pembayaran', '2')
-                ->where('status', '!=', 'N')
                 ->selectRaw('SUM(CAST(total_harga AS numeric)) as total')
                 ->value('total') ?? 0;
 
             // Hitung total revenue dari semua order (optional)
             // Cast total_harga ke numeric untuk PostgreSQL
-            $totalRevenue = OrderCustomer::whereHas('customer_rel', function($query) use ($salesId) {
-                    $query->where('sales_id', $salesId)
-                          ->where('status', '!=', 'N');
-                })
-                ->where('status', '!=', 'N')
+            $totalRevenue = $baseQuery()
                 ->selectRaw('SUM(CAST(total_harga AS numeric)) as total')
                 ->value('total') ?? 0;
 
@@ -431,7 +416,9 @@ class OrderCustomerController extends Controller
             // Jangan ambil landingpage (besar) di response order show
             'produk_rel:id,nama,fee_trainer,kategori,event_fb_pixel',
             'produk_rel.kategori_rel:id,nama',
-            'customer_rel:id,nama,wa',
+            'customer_rel:id,nama,wa,sales_id',
+            'customer_rel.sales_rel:id,nama',
+            'sales_rel:id,nama',
             'bundling_rel:id,produk,nama,harga,status',
             'order_resi:id,order_id,meta,waybill_id,courier_company,courier_type,status'
         ])->withSum([
@@ -671,9 +658,13 @@ class OrderCustomerController extends Controller
                 'update_at' => now(),
             ];
 
-            // Backfill sales_id jika customer lama belum pernah punya sales_id
-            if (empty($existingCustomer->sales_id)) {
-                $updateData['sales_id'] = $this->getNextSalesId((int) $request->produk);
+            // Sales ikut produk yang dibeli sekarang, jadi customer lama bisa pindah PIC
+            $orderSalesId = $this->resolveSalesIdForOrder(
+                (int) $request->produk,
+                $existingCustomer->sales_id ? (int) $existingCustomer->sales_id : null
+            );
+            if ($orderSalesId && (int) $existingCustomer->sales_id !== (int) $orderSalesId) {
+                $updateData['sales_id'] = $orderSalesId;
             }
 
             // Update nama jika berbeda
@@ -737,6 +728,7 @@ class OrderCustomerController extends Controller
 
             // Sales dari assign produk: 0/2+ round-robin, 1 sales tetap
             $sales_id = $this->getNextSalesId((int) $request->produk);
+            $orderSalesId = $sales_id;
 
             $customer = Customer::create([
                 'nama'      => $request->nama,
@@ -768,7 +760,7 @@ class OrderCustomerController extends Controller
 
         $now = now();
         $generatedKodeOrder = null;
-        $order = DB::transaction(function () use ($request, $customer, $hargaOrder, $totalHarga, $customValue, $statusPembayaran, $now, &$generatedKodeOrder) {
+        $order = DB::transaction(function () use ($request, $customer, $orderSalesId, $hargaOrder, $totalHarga, $customValue, $statusPembayaran, $now, &$generatedKodeOrder) {
             $kodeOrder = $this->generateKodeOrder(Carbon::parse($now));
             $generatedKodeOrder = $kodeOrder;
 
@@ -777,6 +769,7 @@ class OrderCustomerController extends Controller
 
             $created = OrderCustomer::create([
                 'customer' => $customer->id,
+                'sales_id' => $orderSalesId,
                 'produk' => $request->produk,
                 'kode_order' => $kodeOrder,
                 'tanggal' => $now,
@@ -1029,6 +1022,7 @@ class OrderCustomerController extends Controller
 
         $customerId = $request->customer ? (int) $request->customer : null;
         $produkId = (int) $request->produk;
+        $orderSalesId = null;
 
         if ($customerId) {
             $dupOrder = $this->findActiveOrderForCustomerProduct($customerId, $produkId);
@@ -1080,6 +1074,7 @@ class OrderCustomerController extends Controller
                 $sales_id = $staffSalesUserId !== null
                     ? $staffSalesUserId
                     : ($request->sales_id ?? $roundRobinSalesId);
+                $orderSalesId = $sales_id;
 
                 $customer = Customer::create([
                     'nama'      => $request->nama,
@@ -1117,11 +1112,19 @@ class OrderCustomerController extends Controller
                 ]);
             }
 
-            // Backfill sales_id jika customer lama belum pernah punya sales_id
-            if (empty($existingCustomer->sales_id)) {
-                $existingCustomer->update([
-                    'sales_id' => $this->getNextSalesId((int) $request->produk),
-                ]);
+            // Customer lama: sales ikut assign produk yang dibeli sekarang
+            if ($orderSalesId === null) {
+                $orderSalesId = $this->resolveSalesIdForOrder(
+                    $produkId,
+                    $existingCustomer->sales_id ? (int) $existingCustomer->sales_id : null
+                );
+
+                if ($orderSalesId && (int) $existingCustomer->sales_id !== (int) $orderSalesId) {
+                    $existingCustomer->update([
+                        'sales_id' => $orderSalesId,
+                        'update_at' => now(),
+                    ]);
+                }
             }
         }
 
@@ -1129,7 +1132,7 @@ class OrderCustomerController extends Controller
 
         $now = now();
         $generatedKodeOrder = null;
-        $order = DB::transaction(function () use ($request, $customerId, $hargaOrder, $totalHargaOrder, $customValue, $now, &$generatedKodeOrder) {
+        $order = DB::transaction(function () use ($request, $customerId, $orderSalesId, $hargaOrder, $totalHargaOrder, $customValue, $now, &$generatedKodeOrder) {
             $kodeOrder = $this->generateKodeOrder(Carbon::parse($now));
             $generatedKodeOrder = $kodeOrder;
 
@@ -1138,6 +1141,7 @@ class OrderCustomerController extends Controller
 
             $orderData = [
                 'customer'      => $customerId,
+                'sales_id'      => $orderSalesId,
                 'produk'        => $request->produk,
                 'kode_order'    => $kodeOrder,
                 'tanggal'       => $now,
@@ -1764,18 +1768,44 @@ class OrderCustomerController extends Controller
         return app(SalesRoundRobinService::class)->getNextSalesId($produkId);
     }
 
+    private function resolveSalesIdForOrder(?int $produkId, ?int $currentSalesId = null): ?int
+    {
+        return app(SalesRoundRobinService::class)->resolveSalesIdForOrder($produkId, $currentSalesId);
+    }
+
     /**
      * Ambil woowa_key dari sales berdasarkan customer
      * Jika tidak ditemukan, fallback ke SalesSetting::getWoowaUtama()
      */
     private function getWoowaKeyFromSales($customer)
     {
-        if (!$customer || !$customer->sales_id) {
+        $salesId = $customer->sales_id ?? null;
+
+        return $this->getWoowaKeyBySalesId($salesId ? (int) $salesId : null);
+    }
+
+    /**
+     * Sales PIC sebuah order: sales_id order, fallback ke sales customer
+     * (untuk order lama yang belum punya sales_id sendiri).
+     */
+    private function resolveOrderSalesId($order): ?int
+    {
+        $salesId = $order->sales_id ?? null;
+        if (empty($salesId)) {
+            $salesId = $order->customer_rel->sales_id ?? null;
+        }
+
+        return $salesId ? (int) $salesId : null;
+    }
+
+    private function getWoowaKeyBySalesId(?int $salesId)
+    {
+        if (!$salesId) {
             return \App\Models\SalesSetting::getWoowaUtama();
         }
 
-        $sales = Sales::where('user_id', $customer->sales_id)->first();
-        
+        $sales = Sales::where('user_id', $salesId)->first();
+
         if ($sales && $sales->woowa_key) {
             return $sales->woowa_key;
         }
@@ -1800,15 +1830,12 @@ class OrderCustomerController extends Controller
             ], 403);
         }
 
-        // Ambil order berdasarkan sales_id melalui customer
+        // Ambil order milik sales ini (sales_id order, fallback sales customer)
         $query = OrderCustomer::with([
             'produk_rel:id,nama,fee_trainer',
             'customer_rel:id,nama,email,wa,pendapatan_bln',
         ])
-        ->whereHas('customer_rel', function($q) use ($user) {
-            $q->where('sales_id', $user->id)
-              ->where('status', '!=', 'N');
-        })
+        ->ownedBySales($user->id)
         ->where('status', '!=', 'N');
 
         // Filter berdasarkan search
@@ -1900,10 +1927,7 @@ class OrderCustomerController extends Controller
                 ->where($col, '!=', '');
 
             if ($isStaffSales) {
-                $q->whereHas('customer_rel', function ($sub) use ($user) {
-                    $sub->where('sales_id', $user->id)
-                        ->where('status', '!=', 'N');
-                });
+                $q->ownedBySales($user->id);
             }
 
             $out[$col] = $q->select($col)
@@ -1976,12 +2000,9 @@ class OrderCustomerController extends Controller
             ], 403);
         }
 
-        // Ambil order berdasarkan sales_id
+        // Ambil order milik sales ini (sales_id order, fallback sales customer)
         $query = OrderCustomer::with('customer_rel')
-            ->whereHas('customer_rel', function($q) use ($user) {
-                $q->where('sales_id', $user->id)
-                  ->where('status', '!=', 'N');
-            })
+            ->ownedBySales($user->id)
             ->where('status', '!=', 'N')
             ->whereHas('customer_rel', function($q) {
                 $q->whereNotNull('wa')
@@ -2015,10 +2036,10 @@ class OrderCustomerController extends Controller
             }
 
             try {
-                $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel);
+                $salesId = $this->resolveOrderSalesId($order);
+                $woowaKey = $this->getWoowaKeyBySalesId($salesId);
 
                 $waSender = app(\App\Services\WhatsAppSenderService::class);
-                $salesId = $order->customer_rel->sales_id ?? null;
                 $response = $waSender->sendMessage($order->customer_rel->wa, $request->message, $salesId, $woowaKey);
 
                 if ($response->successful()) {
@@ -2107,14 +2128,15 @@ class OrderCustomerController extends Controller
             ], 400);
         }
 
-        $woowaKey = $this->getWoowaKeyFromSales($order->customer_rel);
-        
+        $orderSalesId = $this->resolveOrderSalesId($order);
+        $woowaKey = $this->getWoowaKeyBySalesId($orderSalesId);
+
         if (!$woowaKey) {
             \Log::error('Send WhatsApp - Konfigurasi WhatsApp tidak ditemukan', [
                 'order_id' => $orderId,
                 'user_id' => Auth::id(),
                 'customer_id' => $order->customer_rel->id ?? null,
-                'sales_id' => $order->customer_rel->sales_id ?? null
+                'sales_id' => $orderSalesId
             ]);
             
             return response()->json([
@@ -2125,7 +2147,7 @@ class OrderCustomerController extends Controller
 
         try {
             $waSender = app(\App\Services\WhatsAppSenderService::class);
-            $salesId = $order->customer_rel->sales_id ?? null;
+            $salesId = $orderSalesId;
             $response = $waSender->sendMessage($order->customer_rel->wa, $request->message, $salesId, $woowaKey);
 
             if ($response->successful()) {
