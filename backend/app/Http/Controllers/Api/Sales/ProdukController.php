@@ -300,6 +300,11 @@ class ProdukController extends Controller
             ->when(!$request->boolean('quick_order'), function ($q) {
                 $q->whereNotNull('landingpage');
             })
+            // Order Cepat cuma boleh pakai produk berstatus Active (1),
+            // bukan sekadar "belum dihapus" (!= 'N').
+            ->when($request->boolean('quick_order'), function ($q) {
+                $q->where('status', '1');
+            })
             ->where('status', '!=', 'N')
             ->orderBy('create_at', 'desc');
 
