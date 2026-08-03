@@ -22,6 +22,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CancelUnpaidOrdersCron::class,
         \App\Console\Commands\SendScheduledBroadcastCron::class,
         \App\Console\Commands\SyncMetaAdsInsights::class,
+        \App\Console\Commands\NormalisasiUtmSource::class,
     ];
 
     protected function schedule(Schedule $schedule)
