@@ -9,6 +9,22 @@ import { useRouter } from "next/navigation";
  */
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
 
+/**
+ * Halaman pembayaran selalu di app.ternakproperti.com (sama seperti alur /ws).
+ * Landing page yang sama juga dilayani dari domain lain (mis. ternakproperti.com/p/<kode>),
+ * dan di domain itu path /payment tidak mengarah ke halaman pembayaran yang benar.
+ * Payment page sudah membaca order dari query string, jadi aman lintas-origin
+ * walau localStorage tidak ikut terbawa.
+ */
+const PAYMENT_ORIGIN = "https://app.ternakproperti.com";
+
+/** Di localhost tetap relatif supaya alur order bisa dites tanpa lompat ke produksi. */
+function buildPaymentUrl(query) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+    return `${isLocal ? "" : PAYMENT_ORIGIN}/payment?${query}`;
+}
+
 export function useProductForm({
     productData,
     shippingState, // We still keep this for ongkir value in payload
@@ -183,8 +199,8 @@ export function useProductForm({
                 localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
 
                 toast.success("[TEST MODE] Lanjut ke pembayaran...");
-                // Path relatif (tetap di origin yang sama) + bawa metode di URL supaya tidak hilang saat redirect
-                window.location.href = `/payment?order_id=${dummyOrderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`;
+                // Metode ikut dibawa di URL supaya tidak hilang saat redirect
+                window.location.href = buildPaymentUrl(`order_id=${dummyOrderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`);
                 return; // STOP di sini, jangan kirim data betulan
             }
 
@@ -239,8 +255,8 @@ export function useProductForm({
             localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
 
             toast.success("Order berhasil! Lanjut ke pembayaran...");
-            // Path relatif (tetap di origin yang sama) + bawa metode di URL supaya tidak hilang saat redirect
-            window.location.href = `/payment?order_id=${orderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`;
+            // Metode ikut dibawa di URL supaya tidak hilang saat redirect
+            window.location.href = buildPaymentUrl(`order_id=${orderId}&harga=${totalHarga}&metode=${encodeURIComponent(paymentMethod)}`);
 
         } catch (err) {
             console.error("[SUBMIT ERROR]", err);
