@@ -243,7 +243,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Pencocokan utama memakai utm_campaign pada order; order yang tidak membawa UTM dicocokkan lewat keyword lokasi pada nama campaign dan nama produk. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Pencocokan utama memakai utm_campaign pada order; order yang tidak membawa UTM dicocokkan lewat keyword lokasi pada nama campaign dan nama produk. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -375,8 +375,13 @@ class MetaAdsPerformanceController extends Controller
 
     /**
      * Agregat order internal per campaign dalam rentang tanggal.
-     * Buyer = order yang pembayarannya sudah diapprove (status_pembayaran = 2),
-     * revenue dihitung hanya dari order buyer tersebut.
+     * Buyer = order yang pembayarannya sudah diapprove finance (status_pembayaran = 2)
+     * ATAU sedang menunggu approval (status_pembayaran = 1). Waiting approval ikut
+     * dihitung karena buktinya sudah masuk dan tinggal diverifikasi — kalau dibiarkan
+     * di luar, campaign yang ordernya baru masuk terlihat mandul padahal cuma sedang
+     * antre di finance. Konsekuensinya sebagian kecil bisa berakhir Rejected, jadi
+     * angka buyer/revenue di sini sifatnya sementara sampai finance memutuskan.
+     * Revenue dihitung hanya dari order buyer tersebut.
      *
      * Dua lapis pencocokan, order hanya boleh masuk lewat salah satunya:
      *
@@ -449,7 +454,9 @@ class MetaAdsPerformanceController extends Controller
                 $sumber = 'dari_lokasi';
             }
 
-            $adalahBuyer = (string) $o->status_pembayaran === '2';
+            // 2 = Paid (finance approved), 1 = Waiting Approval (bukti sudah masuk,
+            // menunggu verifikasi). Unpaid/Rejected/DP tetap di luar.
+            $adalahBuyer = in_array((string) $o->status_pembayaran, ['2', '1'], true);
             foreach ($cocok as $campaignId) {
                 $hasil[$campaignId]['order']++;
                 $hasil[$campaignId][$sumber]++;
