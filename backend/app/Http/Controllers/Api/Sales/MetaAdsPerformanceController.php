@@ -20,6 +20,19 @@ class MetaAdsPerformanceController extends Controller
     /** PPN yang ditagihkan Meta di atas biaya iklan. */
     private const PPN_PERSEN = 11;
 
+    /**
+     * utm_source yang TIDAK dianggap berasal dari iklan berbayar, jadi ordernya
+     * tidak boleh diklaim campaign mana pun:
+     *   sosmedtp / sosmedda  postingan sosial media organik
+     *   website              pengunjung yang datang sendiri ke situs
+     *
+     * Sisanya dihitung — termasuk `lpwa` (landing page ke WhatsApp), jalur iklan
+     * terbesar kedua yang ordernya tidak pernah membawa utm_campaign.
+     *
+     * Tambah di sini kalau muncul sumber baru yang bukan iklan.
+     */
+    private const SUMBER_BUKAN_IKLAN = ['sosmedda', 'sosmedtp', 'website'];
+
     public function __construct()
     {
         $this->middleware('auth:api');
@@ -252,7 +265,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Hanya order yang membawa utm_campaign yang dihitung, supaya tiap angka punya bukti asal dari iklan. Pencocokan dicoba berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign, terakhir nama campaign yang muncul di nama produk yang dibeli. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Order dari sumber non-iklan (' . implode(', ', self::SUMBER_BUKAN_IKLAN) . ') tidak dihitung. Sisanya dicocokkan berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign, terakhir nama campaign yang muncul di nama produk yang dibeli. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -422,26 +435,24 @@ class MetaAdsPerformanceController extends Controller
      * 2. `utm_campaign` mengandung nama campaign ("seminarsurabaya" untuk
      *    campaign "Surabaya"). Masih bukti langsung dari order.
      *
-     * 3. Nama produk yang dibeli mengandung nama campaign — TAPI hanya untuk
-     *    order yang tetap membawa utm_campaign. Ini menutup kasus penamaan UTM
-     *    yang meleset dari nama campaign: "seminarzoom" untuk produk "Webinar
-     *    Ternak Properti" yang diiklankan campaign "Webinar" tidak akan pernah
-     *    tertangkap lapis 2, padahal jelas berasal dari iklan.
+     * 3. Nama produk yang dibeli mengandung nama campaign. Menutup dua kasus:
+     *    penamaan utm_campaign yang meleset dari nama campaign ("seminarzoom"
+     *    untuk produk "Webinar Ternak Properti" yang diiklankan campaign
+     *    "Webinar"), dan sumber trafik yang memang tidak pernah membawa
+     *    utm_campaign sama sekali — lihat catatan lpwa di bawah.
      *
      * Lapis 3 menggantikan pencocokan lewat daftar kota, yang punya dua lubang:
      * kota baru harus didaftarkan manual, dan campaign non-kota (Webinar, Buku)
      * mustahil dijangkau.
      *
-     * Order TANPA utm_campaign sama sekali sengaja tidak dihitung ke campaign
-     * mana pun. Tanpa syarat itu, produk yang dijual sepanjang tahun lewat
-     * banyak jalur akan menyeret seluruh ordernya ke satu campaign: diuji di
-     * data produksi, campaign Buku mengklaim 18 order padahal cuma 1 yang
-     * terbukti dari iklan, dan Webinar melonjak jadi 118 dari 39. Lebih baik
-     * melaporkan angka yang lebih kecil tapi setiap barisnya punya bukti.
+     * Yang menentukan order boleh dihitung atau tidak adalah utm_source, bukan
+     * ada-tidaknya utm_campaign. Sumber terbesar kedua adalah `lpwa` (landing
+     * page ke WhatsApp) dengan 181 order dalam 90 hari, dan TIDAK SATU PUN
+     * membawa utm_campaign — padahal itu jalur iklan. Menyaring lewat
+     * utm_campaign membuang seluruhnya.
      *
-     * Konsekuensinya campaign kota kehilangan order tanpa UTM. Obatnya bukan
-     * melonggarkan aturan ini, melainkan memastikan semua link iklan memakai
-     * UTM sejak awal.
+     * Yang dibuang justru sumber yang bukan iklan berbayar; lihat
+     * SUMBER_BUKAN_IKLAN.
      *
      * @param  array<int, int[]>  $produkPerCampaign  campaign id => produk id
      * @return array<int, array{order: int, buyer: int, revenue: float, dari_utm: int, dari_produk: int}>
@@ -482,9 +493,15 @@ class MetaAdsPerformanceController extends Controller
         $orders = OrderCustomer::query()
             ->where('status', '!=', 'N')
             ->whereBetween(DB::raw('DATE(create_at)'), [$start, $end])
-            ->get(['produk', 'utm_campaign', 'status_pembayaran', 'total_harga']);
+            ->get(['produk', 'utm_campaign', 'utm_source', 'status_pembayaran', 'total_harga']);
 
         foreach ($orders as $o) {
+            // Order dari sumber non-iklan tidak boleh diklaim campaign mana pun,
+            // berapa pun cocoknya nama produk atau UTM-nya.
+            if (in_array(strtolower(trim((string) $o->utm_source)), self::SUMBER_BUKAN_IKLAN, true)) {
+                continue;
+            }
+
             $utmMentah = trim((string) $o->utm_campaign);
             $utm = $this->normalisasi($o->utm_campaign);
 
@@ -507,9 +524,7 @@ class MetaAdsPerformanceController extends Controller
             }
 
             // Lapis 3: nama produk yang dibeli mengandung nama campaign.
-            // Syaratnya order tetap membawa utm_campaign — lihat catatan di
-            // docblock soal kenapa order tanpa UTM sama sekali tidak boleh masuk.
-            if (!$cocok && $utmMentah !== '') {
+            if (!$cocok) {
                 $cocok = $campaignPerProduk[(int) $o->produk] ?? [];
                 $sumber = 'dari_produk';
             }
