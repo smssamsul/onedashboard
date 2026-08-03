@@ -33,6 +33,26 @@ class MetaAdsPerformanceController extends Controller
      */
     private const SUMBER_BUKAN_IKLAN = ['sosmedda', 'sosmedtp', 'website'];
 
+    /**
+     * Campaign yang daftar produknya ditentukan manual, menimpa pencocokan
+     * otomatis lewat nama. Kunci = nama campaign yang sudah dinormalisasi
+     * (huruf kecil, tanpa spasi/tanda baca), isi = daftar produk id.
+     *
+     * Dipakai kalau pencocokan nama terlalu longgar. Contoh nyata: campaign
+     * "Webinar" ikut menyambar "Webinar Ternak Profit - Seminar Saham" — produk
+     * seminar saham yang tidak ada hubungannya — plus satu duplikat
+     * "Webinar Ternak Properti" (id 39) yang tidak terpakai. Nama produk di
+     * sini banyak yang mirip ("Ternak Properti" vs "Ternak Profit" beda satu
+     * huruf), jadi tidak ada aturan otomatis yang bisa memisahkannya dengan
+     * aman.
+     *
+     * Daftar kosong berarti campaign itu TIDAK boleh dicocokkan lewat nama
+     * produk sama sekali; ordernya hanya bisa masuk lewat utm_campaign.
+     */
+    private const PRODUK_CAMPAIGN_MANUAL = [
+        'webinar' => [40],
+    ];
+
     public function __construct()
     {
         $this->middleware('auth:api');
@@ -382,15 +402,29 @@ class MetaAdsPerformanceController extends Controller
      * Nama campaign yang terlalu pendek diabaikan; potongan 3 huruf gampang
      * nyangkut di nama produk yang tidak ada hubungannya.
      *
+     * Campaign yang terdaftar di PRODUK_CAMPAIGN_MANUAL memakai daftar itu apa
+     * adanya dan tidak ikut pencocokan otomatis.
+     *
      * @return array<int, int[]>  campaign id => daftar produk id
      */
     private function produkPerCampaign($campaigns, $produkList): array
     {
         $peta = [];
+        $idProdukAktif = $produkList->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         foreach ($campaigns as $c) {
             $peta[$c->id] = [];
             $nama = $this->normalisasi($c->name);
+
+            if (array_key_exists($nama, self::PRODUK_CAMPAIGN_MANUAL)) {
+                // Produk yang sudah dinonaktifkan tetap disaring, supaya daftar
+                // manual tidak diam-diam menghidupkan lagi produk berstatus N.
+                $peta[$c->id] = array_values(array_intersect(
+                    self::PRODUK_CAMPAIGN_MANUAL[$nama],
+                    $idProdukAktif
+                ));
+                continue;
+            }
 
             if (strlen($nama) < 4) {
                 continue;
