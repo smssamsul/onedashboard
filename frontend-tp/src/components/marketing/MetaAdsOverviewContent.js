@@ -453,6 +453,7 @@ export default function MetaAdsOverviewContent({
               Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.
               Order, buyer, dan ROAS berasal dari order internal. Pencocokan utama memakai <b>utm_campaign</b> pada order;
               order yang tidak membawa UTM baru dicocokkan lewat keyword lokasi pada nama campaign dan nama produk.
+              Buyer &amp; revenue mencakup pembayaran <b>Paid</b> maupun <b>Waiting Approval</b>, jadi sebagian kecil masih bisa turun kalau finance menolak.
             </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1320 }}>
