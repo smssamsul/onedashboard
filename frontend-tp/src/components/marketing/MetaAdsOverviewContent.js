@@ -173,12 +173,15 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
           </div>
         )}
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
-          Produk pembanding {campaign.lokasi ? `(lokasi: ${campaign.lokasi})` : ""}
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 2 }}>
+          Produk yang ordernya dihitung ke campaign ini
         </div>
+        <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 6px" }}>
+          Order untuk produk di bawah ini diklaim campaign ini bila tidak tercocokkan lewat utm_campaign.
+        </p>
         {produk.length === 0 ? (
           <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>
-            {`Tidak ada produk aktif yang namanya mengandung "${campaign.name || "nama campaign ini"}". Order hanya bisa masuk lewat utm_campaign.`}
+            {`Tidak ada produk yang dipetakan ke "${campaign.name || "campaign ini"}". Order hanya bisa masuk lewat utm_campaign.`}
           </p>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
