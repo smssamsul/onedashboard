@@ -45,6 +45,20 @@ class MetaAdsService
     }
 
     /**
+     * Ambil daftar ad set beserta setting-nya (budget, optimization goal, targeting)
+     * untuk SEMUA campaign di akun ini sekaligus, biar sync tetap satu panggilan.
+     */
+    public function getAdSets(): array
+    {
+        $response = $this->request('GET', "/{$this->account->ad_account_id}/adsets", [
+            'fields' => 'id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,bid_strategy,targeting,start_time,end_time',
+            'limit' => 500,
+        ]);
+
+        return $response['data'] ?? [];
+    }
+
+    /**
      * Ambil insight harian level-campaign untuk rentang tanggal tertentu.
      * Satu kali panggilan ini mencakup SEMUA campaign di akun (bukan per-campaign),
      * supaya sync tetap ringan walau campaign-nya banyak.

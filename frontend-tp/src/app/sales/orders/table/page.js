@@ -273,7 +273,7 @@ export default function TableExperiment() {
                                         </td>
 
                                         <td>
-                                            {order.customer_rel?.sales_rel?.nama || "-"}
+                                            {order.sales_nama || order.sales_rel?.nama || order.customer_rel?.sales_rel?.nama || "-"}
                                         </td>
 
                                         {/* Sticky Right: Action */}

@@ -18,6 +18,7 @@ class OrderCustomer extends Model
 
     protected $fillable = [
         'customer',
+        'sales_id',
         'produk',
         'kode_order',
         'tanggal',
@@ -55,6 +56,36 @@ class OrderCustomer extends Model
      public function customer_rel()
     {
         return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+
+    /**
+     * Sales PIC order ini (bisa beda dengan sales_id di customer kalau customer
+     * beli produk yang di-assign ke sales lain).
+     */
+    public function sales_rel()
+    {
+        return $this->belongsTo(User::class, 'sales_id', 'id');
+    }
+
+    /**
+     * Order milik satu sales: pakai sales_id order, fallback ke sales customer
+     * untuk order lama yang sales_id-nya belum terisi.
+     */
+    public function scopeOwnedBySales($query, $userId)
+    {
+        return $query
+            ->whereHas('customer_rel', function ($c) {
+                $c->where('status', '!=', 'N');
+            })
+            ->where(function ($q) use ($userId) {
+                $q->where('sales_id', $userId)
+                  ->orWhere(function ($sub) use ($userId) {
+                      $sub->whereNull('sales_id')
+                          ->whereHas('customer_rel', function ($c) use ($userId) {
+                              $c->where('sales_id', $userId);
+                          });
+                  });
+            });
     }
 
     public function order_payment_rel()

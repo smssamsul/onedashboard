@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Exceptions\MetaAdsApiException;
 use App\Models\MetaAdCampaign;
 use App\Models\MetaAdInsightDaily;
+use App\Models\MetaAdSet;
 use App\Models\MetaAdsAccount;
 use App\Services\MetaAdsService;
 use Illuminate\Console\Command;
@@ -53,6 +54,7 @@ class SyncMetaAdsInsights extends Command
                 $service = new MetaAdsService($account);
 
                 $this->syncCampaigns($service, $account);
+                $this->syncAdSets($service, $account);
                 $this->syncInsights($service, $account, $since, $until);
 
                 $account->update(['last_synced_at' => now()]);
@@ -106,6 +108,50 @@ class SyncMetaAdsInsights extends Command
         }
 
         $this->line('Campaign ter-sync: ' . count($campaigns));
+    }
+
+    /**
+     * Sync setting ad set (budget, optimization goal, targeting) supaya halaman
+     * Overview bisa menampilkan ringkasan setting tanpa memanggil Meta tiap render.
+     * Ad set yang campaign-nya belum tersimpan lokal dilewati.
+     */
+    protected function syncAdSets(MetaAdsService $service, MetaAdsAccount $account): void
+    {
+        $adSets = $service->getAdSets();
+
+        $campaignMap = MetaAdCampaign::where('meta_ads_account_id', $account->id)
+            ->pluck('id', 'campaign_id');
+
+        $count = 0;
+        foreach ($adSets as $s) {
+            $localCampaignId = $campaignMap[$s['campaign_id'] ?? null] ?? null;
+            if (!$localCampaignId) {
+                continue;
+            }
+
+            MetaAdSet::updateOrCreate(
+                ['ad_set_id' => $s['id']],
+                [
+                    'meta_ad_campaign_id' => $localCampaignId,
+                    'name' => $s['name'] ?? null,
+                    'status' => $s['status'] ?? null,
+                    'daily_budget' => isset($s['daily_budget']) ? $s['daily_budget'] / 100 : null,
+                    'lifetime_budget' => isset($s['lifetime_budget']) ? $s['lifetime_budget'] / 100 : null,
+                    'billing_event' => $s['billing_event'] ?? null,
+                    'optimization_goal' => $s['optimization_goal'] ?? null,
+                    'targeting' => $s['targeting'] ?? null,
+                    'start_time' => $s['start_time'] ?? null,
+                    'end_time' => $s['end_time'] ?? null,
+                    'raw_payload' => $s,
+                    'synced_at' => now(),
+                    'update_at' => now(),
+                    'create_at' => now(),
+                ]
+            );
+            $count++;
+        }
+
+        $this->line("Ad set ter-sync: {$count}");
     }
 
     protected function syncInsights(MetaAdsService $service, MetaAdsAccount $account, string $since, string $until): void

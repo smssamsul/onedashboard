@@ -755,11 +755,7 @@ class BroadcastController extends Controller
      */
     private function countTargetForSales(array $target, $salesId): int
     {
-        $query = OrderCustomer::query()
-            ->whereHas('customer_rel', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId)
-                  ->where('status', '!=', 'N');
-            });
+        $query = OrderCustomer::ownedBySales($salesId);
         $this->applyTargetConditions($query, $target);
         return $query->count();
     }
@@ -1021,10 +1017,7 @@ class BroadcastController extends Controller
     {
         $query = OrderCustomer::with(['customer_rel', 'produk_rel'])
             ->where('status', '!=', 'N')
-            ->whereHas('customer_rel', function($q) use ($salesId) {
-                $q->where('sales_id', $salesId)
-                  ->where('status', '!=', 'N');
-            })
+            ->ownedBySales($salesId)
             ->distinct();
 
         $this->applyTargetConditions($query, $target);

@@ -45,6 +45,71 @@ class SalesRoundRobinService
         }
     }
 
+    /**
+     * Sales untuk order baru — dipakai saat customer (lama maupun baru) order produk,
+     * supaya PIC-nya ikut produk yang dibeli, bukan terkunci di sales pertama:
+     * - produk 1 assign      : selalu ke sales itu
+     * - produk 2+ assign     : sales lama dipertahankan kalau ada di pool, kalau tidak round-robin di pool
+     * - produk tanpa assign  : sales lama dipertahankan; kalau belum punya, round-robin semua sales
+     *
+     * @param int|null $currentSalesId sales yang sekarang menempel di customer
+     */
+    public function resolveSalesIdForOrder(?int $produkId, ?int $currentSalesId = null): ?int
+    {
+        try {
+            $assignUserIds = [];
+            if ($produkId !== null) {
+                $produk = Produk::query()->find($produkId);
+                if ($produk) {
+                    $assignUserIds = $this->normalizeAssignUserIds($produk->assign);
+                }
+            }
+
+            $count = count($assignUserIds);
+
+            if ($count === 1) {
+                return $this->assignFixedSales($assignUserIds[0]);
+            }
+
+            if ($count >= 2) {
+                if ($currentSalesId && in_array($currentSalesId, $assignUserIds, true)) {
+                    $this->touchSales($currentSalesId);
+
+                    Log::info('SalesRoundRobinService: Sales lama masih di pool assign produk — dipertahankan', [
+                        'sales_id' => $currentSalesId,
+                        'produk_id' => $produkId,
+                    ]);
+
+                    return $currentSalesId;
+                }
+
+                return $this->assignRoundRobinFromPool($assignUserIds);
+            }
+
+            // Produk tanpa assign: jangan pindahkan customer yang sudah punya sales
+            if ($currentSalesId) {
+                return $currentSalesId;
+            }
+
+            return $this->assignRoundRobinFromPool(null);
+        } catch (\Exception $e) {
+            Log::error('SalesRoundRobinService: Error resolve sales order', [
+                'message' => $e->getMessage(),
+                'produk_id' => $produkId,
+            ]);
+
+            return $currentSalesId;
+        }
+    }
+
+    private function touchSales(int $userId): void
+    {
+        Sales::where('user_id', $userId)->update([
+            'last_update_lead' => now()->format('Y-m-d H:i:s'),
+            'update_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+    }
+
     private function assignFixedSales(int $userId): ?int
     {
         $salesRow = Sales::where('user_id', $userId)->first();

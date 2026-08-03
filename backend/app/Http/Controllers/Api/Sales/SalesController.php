@@ -272,45 +272,33 @@ class SalesController extends Controller
                 ->count();
 
             // Order Statistics
-            $totalOrders = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $totalOrders = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->count();
             
-            $ordersThisPeriod = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $ordersThisPeriod = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->whereBetween('create_at', [$startDate, $endDate])
                 ->count();
             
-            $prevOrders = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $prevOrders = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->whereBetween('create_at', [$prevStartDate, $prevEndDate])
                 ->count();
 
             // Revenue Statistics
-            $totalRevenue = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $totalRevenue = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->where('status_order', '2') // Paid orders
                 ->sum(DB::raw('CAST(total_harga AS numeric)'));
             
-            $revenueThisPeriod = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $revenueThisPeriod = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->where('status_order', '2')
                 ->whereBetween('create_at', [$startDate, $endDate])
                 ->sum(DB::raw('CAST(total_harga AS numeric)'));
             
-            $prevRevenue = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $prevRevenue = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->where('status_order', '2')
                 ->whereBetween('create_at', [$prevStartDate, $prevEndDate])
@@ -473,16 +461,12 @@ class SalesController extends Controller
             $dateStart = $date->copy()->startOfDay();
             $dateEnd = $date->copy()->endOfDay();
 
-            $orders = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $orders = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->whereBetween('create_at', [$dateStart, $dateEnd])
                 ->count();
 
-            $revenue = OrderCustomer::whereHas('customer_rel', function($q) use ($sales) {
-                    $q->where('sales_id', $sales->id);
-                })
+            $revenue = OrderCustomer::ownedBySales($sales->id)
                 ->where('status', '!=', 'N')
                 ->where('status_order', '2')
                 ->whereBetween('create_at', [$dateStart, $dateEnd])
