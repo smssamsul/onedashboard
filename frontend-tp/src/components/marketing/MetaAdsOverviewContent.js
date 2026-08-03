@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
 import { RefreshCw, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -34,12 +34,19 @@ function fmtRoas(n) {
   return n === null || n === undefined ? "-" : `${Number(n).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
 }
 
-/** Warna ROAS: di bawah modal merah, balik modal kuning, untung hijau. */
+/**
+ * Warna ROAS menurut ambang yang dipakai tim:
+ *   < 3      merah   - belum sehat
+ *   3 - 5    kuning  - masih tipis
+ *   5 - 8,9  hijau   - sehat
+ *   > 8,9    oranye  - luar biasa
+ */
 function warnaRoas(n) {
   if (n === null || n === undefined) return "#9ca3af";
-  if (n < 1) return "#dc2626";
-  if (n < 2) return "#d97706";
-  return "#16a34a";
+  if (n < 3) return "#dc2626";
+  if (n < 5) return "#ca8a04";
+  if (n <= 8.9) return "#16a34a";
+  return "#ea580c";
 }
 
 const LABEL_TARGETING = {
@@ -263,6 +270,53 @@ export default function MetaAdsOverviewContent({
     load();
   }, [load]);
 
+  /**
+   * Total baris tabel. Sengaja dihitung dari `campaigns` (baris yang benar-benar
+   * tampil), bukan dari `totals` milik endpoint overview — supaya totalnya selalu
+   * cocok dengan yang dijumlah manual di layar, termasuk saat filter "hanya aktif"
+   * sedang menyala.
+   *
+   * Metrik turunan (CPM/CPL/CPO/CPB/rasio/ROAS) dihitung ulang dari angka total,
+   * BUKAN dirata-rata per baris. Rata-rata dari rasio itu menyesatkan: campaign
+   * bermodal Rp 700 ribu akan menarik rata-rata sekuat campaign bermodal Rp 4 juta.
+   */
+  const totalTabel = useMemo(() => {
+    if (!campaigns.length) return null;
+
+    const jml = (kunci) => campaigns.reduce((t, c) => t + Number(c[kunci] || 0), 0);
+    const bagi = (a, b) => (b > 0 ? a / b : null);
+    const bulat2 = (n) => (n === null ? null : Math.round(n * 100) / 100);
+
+    const spendPpn = jml("spend_ppn");
+    const impressions = jml("impressions");
+    const leads = jml("leads");
+    const purchase = jml("purchase");
+    const order = jml("order");
+    const buyer = jml("buyer");
+    const revenue = jml("revenue");
+
+    return {
+      jumlahCampaign: campaigns.length,
+      spend: jml("spend"),
+      spend_ppn: spendPpn,
+      impressions,
+      leads,
+      contact: jml("contact"),
+      purchase,
+      order,
+      buyer,
+      revenue,
+      cpm: impressions > 0 ? (spendPpn / impressions) * 1000 : null,
+      cpl: bagi(spendPpn, leads),
+      cost_per_purchase: bagi(spendPpn, purchase),
+      cpo: bagi(spendPpn, order),
+      cpb: bagi(spendPpn, buyer),
+      rasio_lead_to_purchase: bulat2(leads > 0 ? (purchase / leads) * 100 : null),
+      rasio_order_to_buyer: bulat2(order > 0 ? (buyer / order) * 100 : null),
+      roas: bagi(revenue, spendPpn),
+    };
+  }, [campaigns]);
+
   const handleSync = useCallback(async () => {
     if (syncing) return;
     setSyncing(true);
@@ -415,7 +469,7 @@ export default function MetaAdsOverviewContent({
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Buyer<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPB</span></th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Lead &rarr;<br />Purchase</th>
                     <th style={{ padding: "8px 12px", textAlign: "right" }}>Order &rarr;<br />Buyer</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>ROAS<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>Revenue</span></th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Revenue<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>ROAS</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -430,7 +484,33 @@ export default function MetaAdsOverviewContent({
                       </td>
                     </tr>
                   ) : (
-                    campaigns.map((c) => {
+                    <>
+                    {totalTabel && (
+                      <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb", fontWeight: 600 }}>
+                        <td style={{ padding: "10px 12px" }}>
+                          <div style={{ fontWeight: 700 }}>TOTAL</div>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
+                            {totalTabel.jumlahCampaign} campaign{tampilkanNonAktif ? "" : " aktif"}
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 12px" }} />
+                        <SelMetrik utama={fmtRp(totalTabel.spend)} />
+                        <SelMetrik utama={fmtRp(totalTabel.spend_ppn)} />
+                        <SelMetrik utama={fmt(totalTabel.impressions)} bawah={fmtRpOpsional(totalTabel.cpm)} />
+                        <SelMetrik utama={fmt(totalTabel.leads)} bawah={fmtRpOpsional(totalTabel.cpl)} />
+                        <SelMetrik utama={fmt(totalTabel.contact)} />
+                        <SelMetrik utama={fmt(totalTabel.purchase)} bawah={fmtRpOpsional(totalTabel.cost_per_purchase)} />
+                        <SelMetrik utama={fmt(totalTabel.order)} bawah={fmtRpOpsional(totalTabel.cpo)} />
+                        <SelMetrik utama={fmt(totalTabel.buyer)} bawah={fmtRpOpsional(totalTabel.cpb)} />
+                        <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_purchase)} />
+                        <SelMetrik utama={fmtPersen(totalTabel.rasio_order_to_buyer)} />
+                        <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ fontWeight: 700 }}>{fmtRp(totalTabel.revenue)}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(totalTabel.roas), marginTop: 2 }}>{fmtRoas(totalTabel.roas)}</div>
+                        </td>
+                      </tr>
+                    )}
+                    {campaigns.map((c) => {
                       const terbuka = !!barisTerbuka[c.id];
                       return (
                         <Fragment key={c.id}>
@@ -477,14 +557,17 @@ export default function MetaAdsOverviewContent({
                             <SelMetrik utama={fmtPersen(c.rasio_lead_to_purchase)} />
                             <SelMetrik utama={fmtPersen(c.rasio_order_to_buyer)} />
                             <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                              <div style={{ fontWeight: 700, color: warnaRoas(c.roas) }}>{fmtRoas(c.roas)}</div>
-                              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{fmtRp(c.revenue)}</div>
+                              <div style={{ fontWeight: 600 }}>{fmtRp(c.revenue)}</div>
+                              {/* ROAS jadi baris bawah, tapi tetap tebal supaya warnanya
+                                  terbaca di ukuran 11px - ini angka yang dipakai menilai. */}
+                              <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(c.roas), marginTop: 2 }}>{fmtRoas(c.roas)}</div>
                             </td>
                           </tr>
                           {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={13} />}
                         </Fragment>
                       );
-                    })
+                    })}
+                    </>
                   )}
                 </tbody>
               </table>

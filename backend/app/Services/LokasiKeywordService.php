@@ -42,6 +42,7 @@ class LokasiKeywordService
         'Samarinda' => ['samarinda'],
         'Makassar' => ['makassar', 'ujung pandang'],
         'Manado' => ['manado'],
+        'Gorontalo' => ['gorontalo'],
         'Jayapura' => ['jayapura'],
     ];
 
