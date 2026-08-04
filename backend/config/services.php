@@ -39,4 +39,8 @@ return [
         'whatsapp' => env('CS_WHATSAPP'),
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+    ],
+
 ];
