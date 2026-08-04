@@ -45,7 +45,15 @@ class AnalisaMetaAdsService
             // (gagal di-parse, muncul sebagai "hasil tidak sesuai schema").
             // 8192 memberi ruang jauh lebih longgar untuk keduanya.
             'max_tokens' => 8192,
-            'output_config' => ['format' => $this->jsonSchema()],
+            // effort=low: diuji terhadap adaptive default (tanpa param ini) pakai
+            // data 11 campaign asli - thinking_tokens turun dari ~2256 ke 0, output
+            // total turun ~55%, tanpa penurunan kualitas temuan/rekomendasi yang
+            // terlihat untuk tugas banding-bandingkan angka seperti ini.
+            'thinking' => ['type' => 'adaptive'],
+            'output_config' => [
+                'format' => $this->jsonSchema(),
+                'effort' => 'low',
+            ],
             'messages' => [
                 ['role' => 'user', 'content' => $prompt],
             ],
