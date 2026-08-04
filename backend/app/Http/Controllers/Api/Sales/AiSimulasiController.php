@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AiSetting;
 use App\Services\VectorSearchService;
+use App\Services\AiUsageLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -141,6 +142,7 @@ class AiSimulasiController extends Controller
                     'status' => $response->status(),
                     'body'   => $response->json(),
                 ]);
+                AiUsageLogger::catat('ai_simulasi', 'claude-haiku-4-5-20251001', null, sukses: false);
                 return response()->json([
                     'success' => false,
                     'message' => 'Claude API error: ' . ($response->json('error.message') ?? 'Unknown error'),
@@ -150,6 +152,7 @@ class AiSimulasiController extends Controller
             $reply        = $response->json('content.0.text') ?? '';
             $inputTokens  = $response->json('usage.input_tokens') ?? 0;
             $outputTokens = $response->json('usage.output_tokens') ?? 0;
+            AiUsageLogger::catat('ai_simulasi', 'claude-haiku-4-5-20251001', $response->json('usage'), sukses: true);
 
             Log::channel('ai')->info('AiSimulasiController: Simulasi chat', [
                 'message'         => $message,

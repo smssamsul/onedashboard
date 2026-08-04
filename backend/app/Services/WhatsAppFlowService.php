@@ -7,6 +7,7 @@ use App\Services\ClaudeChatService;
 use App\Services\WoowaService;
 use App\Services\RegistrationParserService;
 use App\Services\SalesRoundRobinService;
+use App\Services\AiUsageLogger;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\User;
@@ -163,13 +164,16 @@ class WhatsAppFlowService
                     'is_relevant' => $isRelevant,
                     'raw_answer'  => $answer,
                 ]);
+                AiUsageLogger::catat('woowa_off_topic_check', 'claude-haiku-4-5-20251001', $response->json('usage'), sukses: true);
 
                 return $isRelevant;
             }
+            AiUsageLogger::catat('woowa_off_topic_check', 'claude-haiku-4-5-20251001', null, sukses: false);
         } catch (\Exception $e) {
             Log::channel('woowa')->warning('WhatsApp Flow Service: Off-topic check failed, defaulting to relevant', [
                 'error' => $e->getMessage(),
             ]);
+            AiUsageLogger::catat('woowa_off_topic_check', 'claude-haiku-4-5-20251001', null, sukses: false);
         }
 
         // Jika gagal klasifikasi → anggap relevan (safe default)

@@ -479,6 +479,12 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/failed-jobs', [\App\Http\Controllers\Admin\RabbitMQDashboardController::class, 'getFailedJobs']);
         });
 
+        // AI Usage Dashboard
+        Route::prefix('ai-usage')->group(function () {
+            Route::get('/ringkasan', [\App\Http\Controllers\Admin\AiUsageDashboardController::class, 'ringkasan']);
+            Route::get('/log', [\App\Http\Controllers\Admin\AiUsageDashboardController::class, 'log']);
+        });
+
         // Jabatan (referensi statis, read-only)
         Route::get('/jabatan', [JabatanController::class, 'index']);
 

@@ -495,6 +495,12 @@ export default function Sidebar({
           ],
         },
         {
+          section: "MONITORING",
+          items: [
+            { label: "Penggunaan AI", href: "/it/ai-usage", icon: <Brain size={18} /> },
+          ],
+        },
+        {
           section: "ABSENSI & CUTI",
           items: [
             { label: "Absensi Saya", href: "/it/absensi-saya", icon: <CheckSquare size={18} /> },

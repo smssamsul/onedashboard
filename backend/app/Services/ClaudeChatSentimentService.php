@@ -45,14 +45,16 @@ class ClaudeChatSentimentService
                     'message' => substr($message, 0, 100),
                     'sentiment' => $intent
                 ]);
-                
+                AiUsageLogger::catat('sentiment_chat', 'claude-haiku-4-5-20251001', $response->json('usage'), sukses: true);
+
                 return $intent;
             } else {
                 Log::channel('ai')->error('Claude Chat sentiment classification failed', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
-                
+                AiUsageLogger::catat('sentiment_chat', 'claude-haiku-4-5-20251001', null, sukses: false);
+
                 return 'neutral';
             }
         } catch (\Exception $e) {
@@ -60,7 +62,8 @@ class ClaudeChatSentimentService
                 'error' => $e->getMessage(),
                 'message' => substr($message, 0, 100)
             ]);
-            
+            AiUsageLogger::catat('sentiment_chat', 'claude-haiku-4-5-20251001', null, sukses: false);
+
             return 'neutral';
         }
     }
