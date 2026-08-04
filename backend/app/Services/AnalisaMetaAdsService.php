@@ -32,7 +32,7 @@ class AnalisaMetaAdsService
         $prompt = $this->susunPrompt($dataCampaign, $dataTotal, $jumlahHari);
 
         $response = Http::withHeaders([
-            'x-api-key' => env('ANTHROPIC_API_KEY'),
+            'x-api-key' => config('services.anthropic.key'),
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
         ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [

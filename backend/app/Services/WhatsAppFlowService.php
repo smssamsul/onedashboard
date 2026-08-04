@@ -141,7 +141,7 @@ class WhatsAppFlowService
         // Untuk pesan lebih panjang, gunakan Claude untuk klasifikasi cepat
         try {
             $response = \Illuminate\Support\Facades\Http::withHeaders([
-                'x-api-key'         => env('ANTHROPIC_API_KEY'),
+                'x-api-key'         => config('services.anthropic.key'),
                 'anthropic-version' => '2023-06-01',
                 'content-type'      => 'application/json',
             ])->post('https://api.anthropic.com/v1/messages', [
