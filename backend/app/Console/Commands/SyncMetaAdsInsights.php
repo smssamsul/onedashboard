@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Exceptions\MetaAdsApiException;
+use App\Models\MetaAd;
 use App\Models\MetaAdCampaign;
+use App\Models\MetaAdInsightAdDaily;
 use App\Models\MetaAdInsightDaily;
 use App\Models\MetaAdSet;
 use App\Models\MetaAdsAccount;
@@ -55,7 +57,9 @@ class SyncMetaAdsInsights extends Command
 
                 $this->syncCampaigns($service, $account);
                 $this->syncAdSets($service, $account);
+                $this->syncAds($service, $account);
                 $this->syncInsights($service, $account, $since, $until);
+                $this->syncAdInsights($service, $account, $since, $until);
 
                 $account->update(['last_synced_at' => now()]);
 
@@ -152,6 +156,97 @@ class SyncMetaAdsInsights extends Command
         }
 
         $this->line("Ad set ter-sync: {$count}");
+    }
+
+    /**
+     * Sync daftar iklan (creative) beserta ad set induknya. Iklan yang ad set-nya
+     * belum tersimpan lokal dilewati, sama seperti perlakuan ad set terhadap
+     * campaign — biar tidak ada baris yatim.
+     */
+    protected function syncAds(MetaAdsService $service, MetaAdsAccount $account): void
+    {
+        $ads = $service->getAds();
+
+        $adSetMap = MetaAdSet::whereIn(
+            'meta_ad_campaign_id',
+            MetaAdCampaign::where('meta_ads_account_id', $account->id)->select('id')
+        )->pluck('id', 'ad_set_id');
+
+        $count = 0;
+        foreach ($ads as $a) {
+            $localAdSetId = $adSetMap[$a['adset_id'] ?? null] ?? null;
+            if (!$localAdSetId) {
+                continue;
+            }
+
+            MetaAd::updateOrCreate(
+                ['ad_id' => $a['id']],
+                [
+                    'meta_ad_set_id' => $localAdSetId,
+                    'name' => $a['name'] ?? null,
+                    'status' => $a['status'] ?? null,
+                    'creative_id' => $a['creative']['id'] ?? null,
+                    'creative_payload' => $a['creative'] ?? null,
+                    'raw_payload' => $a,
+                    'synced_at' => now(),
+                    'update_at' => now(),
+                    'create_at' => now(),
+                ]
+            );
+            $count++;
+        }
+
+        $this->line('Iklan ter-sync: ' . $count . ' dari ' . count($ads) . ' yang dikembalikan Meta');
+    }
+
+    /**
+     * Insight harian per iklan. Ini sumber angka untuk panel "Performa Iklan"
+     * di halaman Overview, sekaligus bahan agregasi ke tingkat ad set.
+     */
+    protected function syncAdInsights(MetaAdsService $service, MetaAdsAccount $account, string $since, string $until): void
+    {
+        $rows = $service->getAdInsights($since, $until);
+
+        $count = 0;
+        foreach ($rows as $row) {
+            if (empty($row['ad_id'])) {
+                continue;
+            }
+
+            [$conversions, $conversionValue] = $this->extractConversions($row);
+
+            MetaAdInsightAdDaily::updateOrCreate(
+                [
+                    'ad_id' => $row['ad_id'],
+                    'date' => $row['date_start'] ?? $since,
+                ],
+                [
+                    'meta_ads_account_id' => $account->id,
+                    'ad_set_id' => $row['adset_id'] ?? null,
+                    'campaign_id' => $row['campaign_id'] ?? null,
+                    'spend' => $row['spend'] ?? 0,
+                    'impressions' => $row['impressions'] ?? 0,
+                    'clicks' => $row['clicks'] ?? 0,
+                    'link_clicks' => $row['inline_link_clicks'] ?? null,
+                    'cpc' => $row['cpc'] ?? null,
+                    'cpm' => $row['cpm'] ?? null,
+                    'ctr' => $row['ctr'] ?? null,
+                    'conversions' => $conversions,
+                    'leads' => $this->extractActionCount($row, self::LEAD_TYPES),
+                    'contact' => $this->extractActionCount($row, self::CONTACT_TYPES),
+                    'conversion_value' => $conversionValue,
+                    'raw_actions' => [
+                        'actions' => $row['actions'] ?? [],
+                        'action_values' => $row['action_values'] ?? [],
+                    ],
+                    'update_at' => now(),
+                    'create_at' => now(),
+                ]
+            );
+            $count++;
+        }
+
+        $this->line("Baris insight per-iklan ter-sync: {$count}");
     }
 
     protected function syncInsights(MetaAdsService $service, MetaAdsAccount $account, string $since, string $until): void

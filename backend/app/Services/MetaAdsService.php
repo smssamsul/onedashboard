@@ -65,15 +65,43 @@ class MetaAdsService
      */
     public function getAccountInsights(string $since, string $until): array
     {
-        $response = $this->request('GET', "/{$this->account->ad_account_id}/insights", [
+        return $this->requestSemuaHalaman("/{$this->account->ad_account_id}/insights", [
             'level' => 'campaign',
             'time_increment' => 1,
             'time_range' => json_encode(['since' => $since, 'until' => $until]),
             'fields' => 'campaign_id,campaign_name,spend,impressions,reach,clicks,inline_link_clicks,cpc,cpm,ctr,actions,action_values',
             'limit' => 500,
         ]);
+    }
 
-        return $response['data'] ?? [];
+    /**
+     * Daftar iklan (creative) di akun ini, beserta ad set induknya.
+     *
+     * `creative{...}` diminta sekalian supaya panel Overview bisa menampilkan
+     * judul/thumbnail materi tanpa memanggil Meta lagi per iklan.
+     */
+    public function getAds(): array
+    {
+        return $this->requestSemuaHalaman("/{$this->account->ad_account_id}/ads", [
+            'fields' => 'id,name,status,adset_id,campaign_id,creative{id,thumbnail_url,title,body}',
+            'limit' => 500,
+        ]);
+    }
+
+    /**
+     * Insight harian level-IKLAN. Sengaja diambil di level terdalam: angka ad set
+     * dan campaign bisa dijumlahkan dari sini, tapi tidak sebaliknya. Jadi satu
+     * panggilan ini melayani dua tingkat tampilan sekaligus.
+     */
+    public function getAdInsights(string $since, string $until): array
+    {
+        return $this->requestSemuaHalaman("/{$this->account->ad_account_id}/insights", [
+            'level' => 'ad',
+            'time_increment' => 1,
+            'time_range' => json_encode(['since' => $since, 'until' => $until]),
+            'fields' => 'ad_id,ad_name,adset_id,campaign_id,spend,impressions,clicks,inline_link_clicks,cpc,cpm,ctr,actions,action_values',
+            'limit' => 500,
+        ]);
     }
 
     /**
@@ -190,6 +218,59 @@ class MetaAdsService
     /**
      * Wrapper request ke Graph API dengan timeout, retry, dan normalisasi error Meta.
      */
+    /**
+     * Sama seperti request() GET, tapi mengikuti `paging.next` sampai habis dan
+     * menggabungkan seluruh `data`.
+     *
+     * Meta memotong hasil di `limit` tanpa memberi tanda apa pun selain adanya
+     * kursor `next`. Tanpa ini, sync rentang panjang diam-diam kehilangan baris:
+     * insight level-iklan 30 hari gampang menembus ribuan baris.
+     *
+     * $maxHalaman jadi rem darurat supaya kursor yang rusak tidak bikin loop
+     * tak berujung.
+     */
+    protected function requestSemuaHalaman(string $path, array $params, int $maxHalaman = 50): array
+    {
+        $semua = [];
+        $halaman = 0;
+
+        $response = $this->request('GET', $path, $params);
+
+        while (true) {
+            $semua = array_merge($semua, $response['data'] ?? []);
+            $halaman++;
+
+            $next = $response['paging']['next'] ?? null;
+            if (!$next || $halaman >= $maxHalaman) {
+                if ($next) {
+                    Log::warning('MetaAdsService - paginasi dihentikan di batas halaman', [
+                        'path' => $path,
+                        'max_halaman' => $maxHalaman,
+                    ]);
+                }
+                break;
+            }
+
+            // Kursor `next` sudah berisi URL lengkap termasuk access_token, jadi
+            // dipanggil apa adanya, bukan dirangkai ulang dari $path/$params.
+            try {
+                $lanjut = Http::timeout(15)->get($next);
+            } catch (\Throwable $e) {
+                throw new MetaAdsApiException('Gagal mengambil halaman berikutnya: ' . $e->getMessage());
+            }
+
+            if (!$lanjut->successful()) {
+                throw new MetaAdsApiException(
+                    $lanjut->json('error.message') ?? 'Gagal mengambil halaman berikutnya dari Meta.'
+                );
+            }
+
+            $response = $lanjut->json();
+        }
+
+        return $semua;
+    }
+
     protected function request(string $method, string $path, array $params = []): array
     {
         $url = "{$this->baseUrl}/{$this->apiVersion}{$path}";
