@@ -79,12 +79,19 @@ class MetaAdsService
      *
      * `creative{...}` diminta sekalian supaya panel Overview bisa menampilkan
      * judul/thumbnail materi tanpa memanggil Meta lagi per iklan.
+     *
+     * limit sengaja 100, bukan 500 seperti endpoint lain. Diuji langsung ke
+     * akun produksi (3.170 iklan sepanjang riwayat akun): limit=500 pada
+     * endpoint ini ditolak Meta dengan "Please reduce the amount of data
+     * you're asking for" (HTTP 500) karena ekspansi creative per baris mahal
+     * di sisi mereka, sedangkan limit=100 konsisten berhasil. Insight
+     * (getAdInsights) tidak kena batas ini — ekspansinya lebih ringan.
      */
     public function getAds(): array
     {
         return $this->requestSemuaHalaman("/{$this->account->ad_account_id}/ads", [
             'fields' => 'id,name,status,adset_id,campaign_id,creative{id,thumbnail_url,title,body}',
-            'limit' => 500,
+            'limit' => 100,
         ]);
     }
 
