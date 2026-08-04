@@ -35,9 +35,16 @@ class AnalisaMetaAdsService
             'x-api-key' => config('services.anthropic.key'),
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
-        ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
+        ])->timeout(120)->post('https://api.anthropic.com/v1/messages', [
             'model' => self::MODEL,
-            'max_tokens' => 4096,
+            // max_tokens adalah batas thinking + teks jawaban DIGABUNG, bukan
+            // cuma jawaban. Ketahuan di produksi: dengan batas 4096, adaptive
+            // thinking untuk 11 campaign menghabiskan ~2900 token buat mikir,
+            // menyisakan terlalu sedikit untuk menulis JSON lengkap - hasilnya
+            // stop_reason "max_tokens" dan JSON terpotong sebelum ditutup
+            // (gagal di-parse, muncul sebagai "hasil tidak sesuai schema").
+            // 8192 memberi ruang jauh lebih longgar untuk keduanya.
+            'max_tokens' => 8192,
             'output_config' => ['format' => $this->jsonSchema()],
             'messages' => [
                 ['role' => 'user', 'content' => $prompt],
@@ -60,6 +67,16 @@ class AnalisaMetaAdsService
             Log::channel('ai')->error('AnalisaMetaAdsService: Claude menolak menjawab', ['body' => $body]);
 
             throw new \RuntimeException('Claude menolak memberi analisa untuk data ini');
+        }
+
+        if ($stopReason === 'max_tokens') {
+            // Jawaban terpotong sebelum sempat ditutup - ditangkap terpisah
+            // dari "hasil tidak sesuai schema" di bawah, supaya kalau ini
+            // pernah terjadi lagi (mis. jumlah campaign bertambah banyak),
+            // pesan errornya langsung menuding penyebabnya, bukan generik.
+            Log::channel('ai')->error('AnalisaMetaAdsService: jawaban terpotong (max_tokens)', ['usage' => $body['usage'] ?? null]);
+
+            throw new \RuntimeException('Analisa terlalu panjang untuk dituntaskan Claude, coba lagi.');
         }
 
         // Adaptive thinking otomatis aktif (lihat rencana), jadi content[0] sering
