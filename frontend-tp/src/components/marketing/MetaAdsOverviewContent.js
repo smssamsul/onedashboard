@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
-import { RefreshCw, ChevronRight, ChevronDown } from "lucide-react";
+import { RefreshCw, ChevronRight, ChevronDown, Sparkles } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -47,6 +47,21 @@ function warnaRoas(n) {
   if (n < 5) return "#ca8a04";
   if (n <= 8.9) return "#16a34a";
   return "#ea580c";
+}
+
+/** Warna & label urgensi temuan Analisa AI - sama seperti skema warnaRoas(). */
+function warnaUrgensi(urgensi) {
+  if (urgensi === "kritis") return "#dc2626";
+  if (urgensi === "perhatian") return "#ca8a04";
+  if (urgensi === "baik") return "#16a34a";
+  return "#9ca3af";
+}
+
+function labelUrgensi(urgensi) {
+  if (urgensi === "kritis") return "Kritis";
+  if (urgensi === "perhatian") return "Perhatian";
+  if (urgensi === "baik") return "Baik";
+  return urgensi || "-";
 }
 
 const LABEL_TARGETING = {
@@ -295,6 +310,10 @@ export default function MetaAdsOverviewContent({
   const [barisTerbuka, setBarisTerbuka] = useState({});
   const [ppnPersen, setPpnPersen] = useState(11);
   const [error, setError] = useState("");
+  const [analisaLoading, setAnalisaLoading] = useState(false);
+  const [analisaData, setAnalisaData] = useState(null);
+  const [analisaCached, setAnalisaCached] = useState(false);
+  const [analisaError, setAnalisaError] = useState("");
 
   const toggleBaris = useCallback((id) => {
     setBarisTerbuka((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -414,6 +433,43 @@ export default function MetaAdsOverviewContent({
       setSyncing(false);
     }
   }, [syncing, load]);
+
+  /**
+   * Tombol manual, bukan otomatis saat halaman dibuka - lihat
+   * docs/rencana-analisa-ai-meta-ads.md soal alasan biaya. Backend meng-cache
+   * hasil 1 jam per kombinasi filter, jadi klik ulang dengan filter sama biasanya instan.
+   */
+  const handleAnalisa = useCallback(async () => {
+    if (analisaLoading) return;
+    setAnalisaLoading(true);
+    setAnalisaError("");
+    try {
+      const res = await fetch(`/api/sales/meta-ads/performance/analisa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+          status: tampilkanNonAktif ? "all" : "active",
+        }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        setAnalisaData(json.data);
+        setAnalisaCached(!!json.cached);
+      } else {
+        setAnalisaData(null);
+        setAnalisaError(json.message || "Analisa AI gagal, coba lagi.");
+      }
+    } catch (e) {
+      console.error("[META ADS] Gagal analisa AI:", e);
+      setAnalisaData(null);
+      setAnalisaError("Gagal menghubungi server untuk analisa AI.");
+    } finally {
+      setAnalisaLoading(false);
+    }
+  }, [analisaLoading, startDate, endDate, tampilkanNonAktif]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -663,6 +719,81 @@ export default function MetaAdsOverviewContent({
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Analisa AI - tombol manual, lihat handleAnalisa() untuk alasan */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e5e7eb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: (analisaData || analisaError) ? 14 : 0 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Analisa AI</h3>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
+                    Ringkasan &amp; rekomendasi dari Claude berdasarkan data tabel di atas.
+                  </p>
+                </div>
+                <button
+                  onClick={handleAnalisa}
+                  disabled={analisaLoading || campaigns.length === 0}
+                  title="Kirim ringkasan angka campaign ke AI untuk dianalisa"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                    borderRadius: 6, border: "1px solid #4338ca", background: analisaLoading ? "#eef2ff" : "#4338ca",
+                    color: analisaLoading ? "#4338ca" : "#fff", fontSize: 13, fontWeight: 600,
+                    cursor: (analisaLoading || campaigns.length === 0) ? "not-allowed" : "pointer",
+                    opacity: campaigns.length === 0 ? 0.5 : 1,
+                  }}
+                >
+                  <Sparkles size={15} style={analisaLoading ? { animation: "metaSpin 1s linear infinite" } : undefined} />
+                  {analisaLoading ? "Menganalisa..." : "Analisa dengan AI"}
+                </button>
+              </div>
+
+              {analisaError && (
+                <div style={{ color: "#dc2626", fontSize: 13, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px" }}>
+                  {analisaError}
+                </div>
+              )}
+
+              {analisaData && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Ringkasan</span>
+                      {analisaCached && (
+                        <span style={{ fontSize: 10, color: "#6b7280", background: "#f3f4f6", padding: "1px 8px", borderRadius: 999 }} title="Hasil dari cache 1 jam, bukan panggilan AI baru">
+                          hasil tersimpan
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 13, color: "#374151", margin: 0, lineHeight: 1.6 }}>{analisaData.ringkasan}</p>
+                  </div>
+
+                  {(analisaData.temuan || []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Temuan per Campaign</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+                        {analisaData.temuan.map((t, i) => (
+                          <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderLeft: `4px solid ${warnaUrgensi(t.urgensi)}`, borderRadius: 8, padding: "10px 12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600 }}>{t.campaign}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: warnaUrgensi(t.urgensi), whiteSpace: "nowrap" }}>{labelUrgensi(t.urgensi)}</span>
+                            </div>
+                            <p style={{ fontSize: 12, color: "#4b5563", margin: 0, lineHeight: 1.5 }}>{t.catatan}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(analisaData.rekomendasi || []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Rekomendasi</div>
+                      <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
+                        {analisaData.rekomendasi.map((r, i) => <li key={i}>{r}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>

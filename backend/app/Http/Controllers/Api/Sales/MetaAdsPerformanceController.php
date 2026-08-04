@@ -13,14 +13,20 @@ use App\Models\MetaAdSet;
 use App\Models\OrderCustomer;
 use App\Models\Produk;
 use App\Services\LokasiKeywordService;
+use App\Services\AnalisaMetaAdsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class MetaAdsPerformanceController extends Controller
 {
     /** PPN yang ditagihkan Meta di atas biaya iklan. */
     private const PPN_PERSEN = 11;
+
+    /** KPI: tiap campaign (mewakili satu produk) ditargetkan sekian lead per hari. */
+    private const TARGET_LEAD_HARIAN = 30;
 
     /**
      * utm_source yang TIDAK dianggap berasal dari iklan berbayar, jadi ordernya
@@ -157,6 +163,30 @@ class MetaAdsPerformanceController extends Controller
         [$start, $end] = $this->dateRange($request);
         $hanyaAktif = strtolower((string) $request->get('status', 'active')) !== 'all';
 
+        $data = $this->dataCampaign($start, $end, $hanyaAktif);
+
+        return response()->json([
+            'success' => true,
+            'connected' => true,
+            'data' => $data,
+            'meta' => [
+                'range' => ['start' => $start, 'end' => $end],
+                'ppn_persen' => self::PPN_PERSEN,
+                'hanya_aktif' => $hanyaAktif,
+                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Order dari sumber non-iklan (' . implode(', ', self::SUMBER_BUKAN_IKLAN) . ') tidak dihitung. Sisanya dicocokkan berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign, terakhir nama campaign yang muncul di nama produk yang dibeli. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+            ],
+        ]);
+    }
+
+    /**
+     * Daftar campaign + agregat performa (isi yang sama seperti dikembalikan
+     * campaigns()) dalam bentuk Collection, dipakai ulang oleh campaigns() dan
+     * analisa().
+     *
+     * @return \Illuminate\Support\Collection<int, array>
+     */
+    private function dataCampaign(string $start, string $end, bool $hanyaAktif): \Illuminate\Support\Collection
+    {
         $campaigns = MetaAdCampaign::query()
             ->when($hanyaAktif, fn ($q) => $q->where('meta_ad_campaigns.status', 'ACTIVE'))
             ->leftJoin('meta_ad_insights_daily', function ($join) use ($start, $end) {
@@ -282,17 +312,129 @@ class MetaAdsPerformanceController extends Controller
             ];
         });
 
+        return $data;
+    }
+
+    /**
+     * Analisa AI (tombol manual "Analisa dengan AI") atas data yang sama
+     * seperti campaigns(), dilengkapi baris TOTAL yang dihitung ulang di sini
+     * (bukan dijumlah oleh Claude) supaya tidak boros token dan tidak salah
+     * hitung. Hasil di-cache 1 jam per kombinasi filter + checksum angka total,
+     * supaya sync baru otomatis membatalkan cache lama meski TTL belum habis.
+     */
+    public function analisa(Request $request, AnalisaMetaAdsService $service)
+    {
+        if (!$this->hasConnectedAccount()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada akun Meta Ads yang terhubung.',
+            ]);
+        }
+
+        [$start, $end] = $this->dateRange($request);
+        $hanyaAktif = strtolower((string) $request->get('status', 'active')) !== 'all';
+        $jumlahHari = Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
+
+        $campaigns = $this->dataCampaign($start, $end, $hanyaAktif);
+
+        if ($campaigns->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data campaign untuk rentang/filter ini.',
+            ]);
+        }
+
+        $total = $this->hitungTotalCampaign($campaigns, $jumlahHari);
+
+        $campaignsUntukAi = $campaigns->map(function ($c) use ($jumlahHari) {
+            $c['lead_per_hari'] = $jumlahHari > 0 ? round($c['leads'] / $jumlahHari, 2) : null;
+            $c['target_lead_per_hari'] = self::TARGET_LEAD_HARIAN;
+
+            return $c;
+        })->all();
+
+        // Checksum angka total: kalau sync baru mengubah data dalam jam yang
+        // sama, cache lama otomatis tidak terpakai walau TTL belum habis.
+        $checksum = md5(json_encode([
+            $total['spend'], $total['leads'], $total['order'], $total['buyer'], $total['revenue'],
+        ]));
+        $cacheKey = 'meta-ads-analisa:' . md5($start . '|' . $end . '|' . ($hanyaAktif ? 'active' : 'all') . '|' . $checksum);
+        $sudahAdaCache = Cache::has($cacheKey);
+
+        try {
+            $payload = Cache::remember($cacheKey, 3600, function () use ($service, $campaignsUntukAi, $total, $jumlahHari) {
+                $hasil = $service->analisa($campaignsUntukAi, $total, $jumlahHari);
+
+                return [
+                    'data' => $hasil['data'],
+                    'generated_at' => now()->toIso8601String(),
+                ];
+            });
+        } catch (\Throwable $e) {
+            Log::channel('ai')->error('MetaAdsPerformanceController::analisa gagal', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Analisa AI sedang tidak tersedia, coba lagi nanti.',
+            ]);
+        }
+
         return response()->json([
             'success' => true,
-            'connected' => true,
-            'data' => $data,
-            'meta' => [
-                'range' => ['start' => $start, 'end' => $end],
-                'ppn_persen' => self::PPN_PERSEN,
-                'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Order, buyer, dan revenue berasal dari order internal — bukan dari Meta. Order dari sumber non-iklan (' . implode(', ', self::SUMBER_BUKAN_IKLAN) . ') tidak dihitung. Sisanya dicocokkan berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign, terakhir nama campaign yang muncul di nama produk yang dibeli. Buyer & revenue mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval, jadi sebagian kecil masih bisa berubah kalau finance menolak. Semua metrik cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
-            ],
+            'cached' => $sudahAdaCache,
+            'generated_at' => $payload['generated_at'],
+            'data' => $payload['data'],
         ]);
+    }
+
+    /**
+     * Baris TOTAL yang di frontend (`totalTabel`) dihitung dari campaign yang
+     * benar-benar tampil di tabel, bukan dirata-rata per baris. Direplikasi di
+     * sini supaya AI tidak perlu (dan tidak boleh diandalkan) menjumlahkan
+     * sendiri baris-baris campaign.
+     */
+    private function hitungTotalCampaign(\Illuminate\Support\Collection $campaigns, int $jumlahHari): array
+    {
+        $jml = fn (string $kunci) => $campaigns->sum($kunci);
+
+        $spend = $jml('spend');
+        $spendPpn = $jml('spend_ppn');
+        $impressions = $jml('impressions');
+        $leads = $jml('leads');
+        $contact = $jml('contact');
+        $purchase = $jml('purchase');
+        $order = $jml('order');
+        $buyer = $jml('buyer');
+        $revenue = $jml('revenue');
+        $jumlahCampaign = $campaigns->count();
+
+        return [
+            'name' => 'TOTAL (semua campaign)',
+            'status' => null,
+            'spend' => $spend,
+            'spend_ppn' => $spendPpn,
+            'impressions' => $impressions,
+            'cpm' => $this->bagi($spendPpn * 1000, $impressions),
+            'leads' => $leads,
+            'cpl' => $this->bagi($spendPpn, $leads),
+            'contact' => $contact,
+            'purchase' => $purchase,
+            'cost_per_purchase' => $this->bagi($spendPpn, $purchase),
+            'order' => $order,
+            'cpo' => $this->bagi($spendPpn, $order),
+            'buyer' => $buyer,
+            'cpb' => $this->bagi($spendPpn, $buyer),
+            'revenue' => round($revenue, 2),
+            'roas' => $this->bagi($revenue, $spendPpn),
+            'rasio_lead_to_purchase' => $leads > 0 ? round(($purchase / $leads) * 100, 2) : null,
+            'rasio_lead_to_order' => $leads > 0 ? round(($order / $leads) * 100, 2) : null,
+            'rasio_order_to_buyer' => $order > 0 ? round(($buyer / $order) * 100, 2) : null,
+            'lead_per_hari' => $jumlahHari > 0 ? round($leads / $jumlahHari, 2) : null,
+            'target_lead_per_hari' => self::TARGET_LEAD_HARIAN * $jumlahCampaign,
+            'jumlah_campaign' => $jumlahCampaign,
+        ];
     }
 
     /**
