@@ -36,6 +36,8 @@ export const API_ENDPOINTS = {
     menuById: (id) => `/admin/menu/${id}`,
     menuAkses: '/admin/menu-akses',
     menuAksesSave: '/admin/menu-akses/save',
+    aiUsageRingkasan: '/admin/ai-usage/ringkasan',
+    aiUsageLog: '/admin/ai-usage/log',
   },
 
   // Hak akses menu user yang sedang login

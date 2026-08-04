@@ -34,14 +34,16 @@ class ClaudeIntentClassifierService
                     'message' => substr($message, 0, 100),
                     'intent' => $intent
                 ]);
-                
+                AiUsageLogger::catat('intent_classifier', 'claude-haiku-4-5-20251001', $response->json('usage'), sukses: true);
+
                 return $intent;
             } else {
                 Log::error('Claude Intent classification failed', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
-                
+                AiUsageLogger::catat('intent_classifier', 'claude-haiku-4-5-20251001', null, sukses: false);
+
                 return 'tidak_jelas';
             }
         } catch (\Exception $e) {
@@ -49,7 +51,8 @@ class ClaudeIntentClassifierService
                 'error' => $e->getMessage(),
                 'message' => substr($message, 0, 100)
             ]);
-            
+            AiUsageLogger::catat('intent_classifier', 'claude-haiku-4-5-20251001', null, sukses: false);
+
             return 'tidak_jelas';
         }
     }

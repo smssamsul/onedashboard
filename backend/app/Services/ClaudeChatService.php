@@ -59,9 +59,11 @@ class ClaudeChatService
                 'status' => $response->status(),
                 'body'   => $response->json()
             ]);
+            AiUsageLogger::catat('ai_sales_chat', 'claude-haiku-4-5-20251001', null, sukses: false);
             $replyMessage = '';
         } else {
             $replyMessage = $response->json('content.0.text') ?? '';
+            AiUsageLogger::catat('ai_sales_chat', 'claude-haiku-4-5-20251001', $response->json('usage'), sukses: true);
         }
 
 

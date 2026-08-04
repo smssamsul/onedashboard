@@ -64,6 +64,7 @@ class AnalisaMetaAdsService
                 'status' => $response->status(),
                 'body' => $response->json(),
             ]);
+            AiUsageLogger::catat('analisa_meta_ads', self::MODEL, null, sukses: false);
 
             throw new \RuntimeException('Panggilan ke Claude gagal (HTTP ' . $response->status() . ')');
         }
@@ -73,6 +74,7 @@ class AnalisaMetaAdsService
 
         if ($stopReason === 'refusal') {
             Log::channel('ai')->error('AnalisaMetaAdsService: Claude menolak menjawab', ['body' => $body]);
+            AiUsageLogger::catat('analisa_meta_ads', self::MODEL, $body['usage'] ?? null, sukses: false);
 
             throw new \RuntimeException('Claude menolak memberi analisa untuk data ini');
         }
@@ -83,6 +85,7 @@ class AnalisaMetaAdsService
             // pernah terjadi lagi (mis. jumlah campaign bertambah banyak),
             // pesan errornya langsung menuding penyebabnya, bukan generik.
             Log::channel('ai')->error('AnalisaMetaAdsService: jawaban terpotong (max_tokens)', ['usage' => $body['usage'] ?? null]);
+            AiUsageLogger::catat('analisa_meta_ads', self::MODEL, $body['usage'] ?? null, sukses: false);
 
             throw new \RuntimeException('Analisa terlalu panjang untuk dituntaskan Claude, coba lagi.');
         }
@@ -96,6 +99,7 @@ class AnalisaMetaAdsService
 
         if (!is_array($hasil) || !isset($hasil['ringkasan'], $hasil['temuan'], $hasil['rekomendasi'])) {
             Log::channel('ai')->error('AnalisaMetaAdsService: hasil tidak sesuai schema', ['body' => $body]);
+            AiUsageLogger::catat('analisa_meta_ads', self::MODEL, $body['usage'] ?? null, sukses: false);
 
             throw new \RuntimeException('Hasil analisa dari Claude tidak sesuai format yang diharapkan');
         }
@@ -104,6 +108,7 @@ class AnalisaMetaAdsService
             'jumlah_campaign' => count($dataCampaign),
             'usage' => $body['usage'] ?? null,
         ]);
+        AiUsageLogger::catat('analisa_meta_ads', self::MODEL, $body['usage'] ?? null, sukses: true);
 
         return [
             'data' => $hasil,
