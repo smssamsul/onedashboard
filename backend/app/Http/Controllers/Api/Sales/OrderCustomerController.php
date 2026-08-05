@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Helpers\TemplateHelper;
 use App\Services\SalesRoundRobinService;
 use App\Jobs\SyncContactToGoogleJob;
+use App\Jobs\SendFollowupMessageJob;
 use Carbon\Carbon;
 
 
@@ -802,7 +803,7 @@ class OrderCustomerController extends Controller
         // Dispatch job async ke Redis queue → sync ke Google Contacts
         if (!empty($customer->wa)) {
             // "langsung di save no nya ya ke google ya"
-            SyncContactToGoogleJob::dispatchSync($customer->nama ?? '', $customer->wa, $customer->id, (string) ($customer->sales_id ?? '1'));
+            SyncContactToGoogleJob::dispatch($customer->nama ?? '', $customer->wa, $customer->id, (string) ($customer->sales_id ?? '1'));
         }
 
         // try {
@@ -893,59 +894,29 @@ class OrderCustomerController extends Controller
         }
 
         try {
-            // Kode Quods (LAMA - DIKOMENTAR)
-            // $response = Http::withToken($token)
-            //     ->asJson()
-            //     ->withHeaders([
-            //         'Content-Type' => 'application/json',
-            //         'Accept' => 'application/json'
-            //     ])
-            //     ->post('https://api.quods.id/api/message', [
-            //         'device_key' => $deviceKey,
-            //         'data' => [
-            //             [
-            //                 'phone'   => $wa,
-            //                 'message' => $message,
-            //             ]
-            //         ]
-            //     ]);
-
-            $waSender = app(\App\Services\WhatsAppSenderService::class);
-            $salesId = $customer->sales_id ?? null;
-            $response = $waSender->sendMessage($wa, $message, $salesId, $woowaKey);
-
-            $this->logFollowupMessage(
-                $templateFollup,
-                $customer,
+            // Kirim WA lewat queue (Redis) supaya request order tidak menunggu
+            // HTTP call ke Woowa/Baileys (bisa sampai puluhan detik).
+            SendFollowupMessageJob::dispatch(
+                (string) ($templateFollup->type ?? '-'),
+                $templateFollup->id ?? null,
                 $message,
-                $response->successful(),
-                $response->json(),
+                $wa,
+                $customer->nama ?? '',
+                $customer->id,
                 $order->id,
-                'order dibuat'
+                null,
+                $customer->sales_id ?? null,
+                $woowaKey
             );
-
-            if ($response->successful()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Order berhasil dibuat dan notifikasi telah dikirim',
-                    'data' => [
-                        'order' => $order,
-                        'customer' => $customer,
-                        'whatsapp_sent' => true,
-                        'whatsapp_response' => $response->json(),
-                    ],
-                ], 200);
-            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Order tersimpan tapi gagal kirim pesan WhatsApp',
+                'message' => 'Order berhasil dibuat, notifikasi WhatsApp sedang diproses',
                 'data' => [
                     'order' => $order,
                     'customer' => $customer,
-                    'whatsapp_sent' => false,
-                    'whatsapp_http_status' => $response->status(),
-                    'whatsapp_response' => $response->json(),
+                    'whatsapp_sent' => null,
+                    'whatsapp_queued' => true,
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -961,7 +932,7 @@ class OrderCustomerController extends Controller
             );
             return response()->json([
                 'success' => true,
-                'message' => 'Order tersimpan tapi terjadi kesalahan saat kirim pesan',
+                'message' => 'Order tersimpan tapi terjadi kesalahan saat menjadwalkan pesan',
                 'data' => [
                     'order' => $order,
                     'customer' => $customer,

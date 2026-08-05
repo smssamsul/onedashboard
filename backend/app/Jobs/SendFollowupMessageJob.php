@@ -19,7 +19,7 @@ class SendFollowupMessageJob implements ShouldQueue
 
     public function __construct(
         public string $templateType,
-        public int $templateId,
+        public ?int $templateId,
         public string $message,
         public string $phone,
         public string $customerNama,
