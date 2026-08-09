@@ -175,38 +175,55 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
             Belum ada data iklan. Jalankan Sync untuk menariknya dari Meta.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10, marginBottom: 16 }}>
-            {iklan.map((a) => (
-              <div key={a.ad_id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-                  {a.thumbnail && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.thumbnail} alt="" width={44} height={44}
-                      style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid #e5e7eb" }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, wordBreak: "break-word" }}>{a.name || a.ad_id}</div>
-                    <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{a.ad_set_nama}</div>
-                  </div>
-                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, whiteSpace: "nowrap", background: a.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: a.status === "ACTIVE" ? "#166534" : "#6b7280" }}>
-                    {a.status || "-"}
-                  </span>
-                </div>
-
-                {a.ada_data ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, borderTop: "1px dashed #e5e7eb", paddingTop: 8 }}>
-                    <MetrikMini label="Biaya" nilai={fmtRp(Math.round(a.spend_ppn))} />
-                    <MetrikMini label="Leads" nilai={fmt(a.leads)} warna={a.leads > 0 ? "#2563eb" : "#9ca3af"} />
-                    <MetrikMini label="CPL" nilai={fmtRpOpsional(a.cpl)} />
-                    <MetrikMini label="CTR" nilai={a.ctr === null ? "-" : `${a.ctr}%`} />
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 11, color: "#9ca3af", borderTop: "1px dashed #e5e7eb", paddingTop: 8 }}>
-                    Tidak ada belanja di rentang tanggal ini.
-                  </div>
-                )}
-              </div>
-            ))}
+          <div style={{ overflowX: "auto", marginBottom: 16, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
+              <thead>
+                <tr style={{ background: "#f3f4f6", borderBottom: "1px solid #e5e7eb" }}>
+                  <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Iklan</th>
+                  <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Status</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Biaya</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Leads</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CPL</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CTR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {iklan.map((a) => (
+                  <tr key={a.ad_id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "8px 10px", verticalAlign: "middle" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {a.thumbnail && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.thumbnail} alt="" width={32} height={32}
+                            style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid #e5e7eb" }} />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, wordBreak: "break-word" }}>{a.name || a.ad_id}</div>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>{a.ad_set_nama}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, whiteSpace: "nowrap", background: a.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: a.status === "ACTIVE" ? "#166534" : "#6b7280" }}>
+                        {a.status || "-"}
+                      </span>
+                    </td>
+                    {a.ada_data ? (
+                      <>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(Math.round(a.spend_ppn))}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.leads > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.leads)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpl)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{a.ctr === null ? "-" : `${a.ctr}%`}</td>
+                      </>
+                    ) : (
+                      <td colSpan={4} style={{ padding: "8px 10px", fontSize: 11, color: "#9ca3af" }}>
+                        Tidak ada belanja di rentang tanggal ini.
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
