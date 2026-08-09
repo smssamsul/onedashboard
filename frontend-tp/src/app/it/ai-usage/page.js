@@ -26,6 +26,13 @@ function labelFitur(fitur) {
   };
   return map[fitur] || fitur;
 }
+function labelModel(model) {
+  const map = {
+    "claude-sonnet-5": "Claude Sonnet 5",
+    "claude-haiku-4-5-20251001": "Claude Haiku 4.5",
+  };
+  return map[model] || model;
+}
 function defaultDari() {
   const d = new Date();
   d.setDate(d.getDate() - 29);
@@ -200,6 +207,32 @@ export default function AiUsageDashboardPage() {
             </div>
 
             <div className={styles.tableCard}>
+              <h4 className={styles.chartTitle}>Breakdown per Model</h4>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr><th>Model</th><th>Panggilan</th><th>Input Token</th><th>Output Token</th><th>Biaya</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.per_model?.length ? (
+                      data.per_model.map((row, i) => (
+                        <tr key={i}>
+                          <td><code className={styles.code}>{labelModel(row.model)}</code></td>
+                          <td>{fmt(row.jumlah_panggilan)}</td>
+                          <td>{fmt(row.input_tokens)}</td>
+                          <td>{fmt(row.output_tokens)}</td>
+                          <td className={styles.cBiaya}>{fmtUsd(row.biaya_usd)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={5} className={styles.tdEmpty}>Tidak ada data</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className={styles.tableCard}>
               <h4 className={styles.chartTitle}>Log Terbaru</h4>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
@@ -212,7 +245,7 @@ export default function AiUsageDashboardPage() {
                         <tr key={row.id}>
                           <td>{row.created_at?.replace("T", " ").slice(0, 19)}</td>
                           <td>{labelFitur(row.fitur)}</td>
-                          <td><code className={styles.code}>{row.model}</code></td>
+                          <td><code className={styles.code}>{labelModel(row.model)}</code></td>
                           <td>{fmt(row.input_tokens)} / {fmt(row.output_tokens)}</td>
                           <td className={styles.cBiaya}>{fmtUsd(row.estimasi_biaya_usd)}</td>
                           <td>{row.sukses ? <span className={styles.badgeOk}>sukses</span> : <span className={styles.badgeGagal}>gagal</span>}</td>

@@ -41,6 +41,12 @@ class AiUsageDashboardController extends Controller
             ->orderByDesc('biaya_usd')
             ->get();
 
+        $perModel = (clone $query)
+            ->selectRaw('model, COUNT(*) as jumlah_panggilan, COALESCE(SUM(input_tokens), 0) as input_tokens, COALESCE(SUM(output_tokens), 0) as output_tokens, COALESCE(SUM(estimasi_biaya_usd), 0) as biaya_usd')
+            ->groupBy('model')
+            ->orderByDesc('biaya_usd')
+            ->get();
+
         $perHari = (clone $query)
             ->selectRaw('DATE(created_at) as tanggal, COALESCE(SUM(estimasi_biaya_usd), 0) as biaya_usd, COUNT(*) as jumlah_panggilan')
             ->groupBy('tanggal')
@@ -53,6 +59,7 @@ class AiUsageDashboardController extends Controller
                 'rentang' => ['dari' => $dari, 'sampai' => $sampai],
                 'total' => $total,
                 'per_fitur' => $perFitur,
+                'per_model' => $perModel,
                 'per_hari' => $perHari,
             ],
         ]);
