@@ -47,6 +47,8 @@ export default function OrdersSection({
         if (order.slug && order.slug !== "-") {
           router.push(order.slug);
         }
+      } else if (kategoriLower.includes("course") && order.produkId) {
+        router.push(`/customer/ecourse/${order.produkId}`);
       } else {
         router.push(`/customer/orders/${order.id}`);
       }

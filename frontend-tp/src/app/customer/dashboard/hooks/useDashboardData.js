@@ -76,6 +76,7 @@ export function useDashboardData() {
         if (kategoriLower === "e-book" || kategoriLower === "ebook") return "Buka Ebook";
         if (kategoriLower === "webinar") return "Join Webinar";
         if (kategoriLower === "workshop") return "Join Workshop";
+        if (kategoriLower.includes("course")) return "Lanjutkan Belajar";
         return "Lihat Detail";
       };
 
@@ -88,6 +89,7 @@ export function useDashboardData() {
 
       return {
         id: order.id,
+        produkId: order.produk,
         type: typeLabel,
         title: order.produk_nama || "Produk Tanpa Nama",
         slug: order.ebook_url || order.produk_kode || order.kategori_nama || "-",
