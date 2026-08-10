@@ -172,6 +172,23 @@ class SyncMetaAdsInsights extends Command
             MetaAdCampaign::where('meta_ads_account_id', $account->id)->select('id')
         )->pluck('id', 'ad_set_id');
 
+        // Creative cuma diminta ke Meta untuk ad yang belum punya cache lokal -
+        // bukan diulang tiap sync untuk seluruh riwayat akun. Lihat catatan di
+        // MetaAdsService::getAdsCreatives().
+        $sudahPunyaCreative = MetaAd::whereNotNull('creative_payload')
+            ->whereIn('ad_id', array_column($ads, 'id'))
+            ->pluck('ad_id')
+            ->flip();
+
+        $idsButuhCreative = [];
+        foreach ($ads as $a) {
+            if (!empty($a['id']) && !isset($sudahPunyaCreative[$a['id']])) {
+                $idsButuhCreative[] = $a['id'];
+            }
+        }
+
+        $creativeMap = $idsButuhCreative ? $service->getAdsCreatives($idsButuhCreative) : [];
+
         $count = 0;
         foreach ($ads as $a) {
             $localAdSetId = $adSetMap[$a['adset_id'] ?? null] ?? null;
@@ -179,20 +196,24 @@ class SyncMetaAdsInsights extends Command
                 continue;
             }
 
-            MetaAd::updateOrCreate(
-                ['ad_id' => $a['id']],
-                [
-                    'meta_ad_set_id' => $localAdSetId,
-                    'name' => $a['name'] ?? null,
-                    'status' => $a['status'] ?? null,
-                    'creative_id' => $a['creative']['id'] ?? null,
-                    'creative_payload' => $a['creative'] ?? null,
-                    'raw_payload' => $a,
-                    'synced_at' => now(),
-                    'update_at' => now(),
-                    'create_at' => now(),
-                ]
-            );
+            $payload = [
+                'meta_ad_set_id' => $localAdSetId,
+                'name' => $a['name'] ?? null,
+                'status' => $a['status'] ?? null,
+                'raw_payload' => $a,
+                'synced_at' => now(),
+                'update_at' => now(),
+                'create_at' => now(),
+            ];
+
+            // Field creative sengaja tidak disertakan kalau tidak baru diambil,
+            // supaya cache yang sudah ada tidak tertimpa null.
+            if (array_key_exists($a['id'], $creativeMap)) {
+                $payload['creative_id'] = $creativeMap[$a['id']]['id'] ?? null;
+                $payload['creative_payload'] = $creativeMap[$a['id']];
+            }
+
+            MetaAd::updateOrCreate(['ad_id' => $a['id']], $payload);
             $count++;
         }
 
