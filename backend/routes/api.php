@@ -277,9 +277,18 @@ Route::middleware('auth:api')->group(function () {
         // Ecourse
         Route::get('/ecourse/upload-url', [\App\Http\Controllers\EcourseController::class, 'getUploadUrl']);
         Route::get('/ecourse', [\App\Http\Controllers\EcourseController::class, 'index']);
+        Route::put('/ecourse/reorder', [\App\Http\Controllers\EcourseController::class, 'reorder']);
         Route::get('/ecourse/{id}', [\App\Http\Controllers\EcourseController::class, 'show']);
         Route::post('/ecourse', [\App\Http\Controllers\EcourseController::class, 'store']);
+        Route::put('/ecourse/{id}', [\App\Http\Controllers\EcourseController::class, 'update']);
         Route::delete('/ecourse/{id}', [\App\Http\Controllers\EcourseController::class, 'destroy']);
+
+        // Ecourse - Bab/Modul kurikulum
+        Route::get('/ecourse-bab', [\App\Http\Controllers\EcourseBabController::class, 'index']);
+        Route::post('/ecourse-bab', [\App\Http\Controllers\EcourseBabController::class, 'store']);
+        Route::put('/ecourse-bab/reorder', [\App\Http\Controllers\EcourseBabController::class, 'reorder']);
+        Route::put('/ecourse-bab/{id}', [\App\Http\Controllers\EcourseBabController::class, 'update']);
+        Route::delete('/ecourse-bab/{id}', [\App\Http\Controllers\EcourseBabController::class, 'destroy']);
 
         // Sales
         Route::get('/sales-list', [\App\Http\Controllers\Api\Sales\SalesController::class, 'index']);
@@ -653,6 +662,11 @@ Route::prefix('customer')->group(function () {
         
         // Order Customer Routes
         Route::post('/order/{id}/upload-bukti-pembayaran', [OrderCustomerController::class, 'customerUploadBuktiPembayaran'])->where('id', '[0-9]+');
+
+        // Ecourse - kursus yang sudah dibeli customer
+        Route::get('/ecourse', [\App\Http\Controllers\Api\Customer\EcourseController::class, 'myCourses']);
+        Route::get('/ecourse/{produkId}', [\App\Http\Controllers\Api\Customer\EcourseController::class, 'show'])->where('produkId', '[0-9]+');
+        Route::post('/ecourse/lesson/{ecourseId}/progress', [\App\Http\Controllers\Api\Customer\EcourseController::class, 'markProgress'])->where('ecourseId', '[0-9]+');
     });
 });
 
