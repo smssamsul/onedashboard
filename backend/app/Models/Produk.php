@@ -123,6 +123,11 @@ class Produk extends Model
         return $this->hasOne(Webinar::class, 'produk', 'id');
     }
 
+    public function ecourseBabs()
+    {
+        return $this->hasMany(EcourseBab::class, 'produk_id', 'id')->orderBy('urutan');
+    }
+
     /**
      * Relasi ke ProdukBundling
      */
