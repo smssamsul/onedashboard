@@ -16,7 +16,7 @@ class EcourseController extends Controller
         $client = Storage::disk('s3')->getClient();
 
         $cmd = $client->getCommand('PutObject', [
-            'Bucket' => env('AWS_BUCKET'),
+            'Bucket' => config('filesystems.disks.s3.bucket'),
             'Key' => $fileName,
             'ContentType' => 'video/mp4',
         ]);
