@@ -75,24 +75,48 @@ class MetaAdsService
     }
 
     /**
-     * Daftar iklan (creative) di akun ini, beserta ad set induknya.
-     *
-     * `creative{...}` diminta sekalian supaya panel Overview bisa menampilkan
-     * judul/thumbnail materi tanpa memanggil Meta lagi per iklan.
-     *
-     * limit sengaja 100, bukan 500 seperti endpoint lain. Diuji langsung ke
-     * akun produksi (3.170 iklan sepanjang riwayat akun): limit=500 pada
-     * endpoint ini ditolak Meta dengan "Please reduce the amount of data
-     * you're asking for" (HTTP 500) karena ekspansi creative per baris mahal
-     * di sisi mereka, sedangkan limit=100 konsisten berhasil. Insight
-     * (getAdInsights) tidak kena batas ini — ekspansinya lebih ringan.
+     * Daftar iklan di akun ini, beserta ad set induknya. Sengaja TANPA field
+     * `creative{...}` — lihat getAdsCreatives().
      */
     public function getAds(): array
     {
         return $this->requestSemuaHalaman("/{$this->account->ad_account_id}/ads", [
-            'fields' => 'id,name,status,adset_id,campaign_id,creative{id,thumbnail_url,title,body}',
-            'limit' => 100,
+            'fields' => 'id,name,status,adset_id,campaign_id',
+            'limit' => 500,
         ]);
+    }
+
+    /**
+     * Ambil field `creative` untuk sekumpulan ad ID lewat multi-id read
+     * (`GET /?ids=...`), dipecah per $chunkSize.
+     *
+     * Dipisah dari getAds() karena riwayat sempat menunjukkan: meminta
+     * `creative{id,thumbnail_url,title,body}` sekaligus untuk SELURUH iklan
+     * akun (pagination penuh, ribuan baris) membuat Meta menolak dengan
+     * "Please reduce the amount of data you're asking for" (kadang muncul
+     * sebagai timeout) begitu jumlah iklan akun bertambah banyak — bahkan
+     * setelah limit listing diturunkan ke 100. Caller (syncAds) hanya perlu
+     * memanggil ini untuk ad yang belum punya creative_payload tersimpan,
+     * bukan seluruh riwayat akun tiap sync.
+     */
+    public function getAdsCreatives(array $adIds, int $chunkSize = 50): array
+    {
+        $hasil = [];
+
+        foreach (array_chunk(array_values($adIds), $chunkSize) as $chunk) {
+            $response = $this->request('GET', '/', [
+                'ids' => implode(',', $chunk),
+                'fields' => 'creative{id,thumbnail_url,title,body}',
+            ]);
+
+            foreach ($response as $adId => $data) {
+                if (isset($data['creative'])) {
+                    $hasil[$adId] = $data['creative'];
+                }
+            }
+        }
+
+        return $hasil;
     }
 
     /**
