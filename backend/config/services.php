@@ -43,4 +43,9 @@ return [
         'key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    'biteship' => [
+        'base_url' => env('BITESHIP_BASE_URL', 'https://api.biteship.com'),
+        'key' => env('BITESHIP_API_KEY', ''),
+    ],
+
 ];

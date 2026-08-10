@@ -8,12 +8,12 @@ class BiteshipService
 {
     private static function baseUrl(): string
     {
-        return rtrim((string) env('BITESHIP_BASE_URL', 'https://api.biteship.com'), '/');
+        return rtrim((string) config('services.biteship.base_url', 'https://api.biteship.com'), '/');
     }
 
     private static function apiKey(): string
     {
-        $key = trim((string) env('BITESHIP_API_KEY', ''));
+        $key = trim((string) config('services.biteship.key', ''));
         if ($key === '') {
             throw new \RuntimeException('BITESHIP_API_KEY belum di-set di .env backend');
         }
