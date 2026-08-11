@@ -19,8 +19,10 @@ const founders = [
 
 // === STEPS ===
 // 'phone'         → Input nomor HP
-// 'otp_setup'     → Input OTP + Set Password (first time / forgot)
+// 'otp_setup'     → Input OTP + Set Password (forgot password)
 // 'password'      → Input Password (returning user)
+// 'set_password'  → SEMENTARA: set password tanpa OTP (first time), lihat
+//                   catatan di handleCheckPhone soal kenapa ini ada.
 
 export default function LoginPage() {
   const router = useRouter();
@@ -171,21 +173,13 @@ export default function LoginPage() {
         setIsForgotMode(false);
         goToStep("password");
       } else {
-        // First time → kirim OTP dulu, lalu pindah step
-        const otpRes = await fetch("/api/customer/send-otp-by-phone", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ no_telp: phone }),
-        });
-        const otpData = await otpRes.json();
-        if (otpData.success) {
-          setTimeLeft(300);
-          setTimerActive(true);
-          toast.success("OTP dikirim ke WhatsApp Anda!");
-          goToStep("otp_setup");
-        } else {
-          setErrorMsg(otpData.message || "Gagal mengirim OTP.");
-        }
+        // SEMENTARA: langsung ke step set password TANPA kirim OTP dulu.
+        // Normalnya di sini manggil send-otp-by-phone lalu goToStep("otp_setup")
+        // - dimatikan sementara karena service wa-baileys (pengirim OTP)
+        // lagi mati total di server. Kembalikan begitu itu sudah nyala lagi.
+        setNewPassword("");
+        setConfirmPassword("");
+        goToStep("set_password");
       }
     } catch (err) {
       setErrorMsg("Terjadi kesalahan. Silakan coba lagi.");
@@ -254,6 +248,51 @@ export default function LoginPage() {
     const result = await sendOtpToPhone();
     if (result.success) {
       goToStep("otp_setup");
+    }
+  };
+
+  // SEMENTARA: set password pertama kali tanpa OTP (lihat handleCheckPhone)
+  const handleSetPasswordDirect = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (newPassword.length < 6) {
+      setErrorMsg("Password minimal 6 karakter.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg("Konfirmasi password tidak cocok.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/customer/set-password-direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          no_telp: phone,
+          password: newPassword,
+          password_confirmation: confirmPassword,
+        }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setErrorMsg(data.message || "Gagal membuat password.");
+        return;
+      }
+
+      localStorage.setItem("customer_token", data.token);
+      localStorage.setItem("customer_user", JSON.stringify(data.user));
+      toast.success("Akun berhasil diaktifkan!");
+      setTimeout(() => router.replace("/customer/dashboard"), 300);
+    } catch (err) {
+      setErrorMsg("Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -465,7 +504,96 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* ---- STEP: otp_setup (first-time atau forgot password) ---- */}
+            {/* ---- STEP: set_password (SEMENTARA - first time, tanpa OTP) ---- */}
+            {step === "set_password" && (
+              <div key="set_password" className={`login-card-inner ${slideClass}`}>
+                <button
+                  className="btn-back"
+                  onClick={() => goToStep("phone", "backward")}
+                >
+                  ← Ganti Nomor
+                </button>
+
+                <div className="step-user-info">
+                  <div className="user-avatar">
+                    {customerName?.charAt(0)?.toUpperCase() || "?"}
+                  </div>
+                  <div>
+                    <p className="user-greeting">Halo, <strong>{customerName || "Member"}</strong>!</p>
+                    <p className="user-phone">{waMasked}</p>
+                  </div>
+                </div>
+
+                <h3>Aktivasi Akun Member</h3>
+                <p>Buat password untuk akun Anda</p>
+
+                <form onSubmit={handleSetPasswordDirect} autoComplete="off">
+                  <div className="form-group">
+                    <label>Buat Password</label>
+                    <div className="input-password-wrap">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Minimal 6 karakter"
+                        value={newPassword}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value);
+                          setErrorMsg("");
+                        }}
+                        required
+                        autoComplete="new-password"
+                        data-1p-ignore
+                        data-lpignore="true"
+                      />
+                      <button
+                        type="button"
+                        className="btn-eye"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? "🙈" : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Konfirmasi Password</label>
+                    <div className="input-password-wrap">
+                      <input
+                        type="password"
+                        placeholder="Ulangi password"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          setErrorMsg("");
+                        }}
+                        required
+                        autoComplete="new-password"
+                        data-1p-ignore
+                        data-lpignore="true"
+                      />
+                    </div>
+                  </div>
+
+                  {errorMsg && <div className="form-error">{errorMsg}</div>}
+
+                  <button
+                    type="submit"
+                    className="btn-signin"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <span className="btn-spinner">
+                        <span className="spinner-dot" />
+                        Memproses...
+                      </span>
+                    ) : (
+                      "Aktifkan Akun & Masuk"
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ---- STEP: otp_setup (forgot password) ---- */}
             {step === "otp_setup" && (
               <div key="otp_setup" className={`login-card-inner ${slideClass}`}>
                 <button

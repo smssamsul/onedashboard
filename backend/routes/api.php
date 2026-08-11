@@ -644,6 +644,8 @@ Route::prefix('customer')->group(function () {
     Route::post('/send-otp-by-phone', [LoginCustomerController::class, 'sendOtpByPhone']);
     Route::post('/verify-otp-set-password', [LoginCustomerController::class, 'verifyOtpAndSetPassword']);
     Route::post('/login-password', [LoginCustomerController::class, 'loginWithPassword']);
+    // SEMENTARA - bypass OTP set password pertama kali, lihat komentar di LoginCustomerController::setPasswordDirect
+    Route::post('/set-password-direct', [LoginCustomerController::class, 'setPasswordDirect']);
 
     // Authenticated Customer Routes
     Route::middleware('auth:customer')->group(function () {

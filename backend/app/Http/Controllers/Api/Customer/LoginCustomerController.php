@@ -282,6 +282,96 @@ class LoginCustomerController extends Controller
     }
 
     /**
+     * SEMENTARA - matikan begitu service wa-baileys (bot WhatsApp) hidup
+     * lagi dan pengiriman OTP normal kembali.
+     *
+     * Bypass OTP untuk set password PERTAMA KALI (bukan reset/lupa
+     * password - itu tetap lewat verifyOtpAndSetPassword di atas). Dipakai
+     * karena session WhatsApp 'global' yang dipakai kirim OTP login mati
+     * total (bukan cuma disconnect, prosesnya sendiri tidak jalan di
+     * server), jadi customer baru/lama yang belum pernah set password gak
+     * bisa login sama sekali.
+     *
+     * Trade-off keamanan: siapapun yang tahu nomor WA customer bisa
+     * membuat password untuk akun itu tanpa bukti kepemilikan nomor.
+     * Cuma berlaku untuk akun yang BELUM punya password sama sekali -
+     * begitu password ada, endpoint ini otomatis ditolak dan customer
+     * wajib login normal (atau reset via OTP kalau sudah nyala lagi).
+     *
+     * Untuk mengembalikan ke wajib-OTP: hapus route
+     * POST /customer/set-password-direct dan handler ini, lalu di
+     * frontend (customer/page.js) kembalikan handleCheckPhone supaya
+     * manggil sendOtpToPhone() + goToStep("otp_setup") seperti semula.
+     *
+     * POST /customer/set-password-direct
+     */
+    public function setPasswordDirect(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'no_telp'  => 'required|string',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $phone = $this->formatPhoneNumber($request->no_telp);
+
+        $customer = Customer::where('wa', $phone)
+            ->orWhere('wa', $request->no_telp)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor telepon tidak terdaftar.',
+            ], 404);
+        }
+
+        if ($customer->status === 'N') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Anda tidak aktif.',
+            ], 403);
+        }
+
+        if (!empty($customer->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun ini sudah punya password. Silakan login dengan password.',
+            ], 422);
+        }
+
+        $customer->update([
+            'password'   => Hash::make($request->password),
+            'verifikasi' => 1,
+        ]);
+
+        $token = auth()->guard('customer')->login($customer);
+        $customer->update(['last_login_at' => now()]);
+
+        $verifikasi = ($customer->tanggal_lahir == null) ? '0' : '1';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil dibuat. Login berhasil!',
+            'user'    => [
+                'id'         => $customer->id,
+                'nama'       => $customer->nama,
+                'email'      => $customer->email,
+                'wa'         => $customer->wa,
+                'alamat'     => $customer->alamat,
+                'verifikasi' => $verifikasi,
+            ],
+            'token'   => $token,
+        ]);
+    }
+
+    /**
      * Step 3: Verifikasi OTP + set password (first-time / reset)
      * POST /customer/verify-otp-set-password
      */
