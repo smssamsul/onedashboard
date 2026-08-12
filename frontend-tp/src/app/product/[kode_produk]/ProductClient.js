@@ -1874,7 +1874,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       <div className="compact-field">
                         {/* <label className="compact-label">Provinsi <span className="required">*</span></label> */}
                         <SearchableSelect
-                          placeholder="Cari & pilih Provinsi"
+                          placeholder="Pilih Provinsi"
                           options={wilayahData.provinces}
                           value={selectedWilayahIds.provinceId}
                           disabled={loadingWilayah.provinces}
@@ -1891,7 +1891,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       <div className="compact-field">
                         {/* <label className="compact-label">Kabupaten/Kota <span className="required">*</span></label> */}
                         <SearchableSelect
-                          placeholder="Cari & pilih Kabupaten/Kota"
+                          placeholder="Pilih Kabupaten/Kota"
                           options={wilayahData.cities}
                           value={selectedWilayahIds.cityId}
                           disabled={!selectedWilayahIds.provinceId || loadingWilayah.cities}
@@ -1908,7 +1908,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                       <div className="compact-field" style={{ position: 'relative' }}>
                         {/* <label className="compact-label">Kecamatan <span className="required">*</span></label> */}
                         <SearchableSelect
-                          placeholder="Cari & pilih Kecamatan"
+                          placeholder="Pilih Kecamatan"
                           options={wilayahData.districts.map((d) => ({ id: d.district_id || d.id, name: d.name }))}
                           value={selectedWilayahIds.districtId}
                           disabled={!selectedWilayahIds.cityId || loadingWilayah.districts}
