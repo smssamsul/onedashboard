@@ -93,19 +93,28 @@ class BaileysController extends Controller
             $status = $this->baileys->getStatus($sessionId);
             $statusValue = strtolower($status['status'] ?? '');
 
-            // getStatus() balik success:true meski status-nya 'disconnect' -
-            // itu bukan tanda error, cuma laporan "sesinya memang terputus".
+            // getStatus() balik success:true meski status-nya 'stopped' -
+            // itu bukan tanda error, cuma laporan "sesinya memang berhenti".
             // Jangan pakai !success buat nentuin perlu session baru atau
             // tidak, cek nilai status-nya langsung.
-            $needsFreshSession = in_array($statusValue, ['not_found', 'disconnect'], true)
-                || str_contains(strtolower($status['message'] ?? ''), 'disconnect');
+            //
+            // PENTING: 'disconnect' (Node lagi jeda sesaat sebelum coba
+            // reconnect sendiri) SENGAJA tidak masuk sini. Modal QR di
+            // dashboard polling tiap ~15 detik - kalau 'disconnect'
+            // dianggap "perlu session baru", polling itu bisa nangkep
+            // jeda sesaat itu dan logout+createSession ulang terus-
+            // terusan, me-reset batas percobaan auto-reconnect di Node
+            // sebelum sempat berhenti sendiri. 'stopped' cuma dipakai
+            // Node kalau sesi BENERAN sudah berhenti total (logout asli
+            // atau sudah kehabisan percobaan).
+            $needsFreshSession = in_array($statusValue, ['not_found', 'stopped'], true);
 
             if ($needsFreshSession) {
-                // Session 'disconnect' (beda dari 'not_found') masih
-                // nyangkut di memori service Node walau socket-nya sudah
-                // mati - createSession() ditolak "already exists" kalau
-                // tidak di-logout dulu buat bersihkan state lama + auth.
-                if ($statusValue === 'disconnect') {
+                // Session 'stopped' (beda dari 'not_found') masih nyangkut
+                // di memori service Node walau socket-nya sudah mati -
+                // createSession() ditolak "already exists" kalau tidak
+                // di-logout dulu buat bersihkan state lama + auth.
+                if ($statusValue === 'stopped') {
                     $this->baileys->logout($sessionId);
                 }
                 $this->baileys->createSession($sessionId);
@@ -149,20 +158,24 @@ class BaileysController extends Controller
         $status = $this->baileys->getStatus($sessionId);
         $statusValue = strtolower($status['status'] ?? '');
 
-        // getStatus() balik success:true meski status-nya 'disconnect' -
-        // itu bukan tanda error, cuma laporan "sesinya memang terputus".
+        // getStatus() balik success:true meski status-nya 'stopped' - itu
+        // bukan tanda error, cuma laporan "sesinya memang berhenti".
         // Jangan pakai !success buat nentuin perlu session baru atau
         // tidak, cek nilai status-nya langsung.
-        $needsFreshSession = in_array($statusValue, ['not_found', 'disconnect'], true)
-            || str_contains(strtolower($status['message'] ?? ''), 'disconnect');
+        //
+        // PENTING: 'disconnect' (Node lagi jeda sesaat sebelum coba
+        // reconnect sendiri) SENGAJA tidak masuk sini - lihat catatan di
+        // atas pada blok "global" untuk alasannya (race dengan polling
+        // modal QR yang bisa me-reset batas percobaan auto-reconnect).
+        $needsFreshSession = in_array($statusValue, ['not_found', 'stopped'], true);
 
-        // Jika session belum ada atau disconnect, buat dulu
+        // Jika session belum ada atau sudah berhenti total, buat dulu
         if ($needsFreshSession) {
-            // Session 'disconnect' (beda dari 'not_found') masih nyangkut
-            // di memori service Node walau socket-nya sudah mati -
+            // Session 'stopped' (beda dari 'not_found') masih nyangkut di
+            // memori service Node walau socket-nya sudah mati -
             // createSession() ditolak "already exists" kalau tidak
             // di-logout dulu buat bersihkan state lama + auth.
-            if ($statusValue === 'disconnect') {
+            if ($statusValue === 'stopped') {
                 $this->baileys->logout($sessionId);
             }
             $this->baileys->createSession($sessionId);
