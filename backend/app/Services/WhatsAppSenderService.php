@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Models\SalesSetting;
 use App\Models\Sales;
 use App\Services\BaileysService;
@@ -100,8 +101,21 @@ class WhatsAppSenderService
             throw new \Exception("Baileys session '{$sessionId}' tidak terhubung.");
         }
 
+        // Kuota per session: cegah satu nomor WA dianggap spam oleh WhatsApp
+        // (efeknya session ke-logout paksa) kalau kirim terlalu rapat.
+        [$maxMessages, $windowMinutes] = SalesSetting::getBaileysQuota();
+        $quotaKey = "baileys-quota:{$sessionId}";
+
+        if (RateLimiter::tooManyAttempts($quotaKey, $maxMessages)) {
+            $availableInSeconds = RateLimiter::availableIn($quotaKey);
+            Log::channel('woowa')->warning("Baileys session '{$sessionId}' kena kuota kirim ({$maxMessages} pesan/{$windowMinutes} menit). Pesan ditunda.");
+            throw new \Exception("Kuota kirim Baileys sesi '{$sessionId}' sudah tercapai ({$maxMessages} pesan/{$windowMinutes} menit). Coba lagi dalam " . ceil($availableInSeconds / 60) . " menit.");
+        }
+
+        RateLimiter::hit($quotaKey, $windowMinutes * 60);
+
         $response = $this->baileysService->sendMessage($sessionId, $to, $message);
-        
+
         if (isset($response['success']) && $response['success']) {
             return $this->createMockResponse(true, 200, $response);
         }
