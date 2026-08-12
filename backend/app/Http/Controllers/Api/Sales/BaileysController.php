@@ -91,12 +91,23 @@ class BaileysController extends Controller
         if ($salesId === 'global') {
             $sessionId = 'global';
             $status = $this->baileys->getStatus($sessionId);
+            $statusValue = strtolower($status['status'] ?? '');
 
-            $isNotFound = ($status['status'] ?? '') === 'not_found' 
-                || str_contains(strtolower($status['message'] ?? ''), 'disconnect') 
-                || ($status['status'] ?? '') === 'disconnect';
+            // getStatus() balik success:true meski status-nya 'disconnect' -
+            // itu bukan tanda error, cuma laporan "sesinya memang terputus".
+            // Jangan pakai !success buat nentuin perlu session baru atau
+            // tidak, cek nilai status-nya langsung.
+            $needsFreshSession = in_array($statusValue, ['not_found', 'disconnect'], true)
+                || str_contains(strtolower($status['message'] ?? ''), 'disconnect');
 
-            if (!($status['success'] ?? false) && $isNotFound) {
+            if ($needsFreshSession) {
+                // Session 'disconnect' (beda dari 'not_found') masih
+                // nyangkut di memori service Node walau socket-nya sudah
+                // mati - createSession() ditolak "already exists" kalau
+                // tidak di-logout dulu buat bersihkan state lama + auth.
+                if ($statusValue === 'disconnect') {
+                    $this->baileys->logout($sessionId);
+                }
                 $this->baileys->createSession($sessionId);
                 sleep(1);
             }
@@ -136,13 +147,24 @@ class BaileysController extends Controller
 
         // Cek status dulu
         $status = $this->baileys->getStatus($sessionId);
+        $statusValue = strtolower($status['status'] ?? '');
 
-        $isNotFound = ($status['status'] ?? '') === 'not_found' 
-            || str_contains(strtolower($status['message'] ?? ''), 'disconnect') 
-            || ($status['status'] ?? '') === 'disconnect';
+        // getStatus() balik success:true meski status-nya 'disconnect' -
+        // itu bukan tanda error, cuma laporan "sesinya memang terputus".
+        // Jangan pakai !success buat nentuin perlu session baru atau
+        // tidak, cek nilai status-nya langsung.
+        $needsFreshSession = in_array($statusValue, ['not_found', 'disconnect'], true)
+            || str_contains(strtolower($status['message'] ?? ''), 'disconnect');
 
         // Jika session belum ada atau disconnect, buat dulu
-        if (!($status['success'] ?? false) && $isNotFound) {
+        if ($needsFreshSession) {
+            // Session 'disconnect' (beda dari 'not_found') masih nyangkut
+            // di memori service Node walau socket-nya sudah mati -
+            // createSession() ditolak "already exists" kalau tidak
+            // di-logout dulu buat bersihkan state lama + auth.
+            if ($statusValue === 'disconnect') {
+                $this->baileys->logout($sessionId);
+            }
             $this->baileys->createSession($sessionId);
             // Tunggu sebentar agar session ter-init dan QR tersedia
             sleep(1);
