@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
 use App\Models\LeadLpwa;
+use App\Services\PercakapanService;
 use Illuminate\Support\Facades\Log;
 
 class LpwaWebhookController extends Controller
@@ -40,6 +41,27 @@ class LpwaWebhookController extends Controller
 
         // Bersihkan nomor WA (hanya angka)
         $phone = preg_replace('/\D/', '', $phone);
+
+        // Catat SETIAP pesan customer yang masuk ke menu Percakapan (AI),
+        // ter-assign ke sales pemilik session WA-nya - terlepas dari
+        // apakah pesannya cocok pola "ikut [produk]" di bawah atau tidak.
+        // Gagal di sini tidak boleh menghentikan alur capture lead LPWA
+        // yang sudah ada.
+        try {
+            app(PercakapanService::class)->logCustomerMessage(
+                $phone,
+                $salesId !== null ? (int) $salesId : null,
+                $message,
+                $name,
+                'baileys'
+            );
+        } catch (\Throwable $e) {
+            Log::channel('webhook_baileys')->error('Gagal mencatat ke Percakapan', [
+                'phone' => $phone,
+                'sessionId' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Regex untuk menangkap nama produk dari format:
         // "Halo Fuji saya mau ikut Seminar Ternak Properti di Lampung. Bisa didetilkan?"
