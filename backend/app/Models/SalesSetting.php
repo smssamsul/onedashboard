@@ -19,6 +19,8 @@ class SalesSetting extends Model
         'wa_engine',
         'followup_delay_min',
         'followup_delay_max',
+        'baileys_quota_max_messages',
+        'baileys_quota_window_minutes',
     ];
 
     /**
@@ -65,5 +67,26 @@ class SalesSetting extends Model
         $max = max($min, $max);
 
         return [$min, $max];
+    }
+
+    /**
+     * Kuota kirim per session Baileys: [maxPesan, windowMenit]. Dicek di
+     * WhatsAppSenderService::sendViaBaileys() sebelum tiap kirim, supaya satu
+     * nomor WA tidak dianggap spam oleh WhatsApp (efeknya session ke-logout
+     * paksa). Default 20 pesan / 30 menit kalau belum diisi di Setting Sales.
+     */
+    public static function getBaileysQuota(): array
+    {
+        $setting = self::first();
+
+        $maxMessages = ($setting && $setting->baileys_quota_max_messages !== null)
+            ? (int) $setting->baileys_quota_max_messages
+            : 20;
+
+        $windowMinutes = ($setting && $setting->baileys_quota_window_minutes !== null)
+            ? (int) $setting->baileys_quota_window_minutes
+            : 30;
+
+        return [max(1, $maxMessages), max(1, $windowMinutes)];
     }
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
-import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode, Timer } from "lucide-react";
+import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode, Timer, Gauge } from "lucide-react";
 import { toast } from "react-hot-toast";
 import dynamic from "next/dynamic";
 
@@ -23,6 +23,11 @@ export default function SalesSettingPage() {
   const [delayMin, setDelayMin] = useState("5");
   const [delayMax, setDelayMax] = useState("25");
   const [delaySaveLoading, setDelaySaveLoading] = useState(false);
+
+  // Kuota kirim per session Baileys
+  const [quotaMax, setQuotaMax] = useState("20");
+  const [quotaWindow, setQuotaWindow] = useState("30");
+  const [quotaSaveLoading, setQuotaSaveLoading] = useState(false);
 
   // Baileys Engine State
   const [waEngine, setWaEngine] = useState("woowa"); // 'woowa' | 'baileys'
@@ -112,6 +117,8 @@ export default function SalesSettingPage() {
           // jadi tidak perlu menebak default di sini.
           setDelayMin(String(result.data.followup_delay_min ?? 5));
           setDelayMax(String(result.data.followup_delay_max ?? 25));
+          setQuotaMax(String(result.data.baileys_quota_max_messages ?? 20));
+          setQuotaWindow(String(result.data.baileys_quota_window_minutes ?? 30));
         }
       }
     } catch (error) {
@@ -248,6 +255,51 @@ export default function SalesSettingPage() {
       toast.error("Terjadi kesalahan saat menyimpan jeda follow-up");
     } finally {
       setDelaySaveLoading(false);
+    }
+  };
+
+  const handleSaveQuota = async (e) => {
+    e.preventDefault();
+
+    const maxMessages = Number(quotaMax);
+    const windowMinutes = Number(quotaWindow);
+
+    if (!Number.isInteger(maxMessages) || maxMessages < 1) {
+      toast.error("Jumlah pesan maksimal minimal 1");
+      return;
+    }
+    if (!Number.isInteger(windowMinutes) || windowMinutes < 1) {
+      toast.error("Durasi window minimal 1 menit");
+      return;
+    }
+
+    try {
+      setQuotaSaveLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(getApiUrl("sales/setting"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          baileys_quota_max_messages: maxMessages,
+          baileys_quota_window_minutes: windowMinutes,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Kuota kirim Baileys berhasil disimpan");
+      } else {
+        toast.error(result.message || "Gagal menyimpan kuota kirim");
+      }
+    } catch (error) {
+      console.error("Error saving quota:", error);
+      toast.error("Terjadi kesalahan saat menyimpan kuota kirim");
+    } finally {
+      setQuotaSaveLoading(false);
     }
   };
 
@@ -631,6 +683,66 @@ export default function SalesSettingPage() {
             <div className="action-buttons">
               <button type="submit" disabled={delaySaveLoading} className="btn btn-primary">
                 {delaySaveLoading ? "Menyimpan..." : "Simpan Jeda"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Card 5: Kuota Kirim per Session Baileys */}
+        <div className="setting-card" style={{ marginTop: "2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
+            <div style={{ background: "#7c3aed", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
+              <Gauge size={20} color="white" />
+            </div>
+            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Kuota Kirim per Session Baileys</h3>
+          </div>
+
+          <form onSubmit={handleSaveQuota} className="status-container">
+            <p className="description">
+              Batas jumlah pesan yang boleh dikirim satu nomor WA (satu session Baileys) dalam
+              satu rentang waktu. Begitu kuota tercapai, pesan berikutnya di session itu gagal
+              dulu sampai window-nya reset — supaya nomor tidak dianggap bot dan ke-logout paksa
+              oleh WhatsApp. Berlaku per session (per nomor), bukan digabung semua sales.
+            </p>
+
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <div className="form-group" style={{ flex: "1 1 180px" }}>
+                <label htmlFor="quota_max" style={{ fontWeight: "500", color: "#374151" }}>
+                  Maksimal pesan
+                </label>
+                <input
+                  id="quota_max"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={quotaMax}
+                  onChange={(e) => setQuotaMax(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <div className="form-group" style={{ flex: "1 1 180px" }}>
+                <label htmlFor="quota_window" style={{ fontWeight: "500", color: "#374151" }}>
+                  Per berapa menit
+                </label>
+                <input
+                  id="quota_window"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value={quotaWindow}
+                  onChange={(e) => setQuotaWindow(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <p className="description" style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+              Default: 20 pesan / 30 menit per session.
+            </p>
+
+            <div className="action-buttons">
+              <button type="submit" disabled={quotaSaveLoading} className="btn btn-primary">
+                {quotaSaveLoading ? "Menyimpan..." : "Simpan Kuota"}
               </button>
             </div>
           </form>
