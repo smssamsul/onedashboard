@@ -34,7 +34,11 @@ export default function PercakapanPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const messagesEndRef = useRef(null);
   const conversationListRef = useRef(null);
-  
+
+  // Tab per-sales - null berarti tab "Semua"
+  const [salesList, setSalesList] = useState([]);
+  const [selectedSalesId, setSelectedSalesId] = useState(null);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -43,8 +47,28 @@ export default function PercakapanPage() {
   const fetchingRef = useRef(false);
 
   useEffect(() => {
-    loadConversations(true);
+    loadSalesList();
   }, []);
+
+  useEffect(() => {
+    setSelectedConversation(null);
+    loadConversations(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSalesId]);
+
+  const loadSalesList = async () => {
+    try {
+      const response = await fetch(getApiUrl("sales/sales-list?all=true"), {
+        headers: getHeaders(),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setSalesList(result.data || []);
+      }
+    } catch (error) {
+      console.error("Error loading sales list:", error);
+    }
+  };
 
   // Filter conversations based on search query
   useEffect(() => {
@@ -119,14 +143,15 @@ export default function PercakapanPage() {
       }
 
       const page = reset ? 1 : currentPage;
-      const response = await fetch(getApiUrl(`sales/percakapan?page=${page}&per_page=20`), {
+      const salesFilter = selectedSalesId ? `&assigned_sales_id=${selectedSalesId}` : "";
+      const response = await fetch(getApiUrl(`sales/percakapan?page=${page}&per_page=20${salesFilter}`), {
         headers: getHeaders(),
       });
       const result = await response.json();
 
       if (result.success) {
         const newConversations = result.data || [];
-        
+
         if (reset) {
           setConversations(newConversations);
           setFilteredConversations(newConversations);
@@ -162,7 +187,8 @@ export default function PercakapanPage() {
     try {
       setIsLoadingMore(true);
       const nextPage = currentPage + 1;
-      const response = await fetch(getApiUrl(`sales/percakapan?page=${nextPage}&per_page=20`), {
+      const salesFilter = selectedSalesId ? `&assigned_sales_id=${selectedSalesId}` : "";
+      const response = await fetch(getApiUrl(`sales/percakapan?page=${nextPage}&per_page=20${salesFilter}`), {
         headers: getHeaders(),
       });
       const result = await response.json();
@@ -385,6 +411,58 @@ export default function PercakapanPage() {
             >
               <Plus size={20} />
             </button>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.375rem",
+              padding: "0.625rem 0.75rem",
+              borderBottom: "1px solid #e5e7eb",
+              overflowX: "auto",
+              background: "#f8fafc",
+            }}
+          >
+            <button
+              onClick={() => setSelectedSalesId(null)}
+              style={{
+                flexShrink: 0,
+                padding: "0.375rem 0.75rem",
+                borderRadius: "16px",
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                border: "1px solid " + (selectedSalesId === null ? "#075E54" : "#e5e7eb"),
+                background: selectedSalesId === null ? "#075E54" : "white",
+                color: selectedSalesId === null ? "white" : "#374151",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Semua
+            </button>
+            {salesList.map((s) => {
+              const isActive = String(selectedSalesId) === String(s.user_id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSalesId(s.user_id)}
+                  style={{
+                    flexShrink: 0,
+                    padding: "0.375rem 0.75rem",
+                    borderRadius: "16px",
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    border: "1px solid " + (isActive ? "#075E54" : "#e5e7eb"),
+                    background: isActive ? "#075E54" : "white",
+                    color: isActive ? "white" : "#374151",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={s.user_rel?.nama || `Sales #${s.user_id}`}
+                >
+                  {s.user_rel?.nama || `Sales #${s.user_id}`}
+                </button>
+              );
+            })}
           </div>
           <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ position: "relative" }}>
