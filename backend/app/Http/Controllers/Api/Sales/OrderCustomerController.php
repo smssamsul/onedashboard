@@ -577,13 +577,15 @@ class OrderCustomerController extends Controller
 
         $validated = $request->validate([
             'nama' => 'required|string',
-            'email' => 'required|email',
+            // Nomor WA yang jadi identitas unik customer, bukan email lagi -
+            // email boleh kosong.
+            'email' => 'nullable|email',
             'wa' => 'required|string',
             'produk' => 'required|integer',
             'harga' => 'required|string',
             'ongkir' => 'nullable|string',
             'total_harga' => 'required|string',
-            'alamat' => 'nullable|string', 
+            'alamat' => 'nullable|string',
             'sumber' => 'required|string',
             'waktu_pembayaran' => 'nullable|date',
             'bukti_pembayaran' => 'nullable|string',
@@ -623,10 +625,14 @@ class OrderCustomerController extends Controller
             }
         }
 
-        // Cari customer berdasarkan email ATAU nomor telepon yang sama
+        // Cari customer berdasarkan nomor telepon (identitas utama) - email
+        // cuma ikut dicocokkan kalau memang diisi, biar tidak salah gandeng
+        // ke customer lain yang emailnya sama-sama kosong.
         $existingCustomer = Customer::where(function($query) use ($request, $wa) {
-                $query->where('email', $request->email)
-                      ->orWhere('wa', $wa);
+                $query->where('wa', $wa);
+                if (!empty($request->email)) {
+                    $query->orWhere('email', $request->email);
+                }
             })
             ->where('status', '!=', 'N')
             ->first();
@@ -730,7 +736,7 @@ class OrderCustomerController extends Controller
             $sales_id = $this->getNextSalesId((int) $request->produk);
             $orderSalesId = $sales_id;
 
-            $customer = Customer::create([
+            $customer = $this->createCustomerSafely([
                 'nama'      => $request->nama,
                 'sales_id'  => $sales_id,
                 'email'     => $request->email,
@@ -1076,7 +1082,7 @@ class OrderCustomerController extends Controller
                     : ($request->sales_id ?? $roundRobinSalesId);
                 $orderSalesId = $sales_id;
 
-                $customer = Customer::create([
+                $customer = $this->createCustomerSafely([
                     'nama'      => $request->nama,
                     'email'     => $request->email,
                     'alamat'    => $request->alamat,
@@ -1431,11 +1437,8 @@ class OrderCustomerController extends Controller
                 // Sama seperti store_admin: WA disimpan dalam format internasional (62…)
                 $row['wa'] = $this->formatPhoneNumber((string) ($row['wa'] ?? ''));
 
-                // Email default kalau tidak ada
-                if (empty($row['email']) && !empty($row['wa'])) {
-                    $digits = preg_replace('/\D/', '', (string) $row['wa']);
-                    $row['email'] = 'order_' . ($digits ?: (string) now()->timestamp) . '@quickorder.local';
-                }
+                // Email boleh kosong - nomor WA yang jadi identitas utama
+                // customer, tidak perlu lagi email palsu ...@quickorder.local.
 
                 // Alamat default
                 if (!array_key_exists('alamat', $row) || $row['alamat'] === null || $row['alamat'] === '') {
@@ -1656,6 +1659,33 @@ class OrderCustomerController extends Controller
             ->where('status', '!=', 'N')
             ->where('status_order', '!=', '3')
             ->first();
+    }
+
+    /**
+     * Buat customer baru, tapi kalau race condition bikin nomor wa-nya
+     * kepakai barusan oleh request lain (index unik customer_wa_active_unique),
+     * ambil record yang sudah kebuat itu alih-alih gagal. Pengecekan
+     * Customer::where('wa', ...)->first() sebelum create() tidak atomik -
+     * dua request nyaris bersamaan bisa sama-sama lolos pengecekan, ini
+     * jaring pengamannya.
+     */
+    private function createCustomerSafely(array $data): Customer
+    {
+        try {
+            return Customer::create($data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            $isUniqueViolation = ($e->getCode() === '23505')
+                || str_contains($e->getMessage(), 'customer_wa_active_unique');
+
+            if ($isUniqueViolation && !empty($data['wa'])) {
+                $existing = Customer::where('wa', $data['wa'])->where('status', '!=', 'N')->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
+            throw $e;
+        }
     }
 
     private function formatPhoneNumber($phone)
