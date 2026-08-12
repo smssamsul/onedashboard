@@ -11,6 +11,7 @@ import { buildLandingButtonInlineStyle } from "@/lib/landingPageButtonStyle";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { buildImageUrl } from "@/lib/image";
+import SearchableSelect from "./components/SearchableSelect";
 // ✅ OPTIMASI: Tree-shake lucide-react - import icons yang digunakan secara dinamis
 // Icons digunakan dalam iconMap untuk list component, jadi tetap perlu di-import
 import {
@@ -1872,98 +1873,53 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
                       <div className="compact-field">
                         {/* <label className="compact-label">Provinsi <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableSelect
+                          placeholder="Cari & pilih Provinsi"
+                          options={wilayahData.provinces}
                           value={selectedWilayahIds.provinceId}
-                          onChange={(e) => {
-                            const provinceId = e.target.value;
+                          disabled={loadingWilayah.provinces}
+                          loading={loadingWilayah.provinces}
+                          loadingText="Memuat provinsi..."
+                          onSelect={(provinceId) => {
                             setSelectedWilayahIds({ provinceId, cityId: "", districtId: "" });
                             const provinceName = getProvinceName(provinceId);
                             setFormWilayah(prev => ({ ...prev, provinsi: provinceName, kabupaten: "", kecamatan: "", kode_pos: "" }));
                           }}
-                          disabled={loadingWilayah.provinces}
-                          style={{
-                            appearance: 'auto',
-                            cursor: loadingWilayah.provinces ? 'not-allowed' : 'pointer',
-                            backgroundColor: loadingWilayah.provinces ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Provinsi</option>
-                          {wilayahData.provinces.map((province) => (
-                            <option key={province.id} value={province.id}>
-                              {province.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.provinces && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat provinsi...
-                          </small>
-                        )}
+                        />
                       </div>
 
                       <div className="compact-field">
                         {/* <label className="compact-label">Kabupaten/Kota <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableSelect
+                          placeholder="Cari & pilih Kabupaten/Kota"
+                          options={wilayahData.cities}
                           value={selectedWilayahIds.cityId}
-                          onChange={(e) => {
-                            const cityId = e.target.value;
+                          disabled={!selectedWilayahIds.provinceId || loadingWilayah.cities}
+                          loading={loadingWilayah.cities}
+                          loadingText="Memuat kabupaten/kota..."
+                          onSelect={(cityId) => {
                             setSelectedWilayahIds(prev => ({ ...prev, cityId, districtId: "" }));
                             const cityName = getCityName(cityId);
                             setFormWilayah(prev => ({ ...prev, kabupaten: cityName, kecamatan: "", kode_pos: "" }));
                           }}
-                          disabled={!selectedWilayahIds.provinceId || loadingWilayah.cities}
-                          style={{
-                            appearance: 'auto',
-                            cursor: (!selectedWilayahIds.provinceId || loadingWilayah.cities) ? 'not-allowed' : 'pointer',
-                            backgroundColor: (!selectedWilayahIds.provinceId || loadingWilayah.cities) ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Kabupaten/Kota</option>
-                          {wilayahData.cities.map((city) => (
-                            <option key={city.id} value={city.id}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.cities && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat kabupaten/kota...
-                          </small>
-                        )}
+                        />
                       </div>
 
                       <div className="compact-field" style={{ position: 'relative' }}>
                         {/* <label className="compact-label">Kecamatan <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableSelect
+                          placeholder="Cari & pilih Kecamatan"
+                          options={wilayahData.districts.map((d) => ({ id: d.district_id || d.id, name: d.name }))}
                           value={selectedWilayahIds.districtId}
-                          onChange={(e) => {
-                            const districtId = e.target.value;
+                          disabled={!selectedWilayahIds.cityId || loadingWilayah.districts}
+                          loading={loadingWilayah.districts}
+                          loadingText="Memuat kecamatan..."
+                          onSelect={(districtId) => {
                             setSelectedWilayahIds(prev => ({ ...prev, districtId }));
                             const districtName = getDistrictName(districtId);
                             setFormWilayah(prev => ({ ...prev, kecamatan: districtName }));
                           }}
-                          disabled={!selectedWilayahIds.cityId || loadingWilayah.districts}
-                          style={{
-                            appearance: 'auto',
-                            cursor: (!selectedWilayahIds.cityId || loadingWilayah.districts) ? 'not-allowed' : 'pointer',
-                            backgroundColor: (!selectedWilayahIds.cityId || loadingWilayah.districts) ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Kecamatan</option>
-                          {wilayahData.districts.map((district) => (
-                            <option key={district.district_id || district.id} value={district.district_id || district.id}>
-                              {district.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.districts && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat kecamatan...
-                          </small>
-                        )}
+                        />
                       </div>
 
                       <div className="compact-field">
