@@ -406,8 +406,39 @@ function BankTransferPageContent() {
       document.body.appendChild(script);
     });
 
+  // customerData (localStorage) cuma keisi kalau customer baru saja checkout
+  // di browser/tab yang sama. Kalau link pembayaran ini dibuka terpisah
+  // (dibagikan ulang, beda device, storage kepencet clear), customerData
+  // kosong - fallback ke data order publik yang sudah di-fetch (dipakai juga
+  // untuk WA/Pixel) supaya tombol tetap bisa jalan.
+  const getEffectivePaymentInfo = () => {
+    if (customerData?.nama && customerData?.email) {
+      return {
+        nama: customerData.nama,
+        email: customerData.email,
+        totalHarga: customerData.totalHarga,
+        productName: customerData.productName,
+        orderId: customerData.orderId || orderId,
+      };
+    }
+    if (orderPublicData?.customer_rel) {
+      return {
+        nama: orderPublicData.customer_rel.nama,
+        email: orderPublicData.customer_rel.email,
+        totalHarga: harga || orderPublicData.total_harga,
+        productName: orderPublicData.produk_rel?.nama,
+        orderId,
+      };
+    }
+    return null;
+  };
+
   const handleLanjutkanPembayaran = async () => {
-    if (!customerData) return;
+    const info = getEffectivePaymentInfo();
+    if (!info || !info.nama || !info.email) {
+      toast.error("Data pemesan belum siap dimuat. Tunggu sebentar lalu coba lagi, atau hubungi admin.");
+      return;
+    }
 
     setLoadingPayment(true);
     try {
@@ -419,11 +450,11 @@ function BankTransferPageContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: customerData.nama,
-          email: customerData.email,
-          amount: customerData.totalHarga,
-          product_name: customerData.productName,
-          order_id: customerData.orderId,
+          name: info.nama,
+          email: info.email,
+          amount: info.totalHarga,
+          product_name: info.productName,
+          order_id: info.orderId,
         }),
       });
 
