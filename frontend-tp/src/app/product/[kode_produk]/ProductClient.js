@@ -2734,7 +2734,8 @@ function ProductClient({ initialProductData, initialLandingPage }) {
   // Derived settings already defined above
 
   const logoUrl = buildImageUrl(settings?.logo, true) || '/assets/logo.png';
-  const backgroundColor = settings?.background_color || '#ffffff';
+  const isDavdigiTheme = settings?.theme === 'davdigi_dark';
+  const backgroundColor = settings?.background_color || (isDavdigiTheme ? '#0A1530' : '#ffffff');
 
   // ✅ Normalisasi struktur analytics (mendukung format lama & baru)
   const analytics = settings?.analytics || {};
@@ -3156,7 +3157,7 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
 
 
-      <div className="add-products3-container product-page-container" itemScope itemType="https://schema.org/Product" style={{ backgroundColor, margin: 0, padding: 0, minHeight: '100vh', width: '100%' }}>
+      <div className={`add-products3-container product-page-container${isDavdigiTheme ? ' theme-davdigi-dark' : ''}`} itemScope itemType="https://schema.org/Product" style={{ backgroundColor, margin: 0, padding: 0, minHeight: '100vh', width: '100%' }}>
         <div className="page-builder-canvas" style={{ backgroundColor, padding: 0, margin: 0, width: '100%', maxWidth: '100%' }}>
           <div className="canvas-wrapper" style={{ backgroundColor, padding: 0, margin: 0, width: '100%', maxWidth: '100%', minHeight: '100vh' }}>
             {/* Logo Section - Top */}

@@ -7380,3 +7380,70 @@ html:has(.product-page-container) {
     padding: 10px 16px !important;
   }
 }
+
+/* =========================================================
+   TEMA "BOLD DARK" (terinspirasi davdigi.com) - opt-in per produk
+   Semua rule di sini di-scope .theme-davdigi-dark supaya produk
+   yang tidak mengaktifkan tema ini sama sekali tidak terdampak.
+   ========================================================= */
+.theme-davdigi-dark {
+  color: #D5DEF0;
+}
+
+/* FAQ - default hardcode oranye (.preview-faq-section) jadi navy + aksen gold */
+.theme-davdigi-dark .preview-faq-section {
+  background: linear-gradient(135deg, #0A1530 0%, #050B1F 100%);
+  border: 1px solid rgba(255, 217, 61, 0.25);
+}
+
+.theme-davdigi-dark .preview-faq-section .faq-title {
+  font-family: "Anton", sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: #FFD93D;
+}
+
+.theme-davdigi-dark .preview-faq-section .faq-icon {
+  color: #FFD93D;
+}
+
+/* Price / special offer card - default hardcode abu-abu (.special-offer-card) jadi navy + gold */
+.theme-davdigi-dark .preview-price-section.special-offer-card {
+  background: linear-gradient(135deg, #0A1530 0%, #050B1F 100%);
+  border: 1px solid rgba(255, 217, 61, 0.25);
+}
+
+.theme-davdigi-dark .special-offer-title {
+  font-family: "Anton", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+.theme-davdigi-dark .price-new {
+  color: #FFD93D;
+}
+
+.theme-davdigi-dark .special-offer-benefits li {
+  background: rgba(255, 255, 255, 0.08);
+  color: #D5DEF0;
+}
+
+/* Testimoni - default card putih jadi card navy */
+.theme-davdigi-dark .testi-card-new {
+  background: #0A1530;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-davdigi-dark .testi-name-new {
+  color: #F5F7FB;
+}
+
+.theme-davdigi-dark .testi-desc-new {
+  color: #D5DEF0;
+}
+
+/* Tombol utama - default solid oranye (.preview-button-primary) jadi gradient + pill */
+.theme-davdigi-dark .preview-button-primary {
+  background: linear-gradient(135deg, #D35500 0%, #A83F00 100%);
+  border-radius: 999px;
+}

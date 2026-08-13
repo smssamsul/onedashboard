@@ -450,6 +450,8 @@ export default function TextComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
     { label: "Lato", value: "Lato" },
     { label: "Montserrat", value: "Montserrat" },
     { label: "Poppins", value: "Poppins" },
+    { label: "Anton", value: "Anton" },
+    { label: "Plus Jakarta Sans", value: "Plus Jakarta Sans" },
   ];
 
   const textAlignOptions = [
