@@ -3164,6 +3164,7 @@ export default function AddProducts3Page() {
     const settingsObject = {
       type: "settings",
       background_color: pengaturanForm.background_color || "#ffffff",
+      theme: pengaturanForm.theme || "default",
       preview_component_gap: Number(pengaturanForm.preview_component_gap ?? 24),
       preview_text_paragraph_gap: Number(pengaturanForm.preview_text_paragraph_gap ?? 8),
       page_title: pengaturanForm.page_title || "",
@@ -3300,6 +3301,7 @@ export default function AddProducts3Page() {
     const settingsObject = {
       type: "settings",
       background_color: pengaturanForm.background_color || "#ffffff",
+      theme: pengaturanForm.theme || "default",
       preview_component_gap: Number(pengaturanForm.preview_component_gap ?? 24),
       preview_text_paragraph_gap: Number(pengaturanForm.preview_text_paragraph_gap ?? 8),
       page_title: pengaturanForm.page_title || "",

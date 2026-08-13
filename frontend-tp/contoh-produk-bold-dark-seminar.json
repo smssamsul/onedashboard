@@ -1,0 +1,209 @@
+[
+  {
+    "id": "block-1",
+    "type": "html",
+    "order": 1,
+    "data": {
+      "code": "<style>.bd-hero{background:linear-gradient(180deg,#0A1530 0%,#050B1F 100%);padding:56px 24px;text-align:center;border-radius:16px;}.bd-hero-badge{display:inline-block;background:linear-gradient(135deg,rgba(255,217,61,0.18),rgba(255,217,61,0.06));border:1px solid rgba(255,217,61,0.4);color:#FFD93D;font-weight:700;font-size:13px;letter-spacing:1px;padding:8px 20px;border-radius:999px;margin-bottom:20px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:42px;line-height:1.15;letter-spacing:0.5px;margin:0 0 16px 0;text-transform:uppercase;}.bd-hero-title em{font-style:normal;color:#FFD93D;}.bd-hero-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:17px;line-height:1.6;max-width:640px;margin:0 auto 24px auto;}.bd-hero-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:18px;}.bd-hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#D5DEF0;font-size:14px;padding:10px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-warn{color:#FFD93D;font-size:13px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;}@media (max-width:600px){.bd-hero-title{font-size:28px;}}</style><div class='bd-hero'><span class='bd-hero-badge'>&#9733; SEMINAR TERNAK PROPERTI &#9733;</span><h1 class='bd-hero-title'>Mulai Investasi Properti<br>Dengan <em>Strategi Tepat</em></h1><p class='bd-hero-sub'>Seminar 1 hari untuk Anda yang ingin mulai atau scale up investasi properti, dibimbing langsung praktisi yang sudah berpengalaman menangani ratusan project.</p><div class='bd-hero-meta'><div class='bd-hero-meta-item'>&#128197; Sabtu, 12 September 2026</div><div class='bd-hero-meta-item'>&#128205; Surabaya</div><div class='bd-hero-meta-item'>&#9889; Bonus E-Book &amp; Template Kalkulasi</div></div><div class='bd-hero-warn'>&#9888;&#65039; Kuota terbatas - segera amankan kursi Anda</div></div>"
+    }
+  },
+  {
+    "id": "block-2",
+    "type": "countdown",
+    "order": 2,
+    "data": {
+      "hours": 48,
+      "minutes": 0,
+      "seconds": 0,
+      "textColor": "#FFD93D",
+      "bgColor": "#0A1530",
+      "numberStyle": "flip"
+    }
+  },
+  {
+    "id": "block-3",
+    "type": "button",
+    "order": 3,
+    "data": {
+      "text": "Daftar Sekarang",
+      "link": "https://wa.me/6280000000000",
+      "style": "primary",
+      "sizePreset": "large",
+      "fontSize": null,
+      "paddingX": null,
+      "paddingY": null,
+      "backgroundColor": "",
+      "textColor": "",
+      "borderRadius": null,
+      "fullWidth": false
+    }
+  },
+  {
+    "id": "block-4",
+    "type": "list",
+    "order": 4,
+    "data": {
+      "componentTitle": "Kenapa Banyak Orang Mentok Untuk Mulai Investasi Properti?",
+      "items": [
+        { "nama": "", "content": "<p>Ingin investasi properti, tapi bingung mulai dari mana dan takut salah langkah.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" },
+        { "nama": "", "content": "<p>Merasa modal belum cukup, padahal ada banyak skema pembiayaan yang belum diketahui.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" },
+        { "nama": "", "content": "<p>Takut tertipu developer/agen nakal karena belum paham cara cek legalitas properti.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" },
+        { "nama": "", "content": "<p>Sudah baca banyak artikel &amp; video, tapi tetap bingung cara eksekusi di lapangan.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" },
+        { "nama": "", "content": "<p>Tidak tahu cara menghitung potensi keuntungan &amp; risiko sebelum membeli properti.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" },
+        { "nama": "", "content": "<p>Belum punya circle atau mentor yang benar-benar praktisi, bukan cuma teori.</p>", "icon": "AlertCircle", "iconColor": "#ef4444" }
+      ]
+    }
+  },
+  {
+    "id": "block-5",
+    "type": "html",
+    "order": 5,
+    "data": {
+      "code": "<style>.bd-cmp-wrap{padding:32px 16px;}.bd-cmp-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:26px;text-align:center;margin:0 0 24px 0;text-transform:uppercase;}.bd-cmp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}.bd-cmp-col{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;}.bd-cmp-col.bd-cmp-win{background:linear-gradient(135deg,rgba(255,217,61,0.1),rgba(255,217,61,0.02));border:2px solid #FFD93D;}.bd-cmp-col h3{font-family:'Plus Jakarta Sans',sans-serif;color:#ffffff;font-size:15px;font-weight:700;margin:0 0 4px 0;}.bd-cmp-col p.bd-cmp-tagline{font-family:'Plus Jakarta Sans',sans-serif;color:#8B9BB8;font-size:13px;font-style:italic;margin:0 0 14px 0;}.bd-cmp-col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}.bd-cmp-col li{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13px;line-height:1.5;display:flex;gap:8px;}.bd-cmp-x{color:#ef4444;flex-shrink:0;}.bd-cmp-check{color:#FFD93D;flex-shrink:0;}@media (max-width:700px){.bd-cmp-grid{grid-template-columns:1fr;}}</style><div class='bd-cmp-wrap'><h2 class='bd-cmp-title'>Apa Bedanya Dengan Seminar Properti Lain?</h2><div class='bd-cmp-grid'><div class='bd-cmp-col'><h3>Nonton Video/Artikel Gratis</h3><p class='bd-cmp-tagline'>&quot;Info sepotong-sepotong&quot;</p><ul><li><span class='bd-cmp-x'>&#10005;</span> Info tidak lengkap &amp; sering simpang siur</li><li><span class='bd-cmp-x'>&#10005;</span> Tidak ada tempat bertanya langsung</li><li><span class='bd-cmp-x'>&#10005;</span> Tidak ada studi kasus riil</li><li><span class='bd-cmp-x'>&#10005;</span> Susah tahu mana yang benar-benar bisa dipraktikkan</li></ul></div><div class='bd-cmp-col'><h3>Seminar Online Umum</h3><p class='bd-cmp-tagline'>&quot;Materi umum, tidak mendalam&quot;</p><ul><li><span class='bd-cmp-x'>&#10005;</span> Interaksi terbatas, mudah teralihkan</li><li><span class='bd-cmp-x'>&#10005;</span> Materi generik, tidak disesuaikan kondisi Anda</li><li><span class='bd-cmp-x'>&#10005;</span> Tidak ada praktik hitung-hitungan langsung</li><li><span class='bd-cmp-x'>&#10005;</span> Sulit membangun koneksi/circle baru</li></ul></div><div class='bd-cmp-col bd-cmp-win'><h3>Seminar Ternak Properti</h3><p class='bd-cmp-tagline'>&quot;Praktik langsung bareng praktisi&quot;</p><ul><li><span class='bd-cmp-check'>&#10003;</span> Dibimbing praktisi yang sudah handle ratusan project</li><li><span class='bd-cmp-check'>&#10003;</span> Studi kasus riil &amp; praktik hitung potensi investasi</li><li><span class='bd-cmp-check'>&#10003;</span> Tanya jawab langsung, bukan cuma nonton</li><li><span class='bd-cmp-check'>&#10003;</span> Bangun koneksi dengan sesama calon investor</li></ul></div></div></div>"
+    }
+  },
+  {
+    "id": "block-6",
+    "type": "html",
+    "order": 6,
+    "data": {
+      "code": "<style>.bd-trainer-wrap{padding:32px 16px;}.bd-trainer-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:26px;text-align:center;margin:0 0 8px 0;text-transform:uppercase;}.bd-trainer-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#8B9BB8;font-size:14px;text-align:center;margin:0 0 28px 0;}.bd-trainer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}.bd-trainer-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px 16px;text-align:center;}.bd-trainer-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#D35500,#FFD93D);display:flex;align-items:center;justify-content:center;margin:0 auto 14px auto;font-family:'Anton',sans-serif;color:#0A1530;font-size:22px;}.bd-trainer-card h4{font-family:'Plus Jakarta Sans',sans-serif;color:#ffffff;font-size:15px;font-weight:700;margin:0 0 4px 0;}.bd-trainer-role{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:12px;font-weight:600;margin:0 0 10px 0;}.bd-trainer-bio{font-family:'Plus Jakarta Sans',sans-serif;color:#8B9BB8;font-size:12.5px;line-height:1.5;margin:0;}@media (max-width:700px){.bd-trainer-grid{grid-template-columns:1fr;}}</style><div class='bd-trainer-wrap'><h2 class='bd-trainer-title'>Dibimbing Langsung Oleh Praktisi Properti</h2><div class='bd-trainer-grid'><div class='bd-trainer-card'><div class='bd-trainer-avatar'>HW</div><h4>Hendra Wijaya</h4><p class='bd-trainer-role'>Founder Ternak Properti</p><p class='bd-trainer-bio'>Investor &amp; developer properti dengan lebih dari 10 tahun pengalaman menangani ratusan project residensial dan komersial.</p></div><div class='bd-trainer-card'><div class='bd-trainer-avatar'>NR</div><h4>Nadia Ramadhani</h4><p class='bd-trainer-role'>Konsultan Legalitas Properti</p><p class='bd-trainer-bio'>Berpengalaman menangani due diligence &amp; legalitas ratusan transaksi properti di berbagai kota besar.</p></div><div class='bd-trainer-card'><div class='bd-trainer-avatar'>TA</div><h4>Taufik Akbar</h4><p class='bd-trainer-role'>Praktisi Analisa Investasi</p><p class='bd-trainer-bio'>Fokus di riset lokasi &amp; perhitungan ROI, sudah membimbing ratusan peserta seminar properti sejak 2018.</p></div></div></div>"
+    }
+  },
+  {
+    "id": "block-7",
+    "type": "html",
+    "order": 7,
+    "data": {
+      "code": "<style>.bd-stats-wrap{background:linear-gradient(135deg,#FFD93D 0%,#D4A300 100%);padding:32px 16px;border-radius:16px;}.bd-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center;}.bd-stats-num{font-family:'Anton',sans-serif;font-weight:400;color:#0A1530;font-size:32px;margin:0;}.bd-stats-label{font-family:'Plus Jakarta Sans',sans-serif;color:#0A1530;font-size:12.5px;font-weight:600;margin:4px 0 0 0;}@media (max-width:700px){.bd-stats-grid{grid-template-columns:repeat(2,1fr);}}</style><div class='bd-stats-wrap'><div class='bd-stats-grid'><div><p class='bd-stats-num'>320+</p><p class='bd-stats-label'>Project Properti Ditangani</p></div><div><p class='bd-stats-num'>4.800+</p><p class='bd-stats-label'>Peserta Seminar</p></div><div><p class='bd-stats-num'>25+</p><p class='bd-stats-label'>Kota Terjangkau</p></div><div><p class='bd-stats-num'>110+</p><p class='bd-stats-label'>Batch Seminar Terlaksana</p></div></div></div>"
+    }
+  },
+  {
+    "id": "block-8",
+    "type": "list",
+    "order": 8,
+    "data": {
+      "componentTitle": "Materi Yang Akan Dibahas",
+      "items": [
+        { "nama": "", "content": "<p><strong>Sesi 1 - Fundamental Investasi Properti</strong> &mdash; memahami jenis-jenis instrumen properti dan cara memilih yang sesuai kondisi Anda.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sesi 2 - Analisa &amp; Riset Lokasi</strong> &mdash; cara membaca potensi kenaikan harga &amp; permintaan pasar di suatu area.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sesi 3 - Legalitas &amp; Cara Menghindari Penipuan</strong> &mdash; checklist dokumen yang wajib dicek sebelum transaksi.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sesi 4 - Simulasi Perhitungan Investasi</strong> &mdash; praktik menghitung ROI, cashflow, dan skema pembiayaan.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sesi 5 - Strategi Scale Up Portofolio</strong> &mdash; cara mengembangkan aset properti secara bertahap dan terukur.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sesi 6 - Tanya Jawab &amp; Studi Kasus</strong> &mdash; diskusi langsung membahas kondisi/rencana investasi peserta.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" }
+      ]
+    }
+  },
+  {
+    "id": "block-9",
+    "type": "html",
+    "order": 9,
+    "data": {
+      "code": "<style>.bd-output{background:rgba(255,217,61,0.06);border:1px solid rgba(255,217,61,0.35);border-radius:12px;padding:20px 24px;margin:8px 16px;}.bd-output h4{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:14px;font-weight:700;margin:0 0 10px 0;text-transform:uppercase;letter-spacing:0.5px;}.bd-output ul{margin:0;padding-left:18px;}.bd-output li{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13.5px;line-height:1.7;}</style><div class='bd-output'><h4>&#127919; Yang Anda Dapatkan Setelah Seminar</h4><ul><li>Memahami fundamental investasi properti dari nol</li><li>Bisa menganalisa lokasi &amp; menghitung potensi keuntungan sendiri</li><li>Paham cara cek legalitas &amp; menghindari penipuan</li><li>Punya rencana aksi konkret untuk properti pertama/berikutnya</li><li>Terhubung dengan komunitas &amp; praktisi properti</li></ul></div>"
+    }
+  },
+  {
+    "id": "block-10",
+    "type": "list",
+    "order": 10,
+    "data": {
+      "componentTitle": "Bonus Eksklusif Peserta",
+      "items": [
+        { "nama": "", "content": "<p><strong>E-Book Panduan Investasi Properti</strong> &mdash; Senilai Rp 350.000</p>", "icon": "Award", "iconColor": "#FFD93D" },
+        { "nama": "", "content": "<p><strong>Template Kalkulasi ROI &amp; Cashflow</strong> &mdash; Senilai Rp 250.000</p>", "icon": "Award", "iconColor": "#FFD93D" },
+        { "nama": "", "content": "<p><strong>Akses Group Diskusi Pasca Seminar</strong> &mdash; Senilai Rp 500.000</p>", "icon": "Award", "iconColor": "#FFD93D" },
+        { "nama": "", "content": "<p><strong>Sertifikat Keikutsertaan</strong> &mdash; Senilai Rp 150.000</p>", "icon": "Award", "iconColor": "#FFD93D" }
+      ]
+    }
+  },
+  {
+    "id": "block-11",
+    "type": "price",
+    "order": 11,
+    "data": {}
+  },
+  {
+    "id": "block-12",
+    "type": "countdown",
+    "order": 12,
+    "data": {
+      "hours": 24,
+      "minutes": 0,
+      "seconds": 0,
+      "textColor": "#FFD93D",
+      "bgColor": "#0A1530",
+      "numberStyle": "flip"
+    }
+  },
+  {
+    "id": "block-13",
+    "type": "button",
+    "order": 13,
+    "data": {
+      "text": "Amankan Kursi Sekarang",
+      "link": "https://wa.me/6280000000000",
+      "style": "primary",
+      "sizePreset": "large",
+      "fontSize": null,
+      "paddingX": null,
+      "paddingY": null,
+      "backgroundColor": "",
+      "textColor": "",
+      "borderRadius": null,
+      "fullWidth": false
+    }
+  },
+  {
+    "id": "block-14",
+    "type": "testimoni",
+    "order": 14,
+    "data": {
+      "componentTitle": "Kata Alumni Seminar",
+      "items": [
+        { "gambar": "", "nama": "Yoga Pramudya", "jabatan": "Karyawan Swasta, Malang", "isiTestimony": "<p>Setelah ikut seminar ini saya jadi berani closing unit pertama saya bulan lalu. Materinya jelas banget, langsung dikasih contoh perhitungannya.</p>", "showRating": true, "rating": 5 },
+        { "gambar": "", "nama": "Citra Dewi", "jabatan": "Wiraswasta, Semarang", "isiTestimony": "<p>Awalnya takut banget kena tipu, sekarang udah paham cara cek legalitas sendiri sebelum beli. Worth it banget ikut seminar ini.</p>", "showRating": true, "rating": 5 },
+        { "gambar": "", "nama": "Reza Firmansyah", "jabatan": "PNS, Yogyakarta", "isiTestimony": "<p>Pematerinya enak jelasinnya, sesi tanya jawabnya juga lengkap. Sekarang udah punya rencana konkret buat properti kedua saya.</p>", "showRating": true, "rating": 5 }
+      ]
+    }
+  },
+  {
+    "id": "block-15",
+    "type": "html",
+    "order": 15,
+    "data": {
+      "code": "<style>.bd-guarantee{background:linear-gradient(135deg,#0A1530 0%,#050B1F 100%);border:1px solid rgba(255,217,61,0.3);border-radius:16px;padding:32px 24px;text-align:center;max-width:600px;margin:0 auto;}.bd-guarantee-icon{font-size:32px;margin-bottom:12px;}.bd-guarantee h3{font-family:'Anton',sans-serif;font-weight:400;color:#FFD93D;font-size:22px;margin:0 0 12px 0;text-transform:uppercase;}.bd-guarantee p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:14px;line-height:1.7;margin:0;}</style><div class='bd-guarantee'><div class='bd-guarantee-icon'>&#128737;&#65039;</div><h3>Garansi Kepuasan Seminar</h3><p>Kalau Anda hadir penuh dan mengikuti sesi dengan serius, namun merasa materinya tidak relevan atau tidak bisa diterapkan, kami membuka opsi pengembalian biaya pendaftaran.</p></div>"
+    }
+  },
+  {
+    "id": "block-16",
+    "type": "faq",
+    "order": 16,
+    "data": {}
+  },
+  {
+    "id": "block-17",
+    "type": "html",
+    "order": 17,
+    "data": {
+      "code": "<style>.bd-final{background:linear-gradient(180deg,#0A1530 0%,#050B1F 100%);padding:48px 24px;border-radius:16px;text-align:center;}.bd-final-badge{display:inline-block;color:#FFD93D;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;margin-bottom:12px;}.bd-final-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:32px;line-height:1.2;margin:0 0 14px 0;text-transform:uppercase;}.bd-final-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:15px;line-height:1.6;max-width:560px;margin:0 auto 20px auto;}.bd-final-meta{font-family:'Plus Jakarta Sans',sans-serif;color:#8B9BB8;font-size:13px;}</style><div class='bd-final'><span class='bd-final-badge'>KUOTA TERBATAS</span><h1 class='bd-final-title'>Jangan Tunda Lagi Langkah Investasi Anda</h1><p class='bd-final-sub'>Setiap hari menunda, harga properti terus naik. Amankan kursi Anda sekarang dan mulai investasi dengan strategi yang tepat.</p><p class='bd-final-meta'>&#128197; Sabtu, 12 September 2026 &nbsp;&middot;&nbsp; &#128205; Surabaya</p></div>"
+    }
+  },
+  {
+    "id": "block-18",
+    "type": "button",
+    "order": 18,
+    "data": {
+      "text": "Amankan Seat Sekarang",
+      "link": "https://wa.me/6280000000000",
+      "style": "primary",
+      "sizePreset": "large",
+      "fontSize": null,
+      "paddingX": null,
+      "paddingY": null,
+      "backgroundColor": "",
+      "textColor": "",
+      "borderRadius": null,
+      "fullWidth": false
+    }
+  }
+]
