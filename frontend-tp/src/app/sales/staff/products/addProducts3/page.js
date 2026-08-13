@@ -190,6 +190,7 @@ export default function AddProducts3Page() {
     jadwal: [], // [{ nama_jadwal, waktu_mulai, waktu_selesai, kuota, status }]
     tampil_jadwal: true, // Tampilkan di Jadwal
     background_color: "#ffffff", // Default putih
+    theme: "default", // "default" atau "davdigi_dark" (tema Bold Dark)
     /** Jarak vertikal antar blok komponen di preview & halaman produk (px) */
     preview_component_gap: 24,
     /** Jarak bawah antar paragraf di komponen teks / rich text (px) */
@@ -4195,6 +4196,60 @@ export default function AddProducts3Page() {
                     </div>
 
                     <div className="pengaturan-form-group" style={{ marginTop: "20px" }}>
+                      <label className="pengaturan-label">Tema Landing Page</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          type="button"
+                          className={`pengaturan-theme-toggle-btn ${(pengaturanForm.theme || "default") === "default" ? "is-active" : ""}`}
+                          onClick={() => {
+                            handlePengaturanChange("theme", "default");
+                            if (pengaturanForm.background_color === "#0A1530") {
+                              handlePengaturanChange("background_color", "#ffffff");
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: (pengaturanForm.theme || "default") === "default" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                            background: (pengaturanForm.theme || "default") === "default" ? "#eff6ff" : "#ffffff",
+                            fontWeight: 600,
+                            fontSize: "13px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Default
+                        </button>
+                        <button
+                          type="button"
+                          className={`pengaturan-theme-toggle-btn ${pengaturanForm.theme === "davdigi_dark" ? "is-active" : ""}`}
+                          onClick={() => {
+                            handlePengaturanChange("theme", "davdigi_dark");
+                            if (!pengaturanForm.background_color || pengaturanForm.background_color === "#ffffff") {
+                              handlePengaturanChange("background_color", "#0A1530");
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: pengaturanForm.theme === "davdigi_dark" ? "2px solid #D35500" : "1px solid #d1d5db",
+                            background: pengaturanForm.theme === "davdigi_dark" ? "#0A1530" : "#ffffff",
+                            color: pengaturanForm.theme === "davdigi_dark" ? "#FFD93D" : "#111827",
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Bold Dark
+                        </button>
+                      </div>
+                      <small className="pengaturan-hint">
+                        Bold Dark: tampilan navy + gold/oranye, font Anton untuk judul. Mengubah background halaman serta tampilan default block FAQ, Harga, dan Testimoni.
+                      </small>
+                    </div>
+
+                    <div className="pengaturan-form-group" style={{ marginTop: "20px" }}>
                       <label className="pengaturan-label">Jarak antar komponen (px)</label>
                       <InputNumber
                         className="pengaturan-input"
@@ -4643,9 +4698,9 @@ export default function AddProducts3Page() {
             <div className="preview-device-stage">
               <div className={`preview-device-frame preview-device-frame--${previewDevice}`}>
                 <div
-                  className="canvas-wrapper"
+                  className={`canvas-wrapper${pengaturanForm.theme === "davdigi_dark" ? " theme-davdigi-dark" : ""}`}
                   style={{
-                    backgroundColor: pengaturanForm.background_color || "#ffffff"
+                    backgroundColor: pengaturanForm.background_color || (pengaturanForm.theme === "davdigi_dark" ? "#0A1530" : "#ffffff")
                   }}
                 >
                   {/* Logo - Hardcode di bagian atas center */}
