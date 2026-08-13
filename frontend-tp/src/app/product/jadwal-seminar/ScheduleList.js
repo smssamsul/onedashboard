@@ -94,8 +94,14 @@ export default function ScheduleList({ products }) {
                           product.jadwal_rel.map((jadwal, jIdx) => {
                             const mulai = formatTime(jadwal.waktu_mulai);
                             const selesai = jadwal.waktu_selesai ? formatTime(jadwal.waktu_selesai) : 'Selesai';
+                            const jadwalDate = formatDateFull(jadwal.waktu_mulai);
+                            const prevDate = jIdx > 0 ? formatDateFull(product.jadwal_rel[jIdx - 1].waktu_mulai) : null;
+                            // Tanggal jadwal pertama sudah muncul di bagian "Date" di atas,
+                            // jadi baru tampilkan tanggal di sini kalau beda dari jadwal sebelumnya.
+                            const showDate = jIdx > 0 && jadwalDate !== prevDate;
                             return (
-                              <span key={jadwal.id}>
+                              <span key={jadwal.id} className={jIdx > 0 ? 'mt-1' : ''}>
+                                {showDate && <span className="block font-semibold">{jadwalDate}</span>}
                                 {mulai} - {selesai} {product.jadwal_rel.length > 1 ? `(${jadwal.nama_jadwal})` : ''}
                               </span>
                             );
