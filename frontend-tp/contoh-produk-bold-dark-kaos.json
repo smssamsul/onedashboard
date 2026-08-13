@@ -14,12 +14,42 @@
     "data": {
       "componentTitle": "Keunggulan Kaos Ternak Properti",
       "items": [
-        { "nama": "", "content": "<p><strong>Bahan premium</strong> &mdash; Cotton Combed 30s yang adem, menyerap keringat, dan tidak mudah luntur.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Sablon berkualitas</strong> &mdash; teknik DTF yang tahan lama, tidak mudah retak atau pudar.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Desain eksklusif</strong> &mdash; motif khas Ternak Properti, tidak pasaran, cocok jadi identitas komunitas.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Jahitan rapi</strong> &mdash; rib pada kerah dan lengan tidak mudah melar walau sering dicuci.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Ukuran lengkap</strong> &mdash; tersedia dari size S sampai XXL, cek panduan ukuran sebelum order.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Fleksibel dipakai</strong> &mdash; cocok untuk santai, gathering komunitas, sampai jadi seragam tim survey.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" }
+        {
+          "nama": "",
+          "content": "<p><strong>Bahan premium</strong> &mdash; Cotton Combed 30s yang adem, menyerap keringat, dan tidak mudah luntur.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Sablon berkualitas</strong> &mdash; teknik DTF yang tahan lama, tidak mudah retak atau pudar.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Desain eksklusif</strong> &mdash; motif khas Ternak Properti, tidak pasaran, cocok jadi identitas komunitas.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Jahitan rapi</strong> &mdash; rib pada kerah dan lengan tidak mudah melar walau sering dicuci.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Ukuran lengkap</strong> &mdash; tersedia dari size S sampai XXL, cek panduan ukuran sebelum order.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Fleksibel dipakai</strong> &mdash; cocok untuk santai, gathering komunitas, sampai jadi seragam tim survey.</p>",
+          "icon": "CheckCircle2",
+          "iconColor": "#22c55e"
+        }
       ]
     }
   },
@@ -54,10 +84,30 @@
     "data": {
       "componentTitle": "Kenapa Harus Punya Kaos Ini?",
       "items": [
-        { "nama": "", "content": "<p>Jadi identitas Anda sebagai bagian dari komunitas Ternak Properti di berbagai acara &amp; gathering.</p>", "icon": "Star", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p>Nyaman dipakai seharian, bahan adem cocok buat cuaca Indonesia.</p>", "icon": "Star", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p>Cocok jadi hadiah/merchandise untuk tim, klien, atau rekan bisnis Anda.</p>", "icon": "Star", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p>Desain timeless, tidak lekang oleh tren, awet dipakai bertahun-tahun.</p>", "icon": "Star", "iconColor": "#FFD93D" }
+        {
+          "nama": "",
+          "content": "<p>Jadi identitas Anda sebagai bagian dari komunitas Ternak Properti di berbagai acara &amp; gathering.</p>",
+          "icon": "Star",
+          "iconColor": "#FFD93D"
+        },
+        {
+          "nama": "",
+          "content": "<p>Nyaman dipakai seharian, bahan adem cocok buat cuaca Indonesia.</p>",
+          "icon": "Star",
+          "iconColor": "#FFD93D"
+        },
+        {
+          "nama": "",
+          "content": "<p>Cocok jadi hadiah/merchandise untuk tim, klien, atau rekan bisnis Anda.</p>",
+          "icon": "Star",
+          "iconColor": "#FFD93D"
+        },
+        {
+          "nama": "",
+          "content": "<p>Desain timeless, tidak lekang oleh tren, awet dipakai bertahun-tahun.</p>",
+          "icon": "Star",
+          "iconColor": "#FFD93D"
+        }
       ]
     }
   },
@@ -76,22 +126,31 @@
     "data": {
       "componentTitle": "Bonus Setiap Pemesanan",
       "items": [
-        { "nama": "", "content": "<p><strong>Free Stiker Ternak Properti</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p><strong>Packaging Eksklusif Anti Kusut</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p><strong>Gratis Ongkir Area Jabodetabek</strong></p>", "icon": "Award", "iconColor": "#FFD93D" }
+        {
+          "nama": "",
+          "content": "<p><strong>Free Stiker Ternak Properti</strong></p>",
+          "icon": "Award",
+          "iconColor": "#FFD93D"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Packaging Eksklusif Anti Kusut</strong></p>",
+          "icon": "Award",
+          "iconColor": "#FFD93D"
+        },
+        {
+          "nama": "",
+          "content": "<p><strong>Gratis Ongkir Area Jabodetabek</strong></p>",
+          "icon": "Award",
+          "iconColor": "#FFD93D"
+        }
       ]
     }
   },
   {
-    "id": "block-9",
-    "type": "price",
-    "order": 9,
-    "data": {}
-  },
-  {
     "id": "block-10",
     "type": "countdown",
-    "order": 10,
+    "order": 9,
     "data": {
       "hours": 24,
       "minutes": 0,
@@ -104,7 +163,7 @@
   {
     "id": "block-11",
     "type": "button",
-    "order": 11,
+    "order": 10,
     "data": {
       "text": "Pesan Sekarang",
       "link": "https://wa.me/6280000000000",
@@ -122,7 +181,7 @@
   {
     "id": "block-12",
     "type": "form",
-    "order": 12,
+    "order": 11,
     "data": {
       "kategori": null
     }
@@ -130,20 +189,41 @@
   {
     "id": "block-13",
     "type": "testimoni",
-    "order": 13,
+    "order": 12,
     "data": {
       "componentTitle": "Kata Mereka yang Sudah Pesan",
       "items": [
-        { "gambar": "", "nama": "Fajar Ramadhan", "jabatan": "Bekasi", "isiTestimony": "<p>Bahannya enak banget dipakai, adem dan gak gerah walau seharian. Sablonnya juga awet, udah dicuci berkali-kali masih bagus.</p>", "showRating": true, "rating": 5 },
-        { "gambar": "", "nama": "Ayu Lestari", "jabatan": "Surabaya", "isiTestimony": "<p>Suka banget sama desainnya, beda dari kaos komunitas lain. Packaging-nya juga rapi, sampai dengan aman.</p>", "showRating": true, "rating": 5 },
-        { "gambar": "", "nama": "Bagus Setiawan", "jabatan": "Bandung", "isiTestimony": "<p>Ukurannya pas sesuai chart, jahitannya rapi. Sudah order kedua kalinya buat dibagiin ke tim.</p>", "showRating": true, "rating": 5 }
+        {
+          "gambar": "",
+          "nama": "Fajar Ramadhan",
+          "jabatan": "Bekasi",
+          "isiTestimony": "<p>Bahannya enak banget dipakai, adem dan gak gerah walau seharian. Sablonnya juga awet, udah dicuci berkali-kali masih bagus.</p>",
+          "showRating": true,
+          "rating": 5
+        },
+        {
+          "gambar": "",
+          "nama": "Ayu Lestari",
+          "jabatan": "Surabaya",
+          "isiTestimony": "<p>Suka banget sama desainnya, beda dari kaos komunitas lain. Packaging-nya juga rapi, sampai dengan aman.</p>",
+          "showRating": true,
+          "rating": 5
+        },
+        {
+          "gambar": "",
+          "nama": "Bagus Setiawan",
+          "jabatan": "Bandung",
+          "isiTestimony": "<p>Ukurannya pas sesuai chart, jahitannya rapi. Sudah order kedua kalinya buat dibagiin ke tim.</p>",
+          "showRating": true,
+          "rating": 5
+        }
       ]
     }
   },
   {
     "id": "block-14",
     "type": "html",
-    "order": 14,
+    "order": 13,
     "data": {
       "code": "<style>.bd-guarantee{background:linear-gradient(135deg,#0A1530 0%,#050B1F 100%);border:1px solid rgba(255,217,61,0.3);border-radius:16px;padding:32px 24px;text-align:center;max-width:600px;margin:0 auto;}.bd-guarantee-icon{font-size:32px;margin-bottom:12px;}.bd-guarantee h3{font-family:'Anton',sans-serif;font-weight:400;color:#FFD93D;font-size:22px;margin:0 0 12px 0;text-transform:uppercase;}.bd-guarantee p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:14px;line-height:1.7;margin:0;}</style><div class='bd-guarantee'><div class='bd-guarantee-icon'>&#128737;&#65039;</div><h3>Garansi 100% Original</h3><p>Kalau ukuran tidak pas, bisa tukar ukuran dalam 3 hari setelah barang diterima (kaos belum dicuci/dipakai). Kalau ada cacat produksi, kami ganti baru tanpa biaya tambahan.</p></div>"
     }
@@ -151,13 +231,13 @@
   {
     "id": "block-15",
     "type": "faq",
-    "order": 15,
+    "order": 14,
     "data": {}
   },
   {
     "id": "block-16",
     "type": "html",
-    "order": 16,
+    "order": 15,
     "data": {
       "code": "<style>.bd-final{background:linear-gradient(180deg,#0A1530 0%,#050B1F 100%);padding:48px 24px;border-radius:16px;text-align:center;}.bd-final-badge{display:inline-block;color:#FFD93D;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;margin-bottom:12px;}.bd-final-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:32px;line-height:1.2;margin:0 0 14px 0;text-transform:uppercase;}.bd-final-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:15px;line-height:1.6;max-width:560px;margin:0 auto 20px auto;}</style><div class='bd-final'><span class='bd-final-badge'>STOK TERBATAS</span><h1 class='bd-final-title'>Amankan Kaos Ternak Properti Anda Sekarang</h1><p class='bd-final-sub'>Tunjukkan identitas Anda sebagai bagian dari komunitas Ternak Properti. Pesan sekarang sebelum stok habis.</p></div>"
     }
@@ -165,7 +245,7 @@
   {
     "id": "block-17",
     "type": "button",
-    "order": 17,
+    "order": 16,
     "data": {
       "text": "Pesan Kaos Sekarang",
       "link": "https://wa.me/6280000000000",
