@@ -7447,3 +7447,19 @@ html:has(.product-page-container) {
   background: linear-gradient(135deg, #D35500 0%, #A83F00 100%);
   border-radius: 999px;
 }
+
+/* List - default teks abu gelap (#1f2937) tidak kebaca di atas navy */
+.theme-davdigi-dark .preview-list-title {
+  color: #F5F7FB;
+}
+
+.theme-davdigi-dark .preview-list-header-line {
+  background: #FFD93D;
+}
+
+.theme-davdigi-dark .preview-list-item,
+.theme-davdigi-dark .preview-list-text,
+.theme-davdigi-dark .preview-list-content,
+.theme-davdigi-dark .preview-list-content p {
+  color: #D5DEF0;
+}
