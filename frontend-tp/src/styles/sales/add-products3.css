@@ -7448,9 +7448,18 @@ html:has(.product-page-container) {
   border-radius: 999px;
 }
 
-/* List - default teks abu gelap (#1f2937) tidak kebaca di atas navy */
+/* List - default teks abu gelap (#1f2937) tidak kebaca di atas navy.
+   !important dipakai karena:
+   1) judul list warnanya inline (style={{color: ... || "#000000"}}) di
+      ProductClient.js & addProducts3/page.js, inline style menang atas
+      class biasa - butuh !important buat nimpa.
+   2) breakpoint mobile (@media max-width 1024/768/480px) di file ini
+      forcing .preview-list-content balik ke #1f2937 pakai !important -
+      tanpa !important di sini, warna tema cuma kepakai di layar lebar
+      (makanya sebelumnya kelihatan beda antara preview builder yang
+      biasa di-tab "Laptop" vs halaman publik yang dibuka di HP). */
 .theme-davdigi-dark .preview-list-title {
-  color: #F5F7FB;
+  color: #F5F7FB !important;
 }
 
 .theme-davdigi-dark .preview-list-header-line {
@@ -7461,5 +7470,5 @@ html:has(.product-page-container) {
 .theme-davdigi-dark .preview-list-text,
 .theme-davdigi-dark .preview-list-content,
 .theme-davdigi-dark .preview-list-content p {
-  color: #D5DEF0;
+  color: #D5DEF0 !important;
 }
