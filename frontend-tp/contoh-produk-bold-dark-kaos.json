@@ -4,7 +4,7 @@
     "type": "html",
     "order": 1,
     "data": {
-      "code": "<style>.bd-hero{background:linear-gradient(180deg,#0A1530 0%,#050B1F 100%);padding:56px 24px;text-align:center;border-radius:16px;}.bd-hero-badge{display:inline-block;background:linear-gradient(135deg,rgba(255,217,61,0.18),rgba(255,217,61,0.06));border:1px solid rgba(255,217,61,0.4);color:#FFD93D;font-weight:700;font-size:13px;letter-spacing:1px;padding:8px 20px;border-radius:999px;margin-bottom:20px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:42px;line-height:1.15;letter-spacing:0.5px;margin:0 0 16px 0;text-transform:uppercase;}.bd-hero-title em{font-style:normal;color:#FFD93D;}.bd-hero-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:17px;line-height:1.6;max-width:640px;margin:0 auto 24px auto;}.bd-hero-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:18px;}.bd-hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#D5DEF0;font-size:14px;padding:10px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-warn{color:#FFD93D;font-size:13px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;}@media (max-width:600px){.bd-hero-title{font-size:28px;}}</style><div class='bd-hero'><span class='bd-hero-badge'>&#9733; MERCHANDISE RESMI TERNAK PROPERTI &#9733;</span><h1 class='bd-hero-title'>Kaos Ternak <em>Properti</em></h1><p class='bd-hero-sub'>Tampil gaya sambil tunjukkin identitas Anda sebagai bagian dari komunitas Ternak Properti. Bahan premium, desain eksklusif, nyaman dipakai sehari-hari.</p><div class='bd-hero-meta'><div class='bd-hero-meta-item'>&#128085; [Isi bahan - misal Cotton Combed 30s]</div><div class='bd-hero-meta-item'>&#128207; Size S - XXL</div><div class='bd-hero-meta-item'>&#10024; Desain Eksklusif</div></div><div class='bd-hero-warn'>&#9888;&#65039; Stok terbatas - pesan sebelum kehabisan</div></div>"
+      "code": "<style>.bd-hero{background:linear-gradient(180deg,#0A1530 0%,#050B1F 100%);padding:56px 24px;text-align:center;border-radius:16px;}.bd-hero-badge{display:inline-block;background:linear-gradient(135deg,rgba(255,217,61,0.18),rgba(255,217,61,0.06));border:1px solid rgba(255,217,61,0.4);color:#FFD93D;font-weight:700;font-size:13px;letter-spacing:1px;padding:8px 20px;border-radius:999px;margin-bottom:20px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:42px;line-height:1.15;letter-spacing:0.5px;margin:0 0 16px 0;text-transform:uppercase;}.bd-hero-title em{font-style:normal;color:#FFD93D;}.bd-hero-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:17px;line-height:1.6;max-width:640px;margin:0 auto 24px auto;}.bd-hero-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:18px;}.bd-hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#D5DEF0;font-size:14px;padding:10px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;}.bd-hero-warn{color:#FFD93D;font-size:13px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;}@media (max-width:600px){.bd-hero-title{font-size:28px;}}</style><div class='bd-hero'><span class='bd-hero-badge'>&#9733; MERCHANDISE RESMI TERNAK PROPERTI &#9733;</span><h1 class='bd-hero-title'>Kaos Ternak <em>Properti</em></h1><p class='bd-hero-sub'>Tampil gaya sambil tunjukkin identitas Anda sebagai bagian dari komunitas Ternak Properti. Bahan premium, desain eksklusif, nyaman dipakai sehari-hari.</p><div class='bd-hero-meta'><div class='bd-hero-meta-item'>&#128085; Cotton Combed 30s</div><div class='bd-hero-meta-item'>&#128207; Size S - XXL</div><div class='bd-hero-meta-item'>&#10024; Desain Eksklusif</div></div><div class='bd-hero-warn'>&#9888;&#65039; Stok terbatas - pesan sebelum kehabisan</div></div>"
     }
   },
   {
@@ -14,8 +14,8 @@
     "data": {
       "componentTitle": "Keunggulan Kaos Ternak Properti",
       "items": [
-        { "nama": "", "content": "<p><strong>Bahan premium</strong> &mdash; [isi jenis bahan, misal Cotton Combed 30s] yang adem, menyerap keringat, dan tidak mudah luntur.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
-        { "nama": "", "content": "<p><strong>Sablon berkualitas</strong> &mdash; teknik [isi teknik sablon, misal DTF/Plastisol] yang tahan lama, tidak mudah retak atau pudar.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Bahan premium</strong> &mdash; Cotton Combed 30s yang adem, menyerap keringat, dan tidak mudah luntur.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
+        { "nama": "", "content": "<p><strong>Sablon berkualitas</strong> &mdash; teknik DTF yang tahan lama, tidak mudah retak atau pudar.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
         { "nama": "", "content": "<p><strong>Desain eksklusif</strong> &mdash; motif khas Ternak Properti, tidak pasaran, cocok jadi identitas komunitas.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
         { "nama": "", "content": "<p><strong>Jahitan rapi</strong> &mdash; rib pada kerah dan lengan tidak mudah melar walau sering dicuci.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
         { "nama": "", "content": "<p><strong>Ukuran lengkap</strong> &mdash; tersedia dari size S sampai XXL, cek panduan ukuran sebelum order.</p>", "icon": "CheckCircle2", "iconColor": "#22c55e" },
@@ -36,7 +36,7 @@
     "type": "html",
     "order": 4,
     "data": {
-      "code": "<style>.bd-spec-wrap{padding:32px 16px;}.bd-spec-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:26px;text-align:center;margin:0 0 24px 0;text-transform:uppercase;}.bd-spec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}.bd-spec-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px 12px;text-align:center;}.bd-spec-icon{font-size:24px;margin-bottom:10px;}.bd-spec-card h4{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px 0;}.bd-spec-card p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13px;line-height:1.5;margin:0;}@media (max-width:700px){.bd-spec-grid{grid-template-columns:repeat(2,1fr);}}</style><div class='bd-spec-wrap'><h2 class='bd-spec-title'>Spesifikasi Produk</h2><div class='bd-spec-grid'><div class='bd-spec-card'><div class='bd-spec-icon'>&#129530;</div><h4>Bahan</h4><p>[Isi jenis bahan &amp; gramasi, misal Cotton Combed 30s 180gsm]</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#127912;</div><h4>Sablon</h4><p>[Isi teknik sablon, misal DTF Full Color]</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#128207;</div><h4>Ukuran</h4><p>S, M, L, XL, XXL</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#127752;</div><h4>Warna</h4><p>[Isi pilihan warna yang tersedia]</p></div></div></div>"
+      "code": "<style>.bd-spec-wrap{padding:32px 16px;}.bd-spec-title{font-family:'Anton',sans-serif;font-weight:400;color:#ffffff;font-size:26px;text-align:center;margin:0 0 24px 0;text-transform:uppercase;}.bd-spec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}.bd-spec-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px 12px;text-align:center;}.bd-spec-icon{font-size:24px;margin-bottom:10px;}.bd-spec-card h4{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px 0;}.bd-spec-card p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13px;line-height:1.5;margin:0;}@media (max-width:700px){.bd-spec-grid{grid-template-columns:repeat(2,1fr);}}</style><div class='bd-spec-wrap'><h2 class='bd-spec-title'>Spesifikasi Produk</h2><div class='bd-spec-grid'><div class='bd-spec-card'><div class='bd-spec-icon'>&#129530;</div><h4>Bahan</h4><p>Cotton Combed 30s, 180 GSM</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#127912;</div><h4>Sablon</h4><p>DTF Full Color</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#128207;</div><h4>Ukuran</h4><p>S, M, L, XL, XXL</p></div><div class='bd-spec-card'><div class='bd-spec-icon'>&#127752;</div><h4>Warna</h4><p>Hitam, Navy, Maroon</p></div></div></div>"
     }
   },
   {
@@ -44,7 +44,7 @@
     "type": "html",
     "order": 5,
     "data": {
-      "code": "<style>.bd-stats-wrap{background:linear-gradient(135deg,#FFD93D 0%,#D4A300 100%);padding:32px 16px;border-radius:16px;}.bd-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center;}.bd-stats-num{font-family:'Anton',sans-serif;font-weight:400;color:#0A1530;font-size:32px;margin:0;}.bd-stats-label{font-family:'Plus Jakarta Sans',sans-serif;color:#0A1530;font-size:12.5px;font-weight:600;margin:4px 0 0 0;}@media (max-width:700px){.bd-stats-grid{grid-template-columns:repeat(2,1fr);}}</style><div class='bd-stats-wrap'><div class='bd-stats-grid'><div><p class='bd-stats-num'>[Isi]+</p><p class='bd-stats-label'>Kaos Terjual</p></div><div><p class='bd-stats-num'>[Isi]</p><p class='bd-stats-label'>Rating Pembeli</p></div><div><p class='bd-stats-num'>[Isi]+</p><p class='bd-stats-label'>Kota Pengiriman</p></div><div><p class='bd-stats-num'>100%</p><p class='bd-stats-label'>Original &amp; Bergaransi</p></div></div></div>"
+      "code": "<style>.bd-stats-wrap{background:linear-gradient(135deg,#FFD93D 0%,#D4A300 100%);padding:32px 16px;border-radius:16px;}.bd-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center;}.bd-stats-num{font-family:'Anton',sans-serif;font-weight:400;color:#0A1530;font-size:32px;margin:0;}.bd-stats-label{font-family:'Plus Jakarta Sans',sans-serif;color:#0A1530;font-size:12.5px;font-weight:600;margin:4px 0 0 0;}@media (max-width:700px){.bd-stats-grid{grid-template-columns:repeat(2,1fr);}}</style><div class='bd-stats-wrap'><div class='bd-stats-grid'><div><p class='bd-stats-num'>1.200+</p><p class='bd-stats-label'>Kaos Terjual</p></div><div><p class='bd-stats-num'>4.9/5</p><p class='bd-stats-label'>Rating Pembeli</p></div><div><p class='bd-stats-num'>80+</p><p class='bd-stats-label'>Kota Pengiriman</p></div><div><p class='bd-stats-num'>100%</p><p class='bd-stats-label'>Original &amp; Bergaransi</p></div></div></div>"
     }
   },
   {
@@ -66,7 +66,7 @@
     "type": "html",
     "order": 7,
     "data": {
-      "code": "<style>.bd-output{background:rgba(255,217,61,0.06);border:1px solid rgba(255,217,61,0.35);border-radius:12px;padding:20px 24px;margin:8px 16px;}.bd-output h4{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:14px;font-weight:700;margin:0 0 10px 0;text-transform:uppercase;letter-spacing:0.5px;}.bd-output ul{margin:0;padding-left:18px;}.bd-output li{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13.5px;line-height:1.7;}</style><div class='bd-output'><h4>&#128230; Yang Anda Dapatkan</h4><ul><li>1 pcs Kaos Ternak Properti sesuai ukuran pilihan</li><li>Packaging rapi &amp; aman untuk pengiriman</li><li>[Tambahkan isi paket lain kalau ada, misal kartu ucapan/stiker]</li></ul></div>"
+      "code": "<style>.bd-output{background:rgba(255,217,61,0.06);border:1px solid rgba(255,217,61,0.35);border-radius:12px;padding:20px 24px;margin:8px 16px;}.bd-output h4{font-family:'Plus Jakarta Sans',sans-serif;color:#FFD93D;font-size:14px;font-weight:700;margin:0 0 10px 0;text-transform:uppercase;letter-spacing:0.5px;}.bd-output ul{margin:0;padding-left:18px;}.bd-output li{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:13.5px;line-height:1.7;}</style><div class='bd-output'><h4>&#128230; Yang Anda Dapatkan</h4><ul><li>1 pcs Kaos Ternak Properti sesuai ukuran pilihan</li><li>Packaging rapi &amp; aman untuk pengiriman</li><li>Kartu ucapan eksklusif Ternak Properti</li></ul></div>"
     }
   },
   {
@@ -76,9 +76,9 @@
     "data": {
       "componentTitle": "Bonus Setiap Pemesanan",
       "items": [
-        { "nama": "", "content": "<p><strong>[Nama bonus 1, misal Free Stiker Ternak Properti]</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p><strong>[Nama bonus 2, misal Packaging Eksklusif]</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
-        { "nama": "", "content": "<p><strong>[Nama bonus 3, misal Gratis Ongkir area tertentu]</strong></p>", "icon": "Award", "iconColor": "#FFD93D" }
+        { "nama": "", "content": "<p><strong>Free Stiker Ternak Properti</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
+        { "nama": "", "content": "<p><strong>Packaging Eksklusif Anti Kusut</strong></p>", "icon": "Award", "iconColor": "#FFD93D" },
+        { "nama": "", "content": "<p><strong>Gratis Ongkir Area Jabodetabek</strong></p>", "icon": "Award", "iconColor": "#FFD93D" }
       ]
     }
   },
@@ -134,9 +134,9 @@
     "data": {
       "componentTitle": "Kata Mereka yang Sudah Pesan",
       "items": [
-        { "gambar": "", "nama": "[Nama Pembeli 1]", "jabatan": "[Kota]", "isiTestimony": "<p>[Isi testimoni asli dari pembeli - kualitas bahan, kepuasan, dll.]</p>", "showRating": true, "rating": 5 },
-        { "gambar": "", "nama": "[Nama Pembeli 2]", "jabatan": "[Kota]", "isiTestimony": "<p>[Isi testimoni asli dari pembeli.]</p>", "showRating": true, "rating": 5 },
-        { "gambar": "", "nama": "[Nama Pembeli 3]", "jabatan": "[Kota]", "isiTestimony": "<p>[Isi testimoni asli dari pembeli.]</p>", "showRating": true, "rating": 5 }
+        { "gambar": "", "nama": "Fajar Ramadhan", "jabatan": "Bekasi", "isiTestimony": "<p>Bahannya enak banget dipakai, adem dan gak gerah walau seharian. Sablonnya juga awet, udah dicuci berkali-kali masih bagus.</p>", "showRating": true, "rating": 5 },
+        { "gambar": "", "nama": "Ayu Lestari", "jabatan": "Surabaya", "isiTestimony": "<p>Suka banget sama desainnya, beda dari kaos komunitas lain. Packaging-nya juga rapi, sampai dengan aman.</p>", "showRating": true, "rating": 5 },
+        { "gambar": "", "nama": "Bagus Setiawan", "jabatan": "Bandung", "isiTestimony": "<p>Ukurannya pas sesuai chart, jahitannya rapi. Sudah order kedua kalinya buat dibagiin ke tim.</p>", "showRating": true, "rating": 5 }
       ]
     }
   },
@@ -145,7 +145,7 @@
     "type": "html",
     "order": 14,
     "data": {
-      "code": "<style>.bd-guarantee{background:linear-gradient(135deg,#0A1530 0%,#050B1F 100%);border:1px solid rgba(255,217,61,0.3);border-radius:16px;padding:32px 24px;text-align:center;max-width:600px;margin:0 auto;}.bd-guarantee-icon{font-size:32px;margin-bottom:12px;}.bd-guarantee h3{font-family:'Anton',sans-serif;font-weight:400;color:#FFD93D;font-size:22px;margin:0 0 12px 0;text-transform:uppercase;}.bd-guarantee p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:14px;line-height:1.7;margin:0;}</style><div class='bd-guarantee'><div class='bd-guarantee-icon'>&#128737;&#65039;</div><h3>Garansi 100% Original</h3><p>[Ganti dengan kebijakan garansi Anda - misalnya: garansi tukar ukuran dalam X hari, garansi produk cacat produksi diganti baru, dll.]</p></div>"
+      "code": "<style>.bd-guarantee{background:linear-gradient(135deg,#0A1530 0%,#050B1F 100%);border:1px solid rgba(255,217,61,0.3);border-radius:16px;padding:32px 24px;text-align:center;max-width:600px;margin:0 auto;}.bd-guarantee-icon{font-size:32px;margin-bottom:12px;}.bd-guarantee h3{font-family:'Anton',sans-serif;font-weight:400;color:#FFD93D;font-size:22px;margin:0 0 12px 0;text-transform:uppercase;}.bd-guarantee p{font-family:'Plus Jakarta Sans',sans-serif;color:#D5DEF0;font-size:14px;line-height:1.7;margin:0;}</style><div class='bd-guarantee'><div class='bd-guarantee-icon'>&#128737;&#65039;</div><h3>Garansi 100% Original</h3><p>Kalau ukuran tidak pas, bisa tukar ukuran dalam 3 hari setelah barang diterima (kaos belum dicuci/dipakai). Kalau ada cacat produksi, kami ganti baru tanpa biaya tambahan.</p></div>"
     }
   },
   {
