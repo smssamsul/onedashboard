@@ -72,7 +72,7 @@ class SyncJadwalSeminarKota extends Command
             ],
             'seminar-as-kendari' => [
                 'produk' => [
-                    'tempat' => 'TBA',
+                    'tempat' => 'Hotel Santika',
                 ],
                 'jadwal_deactivate' => [],
                 'landing_list' => [],
