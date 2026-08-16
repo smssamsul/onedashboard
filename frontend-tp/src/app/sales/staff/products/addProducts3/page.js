@@ -107,6 +107,8 @@ export default function AddProducts3Page() {
 
   // Ref untuk input file import template
   const importFileInputRef = useRef(null);
+  // Ref untuk input file import HTML mentah (landing page dari luar, mis. hasil AI)
+  const importHtmlFileInputRef = useRef(null);
 
   // Export Template ke file JSON
   const handleExportTemplate = () => {
@@ -151,6 +153,32 @@ export default function AddProducts3Page() {
     }
   };
 
+  // Import HTML mentah - ganti seluruh landing page jadi satu block HTML
+  // berisi file yang diimport. Dipakai buat landing page hasil AI/eksternal
+  // yang sudah jadi (bukan dirakit dari block satu-satu).
+  const handleImportHtmlFile = async (e) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const newBlock = {
+        id: `block-${Date.now()}`,
+        type: "html",
+        data: { code: text },
+        order: 1,
+      };
+      setBlocks([newBlock]);
+      toast.success("Landing page diganti dengan HTML yang diimport! Jangan lupa Simpan.");
+    } catch (err) {
+      console.error("Import HTML error:", err);
+      toast.error("Gagal import file HTML");
+    } finally {
+      if (importHtmlFileInputRef.current) {
+        importHtmlFileInputRef.current.value = "";
+      }
+    }
+  };
+
   // State untuk cascading dropdown (internal - untuk fetch)
   const [regionData, setRegionData] = useState({
     provinces: [],
@@ -190,7 +218,7 @@ export default function AddProducts3Page() {
     jadwal: [], // [{ nama_jadwal, waktu_mulai, waktu_selesai, kuota, status }]
     tampil_jadwal: true, // Tampilkan di Jadwal
     background_color: "#ffffff", // Default putih
-    theme: "default", // "default" atau "davdigi_dark" (tema Bold Dark)
+    theme: "default", // "default", "davdigi_dark" (Bold Dark), atau "custom_html"
     /** Jarak vertikal antar blok komponen di preview & halaman produk (px) */
     preview_component_gap: 24,
     /** Jarak bawah antar paragraf di komponen teks / rich text (px) */
@@ -3480,6 +3508,22 @@ export default function AddProducts3Page() {
             <Upload size={16} />
             <span>Import</span>
           </button>
+          <input
+            ref={importHtmlFileInputRef}
+            type="file"
+            accept=".html,.htm,text/html"
+            style={{ display: "none" }}
+            onChange={handleImportHtmlFile}
+          />
+          <button
+            className="action-btn-secondary"
+            onClick={() => importHtmlFileInputRef.current?.click()}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', borderRadius: '8px', border: '1px solid #ddd6fe', background: '#f5f3ff', color: '#7c3aed', cursor: 'pointer', fontWeight: '500' }}
+            title="Ganti seluruh landing page dengan file .html mentah (mis. hasil AI)"
+          >
+            <Code size={16} />
+            <span>Import .html</span>
+          </button>
           <button
             className="action-btn-secondary"
             onClick={handleExportTemplate}
@@ -4245,9 +4289,29 @@ export default function AddProducts3Page() {
                         >
                           Bold Dark
                         </button>
+                        <button
+                          type="button"
+                          className={`pengaturan-theme-toggle-btn ${pengaturanForm.theme === "custom_html" ? "is-active" : ""}`}
+                          onClick={() => handlePengaturanChange("theme", "custom_html")}
+                          style={{
+                            flex: 1,
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: pengaturanForm.theme === "custom_html" ? "2px solid #7c3aed" : "1px solid #d1d5db",
+                            background: pengaturanForm.theme === "custom_html" ? "#f5f3ff" : "#ffffff",
+                            color: pengaturanForm.theme === "custom_html" ? "#7c3aed" : "#111827",
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Custom HTML
+                        </button>
                       </div>
                       <small className="pengaturan-hint">
                         Bold Dark: tampilan navy + gold/oranye, font Anton untuk judul. Mengubah background halaman serta tampilan default block FAQ, Harga, dan Testimoni.
+                        <br />
+                        Custom HTML: block HTML dirender apa adanya, tanpa logo dan tanpa pembungkus lebar/padding platform - pakai ini kalau landing page-nya hasil import file .html mentah (mis. dari AI) supaya tampil persis seperti aslinya.
                       </small>
                     </div>
 
@@ -4705,20 +4769,23 @@ export default function AddProducts3Page() {
                     backgroundColor: pengaturanForm.background_color || (pengaturanForm.theme === "davdigi_dark" ? "#0A1530" : "#ffffff")
                   }}
                 >
-                  {/* Logo - Hardcode di bagian atas center */}
-                  <div className="canvas-logo-wrapper">
-                    <img
-                      src="/assets/logo.png"
-                      alt="Logo"
-                      className="canvas-logo"
-                    />
-                  </div>
+                  {/* Logo - Hardcode di bagian atas center, kecuali tema Custom HTML */}
+                  {pengaturanForm.theme !== "custom_html" && (
+                    <div className="canvas-logo-wrapper">
+                      <img
+                        src="/assets/logo.png"
+                        alt="Logo"
+                        className="canvas-logo"
+                      />
+                    </div>
+                  )}
 
-                  {/* Content Area */}
+                  {/* Content Area - tema Custom HTML: tanpa padding/max-width platform */}
                   <div
                     className="canvas-content-area"
                     style={{
                       gap: `${Number(pengaturanForm.preview_component_gap ?? 24)}px`,
+                      ...(pengaturanForm.theme === "custom_html" ? { padding: 0, maxWidth: "100%" } : {}),
                     }}
                   >
                     {/* Placeholder jika belum ada komponen */}
@@ -4759,7 +4826,10 @@ export default function AddProducts3Page() {
                               }
                             }
                           }}
-                          style={{ cursor: "pointer" }}
+                          style={{
+                            cursor: "pointer",
+                            ...(pengaturanForm.theme === "custom_html" ? { maxWidth: "100%" } : {}),
+                          }}
                           title="Klik untuk scroll ke komponen di sidebar"
                         >
                           {renderPreview(block)}
