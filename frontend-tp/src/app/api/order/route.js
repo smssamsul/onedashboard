@@ -7,7 +7,8 @@ export async function POST(request) {
     const body = await request.json();
 
     // Validasi field wajib sesuai requirement backend
-    const requiredFields = ['nama', 'wa', 'email', 'produk', 'harga', 'total_harga', 'metode_bayar', 'sumber'];
+    // (email tidak wajib - backend sudah nullable, identitas utama customer pakai nomor WA)
+    const requiredFields = ['nama', 'wa', 'produk', 'harga', 'total_harga', 'metode_bayar', 'sumber'];
     const missingFields = requiredFields.filter(field => !body[field] && body[field] !== 0);
 
     if (missingFields.length > 0) {
@@ -23,7 +24,7 @@ export async function POST(request) {
     const payload = {
       nama: String(body.nama),
       wa: String(body.wa),
-      email: String(body.email),
+      email: body.email ? String(body.email) : null,
       alamat: body.alamat ? String(body.alamat) : null,
       provinsi: body.provinsi || null,
       kabupaten: body.kabupaten || null,
