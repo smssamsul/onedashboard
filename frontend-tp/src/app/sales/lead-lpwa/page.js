@@ -81,7 +81,8 @@ export default function LeadLpwaPage() {
   const [formData, setFormData] = useState({
     nama: "",
     no_wa: "",
-    produk_id: ""
+    produk_text: "",
+    lokasi: ""
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -164,7 +165,7 @@ export default function LeadLpwaPage() {
       if (data.success) {
         toastSuccess("Leads berhasil ditambahkan");
         setShowAdd(false);
-        setFormData({ nama: "", no_wa: "", produk_id: "" });
+        setFormData({ nama: "", no_wa: "", produk_text: "", lokasi: "" });
         fetchLeads(1);
       } else {
         toastError(data.message || "Gagal menambahkan data");
@@ -181,7 +182,8 @@ export default function LeadLpwaPage() {
     setFormData({
       nama: lead.nama || "",
       no_wa: lead.no_wa || "",
-      produk_id: lead.produk_id || ""
+      produk_text: lead.produk_text || "",
+      lokasi: lead.lokasi || ""
     });
     setShowEdit(true);
   };
@@ -394,7 +396,7 @@ export default function LeadLpwaPage() {
                       <td className="py-4 px-6 text-sm text-gray-600">{lead.no_wa || "-"}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">{formatDate(lead.created_at)}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">
-                        {lead.produk_text || (lead.produk ? lead.produk.nama : "-")}
+                        {lead.produk_text || "-"}
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-600">{lead.lokasi || "-"}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">
@@ -508,18 +510,25 @@ export default function LeadLpwaPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Produk Diminati</label>
-                  <select
-                    name="produk_id"
-                    value={formData.produk_id}
+                  <input
+                    type="text"
+                    name="produk_text"
+                    value={formData.produk_text}
                     onChange={handleInputChange}
-                    required
+                    placeholder="Mis. Seminar Ternak Properti"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
-                  >
-                    <option value="">Pilih Produk</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.nama}</option>
-                    ))}
-                  </select>
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+                  <input
+                    type="text"
+                    name="lokasi"
+                    value={formData.lokasi}
+                    onChange={handleInputChange}
+                    placeholder="Mis. Lampung"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                  />
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">

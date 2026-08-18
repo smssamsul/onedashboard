@@ -19,7 +19,7 @@ class LeadLpwaController extends Controller
 
     public function index(Request $request)
     {
-        $query = LeadLpwa::with(['produk', 'sales']);
+        $query = LeadLpwa::with(['sales']);
 
         $user = Auth::user();
         $realUser = $user ? $user->userData : null;
@@ -44,14 +44,12 @@ class LeadLpwaController extends Controller
         $leads = $query->paginate($perPage);
 
         // Append order status
-        // produk_id bisa kosong sekarang (lead LPWA baru tidak lagi otomatis
-        // dicocokkan ke katalog produk) - kalau kosong, cukup cocokkan by nomor WA.
+        // produk_id sudah dihapus dari tabel ini - lead LPWA tidak lagi
+        // dicocokkan ke katalog produk otomatis, jadi order dicocokkan cukup
+        // by nomor WA.
         $leads->getCollection()->transform(function ($lead) {
             $order = OrderCustomer::whereHas('customer_rel', function ($q) use ($lead) {
                     $q->where('wa', $lead->no_wa);
-                })
-                ->when($lead->produk_id, function ($q) use ($lead) {
-                    $q->where('produk', $lead->produk_id);
                 })
                 ->whereNotIn('status_order', ['3', '3 '])
                 ->where('status', '!=', 'N')
@@ -86,7 +84,8 @@ class LeadLpwaController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
             'no_wa' => 'required|string|max:255',
-            'produk_id' => 'required|exists:produk,id',
+            'produk_text' => 'nullable|string|max:255',
+            'lokasi' => 'nullable|string|max:255',
             'sales_id' => 'nullable|exists:users,id'
         ]);
 
@@ -121,7 +120,8 @@ class LeadLpwaController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'sometimes|required|string|max:255',
             'no_wa' => 'sometimes|required|string|max:255',
-            'produk_id' => 'sometimes|required|exists:produk,id',
+            'produk_text' => 'nullable|string|max:255',
+            'lokasi' => 'nullable|string|max:255',
             'sales_id' => 'nullable|exists:users,id'
         ]);
 
