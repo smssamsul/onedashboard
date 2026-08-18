@@ -11,6 +11,7 @@ class Percakapan extends Model
     protected $fillable = [
         'ai_leads_id',
         'phone_number',
+        'name',
         'assigned_sales_id',
         'status',
         'lead_score',
@@ -29,11 +30,6 @@ class Percakapan extends Model
     public function detailPercakapan()
     {
         return $this->hasMany(DetailPercakapan::class, 'id_percakapan', 'id')->orderBy('created_at', 'asc');
-    }
-
-    public function lead()
-    {
-        return $this->belongsTo(AiLead::class, 'ai_leads_id', 'id');
     }
 
     public function sales()

@@ -34,17 +34,22 @@ class PercakapanService
             return null;
         }
 
-        return DB::transaction(function () use ($phoneNumber, $salesId, $messageText, $source) {
+        return DB::transaction(function () use ($phoneNumber, $salesId, $messageText, $senderName, $source) {
             $percakapan = Percakapan::where('phone_number', $phoneNumber)->first();
 
             if (!$percakapan) {
                 $percakapan = Percakapan::create([
                     'phone_number' => $phoneNumber,
+                    'name' => $senderName,
                     'assigned_sales_id' => $salesId,
                     'status' => 'new',
                     'source' => $source,
                     'lead_score' => 0,
                 ]);
+            } elseif (empty($percakapan->name) && !empty($senderName)) {
+                // Backfill nama kalau sebelumnya belum ada (mis. percakapan dibuat
+                // dari sumber lain yang tidak bawa senderName).
+                $percakapan->update(['name' => $senderName]);
             }
 
             $intent = null;

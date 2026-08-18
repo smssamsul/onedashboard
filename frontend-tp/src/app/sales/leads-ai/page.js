@@ -1060,8 +1060,8 @@ export default function LeadsAiPage() {
                 {(chatConversation.phone_number || "U").substring((chatConversation.phone_number || "U").length - 2)}
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{chatConversation.lead?.name || chatConversation.phone_number || "-"}</div>
-                {chatConversation.lead?.name && (
+                <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{chatConversation.name || chatConversation.phone_number || "-"}</div>
+                {chatConversation.name && (
                   <div style={{ fontSize: "0.75rem", opacity: 0.9, marginBottom: "0.25rem" }}>
                     {chatConversation.phone_number || "-"}
                   </div>
