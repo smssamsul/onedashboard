@@ -207,17 +207,22 @@ class WhatsAppWebhookController extends Controller
                 $percakapan = Percakapan::create([
                     'ai_leads_id' => $lead->id,
                     'phone_number' => $phoneNumber,
+                    'name' => $senderName,
                     'status' => 'new',
                     'source' => 'whatsapp',
                     'lead_score' => 0,
                     'last_message_at' => now(),
                 ]);
             } else {
-                // Update conversation
-                $percakapan->update([
+                // Update conversation - backfill nama kalau sebelumnya belum ada
+                $percakapanUpdate = [
                     'ai_leads_id' => $lead->id,
                     'last_message_at' => now(),
-                ]);
+                ];
+                if (empty($percakapan->name) && !empty($senderName)) {
+                    $percakapanUpdate['name'] = $senderName;
+                }
+                $percakapan->update($percakapanUpdate);
             }
 
             // Tentukan intent pesan (jika tidak distop)

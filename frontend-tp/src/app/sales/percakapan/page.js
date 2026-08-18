@@ -534,9 +534,9 @@ export default function PercakapanPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: "0.9375rem", marginBottom: "0.25rem", color: "#111827" }}>
-                        {conv.lead?.name || phone}
+                        {conv.name || phone}
                       </div>
-                      {conv.lead?.name && (
+                      {conv.name && (
                         <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.25rem" }}>
                           {phone}
                         </div>
@@ -606,8 +606,8 @@ export default function PercakapanPage() {
                     {(selectedConversation.phone_number || "U").substring((selectedConversation.phone_number || "U").length - 2)}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: "1rem" }}>{selectedConversation.lead?.name || selectedConversation.phone_number || "-"}</div>
-                    {selectedConversation.lead?.name && (
+                    <div style={{ fontWeight: 600, fontSize: "1rem" }}>{selectedConversation.name || selectedConversation.phone_number || "-"}</div>
+                    {selectedConversation.name && (
                       <div style={{ fontSize: "0.8125rem", opacity: 0.9, marginBottom: "0.25rem" }}>
                         {selectedConversation.phone_number || "-"}
                       </div>

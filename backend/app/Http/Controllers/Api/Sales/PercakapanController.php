@@ -23,7 +23,7 @@ class PercakapanController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Percakapan::with(['detailPercakapan', 'lead:id,name,phone_number'])
+        $query = Percakapan::with(['detailPercakapan'])
         ->orderBy('last_message_at', 'desc');
 
         // Filter by status
@@ -63,7 +63,7 @@ class PercakapanController extends Controller
     {
         $percakapan = Percakapan::with(['detailPercakapan' => function($q) {
             $q->orderBy('created_at', 'asc');
-        }, 'lead:id,name,phone_number'])
+        }])
         ->find($id);
 
         if (!$percakapan) {
