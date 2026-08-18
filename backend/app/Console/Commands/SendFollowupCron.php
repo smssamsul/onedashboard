@@ -41,6 +41,15 @@ class SendFollowupCron extends Command
             Log::channel('followup')->warning('Mode DEBUG aktif — pesan tidak akan dikirim ke WhatsApp');
         }
 
+        // Saklar global dari halaman Setting Sales - kalau dimatikan, seluruh
+        // proses follow-up (order, invitation, upselling) berhenti di sini,
+        // sebelum menyentuh produk/template/customer manapun.
+        if (!\App\Models\SalesSetting::getAutoFollowupEnabled()) {
+            $this->warn('⚠ Auto follow-up sedang DIMATIKAN dari Setting Sales — proses dihentikan.');
+            Log::channel('followup')->warning('Auto follow-up dimatikan dari Setting Sales, proses dihentikan sebelum mulai.');
+            return;
+        }
+
         // Jeda acak antar pesan (detik) supaya pengiriman tidak beruntun terlalu cepat.
         // Delay bertambah kumulatif sepanjang proses, jadi seluruh pesan pada run ini
         // tersebar sepanjang waktu, bukan cuma jitter individual yang bisa numpuk.

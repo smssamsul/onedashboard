@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Produk;
 use App\Models\LeadLpwa;
 use App\Services\PercakapanService;
+use App\Services\ChatExtractorService;
 use Illuminate\Support\Facades\Log;
 
 class LpwaWebhookController extends Controller
@@ -63,51 +63,45 @@ class LpwaWebhookController extends Controller
             ]);
         }
 
-        // Regex untuk menangkap nama produk dari format:
-        // "Halo Fuji saya mau ikut Seminar Ternak Properti di Lampung. Bisa didetilkan?"
-        // Menangkap text setelah "ikut" sampai titik (.)
-        $produkId = null;
-        if (preg_match('/ikut\s+(.*?)(?:\.|\?|$)/i', $message, $matches)) {
-            $rawProductName = trim($matches[1]);
-            // Hilangkan kata " di " (case-insensitive) dan ganti dengan spasi
-            $productName = trim(preg_replace('/\bdi\b/i', '', $rawProductName));
-            
-            // Sesuai request, ubah kata "Ternak" menjadi "Akuisisi"
-            $productName = str_ireplace('Ternak', 'Akuisisi', $productName);
+        // Parse produk yang diminati & lokasi dari pesan sebagai teks bebas -
+        // tidak lagi dicocokkan ke katalog produk. Sebelumnya kalau nama produk
+        // tidak match persis ke tabel produk, lead-nya dibuang begitu saja dan
+        // tidak pernah masuk database. Sekarang selalu disimpan apa adanya,
+        // biar sales yang menentukan produk sebenarnya saat klik "Order".
+        $extracted = app(ChatExtractorService::class)->extract($message);
+        $produkText = $extracted['product'] ?? null;
+        $lokasi = $extracted['location'] ?? null;
 
-            // Hapus multiple spaces jika ada
-            $productName = preg_replace('/\s+/', ' ', $productName);
-            
-            // Cocokkan nama produk dari kata kunci yang didapat, status = 1 atau status != N
-            $produk = Produk::where('nama', 'LIKE', '%' . $productName . '%')
-                ->where(function ($query) {
-                    $query->where('status', '1')
-                          ->orWhere('status', '!=', 'N');
-                })
-                ->first();
-            
-            if ($produk) {
-                $produkId = $produk->id;
-            } else {
-                Log::channel('webhook_baileys')->warning('LPWA Webhook: Produk tidak ditemukan untuk kata kunci: ' . $productName . ' (dari raw: ' . $rawProductName . ')');
-            }
-        }
-
-        // HANYA simpan jika produkId ditemukan
-        if (!$produkId) {
+        // Kalau pesan ini sama sekali tidak mengandung sinyal minat (tidak ada
+        // produk maupun lokasi yang terdeteksi), jangan buat lead - supaya
+        // tabel tidak kebanjiran obrolan yang tidak relevan.
+        if (!$produkText && !$lokasi) {
             return response()->json([
                 'success' => true,
-                'message' => 'Pesan diterima, namun produk tidak terdeteksi atau tidak cocok, data diabaikan.'
+                'message' => 'Pesan diterima, namun tidak ada sinyal minat produk/lokasi, data diabaikan.'
             ]);
         }
 
-        // Simpan ke lead_lpwas
-        $lead = LeadLpwa::create([
-            'nama' => $name,
-            'no_wa' => $phone,
-            'produk_id' => $produkId,
-            'sales_id' => $salesId,
-        ]);
+        // Upsert per nomor WA supaya "waktu chat pertama" (created_at) stabil
+        // dan tidak bikin baris duplikat setiap kali customer yang sama chat lagi.
+        $lead = LeadLpwa::where('no_wa', $phone)->first();
+
+        if (!$lead) {
+            $lead = LeadLpwa::create([
+                'nama' => $name,
+                'no_wa' => $phone,
+                'produk_text' => $produkText,
+                'lokasi' => $lokasi,
+                'sales_id' => $salesId,
+            ]);
+        } else {
+            $lead->update(array_filter([
+                'nama' => $name ?: $lead->nama,
+                'produk_text' => $produkText ?: $lead->produk_text,
+                'lokasi' => $lokasi ?: $lead->lokasi,
+                'sales_id' => $salesId ?: $lead->sales_id,
+            ], fn ($v) => $v !== null));
+        }
 
         return response()->json([
             'success' => true,

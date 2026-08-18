@@ -44,10 +44,14 @@ class LeadLpwaController extends Controller
         $leads = $query->paginate($perPage);
 
         // Append order status
+        // produk_id bisa kosong sekarang (lead LPWA baru tidak lagi otomatis
+        // dicocokkan ke katalog produk) - kalau kosong, cukup cocokkan by nomor WA.
         $leads->getCollection()->transform(function ($lead) {
-            $order = OrderCustomer::where('produk', $lead->produk_id)
-                ->whereHas('customer_rel', function ($q) use ($lead) {
+            $order = OrderCustomer::whereHas('customer_rel', function ($q) use ($lead) {
                     $q->where('wa', $lead->no_wa);
+                })
+                ->when($lead->produk_id, function ($q) use ($lead) {
+                    $q->where('produk', $lead->produk_id);
                 })
                 ->whereNotIn('status_order', ['3', '3 '])
                 ->where('status', '!=', 'N')
