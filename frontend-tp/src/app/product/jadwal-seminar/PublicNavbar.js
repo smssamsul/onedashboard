@@ -22,10 +22,10 @@ export default function PublicNavbar() {
             <Link href="https://ternakproperti.com/">
               <img
                 className="h-10 w-auto"
-                src="/assets/logo.png"
+                src="https://ternakproperti.com/_next/image?url=%2Fassets%2Flogo.png&w=256&q=75"
                 alt="Ternak Properti Logo"
                 onError={(e) => {
-                  e.target.src = 'https://placehold.co/200x60/ffffff/facc15?text=TERNAK+PROPERTI';
+                  e.target.src = 'https://ternakproperti.com/_next/image?url=%2Fassets%2Flogo.png&w=256&q=75';
                 }}
               />
             </Link>
