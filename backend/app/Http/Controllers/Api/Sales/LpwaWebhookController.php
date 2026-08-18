@@ -34,13 +34,39 @@ class LpwaWebhookController extends Controller
 
         if (empty($message) || empty($phone)) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Invalid payload. Message and phone are required.'
             ], 400);
         }
 
         // Bersihkan nomor WA (hanya angka)
         $phone = preg_replace('/\D/', '', $phone);
+
+        // Pesan KELUAR (fromMe=true dari Baileys - baik dikirim lewat aplikasi
+        // maupun diketik manual langsung di WhatsApp) dicatat ke Percakapan
+        // saja, TIDAK diproses lewat parsing minat produk/lokasi di bawah -
+        // itu logika khusus pesan customer, tidak relevan untuk pesan kita sendiri.
+        if ($request->boolean('fromMe')) {
+            try {
+                app(PercakapanService::class)->logOutgoingMessage(
+                    $phone,
+                    $salesId !== null ? (int) $salesId : null,
+                    $message,
+                    'baileys'
+                );
+            } catch (\Throwable $e) {
+                Log::channel('webhook_baileys')->error('Gagal mencatat pesan keluar ke Percakapan', [
+                    'phone' => $phone,
+                    'sessionId' => $sessionId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesan keluar berhasil dicatat.'
+            ]);
+        }
 
         // Catat SETIAP pesan customer yang masuk ke menu Percakapan (AI),
         // ter-assign ke sales pemilik session WA-nya - terlepas dari
