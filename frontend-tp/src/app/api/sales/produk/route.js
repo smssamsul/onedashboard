@@ -433,6 +433,7 @@ export async function GET(request) {
         url: p.url,
         status: p.status,
         kategori_rel: p.kategori_rel,
+        unit_bisnis_rel: p.unit_bisnis_rel,
         user_rel: p.user_rel,
         assign: p.assign,
         assign_rel: p.assign_rel,

@@ -16,5 +16,6 @@ export { default as AnimationComponent } from './AnimationComponent';
 export { default as PriceComponent } from './PriceComponent';
 export { default as CountdownComponent } from './CountdownComponent';
 export { default as QuotaInfoComponent } from './QuotaInfoComponent';
+export { default as JadwalInfoComponent } from './JadwalInfoComponent';
 export { default as ImageSliderComponent } from './ImageSliderComponent';
 

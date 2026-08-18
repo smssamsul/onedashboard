@@ -390,7 +390,7 @@ export default function PercakapanPage() {
   return (
     <Layout title="Percakapan">
       <style>{slideInStyle}</style>
-      <div style={{ display: "flex", height: "calc(100vh - 200px)", background: "#ECE5DD", borderRadius: "8px", overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 120px)", background: "#ECE5DD", borderRadius: "8px", overflow: "hidden" }}>
         {/* Sidebar */}
         <div style={{ width: "350px", background: "white", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "1rem", background: "#075E54", color: "white", display: "flex", alignItems: "center", justifyContent: "space-between" }}>

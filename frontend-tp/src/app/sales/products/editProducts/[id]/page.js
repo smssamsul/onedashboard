@@ -49,10 +49,12 @@ import {
   CountdownComponent,
   ImageSliderComponent,
   QuotaInfoComponent,
+  JadwalInfoComponent,
 } from '../../addProducts3/components';
 import CountdownPreview from '../../addProducts3/components/CountdownPreview';
 import ImageSliderPreview from '../../addProducts3/components/ImageSliderPreview';
 import QuotaInfoPreview from '../../addProducts3/components/QuotaInfoPreview';
+import JadwalPreview from '../../addProducts3/components/JadwalPreview';
 // PrimeReact Theme & Core
 import "primereact/resources/themes/lara-light-amber/theme.css";
 import "primereact/resources/primereact.min.css";
@@ -81,6 +83,7 @@ const COMPONENT_CATEGORIES = {
       { id: "countdown", name: "Countdown", icon: Clock, color: "#6b7280" },
       { id: "image-slider", name: "Image Slider", icon: ImageIcon, color: "#6b7280" },
       { id: "quota-info", name: "Info Kuota", icon: Users, color: "#6b7280" },
+      { id: "jadwal", name: "Jadwal", icon: CalendarIcon, color: "#6b7280" },
     ]
   }
 };
@@ -218,6 +221,7 @@ export default function EditProductsPage() {
   const [pengaturanForm, setPengaturanForm] = useState({
     nama: "",
     kategori: null,
+    unit_bisnis: null,
     kode: "",
     url: "",
     harga: null,
@@ -267,6 +271,7 @@ export default function EditProductsPage() {
 
   // State untuk options dropdown
   const [kategoriOptions, setKategoriOptions] = useState([]);
+  const [unitBisnisOptions, setUnitBisnisOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   // Master Meta Pixel (PixelMeta dari backend)
   const [metaPixelOptions, setMetaPixelOptions] = useState([]);
@@ -610,6 +615,8 @@ export default function EditProductsPage() {
         return <ImageSliderComponent {...commonProps} />;
       case "quota-info":
         return <QuotaInfoComponent {...commonProps} />;
+      case "jadwal":
+        return <JadwalInfoComponent {...commonProps} />;
       default:
         return <div>Unknown component: {block.type}</div>;
     }
@@ -1619,6 +1626,14 @@ export default function EditProductsPage() {
         return <ImageSliderPreview data={blockToRender.data || {}} />;
       case "quota-info":
         return <QuotaInfoPreview data={blockToRender.data || {}} />;
+      case "jadwal":
+        return (
+          <JadwalPreview
+            jadwalList={pengaturanForm.jadwal || []}
+            tempat={pengaturanForm.tempat || ""}
+            nama={pengaturanForm.nama || ""}
+          />
+        );
       case "section":
         // ✅ SAMA DENGAN addProducts3: Pastikan block memiliki data terbaru dari blocks array
         const latestBlock = blocks.find(b => b.id === block.id) || block;
@@ -2612,6 +2627,7 @@ export default function EditProductsPage() {
       setPengaturanForm({
         nama: produkData.nama || "",
         kategori: kategoriId ? String(kategoriId) : null,
+        unit_bisnis: produkData.unit_bisnis ? String(produkData.unit_bisnis) : null,
         kode: produkData.kode || formatSlug(produkData.nama || ""),
         url: produkData.url || `/${formatSlug(produkData.nama || "")}`,
         harga: parsedHarga,
@@ -2627,6 +2643,7 @@ export default function EditProductsPage() {
         alamat: produkData.alamat || "",
         assign: parsedAssign,
         background_color: settings?.background_color || "#ffffff",
+        theme: settings?.theme || "default",
         preview_component_gap: Number(settings?.preview_component_gap ?? 24),
         preview_text_paragraph_gap: Number(settings?.preview_text_paragraph_gap ?? 8),
         page_title: settings?.page_title || "",
@@ -2691,6 +2708,20 @@ export default function EditProductsPage() {
           value: String(k.id),
         }));
         setKategoriOptions(kategoriOpts);
+
+        // Fetch unit bisnis
+        const unitBisnisRes = await fetch("/api/sales/unit-bisnis", { headers });
+        const unitBisnisData = await unitBisnisRes.json();
+
+        const activeUnitBisnis = Array.isArray(unitBisnisData.data)
+          ? unitBisnisData.data.filter((u) => u.status === "1")
+          : [];
+
+        const unitBisnisOpts = activeUnitBisnis.map((u) => ({
+          label: u.nama,
+          value: String(u.id),
+        }));
+        setUnitBisnisOptions(unitBisnisOpts);
 
         // Fetch sales list from /api/sales/lead/sales-list
         const salesRes = await fetch("/api/sales/lead/sales-list", { headers });
@@ -3785,6 +3816,7 @@ export default function EditProductsPage() {
     const payload = {
       nama: pengaturanForm.nama.trim(),
       kategori: pengaturanForm.kategori ? String(pengaturanForm.kategori) : null,
+      unit_bisnis: pengaturanForm.unit_bisnis ? String(pengaturanForm.unit_bisnis) : null,
       kode: pengaturanForm.kode || formatSlug(pengaturanForm.nama),
       url: pengaturanForm.url || `/${formatSlug(pengaturanForm.nama)}`,
       harga: pengaturanForm.harga ? String(pengaturanForm.harga) : "0",
@@ -3972,6 +4004,7 @@ export default function EditProductsPage() {
     const payload = {
       nama: pengaturanForm.nama.trim(),
       kategori: String(pengaturanForm.kategori),
+      unit_bisnis: pengaturanForm.unit_bisnis ? String(pengaturanForm.unit_bisnis) : null,
       kode: pengaturanForm.kode || formatSlug(pengaturanForm.nama),
       url: pengaturanForm.url || `/${formatSlug(pengaturanForm.nama)}`,
       harga: String(pengaturanForm.harga || 0),
@@ -4333,6 +4366,31 @@ export default function EditProductsPage() {
                         Kategori wajib dipilih
                       </small>
                     )}
+                  </div>
+
+                  <div className="form-field-group">
+                    <label className="form-label">Unit Bisnis</label>
+                    <Dropdown
+                      className="w-full form-input"
+                      value={pengaturanForm.unit_bisnis}
+                      options={unitBisnisOptions}
+                      optionLabel="label"
+                      optionValue="value"
+                      onChange={(e) => {
+                        const selectedValue = e.value;
+                        const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
+                          ? String(selectedValue)
+                          : null;
+                        handlePengaturanChange("unit_bisnis", finalValue);
+                      }}
+                      placeholder="Pilih Unit Bisnis (opsional)"
+                      showClear
+                      filter
+                      filterPlaceholder="Cari unit bisnis..."
+                    />
+                    <small className="field-hint">
+                      Dipakai untuk filter halaman jadwal seminar publik per unit bisnis
+                    </small>
                   </div>
 
                   {/* LOKASI (KHUSUS SEMINAR / KATEGORI == "3") */}

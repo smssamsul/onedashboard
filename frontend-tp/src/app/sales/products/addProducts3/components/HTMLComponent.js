@@ -36,6 +36,9 @@ export default function HTMLComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
 
   const handleMount = (editor) => {
     editorRef.current = editor;
+    // Paksa layout ulang begitu mount - tanpa ini suka nyisa celah putih kosong
+    // di bawah toolbar sebelum area kode gelapnya kebentuk sempurna.
+    editor.layout();
     // Rapikan otomatis begitu dibuka - kode hasil import/paste sering masih 1 baris panjang
     setTimeout(() => {
       editor.getAction("editor.action.formatDocument")?.run();
@@ -100,12 +103,13 @@ export default function HTMLComponent({ data = {}, onUpdate, onMoveUp, onMoveDow
           </div>
           <div style={{ border: "1px solid #d1d5db", borderRadius: "8px", overflow: "hidden" }}>
             <Editor
-              height="420px"
+              height="700px"
               defaultLanguage="html"
               value={code}
               onChange={handleChange}
               onMount={handleMount}
               theme="vs-dark"
+              loading={<div style={{ background: "#1e1e1e", width: "100%", height: "700px" }} />}
               options={{
                 minimap: { enabled: false },
                 fontSize: 13,

@@ -34,6 +34,7 @@ const QuotaInfoPreview = dynamic(() => import("@/app/sales/products/addProducts3
   ssr: false
 });
 import { useAddressData } from "./hooks/useAddressData";
+import SearchableRegionSelect from "./SearchableRegionSelect";
 import { useShippingCalculator } from "./hooks/useShippingCalculator";
 import { usePriceCalculator } from "./hooks/usePriceCalculator";
 import { useProductForm } from "./hooks/useProductForm";
@@ -579,6 +580,9 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             bundling: bundlingData,
             pixel_list: data.pixel_list || [],
             jadwal: data.jadwal_rel || data.jadwal || [],
+            tempat: data.tempat,
+            kota: data.kota,
+            alamat: data.alamat,
           });
 
           // 3. Process Landingpage Array
@@ -1616,6 +1620,92 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         );
       }
 
+      case "jadwal": {
+        // Otomatis ambil dari produk_jadwal (bukan konten manual). Satu kartu
+        // per TANGGAL - kalau ada beberapa sesi di hari yang sama, semuanya
+        // masuk 1 kartu (baris "Sesi" bertambah), kalau beda hari baru jadi
+        // kartu terpisah. Judul & lokasi ikut data produk (nama, tempat),
+        // karena keduanya level produk, bukan per-sesi.
+        const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu"];
+        const monthNames = [
+          "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+          "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+        ];
+
+        const jadwalList = (productData?.jadwal || [])
+          .filter((j) => j.status !== "N")
+          .slice()
+          .sort((a, b) => new Date(a.waktu_mulai) - new Date(b.waktu_mulai));
+
+        if (jadwalList.length === 0) {
+          return (
+            <div key={block.id} className="preview-jadwal-wrapper" style={containerStyle}>
+              <div className="preview-placeholder">Belum ada jadwal untuk produk ini</div>
+            </div>
+          );
+        }
+
+        // Kelompokkan per tanggal (pakai komponen tanggal lokal, bukan
+        // toISOString, supaya tidak geser hari akibat konversi ke UTC).
+        const groupedByDate = [];
+        jadwalList.forEach((j) => {
+          const d = new Date(j.waktu_mulai);
+          const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+          let group = groupedByDate.find((g) => g.dateKey === dateKey);
+          if (!group) {
+            group = { dateKey, date: d, sessions: [] };
+            groupedByDate.push(group);
+          }
+          group.sessions.push(j);
+        });
+
+        return (
+          <div key={block.id} className="preview-jadwal-wrapper" style={{ ...containerStyle, display: "flex", flexDirection: "column", gap: "16px" }}>
+            {groupedByDate.map((group) => {
+              const d = group.date;
+              const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+
+              return (
+                <div
+                  key={group.dateKey}
+                  className="preview-jadwal-card"
+                  style={{
+                    background: "#f8f9fb",
+                    borderRadius: "12px",
+                    padding: "24px 28px",
+                  }}
+                >
+                  <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                    {productData?.nama}
+                  </h3>
+                  <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                      <CalendarIcon size={20} strokeWidth={2} />
+                      <span>{dateStr}</span>
+                    </div>
+                    {group.sessions.map((j) => {
+                      const sd = new Date(j.waktu_mulai);
+                      const timeStr = `${String(sd.getHours()).padStart(2, "0")}.${String(sd.getMinutes()).padStart(2, "0")}`;
+                      return (
+                        <div key={j.id} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                          <Clock size={20} strokeWidth={2} />
+                          <span>{j.nama_jadwal} : {timeStr} WIB</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                      <MapPin size={20} strokeWidth={2} />
+                      <span>{productData?.tempat || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
       case "faq": {
         const kategoriId = getKategoriId();
         const faqItems = getFAQByKategori(kategoriId);
@@ -1872,98 +1962,54 @@ function ProductClient({ initialProductData, initialLandingPage }) {
 
                       <div className="compact-field">
                         {/* <label className="compact-label">Provinsi <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableRegionSelect
+                          options={wilayahData.provinces}
                           value={selectedWilayahIds.provinceId}
-                          onChange={(e) => {
-                            const provinceId = e.target.value;
+                          onChange={(provinceId) => {
                             setSelectedWilayahIds({ provinceId, cityId: "", districtId: "" });
                             const provinceName = getProvinceName(provinceId);
                             setFormWilayah(prev => ({ ...prev, provinsi: provinceName, kabupaten: "", kecamatan: "", kode_pos: "" }));
                           }}
                           disabled={loadingWilayah.provinces}
-                          style={{
-                            appearance: 'auto',
-                            cursor: loadingWilayah.provinces ? 'not-allowed' : 'pointer',
-                            backgroundColor: loadingWilayah.provinces ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Provinsi</option>
-                          {wilayahData.provinces.map((province) => (
-                            <option key={province.id} value={province.id}>
-                              {province.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.provinces && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat provinsi...
-                          </small>
-                        )}
+                          loading={loadingWilayah.provinces}
+                          loadingText="Memuat provinsi..."
+                          placeholder="Cari Provinsi"
+                        />
                       </div>
 
                       <div className="compact-field">
                         {/* <label className="compact-label">Kabupaten/Kota <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableRegionSelect
+                          options={wilayahData.cities}
                           value={selectedWilayahIds.cityId}
-                          onChange={(e) => {
-                            const cityId = e.target.value;
+                          onChange={(cityId) => {
                             setSelectedWilayahIds(prev => ({ ...prev, cityId, districtId: "" }));
                             const cityName = getCityName(cityId);
                             setFormWilayah(prev => ({ ...prev, kabupaten: cityName, kecamatan: "", kode_pos: "" }));
                           }}
                           disabled={!selectedWilayahIds.provinceId || loadingWilayah.cities}
-                          style={{
-                            appearance: 'auto',
-                            cursor: (!selectedWilayahIds.provinceId || loadingWilayah.cities) ? 'not-allowed' : 'pointer',
-                            backgroundColor: (!selectedWilayahIds.provinceId || loadingWilayah.cities) ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Kabupaten/Kota</option>
-                          {wilayahData.cities.map((city) => (
-                            <option key={city.id} value={city.id}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.cities && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat kabupaten/kota...
-                          </small>
-                        )}
+                          loading={loadingWilayah.cities}
+                          loadingText="Memuat kabupaten/kota..."
+                          placeholder="Cari Kabupaten/Kota"
+                        />
                       </div>
 
                       <div className="compact-field" style={{ position: 'relative' }}>
                         {/* <label className="compact-label">Kecamatan <span className="required">*</span></label> */}
-                        <select
-                          className="compact-input"
+                        <SearchableRegionSelect
+                          options={wilayahData.districts}
                           value={selectedWilayahIds.districtId}
-                          onChange={(e) => {
-                            const districtId = e.target.value;
+                          getOptionId={(d) => d.district_id || d.id}
+                          onChange={(districtId) => {
                             setSelectedWilayahIds(prev => ({ ...prev, districtId }));
                             const districtName = getDistrictName(districtId);
                             setFormWilayah(prev => ({ ...prev, kecamatan: districtName }));
                           }}
                           disabled={!selectedWilayahIds.cityId || loadingWilayah.districts}
-                          style={{
-                            appearance: 'auto',
-                            cursor: (!selectedWilayahIds.cityId || loadingWilayah.districts) ? 'not-allowed' : 'pointer',
-                            backgroundColor: (!selectedWilayahIds.cityId || loadingWilayah.districts) ? '#f9fafb' : 'white'
-                          }}
-                        >
-                          <option value="">Pilih Kecamatan</option>
-                          {wilayahData.districts.map((district) => (
-                            <option key={district.district_id || district.id} value={district.district_id || district.id}>
-                              {district.name}
-                            </option>
-                          ))}
-                        </select>
-                        {loadingWilayah.districts && (
-                          <small style={{ color: "#6b7280", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                            Memuat kecamatan...
-                          </small>
-                        )}
+                          loading={loadingWilayah.districts}
+                          loadingText="Memuat kecamatan..."
+                          placeholder="Cari Kecamatan"
+                        />
                       </div>
 
                       <div className="compact-field">

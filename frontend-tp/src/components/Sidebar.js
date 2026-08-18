@@ -348,6 +348,7 @@ export default function Sidebar({
               icon: <ShoppingBag size={18} />,
               submenu: [
                 { label: "Kategori Produk", href: `${basePath}/kategori` },
+                { label: "Unit Bisnis", href: `${basePath}/unit-bisnis` },
                 { label: "Produk", href: `${basePath}/products` },
                 { label: "Bonus Produk", href: `${basePath}/bonus` },
                 { label: "Ecourse", href: `${basePath}/ecourse` },

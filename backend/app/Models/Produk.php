@@ -17,6 +17,7 @@ class Produk extends Model
 
     protected $fillable = [
         'kategori',
+        'unit_bisnis',
         'kota',
         'tempat',
         'alamat',
@@ -101,6 +102,11 @@ class Produk extends Model
     public function kategori_rel()
     {
         return $this->belongsTo(KategoriProduk::class, 'kategori', 'id');
+    }
+
+    public function unit_bisnis_rel()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'unit_bisnis', 'id');
     }
 
     public function user_rel()

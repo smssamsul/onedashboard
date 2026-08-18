@@ -287,6 +287,11 @@ export default function AdminProductsPage() {
                     <tr key={p.id}>
                       <td className="sticky-left-1" style={{ width: '250px', minWidth: '250px' }}>
                         <div className="product-table__info">
+                          {p.unit_bisnis_rel?.nama && (
+                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.15rem' }}>
+                              {p.unit_bisnis_rel.nama}
+                            </span>
+                          )}
                           <span
                             className="product-table__name"
                             style={{ display: 'block', fontWeight: 600, color: '#0ea5e9', cursor: 'pointer', marginBottom: '0.25rem' }}

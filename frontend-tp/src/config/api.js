@@ -64,6 +64,8 @@ export const API_ENDPOINTS = {
     products: '/sales/produk',
     categories: '/sales/kategori-produk',
     categoryById: (id) => `/sales/kategori-produk/${id}`,
+    unitBisnis: '/sales/unit-bisnis',
+    unitBisnisById: (id) => `/sales/unit-bisnis/${id}`,
     orders: '/sales/order',
     dashboard: '/sales/dashboard',
     aiSetting: '/sales/ai-setting',
