@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
-import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode, Timer, Gauge } from "lucide-react";
+import { LogIn, LogOut, CheckCircle, XCircle, Settings, MonitorPlay, Smartphone, Wifi, WifiOff, QrCode, Timer, Gauge, Power } from "lucide-react";
 import { toast } from "react-hot-toast";
 import dynamic from "next/dynamic";
 
@@ -18,6 +18,10 @@ export default function SalesSettingPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [woowaUtama, setWoowaUtama] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Saklar global auto follow-up
+  const [autoFollowupEnabled, setAutoFollowupEnabled] = useState(true);
+  const [autoFollowupSaveLoading, setAutoFollowupSaveLoading] = useState(false);
 
   // Jeda antar pesan follow-up (detik)
   const [delayMin, setDelayMin] = useState("5");
@@ -113,6 +117,7 @@ export default function SalesSettingPage() {
         if (result.success && result.data) {
           setWoowaUtama(result.data.woowa_utama || "");
           setWaEngine(result.data.wa_engine || "woowa");
+          setAutoFollowupEnabled(result.data.auto_followup_enabled !== false);
           // Backend selalu mengirim angka efektif (DB atau fallback .env),
           // jadi tidak perlu menebak default di sini.
           setDelayMin(String(result.data.followup_delay_min ?? 5));
@@ -213,6 +218,37 @@ export default function SalesSettingPage() {
       toast.error("Terjadi kesalahan saat menyimpan engine");
     } finally {
       setEngineSaveLoading(false);
+    }
+  };
+
+  const handleToggleAutoFollowup = async () => {
+    const nextValue = !autoFollowupEnabled;
+
+    try {
+      setAutoFollowupSaveLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(getApiUrl("sales/setting"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ auto_followup_enabled: nextValue }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAutoFollowupEnabled(nextValue);
+        toast.success(nextValue ? "Auto follow-up diaktifkan" : "Auto follow-up dimatikan — semua follow-up otomatis berhenti");
+      } else {
+        toast.error(result.message || "Gagal mengubah status auto follow-up");
+      }
+    } catch (error) {
+      console.error("Error toggling auto followup:", error);
+      toast.error("Terjadi kesalahan saat mengubah status auto follow-up");
+    } finally {
+      setAutoFollowupSaveLoading(false);
     }
   };
 
@@ -625,6 +661,70 @@ export default function SalesSettingPage() {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Card NEW: Saklar Global Auto Follow-up */}
+        <div className="setting-card" style={{ marginTop: "2rem", border: autoFollowupEnabled ? "1px solid #e5e7eb" : "1px solid #fecaca" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ background: autoFollowupEnabled ? "#059669" : "#dc2626", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
+                <Power size={20} color="white" />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Auto Follow-up</h3>
+                <p className="description" style={{ marginTop: "0.25rem" }}>
+                  Saklar utama untuk semua follow-up WhatsApp otomatis (order, invitation, upselling).
+                  Kalau dimatikan, tidak ada pesan follow-up otomatis yang terkirim sama sekali sampai dinyalakan lagi.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleAutoFollowup}
+              disabled={autoFollowupSaveLoading}
+              role="switch"
+              aria-checked={autoFollowupEnabled}
+              style={{
+                position: "relative",
+                width: "56px",
+                height: "30px",
+                borderRadius: "9999px",
+                border: "none",
+                cursor: autoFollowupSaveLoading ? "not-allowed" : "pointer",
+                background: autoFollowupEnabled ? "#059669" : "#d1d5db",
+                transition: "background 0.2s",
+                flexShrink: 0,
+                opacity: autoFollowupSaveLoading ? 0.7 : 1,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: "3px",
+                  left: autoFollowupEnabled ? "29px" : "3px",
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "50%",
+                  background: "white",
+                  transition: "left 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                }}
+              />
+            </button>
+          </div>
+
+          <div style={{ marginTop: "1rem" }}>
+            <span
+              className="badge"
+              style={{
+                background: autoFollowupEnabled ? "#d1fae5" : "#fee2e2",
+                color: autoFollowupEnabled ? "#065f46" : "#991b1b",
+              }}
+            >
+              {autoFollowupEnabled ? <><CheckCircle size={16} /> Aktif</> : <><XCircle size={16} /> Mati</>}
+            </span>
+          </div>
         </div>
 
         {/* Card 4: Jeda Pengiriman Follow-up */}

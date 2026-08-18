@@ -36,6 +36,7 @@ class SalesSettingController extends Controller
                 'followup_delay_max' => $delayMax,
                 'baileys_quota_max_messages' => $quotaMax,
                 'baileys_quota_window_minutes' => $quotaWindow,
+                'auto_followup_enabled' => SalesSetting::getAutoFollowupEnabled(),
             ]),
         ]);
     }
@@ -54,6 +55,7 @@ class SalesSettingController extends Controller
             'followup_delay_max' => 'nullable|integer|min:0|max:3600|gte:followup_delay_min',
             'baileys_quota_max_messages' => 'nullable|integer|min:1|max:1000',
             'baileys_quota_window_minutes' => 'nullable|integer|min:1|max:1440',
+            'auto_followup_enabled' => 'nullable|boolean',
         ], [
             'followup_delay_max.gte' => 'Jeda maksimum tidak boleh lebih kecil dari jeda minimum.',
         ]);
@@ -82,6 +84,10 @@ class SalesSettingController extends Controller
 
         if ($request->has('baileys_quota_window_minutes')) {
             $setting->baileys_quota_window_minutes = $request->baileys_quota_window_minutes;
+        }
+
+        if ($request->has('auto_followup_enabled')) {
+            $setting->auto_followup_enabled = $request->boolean('auto_followup_enabled');
         }
 
         $setting->save();

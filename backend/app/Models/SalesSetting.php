@@ -21,6 +21,7 @@ class SalesSetting extends Model
         'followup_delay_max',
         'baileys_quota_max_messages',
         'baileys_quota_window_minutes',
+        'auto_followup_enabled',
     ];
 
     /**
@@ -88,5 +89,21 @@ class SalesSetting extends Model
             : 30;
 
         return [max(1, $maxMessages), max(1, $windowMinutes)];
+    }
+
+    /**
+     * Saklar global auto follow-up. NULL (belum pernah diisi) dianggap aktif,
+     * supaya instalasi lama yang belum menyentuh setting ini tetap jalan
+     * seperti sebelumnya. Dicek di SendFollowupCron sebelum loop produk.
+     */
+    public static function getAutoFollowupEnabled(): bool
+    {
+        $setting = self::first();
+
+        if (!$setting || $setting->auto_followup_enabled === null) {
+            return true;
+        }
+
+        return (bool) $setting->auto_followup_enabled;
     }
 }
