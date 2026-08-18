@@ -292,6 +292,7 @@ class ProdukController extends Controller
             }, 'total_revenue')
             ->with([
                 'kategori_rel:id,nama',
+                'unit_bisnis_rel:id,nama',
                 'user_rel:id,nama',
                 'trainer_rel:id,nama',
                 'bundling_rel:id,produk,nama,harga,status',
@@ -364,6 +365,7 @@ class ProdukController extends Controller
 
         $request->validate([
             'kategori' => 'required|integer',
+            'unit_bisnis' => 'nullable|integer|exists:unit_bisnis,id',
             'nama' => 'required|string|max:255',
             'kode' => 'required|string|max:255|unique:produk,kode',
             'url' => 'nullable|string|max:255',
@@ -457,6 +459,7 @@ class ProdukController extends Controller
         // Create produk dulu untuk mendapatkan ID (diperlukan untuk upload image dari landingpage)
         $produk = Produk::create([
             'kategori' => $request->kategori,
+            'unit_bisnis' => $request->unit_bisnis,
             'user_input' => auth()->user()->user,
             'kode' => $request->kode,
             'nama' => $request->nama,
@@ -578,12 +581,13 @@ class ProdukController extends Controller
     {
         $query = Produk::with([
             'kategori_rel:id,nama',
+            'unit_bisnis_rel:id,nama',
             'user_rel:id,nama',
             'trainer_rel:id,nama',
             'bundling_rel:id,produk,nama,harga,status',
             'jadwal_rel:id,produk_id,nama_jadwal,waktu_mulai,waktu_selesai,kuota,status'
         ])
-        ->where('status', '!=', 'N') 
+        ->where('status', '!=', 'N')
         ->where('id', $id)
         ->orderBy('create_at', 'desc');
 
@@ -641,6 +645,7 @@ class ProdukController extends Controller
         // Validasi data
         $request->validate([
             'kategori' => 'nullable|integer',
+            'unit_bisnis' => 'nullable|integer|exists:unit_bisnis,id',
             'nama' => 'nullable|string|max:255',
             'kode' => 'nullable|string|max:255|unique:produk,kode,' . $id,
             'url' => 'nullable|string|max:255',
@@ -752,6 +757,7 @@ class ProdukController extends Controller
         // Update semua kolom
         $produk->update([
             'kategori' => $request->kategori ?? $produk->kategori,
+            'unit_bisnis' => $request->has('unit_bisnis') ? $request->unit_bisnis : $produk->unit_bisnis,
             'nama' => $request->nama ?? $produk->nama,
             'kode' => $request->kode ?? $produk->kode,
             'url' => $request->url ?? $produk->url,
@@ -1016,10 +1022,10 @@ class ProdukController extends Controller
         ]);
     }
 
-    public function publicSeminarSchedules(Request $request)
+    public function publicSeminarSchedules(Request $request, ?string $unitBisnisSlug = null)
     {
         // Kategori 3 = Seminar
-        $produk = Produk::with(['jadwal_rel' => function ($query) {
+        $query = Produk::with(['jadwal_rel' => function ($query) {
             $query->where('waktu_mulai', '>=', now())
                   ->where('status', '!=', 'N')
                   ->orderBy('waktu_mulai', 'asc');
@@ -1030,15 +1036,26 @@ class ProdukController extends Controller
         ->whereHas('jadwal_rel', function ($query) {
             $query->where('waktu_mulai', '>=', now())
                   ->where('status', '!=', 'N');
-        })
-        ->orderByRaw('(
-            SELECT MIN(waktu_mulai)
-            FROM produk_jadwal
-            WHERE produk_jadwal.produk_id = produk.id
-              AND produk_jadwal.waktu_mulai >= NOW()
-              AND produk_jadwal.status != \'N\'
-        ) ASC NULLS LAST')
-        ->get();
+        });
+
+        // Filter per unit bisnis kalau slug-nya ada di URL
+        // (/product/jadwal-seminar/{slug}) - tanpa slug, tampilkan semua
+        // seminar seperti sebelumnya.
+        if ($unitBisnisSlug) {
+            $query->whereHas('unit_bisnis_rel', function ($q) use ($unitBisnisSlug) {
+                $q->where('slug', $unitBisnisSlug)->where('status', '!=', 'N');
+            });
+        }
+
+        $produk = $query
+            ->orderByRaw('(
+                SELECT MIN(waktu_mulai)
+                FROM produk_jadwal
+                WHERE produk_jadwal.produk_id = produk.id
+                  AND produk_jadwal.waktu_mulai >= NOW()
+                  AND produk_jadwal.status != \'N\'
+            ) ASC NULLS LAST')
+            ->get();
 
         return response()->json([
             'success' => true,
