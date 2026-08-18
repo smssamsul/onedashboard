@@ -11,16 +11,10 @@ class LeadLpwa extends Model
     protected $fillable = [
         'nama',
         'no_wa',
-        'produk_id',
         'produk_text',
         'lokasi',
         'sales_id',
     ];
-
-    public function produk()
-    {
-        return $this->belongsTo(Produk::class, 'produk_id');
-    }
 
     public function sales()
     {
