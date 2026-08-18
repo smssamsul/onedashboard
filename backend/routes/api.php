@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Sales\{
     SalesDashboardController,
     CustomerController,
     KategoriProdukController,
+    UnitBisnisController,
     TemplateFollupController,
     ProdukController,
     LogsFollupController,
@@ -96,7 +97,7 @@ Route::post('/pixel-log', [\App\Http\Controllers\Api\Sales\PixelLogController::c
 
 // Landing Page
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
-Route::get('/seminar/schedules', [ProdukController::class, 'publicSeminarSchedules']);
+Route::get('/seminar/schedules/{unitBisnisSlug?}', [ProdukController::class, 'publicSeminarSchedules']);
 
 // Invitation (Public — form via link referral)
 Route::middleware(['throttle:invitation'])->post('/invitation', [InvitationController::class, 'publicStore']);
@@ -273,6 +274,12 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/kategori-produk', [KategoriProdukController::class, 'store']);
         Route::put('/kategori-produk/{id}', [KategoriProdukController::class, 'update']);
         Route::delete('/kategori-produk/{id}', [KategoriProdukController::class, 'destroy']);
+
+        Route::get('/unit-bisnis', [UnitBisnisController::class, 'index']);
+        Route::get('/unit-bisnis/{id}', [UnitBisnisController::class, 'show']);
+        Route::post('/unit-bisnis', [UnitBisnisController::class, 'store']);
+        Route::put('/unit-bisnis/{id}', [UnitBisnisController::class, 'update']);
+        Route::delete('/unit-bisnis/{id}', [UnitBisnisController::class, 'destroy']);
 
         // Ecourse
         Route::get('/ecourse/upload-url', [\App\Http\Controllers\EcourseController::class, 'getUploadUrl']);
