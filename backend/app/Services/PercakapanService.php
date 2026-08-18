@@ -84,4 +84,51 @@ class PercakapanService
             return $detail;
         });
     }
+
+    /**
+     * Catat pesan KELUAR (yang kita kirim ke customer) ke thread percakapan
+     * yang sama - baik dikirim lewat aplikasi maupun diketik manual langsung
+     * di WhatsApp (event fromMe dari Baileys). Beda dari logCustomerMessage:
+     * tidak ada klasifikasi sentiment atau auto-bump status lead, karena itu
+     * cuma relevan untuk sinyal dari customer, bukan dari kita sendiri.
+     */
+    public function logOutgoingMessage(
+        string $phoneNumber,
+        ?int $salesId,
+        string $messageText,
+        string $source = 'whatsapp'
+    ): ?DetailPercakapan {
+        $phoneNumber = trim($phoneNumber);
+        $messageText = trim($messageText);
+
+        if ($phoneNumber === '' || $messageText === '') {
+            return null;
+        }
+
+        return DB::transaction(function () use ($phoneNumber, $salesId, $messageText, $source) {
+            $percakapan = Percakapan::where('phone_number', $phoneNumber)->first();
+
+            if (!$percakapan) {
+                $percakapan = Percakapan::create([
+                    'phone_number' => $phoneNumber,
+                    'assigned_sales_id' => $salesId,
+                    'status' => 'new',
+                    'source' => $source,
+                    'lead_score' => 0,
+                ]);
+            }
+
+            $detail = DetailPercakapan::create([
+                'id_percakapan' => $percakapan->id,
+                'sender_type' => 'sales',
+                'message_text' => $messageText,
+                'message_type' => 'text',
+                'created_at' => now(),
+            ]);
+
+            $percakapan->update(['last_message_at' => now()]);
+
+            return $detail;
+        });
+    }
 }
