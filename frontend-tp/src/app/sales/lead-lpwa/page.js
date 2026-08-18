@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { Plus, Edit2, Trash2, ShoppingCart, RefreshCw, X, Check, Loader2, ShoppingBag, User, Package } from "lucide-react";
+import { Plus, Edit2, Trash2, ShoppingCart, RefreshCw, X, Check, Loader2, ShoppingBag, User, Package, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import "@/styles/sales/dashboard-premium.css";
 import "@/styles/sales/admin.css";
@@ -46,6 +46,18 @@ function priceForProduct(prod, bundleId) {
   const b = getBundles(prod).find((x) => String(x.id) === String(bundleId));
   if (!b) return base;
   return Number(b.harga) || base;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  return date.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function LeadLpwaPage() {
@@ -223,18 +235,28 @@ export default function LeadLpwaPage() {
   };
 
   // ORDER FLOW
+  // Tidak lagi otomatis meng-cocokkan produk dari lead - sales yang memilih
+  // produk secara manual lewat pencarian, karena "Produk Diminati" sekarang
+  // cuma teks bebas hasil parsing pesan (bisa jadi tidak persis nama produk asli).
+  const [productSearch, setProductSearch] = useState("");
+
   const openOrderConfirm = (lead) => {
     setSelectedLead(lead);
-
-    // Find product details
-    const prod = products.find(p => p.id === lead.produk_id) || lead.produk;
-    const harga = prod ? productBasePrice(prod) : 0;
-
+    setProductSearch("");
     setConfirmState({
-      product: prod,
-      harga: harga,
+      product: null,
+      harga: 0,
       bundleId: ""
     });
+  };
+
+  const selectOrderProduct = (prod) => {
+    setConfirmState((prev) => ({
+      ...prev,
+      product: prod,
+      harga: productBasePrice(prod),
+      bundleId: ""
+    }));
   };
 
   const handleBundleChange = (e) => {
@@ -249,13 +271,13 @@ export default function LeadLpwaPage() {
   };
 
   const handleOrderConfirm = async () => {
-    if (!selectedLead || !confirmState) return;
+    if (!selectedLead || !confirmState || !confirmState.product) return;
     setConfirmSubmitting(true);
 
     try {
       const n = String(selectedLead.nama || "").trim();
       const w = String(selectedLead.no_wa || "").trim();
-      const prodId = selectedLead.produk_id;
+      const prodId = confirmState.product.id;
       const harga = confirmState.harga;
       const digits = cleanWaDigits(w);
       const email = `order_${digits || Date.now()}@quickorder.local`;
@@ -344,7 +366,9 @@ export default function LeadLpwaPage() {
                 <tr className="bg-gray-50/80 border-b border-gray-100">
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">No WA</th>
+                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Waktu Chat Pertama</th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Produk Diminati</th>
+                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Lokasi</th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sales</th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
                 </tr>
@@ -352,14 +376,14 @@ export default function LeadLpwaPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading && leads.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="py-12 text-center text-gray-500">
+                    <td colSpan="7" className="py-12 text-center text-gray-500">
                       <Loader2 className="animate-spin mx-auto mb-2 text-indigo-500" size={24} />
                       Memuat data...
                     </td>
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="py-12 text-center text-gray-500">
+                    <td colSpan="7" className="py-12 text-center text-gray-500">
                       Belum ada data Leads
                     </td>
                   </tr>
@@ -368,9 +392,11 @@ export default function LeadLpwaPage() {
                     <tr key={lead.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 text-sm font-medium text-gray-900">{lead.nama || "-"}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">{lead.no_wa || "-"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600">{formatDate(lead.created_at)}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">
-                        {lead.produk ? lead.produk.nama : "-"}
+                        {lead.produk_text || (lead.produk ? lead.produk.nama : "-")}
                       </td>
+                      <td className="py-4 px-6 text-sm text-gray-600">{lead.lokasi || "-"}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">
                         {lead.sales ? lead.sales.nama : "-"}
                       </td>
@@ -556,55 +582,124 @@ export default function LeadLpwaPage() {
                 </div>
               </div>
 
+              {/* Minat dari Chat Box - referensi, bukan produk final */}
+              {(selectedLead?.produk_text || selectedLead?.lokasi) && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-amber-100">
+                    <span className="text-xs font-bold text-amber-700 tracking-wider uppercase">Minat dari Chat (belum tentu nama produk persis)</span>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {selectedLead?.produk_text && (
+                      <div>
+                        <label className="text-[11px] font-medium text-amber-700 uppercase tracking-wide">Produk disebut</label>
+                        <p className="text-sm text-amber-900">{selectedLead.produk_text}</p>
+                      </div>
+                    )}
+                    {selectedLead?.lokasi && (
+                      <div>
+                        <label className="text-[11px] font-medium text-amber-700 uppercase tracking-wide">Lokasi disebut</label>
+                        <p className="text-sm text-amber-900">{selectedLead.lokasi}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Produk & Pembayaran Box */}
               <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                 <div className="bg-gray-50/80 px-4 py-2.5 flex items-center gap-2 border-b border-gray-100">
                   <Package size={14} className="text-gray-500" />
                   <span className="text-xs font-bold text-gray-600 tracking-wider uppercase">Produk & Pembayaran</span>
                 </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Produk</label>
-                    <p className="font-semibold text-gray-900 leading-tight mt-0.5">{confirmState.product?.nama || "-"}</p>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Kategori</label>
-                    <p className="text-sm text-gray-800 mt-0.5">{confirmState.product?.kategori_rel?.nama || "Umum"}</p>
-                  </div>
 
-                  {/* Pilihan Bundling */}
-                  {getBundles(confirmState.product).length > 0 && (
-                    <div className="pt-2">
-                      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5 block">
-                        Pilihan Bundling
-                      </label>
-                      <select
-                        value={confirmState.bundleId}
-                        onChange={handleBundleChange}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
-                      >
-                        <option value="">Harga dasar produk</option>
-                        {getBundles(confirmState.product).map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.nama} - {formatRp(b.harga)}
-                          </option>
+                {!confirmState.product ? (
+                  <div className="p-4 space-y-3">
+                    <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Cari & pilih produk</label>
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Ketik nama produk..."
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-100">
+                      {products
+                        .filter((p) => !productSearch.trim() || p.nama.toLowerCase().includes(productSearch.trim().toLowerCase()))
+                        .slice(0, 50)
+                        .map((p) => (
+                          <button
+                            type="button"
+                            key={p.id}
+                            onClick={() => selectOrderProduct(p)}
+                            className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 transition-colors flex items-center justify-between gap-3"
+                          >
+                            <span className="text-sm text-gray-800">{p.nama}</span>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">{formatRp(productBasePrice(p))}</span>
+                          </button>
                         ))}
-                      </select>
+                      {products.filter((p) => !productSearch.trim() || p.nama.toLowerCase().includes(productSearch.trim().toLowerCase())).length === 0 && (
+                        <div className="px-3 py-4 text-sm text-gray-500 text-center">Produk tidak ditemukan</div>
+                      )}
                     </div>
-                  )}
-
-                  {!getBundles(confirmState.product).length && (
-                    <div>
-                      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Paket / harga</label>
-                      <p className="text-sm text-gray-800 mt-0.5">Harga dasar produk</p>
-                    </div>
-                  )}
-
-                  <div className="border-t border-dashed border-gray-200 mt-3 pt-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-600">Total</span>
-                    <span className="text-lg font-bold text-[#f26522]">{formatRp(confirmState.harga)}</span>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Produk</label>
+                        <p className="font-semibold text-gray-900 leading-tight mt-0.5">{confirmState.product?.nama || "-"}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmState((prev) => ({ ...prev, product: null, bundleId: "", harga: 0 }))}
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
+                      >
+                        Ganti produk
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Kategori</label>
+                      <p className="text-sm text-gray-800 mt-0.5">{confirmState.product?.kategori_rel?.nama || "Umum"}</p>
+                    </div>
+
+                    {/* Pilihan Bundling */}
+                    {getBundles(confirmState.product).length > 0 && (
+                      <div className="pt-2">
+                        <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5 block">
+                          Pilihan Bundling
+                        </label>
+                        <select
+                          value={confirmState.bundleId}
+                          onChange={handleBundleChange}
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
+                        >
+                          <option value="">Harga dasar produk</option>
+                          {getBundles(confirmState.product).map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.nama} - {formatRp(b.harga)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {!getBundles(confirmState.product).length && (
+                      <div>
+                        <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Paket / harga</label>
+                        <p className="text-sm text-gray-800 mt-0.5">Harga dasar produk</p>
+                      </div>
+                    )}
+
+                    <div className="border-t border-dashed border-gray-200 mt-3 pt-3 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-600">Total</span>
+                      <span className="text-lg font-bold text-[#f26522]">{formatRp(confirmState.harga)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -618,7 +713,7 @@ export default function LeadLpwaPage() {
                 Batal
               </button>
               <button
-                disabled={confirmSubmitting}
+                disabled={confirmSubmitting || !confirmState.product}
                 onClick={handleOrderConfirm}
                 className="px-6 py-2.5 flex items-center justify-center gap-2 text-white bg-[#f26522] hover:bg-[#d9561b] rounded-xl font-medium transition-colors disabled:opacity-50 text-sm shadow-sm"
               >
