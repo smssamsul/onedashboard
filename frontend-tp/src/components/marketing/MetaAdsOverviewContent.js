@@ -425,6 +425,12 @@ export default function MetaAdsOverviewContent({
     };
   }, [campaigns]);
 
+  /**
+   * Sync jalan di background (queue) di backend - request POST ini cuma
+   * men-trigger, lalu kita polling status-nya. Meta API bisa lambat, jadi
+   * kalau ditunggu synchronous di 1 request bisa keburu timeout di proxy
+   * sebelum sempat selesai.
+   */
   const handleSync = useCallback(async () => {
     if (syncing) return;
     setSyncing(true);
@@ -437,11 +443,35 @@ export default function MetaAdsOverviewContent({
       });
       const json = await res.json();
 
-      if (res.ok && json.success) {
-        toast.success(json.message || "Sync selesai.", { id: t });
-        await load();
-      } else {
+      if (res.status === 409) {
+        toast.loading(json.message || "Sync sebelumnya masih berjalan...", { id: t });
+      } else if (!res.ok || !json.success) {
         toast.error(json.message || "Sync gagal.", { id: t });
+        setSyncing(false);
+        return;
+      }
+
+      // Polling status tiap 3 detik, maksimal ~5 menit.
+      const maxAttempts = 100;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        const statusRes = await fetch(`/api/sales/meta-ads/performance/sync/status`, {
+          headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
+        });
+        const statusJson = await statusRes.json();
+
+        if (statusJson.status === "success") {
+          toast.success(statusJson.message || "Sync selesai.", { id: t });
+          await load();
+          break;
+        } else if (statusJson.status === "failed") {
+          toast.error(statusJson.message || "Sync gagal.", { id: t });
+          break;
+        } else if (attempt === maxAttempts - 1) {
+          toast.error("Sync belum selesai setelah beberapa menit, cek lagi nanti.", { id: t });
+        }
+        // status "pending"/"running" - lanjut polling
       }
     } catch (e) {
       console.error("[META ADS] Gagal sync:", e);
