@@ -1623,9 +1623,9 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       case "jadwal": {
         // Otomatis ambil dari produk_jadwal (bukan konten manual). SATU kartu
         // untuk seluruh produk - judul, garis, dan lokasi cuma tampil sekali.
-        // Di dalamnya, jadwal dikelompokkan per tanggal: beberapa sesi di hari
-        // yang sama numpuk di bawah 1 baris tanggal, tanggal yang beda cuma
-        // nambah baris tanggal+sesi baru (bukan kartu baru).
+        // Dikelompokkan per JAM (bukan per tanggal): kalau beberapa tanggal
+        // punya jam yang sama, tanggal-tanggalnya ditumpuk lalu jamnya cukup
+        // ditulis sekali. Jam yang beda jadi grup baru di bawahnya.
         const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu"];
         const monthNames = [
           "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -1645,19 +1645,25 @@ function ProductClient({ initialProductData, initialLandingPage }) {
           );
         }
 
-        // Kelompokkan per tanggal (pakai komponen tanggal lokal, bukan
-        // toISOString, supaya tidak geser hari akibat konversi ke UTC).
-        const groupedByDate = [];
+        // Kelompokkan per jam (HH:mm) - tanggal yang beda tapi jam sama masuk
+        // ke grup jam yang sama, ditumpuk di bawah grup itu.
+        const groupedByTime = [];
         jadwalList.forEach((j) => {
           const d = new Date(j.waktu_mulai);
+          const timeMinutes = d.getHours() * 60 + d.getMinutes();
+          const timeStr = `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`;
           const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-          let group = groupedByDate.find((g) => g.dateKey === dateKey);
+
+          let group = groupedByTime.find((g) => g.timeMinutes === timeMinutes);
           if (!group) {
-            group = { dateKey, date: d, sessions: [] };
-            groupedByDate.push(group);
+            group = { timeMinutes, timeStr, namaJadwal: j.nama_jadwal, dates: [] };
+            groupedByTime.push(group);
           }
-          group.sessions.push(j);
+          if (!group.dates.find((dd) => dd.dateKey === dateKey)) {
+            group.dates.push({ dateKey, date: d });
+          }
         });
+        groupedByTime.sort((a, b) => a.timeMinutes - b.timeMinutes);
 
         return (
           <div key={block.id} className="preview-jadwal-wrapper" style={containerStyle}>
@@ -1674,29 +1680,25 @@ function ProductClient({ initialProductData, initialLandingPage }) {
               </h3>
               <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {groupedByDate.map((group) => {
-                  const d = group.date;
-                  const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-
-                  return (
-                    <div key={group.dateKey} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                        <CalendarIcon size={20} strokeWidth={2} />
-                        <span>{dateStr}</span>
-                      </div>
-                      {group.sessions.map((j) => {
-                        const sd = new Date(j.waktu_mulai);
-                        const timeStr = `${String(sd.getHours()).padStart(2, "0")}.${String(sd.getMinutes()).padStart(2, "0")}`;
+                {groupedByTime.map((group) => (
+                  <div key={group.timeMinutes} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {group.dates.map((dd) => {
+                        const dateStr = `${dayNames[dd.date.getDay()]} ${dd.date.getDate()} ${monthNames[dd.date.getMonth()]} ${dd.date.getFullYear()}`;
                         return (
-                          <div key={j.id} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                            <Clock size={20} strokeWidth={2} />
-                            <span>{j.nama_jadwal} : {timeStr} WIB</span>
+                          <div key={dd.dateKey} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                            <CalendarIcon size={20} strokeWidth={2} />
+                            <span>{dateStr}</span>
                           </div>
                         );
                       })}
                     </div>
-                  );
-                })}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                      <Clock size={20} strokeWidth={2} />
+                      <span>{group.namaJadwal} : {group.timeStr} WIB</span>
+                    </div>
+                  </div>
+                ))}
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
                   <MapPin size={20} strokeWidth={2} />
                   <span>{productData?.tempat || "-"}</span>
