@@ -14,9 +14,8 @@ const monthNames = [
  * supaya sales bisa lihat hasilnya sebelum Simpan/Publish.
  *
  * SATU kartu untuk seluruh produk - judul, garis, dan lokasi cuma tampil
- * sekali. Jadwal dikelompokkan per tanggal di dalamnya: sesi di hari yang
- * sama numpuk di bawah 1 baris tanggal, tanggal beda cuma nambah baris
- * tanggal+sesi baru (bukan kartu baru).
+ * sekali. Dikelompokkan per JAM: tanggal yang beda tapi jamnya sama
+ * ditumpuk di bawah 1 grup jam, jamnya sendiri cukup ditulis sekali.
  */
 export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" }) {
   const sorted = (jadwalList || [])
@@ -32,17 +31,25 @@ export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" 
     );
   }
 
-  const groupedByDate = [];
+  const groupedByTime = [];
   sorted.forEach((j) => {
     const d = j.waktu_mulai ? new Date(j.waktu_mulai) : null;
+    const timeMinutes = d ? d.getHours() * 60 + d.getMinutes() : -1;
+    const timeStr = d
+      ? `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`
+      : "-";
     const dateKey = d ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` : "no-date";
-    let group = groupedByDate.find((g) => g.dateKey === dateKey);
+
+    let group = groupedByTime.find((g) => g.timeMinutes === timeMinutes);
     if (!group) {
-      group = { dateKey, date: d, sessions: [] };
-      groupedByDate.push(group);
+      group = { timeMinutes, timeStr, namaJadwal: j.nama_jadwal || "Sesi", dates: [] };
+      groupedByTime.push(group);
     }
-    group.sessions.push(j);
+    if (!group.dates.find((dd) => dd.dateKey === dateKey)) {
+      group.dates.push({ dateKey, date: d });
+    }
   });
+  groupedByTime.sort((a, b) => a.timeMinutes - b.timeMinutes);
 
   return (
     <div
@@ -57,33 +64,27 @@ export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" 
       </h3>
       <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {groupedByDate.map((group) => {
-          const d = group.date;
-          const dateStr = d
-            ? `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`
-            : "-";
-
-          return (
-            <div key={group.dateKey} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                <CalendarIcon size={20} strokeWidth={2} />
-                <span>{dateStr}</span>
-              </div>
-              {group.sessions.map((j, i) => {
-                const sd = j.waktu_mulai ? new Date(j.waktu_mulai) : null;
-                const timeStr = sd
-                  ? `${String(sd.getHours()).padStart(2, "0")}.${String(sd.getMinutes()).padStart(2, "0")}`
+        {groupedByTime.map((group) => (
+          <div key={group.timeMinutes} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {group.dates.map((dd) => {
+                const dateStr = dd.date
+                  ? `${dayNames[dd.date.getDay()]} ${dd.date.getDate()} ${monthNames[dd.date.getMonth()]} ${dd.date.getFullYear()}`
                   : "-";
                 return (
-                  <div key={j.id ?? i} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                    <Clock size={20} strokeWidth={2} />
-                    <span>{j.nama_jadwal || "Sesi"} : {timeStr} WIB</span>
+                  <div key={dd.dateKey} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                    <CalendarIcon size={20} strokeWidth={2} />
+                    <span>{dateStr}</span>
                   </div>
                 );
               })}
             </div>
-          );
-        })}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+              <Clock size={20} strokeWidth={2} />
+              <span>{group.namaJadwal} : {group.timeStr} WIB</span>
+            </div>
+          </div>
+        ))}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
           <MapPin size={20} strokeWidth={2} />
           <span>{tempat || "-"}</span>
