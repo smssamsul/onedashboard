@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 const PRODUCT_MENU_ITEMS = [
-  { label: 'Seminar', href: 'https://ternakproperti.com/p/jadwal-seminar' },
+  { label: 'Seminar', href: 'https://ternakproperti.com/p/jadwal-seminar/ternak-properti' },
   { label: 'Workshop', href: 'https://ternakproperti.com/workshop/' },
   { label: 'Books & E-Course', href: 'https://ternakproperti.com/books/' },
 ];
