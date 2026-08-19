@@ -13,8 +13,10 @@ const monthNames = [
  * (ProductClient.js case "jadwal"), tapi dari data draft (belum tersimpan)
  * supaya sales bisa lihat hasilnya sebelum Simpan/Publish.
  *
- * Satu kartu per TANGGAL - beberapa sesi di hari yang sama masuk 1 kartu
- * (baris "Sesi" bertambah), beda hari jadi kartu terpisah.
+ * SATU kartu untuk seluruh produk - judul, garis, dan lokasi cuma tampil
+ * sekali. Jadwal dikelompokkan per tanggal di dalamnya: sesi di hari yang
+ * sama numpuk di bawah 1 baris tanggal, tanggal beda cuma nambah baris
+ * tanggal+sesi baru (bukan kartu baru).
  */
 export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" }) {
   const sorted = (jadwalList || [])
@@ -43,27 +45,26 @@ export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" 
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {groupedByDate.map((group) => {
-        const d = group.date;
-        const dateStr = d
-          ? `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`
-          : "-";
+    <div
+      style={{
+        background: "#f8f9fb",
+        borderRadius: "12px",
+        padding: "24px 28px",
+      }}
+    >
+      <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+        {nama || "Nama Produk"}
+      </h3>
+      <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {groupedByDate.map((group) => {
+          const d = group.date;
+          const dateStr = d
+            ? `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`
+            : "-";
 
-        return (
-          <div
-            key={group.dateKey}
-            style={{
-              background: "#f8f9fb",
-              borderRadius: "12px",
-              padding: "24px 28px",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-              {nama || "Nama Produk"}
-            </h3>
-            <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          return (
+            <div key={group.dateKey} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
                 <CalendarIcon size={20} strokeWidth={2} />
                 <span>{dateStr}</span>
@@ -80,14 +81,14 @@ export default function JadwalPreview({ jadwalList = [], tempat = "", nama = "" 
                   </div>
                 );
               })}
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                <MapPin size={20} strokeWidth={2} />
-                <span>{tempat || "-"}</span>
-              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+          <MapPin size={20} strokeWidth={2} />
+          <span>{tempat || "-"}</span>
+        </div>
+      </div>
     </div>
   );
 }

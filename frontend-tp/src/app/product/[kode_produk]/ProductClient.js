@@ -1621,11 +1621,11 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       }
 
       case "jadwal": {
-        // Otomatis ambil dari produk_jadwal (bukan konten manual). Satu kartu
-        // per TANGGAL - kalau ada beberapa sesi di hari yang sama, semuanya
-        // masuk 1 kartu (baris "Sesi" bertambah), kalau beda hari baru jadi
-        // kartu terpisah. Judul & lokasi ikut data produk (nama, tempat),
-        // karena keduanya level produk, bukan per-sesi.
+        // Otomatis ambil dari produk_jadwal (bukan konten manual). SATU kartu
+        // untuk seluruh produk - judul, garis, dan lokasi cuma tampil sekali.
+        // Di dalamnya, jadwal dikelompokkan per tanggal: beberapa sesi di hari
+        // yang sama numpuk di bawah 1 baris tanggal, tanggal yang beda cuma
+        // nambah baris tanggal+sesi baru (bukan kartu baru).
         const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu"];
         const monthNames = [
           "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -1660,48 +1660,49 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         });
 
         return (
-          <div key={block.id} className="preview-jadwal-wrapper" style={{ ...containerStyle, display: "flex", flexDirection: "column", gap: "16px" }}>
-            {groupedByDate.map((group) => {
-              const d = group.date;
-              const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+          <div key={block.id} className="preview-jadwal-wrapper" style={containerStyle}>
+            <div
+              className="preview-jadwal-card"
+              style={{
+                background: "#f8f9fb",
+                borderRadius: "12px",
+                padding: "24px 28px",
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#111827" }}>
+                {productData?.nama}
+              </h3>
+              <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {groupedByDate.map((group) => {
+                  const d = group.date;
+                  const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
 
-              return (
-                <div
-                  key={group.dateKey}
-                  className="preview-jadwal-card"
-                  style={{
-                    background: "#f8f9fb",
-                    borderRadius: "12px",
-                    padding: "24px 28px",
-                  }}
-                >
-                  <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#111827" }}>
-                    {productData?.nama}
-                  </h3>
-                  <div style={{ height: "3px", background: "#f5a623", width: "100%", margin: "12px 0 20px" }} />
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                      <CalendarIcon size={20} strokeWidth={2} />
-                      <span>{dateStr}</span>
+                  return (
+                    <div key={group.dateKey} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                        <CalendarIcon size={20} strokeWidth={2} />
+                        <span>{dateStr}</span>
+                      </div>
+                      {group.sessions.map((j) => {
+                        const sd = new Date(j.waktu_mulai);
+                        const timeStr = `${String(sd.getHours()).padStart(2, "0")}.${String(sd.getMinutes()).padStart(2, "0")}`;
+                        return (
+                          <div key={j.id} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                            <Clock size={20} strokeWidth={2} />
+                            <span>{j.nama_jadwal} : {timeStr} WIB</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {group.sessions.map((j) => {
-                      const sd = new Date(j.waktu_mulai);
-                      const timeStr = `${String(sd.getHours()).padStart(2, "0")}.${String(sd.getMinutes()).padStart(2, "0")}`;
-                      return (
-                        <div key={j.id} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                          <Clock size={20} strokeWidth={2} />
-                          <span>{j.nama_jadwal} : {timeStr} WIB</span>
-                        </div>
-                      );
-                    })}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
-                      <MapPin size={20} strokeWidth={2} />
-                      <span>{productData?.tempat || "-"}</span>
-                    </div>
-                  </div>
+                  );
+                })}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#374151" }}>
+                  <MapPin size={20} strokeWidth={2} />
+                  <span>{productData?.tempat || "-"}</span>
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
         );
       }
