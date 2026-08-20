@@ -1,17 +1,17 @@
-:root, body 
+:root, body
 {
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  font-family: var(--font-base);
 }
 
 :root {
-  --sidebar-width: 16rem;
+  --sidebar-width: 16.25rem;
   --sidebar-compact-width: 4.5rem;
-  --sidebar-bg: #f4f4f5;
-  --sidebar-border: #f4f4f5;
-  --sidebar-accent: #fb8500;
-  --sidebar-accent-soft: #fff4ea;
-  --sidebar-text: #212529;
-  --sidebar-muted: #6c757d;
+  --sidebar-bg: var(--color-bg-paper);
+  --sidebar-border: var(--color-divider);
+  --sidebar-accent: var(--color-primary-main);
+  --sidebar-accent-soft: var(--color-primary-lighter);
+  --sidebar-text: var(--color-text-primary);
+  --sidebar-muted: var(--color-text-secondary);
   --sidebar-shadow: none;
 }
 
@@ -134,11 +134,11 @@
 }
 
 .sidebar-section-header {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.6875rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #8892b0;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
   padding: 0.5rem 0.75rem 0.25rem;
   margin-top: 0.15rem;
   user-select: none;
@@ -158,13 +158,13 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 400;
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--sidebar-text);
-  transition: background 200ms ease, color 200ms ease;
+  transition: background 160ms ease, color 160ms ease;
   border: none;
   width: 100%;
   text-align: left;
@@ -175,16 +175,16 @@
   flex: 1;
 }
 
-/* Wrapper untuk icon dengan kotak berwarna */
+/* Wrapper icon - tanpa kotak/background sendiri, ikut warna baris (gaya Mantis) */
 .sidebar-item-icon-wrapper {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-  transition: all 200ms ease;
+  border-radius: var(--radius-sm);
+  transition: color 160ms ease;
 }
 
 .sidebar-item-icon-wrapper svg {
@@ -193,30 +193,11 @@
   flex-shrink: 0;
 }
 
-/* Icon untuk item tidak aktif - background putih, icon hitam */
-.sidebar-item:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
-  background: #ffffff;
-}
-
 .sidebar-item:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: #212529;
-}
-
-/* Icon untuk item aktif - background orange, icon putih */
-.sidebar-item-active .sidebar-item-icon-wrapper {
-  background: var(--sidebar-accent);
+  color: var(--sidebar-muted);
 }
 
 .sidebar-item-active .sidebar-item-icon-wrapper svg {
-  color: #ffffff;
-}
-
-/* Hover state untuk item tidak aktif */
-.sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper {
-  background: rgba(251, 133, 0, 0.1);
-}
-
-.sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
   color: var(--sidebar-accent);
 }
 
@@ -231,20 +212,24 @@
 
 /* Hover state untuk item tidak aktif */
 .sidebar-item:not(.sidebar-item-active):hover {
-  background: rgba(251, 133, 0, 0.06);
+  background: var(--color-grey-100);
   color: var(--sidebar-text);
 }
 
-/* Active state - background putih */
+.sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
+  color: var(--sidebar-accent);
+}
+
+/* Active state - tint tipis warna aksen, gaya Mantis (bukan kotak putih+shadow) */
 .sidebar-item-active {
-  background: #ffffff;
-  color: var(--sidebar-text);
+  background: var(--sidebar-accent-soft);
+  color: var(--sidebar-accent);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .sidebar-item-active span:not(.sidebar-item-icon-wrapper) {
-  color: var(--sidebar-text);
+  color: var(--sidebar-accent);
 }
 
 .sidebar-footer {
@@ -363,27 +348,19 @@
 }
 
 /* Pastikan icon wrapper untuk item dengan submenu memiliki warna yang sama dengan item biasa */
-.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
-  background: #ffffff;
-}
-
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: #212529;
+  color: var(--sidebar-muted);
 }
 
-.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active .sidebar-item-icon-wrapper {
-  background: var(--sidebar-accent);
+.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active {
+  background: var(--sidebar-accent-soft);
 }
 
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active .sidebar-item-icon-wrapper svg {
-  color: #ffffff;
+  color: var(--sidebar-accent);
 }
 
 /* Hover state untuk item dengan submenu saat collapsed */
-.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper {
-  background: rgba(251, 133, 0, 0.1);
-}
-
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
   color: var(--sidebar-accent);
 }
@@ -455,7 +432,7 @@
   gap: 0.125rem;
   margin-left: 0.75rem;
   padding-left: 0.5rem;
-  border-left: 1px solid #e5e7eb;
+  border-left: 1px solid var(--color-divider);
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -484,19 +461,19 @@
   gap: 0.5rem;
   padding: 0.375rem 0.625rem;
   font-size: 0.82rem;
-  color: #4b5563;
-  border-radius: 0.5rem;
+  color: var(--sidebar-muted);
+  border-radius: var(--radius-sm);
   transition: color 160ms ease, background 160ms ease;
 }
 
 /* Subtle hover only (professional) */
 .submenu-item:hover {
-  background: rgba(251, 133, 0, 0.08);
+  background: var(--color-grey-100);
   color: var(--sidebar-text);
 }
 
 .submenu-item-active {
-  background: rgba(251, 133, 0, 0.15);
+  background: var(--sidebar-accent-soft);
   color: var(--sidebar-accent);
   font-weight: 600;
 }
@@ -510,7 +487,7 @@
 /* Chevron icon (panah kanan/bawah) - tidak pakai background kotak */
 .sidebar-item.has-submenu .flex + svg,
 .sidebar-item.has-submenu > svg:last-child {
-  color: #9ca3af;
+  color: var(--color-grey-400);
   transition: transform 300ms ease, color 200ms ease;
   background: transparent !important;
   padding: 0;
@@ -525,70 +502,14 @@
   color: var(--sidebar-accent);
 }
 
-.sidebar-item-active.has-submenu .flex + svg,
-.sidebar-item-active.has-submenu > svg:last-child {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* === FIX: Icon warna saat item aktif / ada submenu === */
-.sidebar-item svg {
-  color: var(--sidebar-muted);
-  transition: color 180ms ease;
-}
-
-/* Hover efek */
-.sidebar-item:hover svg {
-  color: white;
-}
-
-/* Warna ikon saat item aktif */
-.sidebar-item-active svg {
-  color: #ffffff;
-}
-
-/* Item yang punya submenu dan sedang terbuka */
-.sidebar-item.has-submenu.open svg:first-child {
-  color: var(--sidebar-accent);
-}
-
-/* Icon dropdown panah kanan/bawah */
-.sidebar-item.has-submenu svg:last-child {
-  color: #9ca3af;
-  transition: transform 200ms ease, color 200ms ease;
-}
-
-.sidebar-item.has-submenu.open svg:last-child {
-  color: #ffffff;
-  transform: rotate(90deg);
-}
-/* Biar pas dibuka tetap gaya hover, bukan full putih/oranye */
+/* Item dengan submenu yang lagi terbuka (tapi bukan halaman aktif) - tint sama seperti hover/active */
 .sidebar-item.has-submenu.open:not(.sidebar-item-active) {
-  background: #ffffff;
+  background: var(--sidebar-accent-soft);
   color: var(--sidebar-accent);
-  border-color: transparent;
-}
-
-.sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
-  background: rgba(251, 133, 0, 0.15);
 }
 
 .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
   color: var(--sidebar-accent);
-}
-
-/* Saat collapsed, item dengan submenu yang terbuka tetap terlihat normal */
-.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper {
-  background: #ffffff;
-}
-
-.sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: #212529;
-}
-
-/* panah tetap oranye & muter 90° */
-.sidebar-item.has-submenu.open svg:last-child {
-  color: #ffffff;
-  transform: rotate(90deg);
 }
 /* ==========================================================
    CONTENT POSITIONING SAAT ADA / TIDAK ADA SIDEBAR
@@ -645,4 +566,20 @@
     margin-left: 0;
     width: 100%;
   }
+}
+
+[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="dark"] .sidebar {
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+[data-theme="dark"] .sidebar-overlay {
+  background: rgba(0, 0, 0, 0.55);
 }

@@ -2,6 +2,7 @@
 @import "primereact/resources/themes/lara-light-blue/theme.css";
 @import "primereact/resources/primereact.min.css";
 @import "primeicons/primeicons.css";
+@import "../styles/theme.css";
 
 @tailwind base;
 @tailwind components;
@@ -9,16 +10,18 @@
 
 /* Style tambahan */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-bg-default);
+  --foreground: var(--color-text-primary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-base: "Inter", "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 html,
 body {
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  /* !important: PrimeReact di-import ulang di beberapa client component
+     (mis. Layout.js) - urutan cascade-nya tidak selalu setelah file ini
+     di webpack dev, jadi font brand bisa ketiban font default Prime. */
+  font-family: var(--font-base) !important;
   color: var(--color-foreground);
   background: var(--color-background);
   -webkit-font-smoothing: antialiased;

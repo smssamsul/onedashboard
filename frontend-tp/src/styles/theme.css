@@ -1,0 +1,137 @@
+/*
+ * Design tokens gaya Mantis (template MUI di d:/laragon/www/template/mantis-template).
+ * Palette grey/semantic diambil dari skema warna Mantis (ramp Ant Design v5),
+ * primary tetap oranye brand Ternak Properti tapi digenerate dengan metode
+ * ramp yang sama (lighter/light/main/dark/darker) supaya konsisten dengan
+ * struktur desain Mantis. Dipakai bareng di semua halaman lewat CSS variable -
+ * sidebar.css dan layout.css tinggal referensi var ini, bukan hex literal.
+ */
+
+:root {
+  --font-base: "Public Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* --- Primary (oranye brand, ramp ala Ant Design) --- */
+  --color-primary-lighter: #fff7e6;
+  --color-primary-100: #ffe7ba;
+  --color-primary-light: #ffc069;
+  --color-primary-400: #ffa940;
+  --color-primary-main: #fa8c16;
+  --color-primary-dark: #d46b08;
+  --color-primary-darker: #873800;
+  --color-primary-contrast: #ffffff;
+
+  /* --- Grey scale --- */
+  --color-grey-0: #ffffff;
+  --color-grey-50: #fafafa;
+  --color-grey-100: #f5f5f5;
+  --color-grey-200: #f0f0f0;
+  --color-grey-300: #d9d9d9;
+  --color-grey-400: #bfbfbf;
+  --color-grey-500: #8c8c8c;
+  --color-grey-600: #595959;
+  --color-grey-700: #262626;
+  --color-grey-800: #141414;
+  --color-grey-900: #000000;
+  --color-grey-border: #e6ebf1;
+
+  /* --- Semantic --- */
+  --color-success-lighter: #f6ffed;
+  --color-success-main: #52c41a;
+  --color-success-dark: #237804;
+  --color-error-lighter: #fff1f0;
+  --color-error-main: #ff4d4f;
+  --color-error-dark: #a8071a;
+  --color-warning-lighter: #fffbe6;
+  --color-warning-main: #faad14;
+  --color-warning-dark: #ad6800;
+  --color-info-lighter: #e6fffb;
+  --color-info-main: #13c2c2;
+  --color-info-dark: #006d75;
+
+  /* --- Surfaces & text --- */
+  --color-bg-default: #fafafb;
+  --color-bg-paper: #ffffff;
+  --color-text-primary: #262626;
+  --color-text-secondary: #8c8c8c;
+  --color-text-disabled: #bfbfbf;
+  --color-divider: #f0f0f0;
+  --color-border: var(--color-grey-border);
+
+  /* --- Shape --- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-card: none;
+  --shadow-popover: 0 8px 24px rgba(38, 38, 38, 0.12);
+}
+
+[data-theme="dark"] {
+  --color-primary-lighter: #2c2413;
+  --color-primary-100: #4d3611;
+  --color-primary-light: #d48806;
+  --color-primary-400: #ffa940;
+  --color-primary-main: #ffa940;
+  --color-primary-dark: #ffc069;
+  --color-primary-darker: #ffe7ba;
+  --color-primary-contrast: #141414;
+
+  --color-grey-0: #161b26;
+  --color-grey-50: #1a2030;
+  --color-grey-100: #20273a;
+  --color-grey-200: #29314a;
+  --color-grey-300: #3a4359;
+  --color-grey-400: #545e78;
+  --color-grey-500: #8b95ab;
+  --color-grey-600: #aab2c5;
+  --color-grey-700: #e5e9f0;
+  --color-grey-800: #f2f4f8;
+  --color-grey-900: #ffffff;
+  --color-grey-border: #2a3245;
+
+  --color-success-lighter: #12281c;
+  --color-success-main: #73d13d;
+  --color-success-dark: #b7eb8f;
+  --color-error-lighter: #2e1a14;
+  --color-error-main: #ff7875;
+  --color-error-dark: #ffa39e;
+  --color-warning-lighter: #2c2413;
+  --color-warning-main: #ffd666;
+  --color-warning-dark: #ffe58f;
+  --color-info-lighter: #0f2a2a;
+  --color-info-main: #36cfc9;
+  --color-info-dark: #5cdbd3;
+
+  --color-bg-default: #0f1319;
+  --color-bg-paper: #161b26;
+  --color-text-primary: #e5e9f0;
+  --color-text-secondary: #8b95ab;
+  --color-text-disabled: #545e78;
+  --color-divider: #232b3d;
+  --color-border: var(--color-grey-border);
+
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+/* --- PrimeReact (lara theme) var overrides, biar komponen Prime ikut tema --- */
+:root,
+[data-theme="dark"] {
+  --primary-color: var(--color-primary-main) !important;
+  --primary-color-text: var(--color-primary-contrast) !important;
+  --surface-ground: var(--color-bg-default) !important;
+  --surface-section: var(--color-bg-paper) !important;
+  --surface-card: var(--color-bg-paper) !important;
+  --surface-overlay: var(--color-bg-paper) !important;
+  --surface-border: var(--color-border) !important;
+  --surface-hover: var(--color-grey-100) !important;
+  --text-color: var(--color-text-primary) !important;
+  --text-color-secondary: var(--color-text-secondary) !important;
+  --font-family: var(--font-base) !important;
+}
+
+body {
+  font-family: var(--font-base);
+  background: var(--color-bg-default);
+  color: var(--color-text-primary);
+}
