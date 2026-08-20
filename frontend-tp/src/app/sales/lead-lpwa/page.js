@@ -361,18 +361,18 @@ export default function LeadLpwaPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100">
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">No WA</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Waktu Chat Pertama</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Produk Diminati</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Lokasi</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sales</th>
-                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
+                <tr className="bg-[var(--color-primary-main)]">
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Nama</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">No WA</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Waktu Chat Pertama</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Produk Diminati</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Lokasi</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Sales</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -705,7 +705,7 @@ export default function LeadLpwaPage() {
 
                     <div className="border-t border-dashed border-gray-200 mt-3 pt-3 flex items-center justify-between">
                       <span className="text-sm font-semibold text-gray-600">Total</span>
-                      <span className="text-lg font-bold text-[#f26522]">{formatRp(confirmState.harga)}</span>
+                      <span className="text-lg font-bold text-[var(--color-primary-main)]">{formatRp(confirmState.harga)}</span>
                     </div>
                   </div>
                 )}
@@ -724,7 +724,7 @@ export default function LeadLpwaPage() {
               <button
                 disabled={confirmSubmitting || !confirmState.product}
                 onClick={handleOrderConfirm}
-                className="px-6 py-2.5 flex items-center justify-center gap-2 text-white bg-[#f26522] hover:bg-[#d9561b] rounded-xl font-medium transition-colors disabled:opacity-50 text-sm shadow-sm"
+                className="px-6 py-2.5 flex items-center justify-center gap-2 text-white bg-[var(--color-primary-main)] hover:bg-[var(--color-primary-dark)] rounded-xl font-medium transition-colors disabled:opacity-50 text-sm shadow-sm"
               >
                 {confirmSubmitting && <Loader2 size={16} className="animate-spin" />}
                 Ya, buat order
