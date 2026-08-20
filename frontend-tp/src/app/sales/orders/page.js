@@ -214,8 +214,8 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
 
   // Helper utk create bubble UI
   const createBubble = (content, isActive, key, isWAIcon = false, title = "") => {
-    const bgColor = isActive ? "#25D366" : "#E5E7EB";
-    const textColor = isActive ? "white" : "#6B7280";
+    const bgColor = isActive ? "#25D366" : "var(--color-divider)";
+    const textColor = isActive ? "white" : "var(--color-text-secondary)";
 
     return (
       <div key={key} title={title} style={{
@@ -265,7 +265,7 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
   const upsellingBubble = (
     <div key="bubble-u" title={activeU ? "Upselling (Sukses)" : "Upselling"} style={{
       position: "relative",
-      background: activeU ? "#3b82f6" : "#E5E7EB",
+      background: activeU ? "var(--color-info-main)" : "var(--color-divider)",
       borderRadius: "7px 7px 7px 0",
       width: "28px",
       height: "24px",
@@ -273,7 +273,7 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
       alignItems: "center",
       justifyContent: "center",
       fontSize: "13px",
-      color: activeU ? "white" : "#6B7280",
+      color: activeU ? "white" : "var(--color-text-secondary)",
       fontWeight: "bold",
       flexShrink: 0,
       cursor: "pointer"
@@ -292,7 +292,7 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
         alignItems: "center",
         gap: "4px",
         padding: "4px 8px",
-        background: "#FEF3C7",
+        background: "var(--color-warning-lighter)",
         borderRadius: "8px",
         flexWrap: "nowrap",
         width: "fit-content",
@@ -353,7 +353,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
     bubbles.push(
       <div key="bubble-1" style={{
         position: "relative",
-        background: "#E5E7EB",
+        background: "var(--color-divider)",
         borderRadius: "7px 7px 7px 0",
         width: "24px",
         height: "20px",
@@ -361,7 +361,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
         alignItems: "center",
         justifyContent: "center",
         fontSize: "12px",
-        color: "#6B7280",
+        color: "var(--color-text-secondary)",
         fontWeight: "bold"
       }}>
         1
@@ -394,7 +394,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
       bubbles.push(
         <div key="more" style={{
           position: "relative",
-          background: "#E5E7EB",
+          background: "var(--color-divider)",
           borderRadius: "7px 7px 7px 0",
           width: "24px",
           height: "20px",
@@ -402,7 +402,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
           alignItems: "center",
           justifyContent: "center",
           fontSize: "10px",
-          color: "#6B7280",
+          color: "var(--color-text-secondary)",
           fontWeight: "bold"
         }}>
           ...
@@ -414,7 +414,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
     bubbles.push(
       <div key="no-followup" style={{
         position: "relative",
-        background: "#E5E7EB",
+        background: "var(--color-divider)",
         borderRadius: "7px 7px 7px 0",
         width: "24px",
         height: "20px",
@@ -422,7 +422,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
         alignItems: "center",
         justifyContent: "center",
         fontSize: "12px",
-        color: "#6B7280",
+        color: "var(--color-text-secondary)",
         fontWeight: "bold"
       }}>
         1
@@ -436,7 +436,7 @@ const WABubbleChatOld = ({ followUpCount = 0 }) => {
       alignItems: "center",
       gap: "3px",
       padding: "4px 8px",
-      background: "#FEF3C7",
+      background: "var(--color-warning-lighter)",
       borderRadius: "8px",
       flexWrap: "wrap"
     }}>
@@ -1384,34 +1384,34 @@ export default function DaftarPesanan() {
             gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '16px',
             padding: '24px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            backgroundColor: 'var(--color-bg-paper)',
+            borderRadius: 'var(--radius-card)',
+            border: '1px solid var(--color-divider)',
+            boxShadow: 'none'
           }}>
             <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Total orders ({totalOrders || 0})</p>
-              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(totalAmount || 0).toLocaleString("id-ID")}</p>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Total orders ({totalOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>Rp {(totalAmount || 0).toLocaleString("id-ID")}</p>
             </div>
 
             <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Unpaid ({unpaidOrders || 0})</p>
-              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(unpaidAmount || 0).toLocaleString("id-ID")}</p>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Unpaid ({unpaidOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>Rp {(unpaidAmount || 0).toLocaleString("id-ID")}</p>
             </div>
 
             <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Waiting Approval ({menungguOrders || 0})</p>
-              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(menungguAmount || 0).toLocaleString("id-ID")}</p>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Waiting Approval ({menungguOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>Rp {(menungguAmount || 0).toLocaleString("id-ID")}</p>
             </div>
 
             <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Sukses ({approvedOrders || 0})</p>
-              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>Rp {(revenueTotal || 0).toLocaleString("id-ID")}</p>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Sukses ({approvedOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-success-main)' }}>Rp {(revenueTotal || 0).toLocaleString("id-ID")}</p>
             </div>
 
             <div className="summary-card__column" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Ditolak ({ditolakOrders || 0})</p>
-              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Rp {(ditolakAmount || 0).toLocaleString("id-ID")}</p>
+              <p className="summary-card__label" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Ditolak ({ditolakOrders || 0})</p>
+              <p className="summary-card__value" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>Rp {(ditolakAmount || 0).toLocaleString("id-ID")}</p>
             </div>
           </article>
         </section>
@@ -1443,9 +1443,9 @@ export default function DaftarPesanan() {
                 className="customers-button customers-button--secondary"
                 title="Filter order yang sudah Completed"
                 style={{
-                  background: selectedStatusOrder.includes("4") ? "#16a34a" : undefined,
+                  background: selectedStatusOrder.includes("4") ? "var(--color-success-main)" : undefined,
                   color: selectedStatusOrder.includes("4") ? "#fff" : undefined,
-                  borderColor: selectedStatusOrder.includes("4") ? "#16a34a" : undefined,
+                  borderColor: selectedStatusOrder.includes("4") ? "var(--color-success-main)" : undefined,
                 }}
               >
                 <CheckCircle size={14} />
@@ -1480,17 +1480,17 @@ export default function DaftarPesanan() {
                   inputStyle={{
                     width: "100%",
                     padding: "0.55rem 2.2rem 0.55rem 0.75rem",
-                    border: "1px solid #e9ecef",
+                    border: "1px solid var(--color-border)",
                     borderRadius: "0.5rem",
                     fontSize: "0.85rem",
                     background: "#ffffff",
-                    color: "#212529",
+                    color: "var(--color-text-primary)",
                     boxShadow: "none",
                     cursor: "pointer"
                   }}
                   panelStyle={{
                     background: "#ffffff",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "0.5rem",
                     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
                   }}
@@ -1591,7 +1591,7 @@ export default function DaftarPesanan() {
                   <th>SALES</th>
 
                   {UTM_FILTER_FIELDS.map(({ key, label }) => (
-                    <th key={key} style={{ whiteSpace: "nowrap", fontSize: "0.7rem", fontWeight: 600, color: "#475569" }}>
+                    <th key={key} style={{ whiteSpace: "nowrap", fontSize: "0.7rem", fontWeight: 600, color: "var(--color-text-secondary)" }}>
                       {label}
                     </th>
                   ))}
@@ -1665,7 +1665,7 @@ export default function DaftarPesanan() {
                             <span className="customer-detail">
                               {order.customer_rel?.wa ? `+${order.customer_rel.wa}` : "-"}
                             </span>
-                            <span className="customer-detail" style={{ fontSize: "0.75rem", marginTop: "2px", color: "#64748b" }}>
+                            <span className="customer-detail" style={{ fontSize: "0.75rem", marginTop: "2px", color: "var(--color-text-secondary)" }}>
                               Sales: {getOrderSalesNama(order) || "-"}
                             </span>
                           </div>
@@ -1674,9 +1674,9 @@ export default function DaftarPesanan() {
                         {/* Product - Widened */}
                         <td className="col-product">
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ fontSize: "0.875rem", fontWeight: "500", color: "#111827" }}>{produkNama}</span>
+                            <span style={{ fontSize: "0.875rem", fontWeight: "500", color: "var(--color-text-primary)" }}>{produkNama}</span>
                             {order.bundling_rel && (
-                              <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                              <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                                 Paket: {order.bundling_rel.nama}
                               </span>
                             )}
@@ -1729,14 +1729,14 @@ export default function DaftarPesanan() {
 
                         {/* Revenue */}
                         <td>
-                          <span style={{ fontSize: "0.875rem", fontWeight: "normal", color: "#111827" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: "normal", color: "var(--color-text-primary)" }}>
                             Rp {Number(order.total_harga || 0).toLocaleString("id-ID")}
                           </span>
                         </td>
 
                         {/* Sales */}
                         <td>
-                          <span style={{ fontSize: "0.875rem", color: "#111827" }}>
+                          <span style={{ fontSize: "0.875rem", color: "var(--color-text-primary)" }}>
                             {getOrderSalesNama(order) || "-"}
                           </span>
                         </td>
@@ -1749,7 +1749,7 @@ export default function DaftarPesanan() {
                               <span
                                 style={{
                                   fontSize: "0.72rem",
-                                  color: "#475569",
+                                  color: "var(--color-text-secondary)",
                                   wordBreak: "break-word",
                                   display: "block",
                                   maxWidth: "10rem",
@@ -1853,10 +1853,10 @@ export default function DaftarPesanan() {
                 style={{
                   padding: "0.45rem 0.65rem",
                   borderRadius: "0.5rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   fontSize: "0.875rem",
                   background: "#fff",
-                  color: "#111827",
+                  color: "var(--color-text-primary)",
                 }}
               >
                 {PER_PAGE_OPTIONS.map((n) => (
@@ -1876,8 +1876,8 @@ export default function DaftarPesanan() {
                 style={{
                   padding: "0.75rem 1rem",
                   minWidth: "100px",
-                  background: page === 1 || loading ? "#e5e7eb" : "#f1a124",
-                  color: page === 1 || loading ? "#9ca3af" : "#fff",
+                  background: page === 1 || loading ? "var(--color-divider)" : "var(--color-primary-main)",
+                  color: page === 1 || loading ? "var(--color-text-secondary)" : "#fff",
                   border: "none",
                   borderRadius: "0.5rem",
                   cursor: page === 1 || loading ? "not-allowed" : "pointer",
@@ -1924,8 +1924,8 @@ export default function DaftarPesanan() {
                 style={{
                   padding: "0.75rem 1rem",
                   minWidth: "100px",
-                  background: !hasMore || loading ? "#e5e7eb" : "#f1a124",
-                  color: !hasMore || loading ? "#9ca3af" : "#fff",
+                  background: !hasMore || loading ? "var(--color-divider)" : "var(--color-primary-main)",
+                  color: !hasMore || loading ? "var(--color-text-secondary)" : "#fff",
                   border: "none",
                   borderRadius: "0.5rem",
                   cursor: !hasMore || loading ? "not-allowed" : "pointer",
@@ -2000,13 +2000,13 @@ export default function DaftarPesanan() {
 
         .payment-main {
           font-size: 0.875rem;
-          color: #111827;
+          color: var(--color-text-primary);
           word-wrap: break-word;
         }
 
         .payment-main strong {
           font-weight: 600;
-          color: #1f2937;
+          color: var(--color-text-primary);
         }
 
         .payment-list {
@@ -2015,9 +2015,9 @@ export default function DaftarPesanan() {
           gap: 0.25rem;
           margin-top: 0.25rem;
           padding: 0.5rem;
-          background: #f9fafb;
+          background: var(--color-grey-50);
           border-radius: 0.375rem;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--color-divider);
           width: 100%;
           box-sizing: border-box;
         }
@@ -2033,13 +2033,13 @@ export default function DaftarPesanan() {
         }
 
         .payment-number {
-          color: #6b7280;
+          color: var(--color-text-secondary);
           font-weight: 500;
           flex-shrink: 0;
         }
 
         .payment-amount {
-          color: #059669;
+          color: var(--color-success-dark);
           font-weight: 600;
           flex-shrink: 0;
           white-space: nowrap;
@@ -2051,7 +2051,7 @@ export default function DaftarPesanan() {
         }
 
         .payment-hint {
-          color: #9ca3af;
+          color: var(--color-text-secondary);
           font-style: italic;
         }
 
@@ -2061,7 +2061,7 @@ export default function DaftarPesanan() {
           gap: 0.25rem;
           margin-top: 0.375rem;
           padding-top: 0.375rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--color-divider);
           width: 100%;
           box-sizing: border-box;
         }
@@ -2076,7 +2076,7 @@ export default function DaftarPesanan() {
         }
 
         .payment-label {
-          color: #6b7280;
+          color: var(--color-text-secondary);
           font-weight: 500;
           flex-shrink: 0;
         }
@@ -2088,7 +2088,7 @@ export default function DaftarPesanan() {
 
         .payment-label.payment-clickable:hover {
           opacity: 0.8;
-          color: #c85400;
+          color: var(--color-primary-dark);
           text-decoration: underline;
         }
 
@@ -2099,11 +2099,11 @@ export default function DaftarPesanan() {
         }
 
         .payment-value.paid {
-          color: #059669;
+          color: var(--color-success-dark);
         }
 
         .payment-value.remaining {
-          color: #dc2626;
+          color: var(--color-error-main);
         }
 
         .payment-clickable {
@@ -2175,32 +2175,32 @@ export default function DaftarPesanan() {
         }
         .modal-header {
             padding: 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--color-border);
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            background: #f8fafc;
+            background: var(--color-bg-default);
         }
         .modal-title {
             margin: 0;
             font-size: 1.25rem;
             font-weight: 700;
-            color: #0f172a;
+            color: var(--color-text-primary);
         }
         .modal-subtitle {
             margin: 4px 0 0 0;
             font-size: 0.9rem;
-            color: #64748b;
+            color: var(--color-text-secondary);
         }
         .close-btn {
             background: none;
             border: none;
-            color: #94a3b8;
+            color: var(--color-text-secondary);
             cursor: pointer;
             padding: 4px;
             border-radius: 4px;
         }
-        .close-btn:hover { background: #e2e8f0; color: #ef4444; }
+        .close-btn:hover { background: var(--color-border); color: var(--color-error-main); }
         
         .modal-body {
             padding: 1.5rem;
@@ -2211,7 +2211,7 @@ export default function DaftarPesanan() {
         .loading-state, .empty-state {
             text-align: center;
             padding: 2rem;
-            color: #64748b;
+            color: var(--color-text-secondary);
         }
         
         /* TIMELINE STYLES */
@@ -2234,15 +2234,15 @@ export default function DaftarPesanan() {
         .timeline-dot {
             width: 12px;
             height: 12px;
-            background: #ff6c00;
+            background: var(--color-primary-main);
             border-radius: 50%;
-            box-shadow: 0 0 0 4px #fff8f1;
+            box-shadow: 0 0 0 4px var(--color-primary-lighter);
             z-index: 2;
         }
         .timeline-line {
             flex: 1;
             width: 2px;
-            background: #e2e8f0;
+            background: var(--color-border);
             margin-top: 4px;
             min-height: 40px;
         }
@@ -2257,22 +2257,22 @@ export default function DaftarPesanan() {
         }
         .timeline-type {
             font-weight: 600;
-            color: #1e293b;
+            color: var(--color-text-primary);
             font-size: 0.95rem;
         }
         .timeline-time {
             font-size: 0.8rem;
-            color: #94a3b8;
+            color: var(--color-text-secondary);
         }
         .timeline-card {
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
+            background: var(--color-bg-default);
+            border: 1px solid var(--color-grey-300);
             border-radius: 8px;
             padding: 12px;
         }
         .timeline-note {
             margin: 0 0 8px 0;
-            color: #334155;
+            color: var(--color-text-primary);
             font-size: 0.9rem;
             line-height: 1.5;
             overflow-wrap: break-word;
@@ -2282,8 +2282,8 @@ export default function DaftarPesanan() {
             display: inline-flex;
             align-items: center;
             font-size: 0.8rem;
-            color: #2563eb;
-            background: #eff6ff;
+            color: var(--color-info-dark);
+            background: var(--color-info-lighter);
             padding: 2px 8px;
             border-radius: 4px;
             margin-bottom: 8px;
@@ -2295,9 +2295,9 @@ export default function DaftarPesanan() {
             border-radius: 99px;
             font-weight: 600;
         }
-        .status-sent { background: #d1fae5; color: #059669; }
-        .status-failed { background: #fee2e2; color: #dc2626; }
-        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-sent { background: var(--color-success-lighter); color: var(--color-success-dark); }
+        .status-failed { background: var(--color-error-lighter); color: var(--color-error-main); }
+        .status-pending { background: var(--color-warning-lighter); color: var(--color-warning-dark); }
 
         .wa-bubble-container:hover {
             transform: scale(1.02);
@@ -2349,14 +2349,14 @@ export default function DaftarPesanan() {
           >
             <div className="modal-header" style={{
               padding: "1.5rem 1.75rem",
-              borderBottom: "1px solid #e5e7eb",
+              borderBottom: "1px solid var(--color-divider)",
               background: "#ffffff"
             }}>
               <h3 style={{
                 margin: 0,
                 fontSize: "1.25rem",
                 fontWeight: "700",
-                color: "#111827",
+                color: "var(--color-text-primary)",
                 letterSpacing: "-0.01em"
               }}>
                 Filter Orders
@@ -2368,7 +2368,7 @@ export default function DaftarPesanan() {
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#6b7280",
+                  color: "var(--color-text-secondary)",
                   cursor: "pointer",
                   padding: "0.5rem",
                   borderRadius: "0.5rem",
@@ -2380,12 +2380,12 @@ export default function DaftarPesanan() {
                   transition: "all 0.2s",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f3f4f6";
-                  e.currentTarget.style.color = "#111827";
+                  e.currentTarget.style.background = "var(--color-grey-100)";
+                  e.currentTarget.style.color = "var(--color-text-primary)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.color = "var(--color-text-secondary)";
                 }}
               >
                 <i className="pi pi-times" style={{ fontSize: "1.125rem" }} />
@@ -2404,7 +2404,7 @@ export default function DaftarPesanan() {
                   display: "block",
                   fontSize: "0.9375rem",
                   fontWeight: "600",
-                  color: "#111827",
+                  color: "var(--color-text-primary)",
                   letterSpacing: "-0.01em"
                 }}>
                   Produk
@@ -2419,20 +2419,20 @@ export default function DaftarPesanan() {
                     style={{
                       width: "100%",
                       padding: "0.875rem 2.75rem 0.875rem 1rem",
-                      border: "1.5px solid #e5e7eb",
+                      border: "1.5px solid var(--color-divider)",
                       borderRadius: "0.625rem",
                       fontSize: "0.9375rem",
                       background: "#ffffff",
                       transition: "all 0.2s",
-                      color: "#111827",
+                      color: "var(--color-text-primary)",
                       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = "#ff6c00";
-                      e.target.style.boxShadow = "0 0 0 3px rgba(255, 108, 0, 0.1)";
+                      e.target.style.borderColor = "var(--color-primary-main)";
+                      e.target.style.boxShadow = "0 0 0 3px rgba(30, 58, 95, 0.1)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#e5e7eb";
+                      e.target.style.borderColor = "var(--color-divider)";
                       e.target.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
                     }}
                   />
@@ -2441,7 +2441,7 @@ export default function DaftarPesanan() {
                     right: "1rem",
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#9ca3af",
+                    color: "var(--color-text-secondary)",
                     fontSize: "1rem",
                     pointerEvents: "none",
                   }} />
@@ -2450,7 +2450,7 @@ export default function DaftarPesanan() {
                 {(selectedProductsData.length > 0 || productResults.length > 0) && (
                   <div style={{
                     marginTop: "0.75rem",
-                    border: "1.5px solid #e5e7eb",
+                    border: "1.5px solid var(--color-divider)",
                     borderRadius: "0.625rem",
                     maxHeight: "280px",
                     overflowY: "auto",
@@ -2469,9 +2469,9 @@ export default function DaftarPesanan() {
                               style={{
                                 padding: "0.875rem 1.125rem",
                                 cursor: "pointer",
-                                borderBottom: "1px solid #f3f4f6",
-                                background: isSelected ? "#fff5ed" : "#ffffff",
-                                borderLeft: isSelected ? "4px solid #ff6c00" : "4px solid transparent",
+                                borderBottom: "1px solid var(--color-grey-100)",
+                                background: isSelected ? "var(--color-primary-lighter)" : "#ffffff",
+                                borderLeft: isSelected ? "4px solid var(--color-primary-main)" : "4px solid transparent",
                                 transition: "all 0.15s",
                                 display: "flex",
                                 alignItems: "center",
@@ -2479,7 +2479,7 @@ export default function DaftarPesanan() {
                               }}
                               onMouseEnter={(e) => {
                                 if (!isSelected) {
-                                  e.currentTarget.style.background = "#f9fafb";
+                                  e.currentTarget.style.background = "var(--color-grey-50)";
                                 }
                               }}
                               onMouseLeave={(e) => {
@@ -2496,11 +2496,11 @@ export default function DaftarPesanan() {
                                   width: "18px",
                                   height: "18px",
                                   cursor: "pointer",
-                                  accentColor: "#ff6c00",
+                                  accentColor: "var(--color-primary-main)",
                                 }}
                               />
                               <span style={{
-                                color: isSelected ? "#c85400" : "#111827",
+                                color: isSelected ? "var(--color-primary-dark)" : "var(--color-text-primary)",
                                 fontWeight: isSelected ? "600" : "500",
                                 fontSize: "0.9375rem",
                                 flex: 1,
@@ -2510,9 +2510,9 @@ export default function DaftarPesanan() {
                               {isSelected && (
                                 <span style={{
                                   fontSize: "0.75rem",
-                                  color: "#c85400",
+                                  color: "var(--color-primary-dark)",
                                   fontWeight: "600",
-                                  background: "#fff5ed",
+                                  background: "var(--color-primary-lighter)",
                                   padding: "0.25rem 0.5rem",
                                   borderRadius: "0.25rem",
                                 }}>
@@ -2525,11 +2525,11 @@ export default function DaftarPesanan() {
                         {productResults.length > 0 && productResults.some(prod => !selectedProducts.includes(prod.id)) && (
                           <div style={{
                             padding: "0.5rem 1rem",
-                            background: "#f9fafb",
-                            borderTop: "1px solid #e5e7eb",
-                            borderBottom: "1px solid #e5e7eb",
+                            background: "var(--color-grey-50)",
+                            borderTop: "1px solid var(--color-divider)",
+                            borderBottom: "1px solid var(--color-divider)",
                             fontSize: "0.75rem",
-                            color: "#6b7280",
+                            color: "var(--color-text-secondary)",
                             fontWeight: "600",
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
@@ -2550,7 +2550,7 @@ export default function DaftarPesanan() {
                             style={{
                               padding: "0.875rem 1.125rem",
                               cursor: "pointer",
-                              borderBottom: "1px solid #f3f4f6",
+                              borderBottom: "1px solid var(--color-grey-100)",
                               background: "#ffffff",
                               borderLeft: "4px solid transparent",
                               transition: "all 0.15s",
@@ -2559,7 +2559,7 @@ export default function DaftarPesanan() {
                               gap: "0.75rem",
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "#f9fafb";
+                              e.currentTarget.style.background = "var(--color-grey-50)";
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = "#ffffff";
@@ -2573,11 +2573,11 @@ export default function DaftarPesanan() {
                                 width: "18px",
                                 height: "18px",
                                 cursor: "pointer",
-                                accentColor: "#ff6c00",
+                                accentColor: "var(--color-primary-main)",
                               }}
                             />
                             <span style={{
-                              color: "#111827",
+                              color: "var(--color-text-primary)",
                               fontWeight: "500",
                               fontSize: "0.9375rem",
                               flex: 1,
@@ -2599,11 +2599,11 @@ export default function DaftarPesanan() {
                           alignItems: "center",
                           gap: "0.5rem",
                           padding: "0.5rem 0.75rem",
-                          background: "#fff5ed",
-                          border: "1px solid #ff6c00",
+                          background: "var(--color-primary-lighter)",
+                          border: "1px solid var(--color-primary-main)",
                           borderRadius: "0.375rem",
                           fontSize: "0.8125rem",
-                          color: "#c85400",
+                          color: "var(--color-primary-dark)",
                           fontWeight: "500",
                         }}
                       >
@@ -2617,7 +2617,7 @@ export default function DaftarPesanan() {
                           style={{
                             background: "none",
                             border: "none",
-                            color: "#c85400",
+                            color: "var(--color-primary-dark)",
                             cursor: "pointer",
                             padding: 0,
                             margin: 0,
@@ -2640,7 +2640,7 @@ export default function DaftarPesanan() {
                   display: "block",
                   fontSize: "0.9375rem",
                   fontWeight: "600",
-                  color: "#111827",
+                  color: "var(--color-text-primary)",
                   letterSpacing: "-0.01em"
                 }}>
                   Status Order
@@ -2649,10 +2649,10 @@ export default function DaftarPesanan() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.625rem",
-                  background: "#f9fafb",
+                  background: "var(--color-grey-50)",
                   padding: "0.75rem",
                   borderRadius: "0.625rem",
-                  border: "1.5px solid #e5e7eb",
+                  border: "1.5px solid var(--color-divider)",
                 }}>
                   {Object.entries(STATUS_ORDER_MAP).map(([value, { label }]) => {
                     const isChecked = selectedStatusOrder.includes(value);
@@ -2665,14 +2665,14 @@ export default function DaftarPesanan() {
                           cursor: "pointer",
                           padding: "0.75rem 1rem",
                           borderRadius: "0.5rem",
-                          background: isChecked ? "#fff5ed" : "transparent",
-                          border: isChecked ? "1.5px solid #ff6c00" : "1.5px solid transparent",
+                          background: isChecked ? "var(--color-primary-lighter)" : "transparent",
+                          border: isChecked ? "1.5px solid var(--color-primary-main)" : "1.5px solid transparent",
                           transition: "all 0.15s",
                         }}
                         onMouseEnter={(e) => {
                           if (!isChecked) {
                             e.currentTarget.style.background = "#ffffff";
-                            e.currentTarget.style.borderColor = "#e5e7eb";
+                            e.currentTarget.style.borderColor = "var(--color-divider)";
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -2691,11 +2691,11 @@ export default function DaftarPesanan() {
                             width: "18px",
                             height: "18px",
                             cursor: "pointer",
-                            accentColor: "#ff6c00",
+                            accentColor: "var(--color-primary-main)",
                           }}
                         />
                         <span style={{
-                          color: isChecked ? "#c85400" : "#111827",
+                          color: isChecked ? "var(--color-primary-dark)" : "var(--color-text-primary)",
                           fontWeight: isChecked ? "600" : "500",
                           fontSize: "0.9375rem",
                         }}>{label}</span>
@@ -2712,7 +2712,7 @@ export default function DaftarPesanan() {
                   display: "block",
                   fontSize: "0.9375rem",
                   fontWeight: "600",
-                  color: "#111827",
+                  color: "var(--color-text-primary)",
                   letterSpacing: "-0.01em"
                 }}>
                   Status Pembayaran
@@ -2721,10 +2721,10 @@ export default function DaftarPesanan() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.625rem",
-                  background: "#f9fafb",
+                  background: "var(--color-grey-50)",
                   padding: "0.75rem",
                   borderRadius: "0.625rem",
-                  border: "1.5px solid #e5e7eb",
+                  border: "1.5px solid var(--color-divider)",
                 }}>
                   {Object.entries(STATUS_PEMBAYARAN_MAP).map(([value, { label }]) => {
                     const isChecked = selectedStatusPembayaran.includes(String(value));
@@ -2737,14 +2737,14 @@ export default function DaftarPesanan() {
                           cursor: "pointer",
                           padding: "0.75rem 1rem",
                           borderRadius: "0.5rem",
-                          background: isChecked ? "#fff5ed" : "transparent",
-                          border: isChecked ? "1.5px solid #ff6c00" : "1.5px solid transparent",
+                          background: isChecked ? "var(--color-primary-lighter)" : "transparent",
+                          border: isChecked ? "1.5px solid var(--color-primary-main)" : "1.5px solid transparent",
                           transition: "all 0.15s",
                         }}
                         onMouseEnter={(e) => {
                           if (!isChecked) {
                             e.currentTarget.style.background = "#ffffff";
-                            e.currentTarget.style.borderColor = "#e5e7eb";
+                            e.currentTarget.style.borderColor = "var(--color-divider)";
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -2763,11 +2763,11 @@ export default function DaftarPesanan() {
                             width: "18px",
                             height: "18px",
                             cursor: "pointer",
-                            accentColor: "#ff6c00",
+                            accentColor: "var(--color-primary-main)",
                           }}
                         />
                         <span style={{
-                          color: isChecked ? "#c85400" : "#111827",
+                          color: isChecked ? "var(--color-primary-dark)" : "var(--color-text-primary)",
                           fontWeight: isChecked ? "600" : "500",
                           fontSize: "0.9375rem",
                         }}>{label}</span>
@@ -2784,13 +2784,13 @@ export default function DaftarPesanan() {
                   display: "block",
                   fontSize: "0.9375rem",
                   fontWeight: "600",
-                  color: "#111827",
+                  color: "var(--color-text-primary)",
                   letterSpacing: "-0.01em"
                 }}>
                   Filter UTM
                 </label>
                 {loadingUtmOptions && (
-                  <p style={{ fontSize: "0.8125rem", color: "#6b7280", marginBottom: "0.75rem" }}>Memuat opsi UTM…</p>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>Memuat opsi UTM…</p>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                   {UTM_FILTER_FIELDS.map(({ key, label }) => {
@@ -2801,20 +2801,20 @@ export default function DaftarPesanan() {
                         <div style={{
                           fontSize: "0.8125rem",
                           fontWeight: "600",
-                          color: "#374151",
+                          color: "var(--color-text-primary)",
                           marginBottom: "0.5rem",
                         }}>{label}</div>
                         {options.length === 0 && !loadingUtmOptions ? (
-                          <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>Belum ada nilai untuk kolom ini.</p>
+                          <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", margin: 0 }}>Belum ada nilai untuk kolom ini.</p>
                         ) : (
                           <div style={{
                             display: "flex",
                             flexDirection: "column",
                             gap: "0.375rem",
-                            background: "#f9fafb",
+                            background: "var(--color-grey-50)",
                             padding: "0.5rem",
                             borderRadius: "0.5rem",
-                            border: "1.5px solid #e5e7eb",
+                            border: "1.5px solid var(--color-divider)",
                           }}>
                             <div style={{ position: "relative", marginBottom: "0.5rem" }}>
                               <input
@@ -2825,7 +2825,7 @@ export default function DaftarPesanan() {
                                 style={{
                                   width: "100%",
                                   padding: "0.5rem 2rem 0.5rem 0.75rem",
-                                  border: "1px solid #d1d5db",
+                                  border: "1px solid var(--color-grey-300)",
                                   borderRadius: "0.375rem",
                                   fontSize: "0.8125rem",
                                   outline: "none"
@@ -2836,7 +2836,7 @@ export default function DaftarPesanan() {
                                 right: "0.75rem",
                                 top: "50%",
                                 transform: "translateY(-50%)",
-                                color: "#9ca3af",
+                                color: "var(--color-text-secondary)",
                                 fontSize: "0.8125rem",
                                 pointerEvents: "none",
                               }} />
@@ -2859,8 +2859,8 @@ export default function DaftarPesanan() {
                                       cursor: "pointer",
                                       padding: "0.5rem 0.625rem",
                                       borderRadius: "0.375rem",
-                                      background: isChecked ? "#fff5ed" : "transparent",
-                                      border: isChecked ? "1px solid #ff6c00" : "1px solid transparent",
+                                      background: isChecked ? "var(--color-primary-lighter)" : "transparent",
+                                      border: isChecked ? "1px solid var(--color-primary-main)" : "1px solid transparent",
                                     }}
                                   >
                                     <input
@@ -2872,13 +2872,13 @@ export default function DaftarPesanan() {
                                         width: "16px",
                                         height: "16px",
                                         cursor: "pointer",
-                                        accentColor: "#ff6c00",
+                                        accentColor: "var(--color-primary-main)",
                                         flexShrink: 0,
                                       }}
                                     />
                                     <span style={{
                                       fontSize: "0.8125rem",
-                                      color: isChecked ? "#c85400" : "#111827",
+                                      color: isChecked ? "var(--color-primary-dark)" : "var(--color-text-primary)",
                                       fontWeight: isChecked ? "600" : "400",
                                       wordBreak: "break-word",
                                     }}>{val}</span>
@@ -2899,8 +2899,8 @@ export default function DaftarPesanan() {
               justifyContent: "flex-end",
               gap: "0.75rem",
               padding: "1.5rem 1.75rem",
-              borderTop: "1px solid #e5e7eb",
-              background: "#f9fafb",
+              borderTop: "1px solid var(--color-divider)",
+              background: "var(--color-grey-50)",
             }}>
               <button
                 type="button"
@@ -2908,9 +2908,9 @@ export default function DaftarPesanan() {
                 style={{
                   padding: "0.75rem 1.5rem",
                   background: "#ffffff",
-                  border: "1.5px solid #e5e7eb",
+                  border: "1.5px solid var(--color-divider)",
                   borderRadius: "0.625rem",
-                  color: "#374151",
+                  color: "var(--color-text-primary)",
                   fontWeight: "600",
                   fontSize: "0.9375rem",
                   cursor: "pointer",
@@ -2920,12 +2920,12 @@ export default function DaftarPesanan() {
                   gap: "0.5rem",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f3f4f6";
-                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.background = "var(--color-grey-100)";
+                  e.currentTarget.style.borderColor = "var(--color-grey-300)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#ffffff";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.borderColor = "var(--color-divider)";
                 }}
               >
                 <i className="pi pi-times" style={{ fontSize: "0.875rem" }} />
@@ -2936,7 +2936,7 @@ export default function DaftarPesanan() {
                 onClick={() => setShowFilterModal(false)}
                 style={{
                   padding: "0.75rem 1.5rem",
-                  background: "#ff6c00",
+                  background: "var(--color-primary-main)",
                   border: "none",
                   borderRadius: "0.625rem",
                   color: "#ffffff",
@@ -2944,15 +2944,15 @@ export default function DaftarPesanan() {
                   fontSize: "0.9375rem",
                   cursor: "pointer",
                   transition: "all 0.15s",
-                  boxShadow: "0 2px 4px rgba(255, 108, 0, 0.2)",
+                  boxShadow: "0 2px 4px rgba(30, 58, 95, 0.2)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#e55a00";
-                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(255, 108, 0, 0.3)";
+                  e.currentTarget.style.background = "var(--color-primary-dark)";
+                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(30, 58, 95, 0.3)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#ff6c00";
-                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(255, 108, 0, 0.2)";
+                  e.currentTarget.style.background = "var(--color-primary-main)";
+                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(30, 58, 95, 0.2)";
                 }}
               >
                 Terapkan
@@ -3115,13 +3115,13 @@ export default function DaftarPesanan() {
               <div className="modal-body">
                 {loadingTimeline ? (
                   <div className="loading-state">
-                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem', color: '#ff6c00' }}></i>
+                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem', color: 'var(--color-primary-main)' }}></i>
                     <p>Memuat timeline...</p>
                   </div>
                 ) : timelineLogs.length === 0 ? (
                   <div className="empty-state">
                     <p>Tidak ada data timeline untuk ID Order ini.</p>
-                    {!selectedTimelineLog.orderId && <p style={{ fontSize: '0.8rem', color: '#ef4444' }}>Warning: Log ini tidak memiliki Order ID.</p>}
+                    {!selectedTimelineLog.orderId && <p style={{ fontSize: '0.8rem', color: 'var(--color-error-main)' }}>Warning: Log ini tidak memiliki Order ID.</p>}
                   </div>
                 ) : (
                   <div className="timeline-wrapper">
@@ -3192,7 +3192,7 @@ export default function DaftarPesanan() {
               <button onClick={() => setConfirmCompleteOrder(null)} className="close-btn"><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <p style={{ margin: "0 0 12px", fontSize: "0.9rem", color: "var(--dash-text, #374151)" }}>
+              <p style={{ margin: "0 0 12px", fontSize: "0.9rem", color: "var(--dash-text, var(--color-text-primary))" }}>
                 Tandai order <strong>{confirmCompleteOrder.kode_order || `#${confirmCompleteOrder.id}`}</strong>
                 {confirmCompleteOrder.customer_rel?.nama && <> — {confirmCompleteOrder.customer_rel.nama}</>} sebagai <strong>Completed</strong>?
               </p>
@@ -3209,8 +3209,8 @@ export default function DaftarPesanan() {
                   className="customers-button customers-button--primary"
                   onClick={doCompleteOrder}
                   style={{
-                    background: "#ff6c00",
-                    borderColor: "#ff6c00",
+                    background: "var(--color-primary-main)",
+                    borderColor: "var(--color-primary-main)",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",

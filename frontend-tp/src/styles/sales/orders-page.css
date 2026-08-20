@@ -9,20 +9,21 @@ Completely isolated from global CSS to ensure consistent rendering
 =========================== */
 
 .orders-shell {
-  /* Define all variables locally to prevent dependency on global CSS */
-  --orders-bg: #f8f9fa;
-  --orders-surface: #ffffff;
-  --orders-border: #e9ecef;
-  --orders-text: #212529;
-  --orders-muted: #6c757d;
-  --orders-muted-strong: #495057;
-  --orders-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --orders-radius: 0.75rem;
-  --orders-radius-sm: 0.5rem;
-  --orders-accent-orange: #ff6c00;
-  --orders-accent-orange-dark: #c85400;
-  --orders-primary: #F1A124;
-  --orders-primary-hover: #df9620;
+  /* Sekarang ikut token global (bukan lagi terisolasi) supaya konsisten
+     dengan tema navy/teal dan ikut dark mode. */
+  --orders-bg: var(--color-bg-default);
+  --orders-surface: var(--color-bg-paper);
+  --orders-border: var(--color-border);
+  --orders-text: var(--color-text-primary);
+  --orders-muted: var(--color-text-secondary);
+  --orders-muted-strong: var(--color-text-secondary);
+  --orders-shadow: none;
+  --orders-radius: var(--radius-card);
+  --orders-radius-sm: var(--radius-sm);
+  --orders-accent-orange: var(--color-primary-main);
+  --orders-accent-orange-dark: var(--color-primary-dark);
+  --orders-primary: var(--color-primary-main);
+  --orders-primary-hover: var(--color-primary-dark);
   --orders-white: #ffffff;
 
   /* Layout */
@@ -31,7 +32,7 @@ Completely isolated from global CSS to ensure consistent rendering
   gap: 2rem !important;
   position: relative !important;
   isolation: isolate !important;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: var(--font-base) !important;
   box-sizing: border-box !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -127,40 +128,40 @@ ORDERS FILTERS
 }
 
 .orders-shell .orders-filter-btn:hover {
-  background: rgba(255, 108, 0, 0.06) !important;
-  border-color: rgba(255, 108, 0, 0.3) !important;
-  color: #c85400 !important;
+  background: rgba(30, 58, 95, 0.06) !important;
+  border-color: rgba(30, 58, 95, 0.3) !important;
+  color: var(--color-primary-dark) !important;
 }
 
 .orders-shell .orders-filter-btn:active,
 .orders-shell .orders-filter-btn:focus,
 .orders-shell .orders-filter-btn:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
-  outline: 2px solid rgba(255, 108, 0, 0.2) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.2) !important;
   outline-offset: 2px !important;
 }
 
 .orders-shell .orders-filter-btn.is-active {
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
-  background: rgba(255, 108, 0, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
 }
 
 .orders-shell .orders-filter-btn.is-active:hover {
-  background: rgba(255, 108, 0, 0.12) !important;
-  border-color: rgba(255, 108, 0, 0.6) !important;
-  color: #c85400 !important;
+  background: rgba(30, 58, 95, 0.12) !important;
+  border-color: rgba(30, 58, 95, 0.6) !important;
+  color: var(--color-primary-dark) !important;
 }
 
 .orders-shell .orders-filter-btn.is-active:active,
 .orders-shell .orders-filter-btn.is-active:focus,
 .orders-shell .orders-filter-btn.is-active:focus-visible {
-  background: rgba(255, 108, 0, 0.15) !important;
-  border-color: rgba(255, 108, 0, 0.7) !important;
-  color: #c85400 !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  background: rgba(30, 58, 95, 0.15) !important;
+  border-color: rgba(30, 58, 95, 0.7) !important;
+  color: var(--color-primary-dark) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
 }
 
 /* ===========================
@@ -183,56 +184,56 @@ ORDERS BUTTONS
 .orders-shell .orders-button:focus-visible {
   /* Gunakan box-shadow sebagai outline untuk menghindari perubahan layout */
   outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.45);
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.45);
 }
 
 .orders-shell .orders-button--primary {
-  background: #f1a124 !important;
+  background: var(--color-primary-main) !important;
   color: #fff !important;
-  box-shadow: 0 12px 25px rgba(241, 161, 36, 0.25) !important;
+  box-shadow: 0 12px 25px rgba(30, 58, 95, 0.25) !important;
 }
 
 .orders-shell .orders-button--primary:hover {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   transform: translateY(-1px);
 }
 
 .orders-shell .orders-button--primary:active,
 .orders-shell .orders-button--primary:focus,
 .orders-shell .orders-button--primary:focus-visible {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
   outline: none;
   border-color: transparent !important;
 }
 
 .orders-shell .orders-button--primary:visited {
-  background: #f1a124 !important;
+  background: var(--color-primary-main) !important;
   color: #fff !important;
 }
 
 .orders-shell .orders-button--secondary {
   background: var(--orders-white);
   color: var(--orders-primary);
-  border: 1px solid rgba(255, 108, 0, 0.35);
+  border: 1px solid rgba(30, 58, 95, 0.35);
   box-shadow: none;
   outline: none !important;
 }
 
 .orders-shell .orders-button--secondary:hover {
-  background: rgba(255, 108, 0, 0.06);
-  border-color: rgba(255, 108, 0, 0.55);
+  background: rgba(30, 58, 95, 0.06);
+  border-color: rgba(30, 58, 95, 0.55);
 }
 
 .orders-shell .orders-button--secondary:active,
 .orders-shell .orders-button--secondary:focus,
 .orders-shell .orders-button--secondary:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.65) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.65) !important;
   color: var(--orders-primary) !important;
   /* Gunakan box-shadow sebagai outline untuk menghindari perubahan layout */
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2) !important;
 }
 
 /* ===========================
@@ -262,7 +263,7 @@ CUSTOMERS BUTTONS (used in orders page)
 .orders-shell .customers-button:focus-visible {
   /* Gunakan box-shadow sebagai outline untuk menghindari perubahan layout */
   outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.45);
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.45);
 }
 
 .orders-shell .customers-button--primary {
@@ -274,18 +275,18 @@ CUSTOMERS BUTTONS (used in orders page)
 }
 
 .orders-shell .customers-button--primary:hover {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
 }
 
 .orders-shell .customers-button--primary:active,
 .orders-shell .customers-button--primary:focus,
 .orders-shell .customers-button--primary:focus-visible {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
   /* Gunakan box-shadow sebagai outline untuk menghindari perubahan layout */
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.3) !important;
   border-color: transparent !important;
 }
 
@@ -297,24 +298,24 @@ CUSTOMERS BUTTONS (used in orders page)
 .orders-shell .customers-button--secondary {
   background: var(--orders-white);
   color: var(--orders-primary);
-  border: 1px solid rgba(255, 108, 0, 0.35);
+  border: 1px solid rgba(30, 58, 95, 0.35);
   box-shadow: none;
   outline: none !important;
 }
 
 .orders-shell .customers-button--secondary:hover {
-  background: rgba(255, 108, 0, 0.06);
-  border-color: rgba(255, 108, 0, 0.55);
+  background: rgba(30, 58, 95, 0.06);
+  border-color: rgba(30, 58, 95, 0.55);
 }
 
 .orders-shell .customers-button--secondary:active,
 .orders-shell .customers-button--secondary:focus,
 .orders-shell .customers-button--secondary:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.65) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.65) !important;
   color: var(--orders-primary) !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2) !important;
 }
 
 /* ===========================
@@ -354,10 +355,10 @@ DASHBOARD SUMMARY & SUMMARY CARD
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fb8500;
+  background: var(--color-primary-main);
   color: #ffffff;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
+  box-shadow: none;
 }
 
 .orders-shell .orders-summary .summary-card__icon.accent-green {
@@ -367,10 +368,10 @@ DASHBOARD SUMMARY & SUMMARY CARD
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #059669;
+  background: var(--color-success-dark);
   color: #ffffff;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px 0 rgba(5, 150, 105, 0.25);
+  box-shadow: none;
 }
 
 .orders-shell .orders-summary .summary-card__icon svg {
@@ -388,7 +389,7 @@ DASHBOARD SUMMARY & SUMMARY CARD
 
 .orders-shell .orders-summary .summary-card__label {
   font-size: 0.75rem;
-  color: #a0aec0;
+  color: var(--color-text-secondary);
   margin: 0;
   font-weight: 500;
   text-transform: uppercase;
@@ -399,7 +400,7 @@ DASHBOARD SUMMARY & SUMMARY CARD
 .orders-shell .orders-summary .summary-card__value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #252f40;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.25;
   letter-spacing: -0.03em;
@@ -408,7 +409,7 @@ DASHBOARD SUMMARY & SUMMARY CARD
 .orders-shell .orders-summary .summary-card__divider {
   width: 1px;
   height: 60%;
-  background: #e9ecef;
+  background: var(--color-border);
   align-self: center;
   flex-shrink: 0;
 }
@@ -421,7 +422,7 @@ DASHBOARD SUMMARY & SUMMARY CARD
   display: flex;
   gap: 0.875rem;
   align-items: flex-start;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .orders-shell .summary-card--combined {
@@ -458,7 +459,7 @@ PANEL STYLES
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .orders-shell .orders-panel {
@@ -502,15 +503,14 @@ ORDERS TABLE
   position: relative;
 }
 
-/* Table Structure - HTML TABLE style like cards */
+/* Table Structure - baris kontigu dengan border-bottom tipis (bukan pill per baris) */
 .orders-shell .table-orders {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.5rem;
+  border-collapse: collapse;
   min-width: 1500px;
 }
 
-/* Table Header */
+/* Table Header - navy solid + teks putih */
 .orders-shell .table-orders thead {
   position: sticky;
   top: 0;
@@ -518,55 +518,48 @@ ORDERS TABLE
 }
 
 .orders-shell .table-orders thead tr {
-  background: #f9fafb;
+  background: var(--color-primary-main);
 }
 
 .orders-shell .table-orders th {
-  padding: 0.6rem 0.75rem;
+  padding: 0.75rem 0.75rem;
   text-align: left;
   font-size: 0.7rem;
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: 700;
+  color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  letter-spacing: 0.06em;
+  background: var(--color-primary-main);
+  border-bottom: none;
   white-space: nowrap;
 }
 
-/* Table Body - Card style rows */
+/* Table Body - baris kontigu, cukup border-bottom sebagai pembatas */
 .orders-shell .table-orders tbody tr {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-paper);
+  border: none;
+  border-radius: 0;
+  transition: background 0.15s ease;
+  box-shadow: none;
+}
+
+.orders-shell .table-orders tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .orders-shell .table-orders tbody tr:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  background: var(--color-grey-50);
+  box-shadow: none;
+  transform: none;
 }
 
 .orders-shell .table-orders td {
   padding: 1rem 0.75rem;
   font-size: 0.875rem;
-  color: #111827;
-  background: white;
+  color: var(--color-text-primary);
+  background: transparent;
   border: none;
   vertical-align: middle;
-}
-
-/* First td in row - left rounded */
-.orders-shell .table-orders tbody tr td:first-child {
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
-}
-
-/* Last td in row - right rounded */
-.orders-shell .table-orders tbody tr td:last-child {
-  border-top-right-radius: 1rem;
-  border-bottom-right-radius: 1rem;
 }
 
 /* STICKY COLUMN LEFT: Order ID */
@@ -574,14 +567,16 @@ ORDERS TABLE
   position: sticky !important;
   left: 0 !important;
   z-index: 35 !important;
-  background: #f9fafb !important;
+  background: var(--color-primary-main) !important;
 }
 
 .orders-shell .table-orders tbody td.sticky-col-1 {
-  background: white !important;
+  background: var(--color-bg-paper) !important;
   z-index: 20 !important;
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
+}
+
+.orders-shell .table-orders tbody tr:hover td.sticky-col-1 {
+  background: var(--color-grey-50) !important;
 }
 
 /* STICKY COLUMN RIGHT: Actions */
@@ -589,13 +584,17 @@ ORDERS TABLE
   position: sticky !important;
   right: 0 !important;
   z-index: 20 !important;
-  background: white !important;
+  background: var(--color-bg-paper) !important;
   text-align: right;
-  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
+}
+
+.orders-shell .table-orders tbody tr:hover td.sticky-col-right {
+  background: var(--color-grey-50) !important;
 }
 
 .orders-shell .table-orders thead th.sticky-col-right {
-  background: #f9fafb !important;
+  background: var(--color-primary-main) !important;
   z-index: 35 !important;
   /* Ensure it stays above sticky row content */
 }
@@ -638,8 +637,9 @@ ORDERS TABLE
 }
 
 .orders-shell .orders-table__row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.14);
+  transform: none;
+  box-shadow: none;
+  background: var(--color-grey-50);
 }
 
 .orders-shell .orders-table__cell {
@@ -742,11 +742,11 @@ PAYMENT DETAILS
 }
 
 .payment-value.paid {
-  color: #059669;
+  color: var(--color-success-dark);
 }
 
 .payment-value.remaining {
-  color: #dc2626;
+  color: var(--color-error-main);
 }
 
 /* ===========================
@@ -765,93 +765,93 @@ ORDERS STATUS BADGE
 }
 
 .orders-status-badge--unpaid {
-  background-color: #ffe6e6;
-  color: #c92a2a;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--pending {
-  background-color: #fff3bf;
-  color: #d9480f;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 .orders-status-badge--paid {
-  background-color: #d3f9d8;
-  color: #2b8a3e;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .orders-status-badge--rejected {
-  background-color: #ffe3e3;
-  color: #c92a2a;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
   text-decoration: line-through;
 }
 
 .orders-status-badge--partial {
-  background-color: #e7f5ff;
-  color: #1971c2;
+  background-color: var(--color-info-lighter);
+  color: var(--color-info-dark);
 }
 
 .orders-status-badge--success {
-  background-color: #d3f9d8;
-  color: #2b8a3e;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .orders-status-badge--failed {
-  background-color: #ffe3e3;
-  color: #c92a2a;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--completed {
-  background-color: #d0ebff;
-  color: #1864ab;
+  background-color: var(--color-info-lighter);
+  color: var(--color-info-dark);
 }
 
 .orders-status-badge--deleted {
-  background-color: #f1f3f5;
-  color: #868e96;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
 /* Legacy/Fallback supports */
 .orders-status-badge--proses {
-  background-color: #fff3bf;
-  color: #d9480f;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 .orders-status-badge--sukses {
-  background-color: #d3f9d8;
-  color: #2b8a3e;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .orders-status-badge--upselling {
-  background-color: #e0e7ff;
-  color: #3730a3;
+  background-color: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
 }
 
 .orders-status-badge--dihapus {
-  background-color: #f1f3f5;
-  color: #868e96;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
 }
 
 .orders-status-badge--default {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
 }
 
 
 
 .orders-status-badge--pending {
-  background-color: rgba(255, 108, 0, 0.15);
-  color: #c85400;
+  background-color: rgba(30, 58, 95, 0.15);
+  color: var(--color-primary-dark);
 }
 
 .orders-status-badge--rejected {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--dp {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 @keyframes pulse {
@@ -882,27 +882,27 @@ ORDERS ACTION BUTTONS
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, border 0.2s ease;
   gap: 0.2rem;
   min-height: 28px;
-  background: rgba(255, 108, 0, 0.1);
-  color: #c85400;
-  border-color: rgba(255, 108, 0, 0.3);
+  background: rgba(30, 58, 95, 0.1);
+  color: var(--color-primary-dark);
+  border-color: rgba(30, 58, 95, 0.3);
   outline: none !important;
 }
 
 .orders-action-btn:hover {
-  background: rgba(255, 108, 0, 0.15);
-  border-color: rgba(255, 108, 0, 0.4);
+  background: rgba(30, 58, 95, 0.15);
+  border-color: rgba(30, 58, 95, 0.4);
   transform: translateY(-1px);
 }
 
 .orders-action-btn:active,
 .orders-action-btn:focus,
 .orders-action-btn:focus-visible {
-  background: rgba(255, 108, 0, 0.2) !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
+  background: rgba(30, 58, 95, 0.2) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
   /* Gunakan box-shadow sebagai outline untuk menghindari perubahan layout */
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.3) !important;
 }
 
 .orders-action-btn-primary {
@@ -917,54 +917,54 @@ ORDERS ACTION BUTTONS
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, border 0.2s ease;
   gap: 0.2rem;
   min-height: 28px;
-  background: #ff6c00;
+  background: var(--color-primary-main);
   color: #fff;
-  border-color: #ff6c00;
+  border-color: var(--color-primary-main);
   outline: none !important;
 }
 
 .orders-action-btn-primary:hover {
-  background: #e05f00;
-  border-color: #e05f00;
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
 .orders-action-btn-primary:active,
 .orders-action-btn-primary:focus,
 .orders-action-btn-primary:focus-visible {
-  background: #cc5600 !important;
-  border-color: #cc5600 !important;
+  background: var(--color-primary-dark) !important;
+  border-color: var(--color-primary-dark) !important;
   color: #fff !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.3) !important;
 }
 
 .orders-action-btn-primary:disabled {
-  background: #9ca3af !important;
-  border-color: #9ca3af !important;
+  background: var(--color-text-secondary) !important;
+  border-color: var(--color-text-secondary) !important;
   cursor: not-allowed !important;
   transform: none !important;
 }
 
 .orders-action-btn--ghost {
-  background: #eef2ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
+  background: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
+  border-color: var(--color-accent-lighter);
 }
 
 .orders-action-btn--ghost:hover {
-  background: #c7d2fe;
+  background: var(--color-accent-lighter);
   transform: translateY(-1px);
 }
 
 .orders-action-btn--danger {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fecdd3;
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
+  border-color: var(--color-error-lighter);
 }
 
 .orders-action-btn--danger:hover {
-  background: #fecaca;
+  background: var(--color-error-lighter);
   transform: translateY(-1px);
 }
 
@@ -1100,11 +1100,10 @@ RESPONSIVE STYLES
   padding: 0;
 }
 
-/* Table Structure */
+/* Table Structure - baris kontigu, bukan pill terpisah */
 .orders-shell .table-orders {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.5rem;
+  border-collapse: collapse;
   min-width: 1500px;
 }
 
@@ -1116,7 +1115,7 @@ RESPONSIVE STYLES
 }
 
 .orders-shell .table-orders thead tr {
-  background: transparent;
+  background: var(--color-primary-main);
 }
 
 .orders-shell .table-orders th {
@@ -1124,23 +1123,13 @@ RESPONSIVE STYLES
   text-align: left;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #374151;
+  color: #ffffff;
   text-transform: uppercase;
-  background: #f3f4f6;
+  background: var(--color-primary-main);
   border: none;
   white-space: normal;
   vertical-align: bottom;
   line-height: 1.25;
-}
-
-.orders-shell .table-orders th:first-child {
-  border-top-left-radius: 0.5rem;
-  border-bottom-left-radius: 0.5rem;
-}
-
-.orders-shell .table-orders th:last-child {
-  border-top-right-radius: 0.5rem;
-  border-bottom-right-radius: 0.5rem;
 }
 
 /* Sticky Classes - UPDATED */
@@ -1152,7 +1141,7 @@ RESPONSIVE STYLES
 .orders-shell .sticky-left-2 {
   position: sticky !important;
   z-index: 40 !important;
-  background: #f3f4f6 !important;
+  background: var(--color-primary-main) !important;
   /* Header bg */
 }
 
@@ -1164,8 +1153,6 @@ RESPONSIVE STYLES
   width: 170px;
   /* Reduced from 220px */
   min-width: 170px;
-  border-top-left-radius: 0.5rem;
-  border-bottom-left-radius: 0.5rem;
 }
 
 /* Customer Column */
@@ -1178,26 +1165,28 @@ RESPONSIVE STYLES
   min-width: 160px;
 }
 
-/* Table Body Rows */
+/* Table Body Rows - kontigu, border-bottom sebagai pembatas */
 .orders-shell .table-orders tbody tr {
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  background: var(--color-bg-paper);
+  box-shadow: none;
+  transition: background 0.15s ease;
+}
+
+.orders-shell .table-orders tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .orders-shell .table-orders tbody tr:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-  z-index: 10;
-  position: relative;
+  background: var(--color-grey-50);
+  box-shadow: none;
+  transform: none;
 }
 
 .orders-shell .table-orders td {
   padding: 1rem;
   font-size: 0.875rem;
-  color: #1f2937;
-  background: white;
-  /* Default white */
+  color: var(--color-text-primary);
+  background: transparent;
   border: none;
   vertical-align: middle;
 }
@@ -1248,14 +1237,14 @@ RESPONSIVE STYLES
 
 .orders-shell .order-id-text {
   font-weight: 600;
-  color: #0ea5e9;
+  color: var(--color-info-main);
   margin: 0;
   line-height: 1.2;
 }
 
 .orders-shell .order-date-text {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -1267,13 +1256,13 @@ RESPONSIVE STYLES
 
 .orders-shell .customer-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .orders-shell .customer-detail {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -1281,7 +1270,7 @@ RESPONSIVE STYLES
 .orders-shell .follow-up-container {
   display: inline-flex;
   align-items: center;
-  background: #fffbeb;
+  background: var(--color-warning-lighter);
   padding: 0.35rem 0.75rem;
   border-radius: 9999px;
   gap: 0.5rem;
@@ -1294,13 +1283,13 @@ RESPONSIVE STYLES
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1.5px solid #22c55e;
-  color: #22c55e;
+  border: 1.5px solid var(--color-success-main);
+  color: var(--color-success-main);
   background: white;
 }
 
 .orders-shell .wa-bubble-icon.active {
-  background: #dcfce7;
+  background: var(--color-success-lighter);
 }
 
 .orders-shell .wa-bubble {
@@ -1315,19 +1304,19 @@ RESPONSIVE STYLES
 }
 
 .orders-shell .wa-bubble.active {
-  background: #22c55e;
+  background: var(--color-success-main);
   color: white;
-  border: 1.5px solid #22c55e;
+  border: 1.5px solid var(--color-success-main);
 }
 
 .orders-shell .wa-bubble.inactive {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--color-divider);
+  color: var(--color-text-secondary);
 }
 
 .orders-shell .wa-bubble.menu {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--color-divider);
+  color: var(--color-text-secondary);
   width: 24px;
   height: 24px;
   font-size: 1rem;
@@ -1353,41 +1342,41 @@ RESPONSIVE STYLES
 /* Paid / Lunas - Green */
 .orders-shell .payment-paid,
 .orders-shell .orders-status-badge--paid {
-  background-color: #ecfdf5;
-  color: #059669;
-  border-color: #34d399;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
+  border-color: var(--color-success-main);
 }
 
 /* Unpaid - Red */
 .orders-shell .payment-unpaid,
 .orders-shell .orders-status-badge--unpaid {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #f87171;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-main);
+  border-color: var(--color-error-main);
 }
 
 /* Pending - Orange */
 .orders-shell .payment-pending,
 .orders-shell .orders-status-badge--pending {
-  background-color: #fff7ed;
-  color: #ea580c;
-  border-color: #fb923c;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
+  border-color: var(--color-warning-main);
 }
 
 /* Rejected - Red */
 .orders-shell .payment-rejected,
 .orders-shell .orders-status-badge--rejected {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #f87171;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-main);
+  border-color: var(--color-error-main);
 }
 
 /* DP - Yellow/Amber */
 .orders-shell .payment-dp,
 .orders-shell .orders-status-badge--dp {
-  background-color: #fffbeb;
-  color: #d97706;
-  border-color: #fbbf24;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
+  border-color: var(--color-warning-main);
 }
 
 
@@ -1395,58 +1384,58 @@ RESPONSIVE STYLES
 
 /* Pending - Orange */
 .orders-shell .status-pending {
-  background-color: #fff7ed;
-  color: #ea580c;
-  border-color: #fb923c;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
+  border-color: var(--color-warning-main);
 }
 
 /* Sukses - Blue */
 .orders-shell .status-sukses,
 .orders-shell .orders-status-badge--sukses {
-  background-color: #f0f9ff;
-  color: #0284c7;
-  border-color: #38bdf8;
+  background-color: var(--color-info-lighter);
+  color: var(--color-info-dark);
+  border-color: var(--color-info-main);
 }
 
 /* Failed - Red */
 .orders-shell .status-failed,
 .orders-shell .orders-status-badge--failed {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #f87171;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-main);
+  border-color: var(--color-error-main);
 }
 
 /* Upselling - Indigo */
 .orders-shell .status-upselling,
 .orders-shell .orders-status-badge--upselling {
-  background-color: #eef2ff;
-  color: #4f46e5;
-  border-color: #818cf8;
+  background-color: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
+  border-color: var(--color-accent-main);
 }
 
 /* Dihapus - Gray */
 .orders-shell .status-dihapus,
 .orders-shell .orders-status-badge--dihapus {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border-color: #9ca3af;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-secondary);
 }
 
 /* Processing - Teal */
 .orders-shell .status-processing,
 .orders-shell .orders-status-badge--processing {
-  background-color: #f0fdf4;
+  background-color: var(--color-success-lighter);
   /* mint equivalent */
-  color: #16a34a;
-  border-color: #86efac;
+  color: var(--color-success-main);
+  border-color: var(--color-success-main);
 }
 
 /* Default */
 .orders-shell .status-default,
 .orders-shell .orders-status-badge--default {
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border-color: #d1d5db;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
+  border-color: var(--color-grey-300);
 }
 
 /* Action Buttons New UI */
@@ -1457,7 +1446,7 @@ RESPONSIVE STYLES
   align-items: center;
   justify-content: center;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1465,8 +1454,8 @@ RESPONSIVE STYLES
 }
 
 .action-btn-icon:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-bg-default);
+  border-color: var(--color-grey-300);
   transform: translateY(-1px);
 }
 
@@ -1474,7 +1463,7 @@ RESPONSIVE STYLES
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1e3a8a;
+  background: var(--color-info-dark);
   /* Dark Blue */
   color: white;
   border: none;
@@ -1489,7 +1478,7 @@ RESPONSIVE STYLES
 }
 
 .action-btn-dropdown:hover {
-  background: #172554;
+  background: var(--color-info-dark);
   transform: translateY(-1px);
 }
 
@@ -1525,9 +1514,9 @@ STATUS BADGES - All Status Types
 /* Unpaid Status - Orange */
 .orders-status-badge--unpaid,
 .status-badge.unpaid {
-  background: #FFF7ED !important;
-  color: #EA580C !important;
-  border: 1px solid #FFEDD5 !important;
+  background: var(--color-warning-lighter) !important;
+  color: var(--color-warning-dark) !important;
+  border: 1px solid var(--color-warning-lighter) !important;
 }
 
 /* Pending / Waiting Approval - Amber */
@@ -1535,9 +1524,9 @@ STATUS BADGES - All Status Types
 .status-badge.pending,
 .status-badge.order-pending,
 .status-badge.order-1 {
-  background: #FFFBEB !important;
-  color: #D97706 !important;
-  border: 1px solid #FEF3C7 !important;
+  background: var(--color-warning-lighter) !important;
+  color: var(--color-warning-dark) !important;
+  border: 1px solid var(--color-warning-lighter) !important;
 }
 
 /* Paid / Success / Completed - Green */
@@ -1551,9 +1540,9 @@ STATUS BADGES - All Status Types
 .orders-status-badge--completed,
 .status-badge.completed,
 .status-badge.order-4 {
-  background: #F0FDF4 !important;
-  color: #16A34A !important;
-  border: 1px solid #DCFCE7 !important;
+  background: var(--color-success-lighter) !important;
+  color: var(--color-success-main) !important;
+  border: 1px solid var(--color-success-lighter) !important;
 }
 
 /* Rejected / Failed / Deleted - Red */
@@ -1567,23 +1556,23 @@ STATUS BADGES - All Status Types
 .orders-status-badge--deleted,
 .status-badge.deleted,
 .status-badge.order-N {
-  background: #FEF2F2 !important;
-  color: #DC2626 !important;
-  border: 1px solid #FEE2E2 !important;
+  background: var(--color-error-lighter) !important;
+  color: var(--color-error-main) !important;
+  border: 1px solid var(--color-error-lighter) !important;
 }
 
 /* Partial Payment - Blue */
 .orders-status-badge--partial,
 .status-badge.partial {
-  background: #EFF6FF !important;
-  color: #2563EB !important;
-  border: 1px solid #DBEAFE !important;
+  background: var(--color-info-lighter) !important;
+  color: var(--color-info-dark) !important;
+  border: 1px solid var(--color-info-lighter) !important;
 }
 
 .orders-status-badge--default,
 .status-badge.default {
-  background: #F3F4F6;
-  color: #374151;
+  background: var(--color-grey-100);
+  color: var(--color-text-primary);
 }
 
 /* ===========================
@@ -1601,13 +1590,13 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 
 .payment-main {
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--color-text-primary);
   word-wrap: break-word;
 }
 
 .payment-main strong {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .payment-list {
@@ -1616,9 +1605,9 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
   gap: 0.25rem;
   margin-top: 0.25rem;
   padding: 0.5rem;
-  background: #f9fafb;
+  background: var(--color-grey-50);
   border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-divider);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1634,13 +1623,13 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 }
 
 .payment-number {
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
   flex-shrink: 0;
 }
 
 .payment-amount {
-  color: #059669;
+  color: var(--color-success-dark);
   font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
@@ -1652,7 +1641,7 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 }
 
 .payment-hint {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
@@ -1662,7 +1651,7 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
   gap: 0.25rem;
   margin-top: 0.375rem;
   padding-top: 0.375rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-divider);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1677,7 +1666,7 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 }
 
 .payment-label {
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -1689,7 +1678,7 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 
 .payment-label.payment-clickable:hover {
   opacity: 0.8;
-  color: #c85400;
+  color: var(--color-primary-dark);
   text-decoration: underline;
 }
 
@@ -1700,11 +1689,11 @@ PAYMENT DETAILS STYLES (from page.js <style jsx>)
 }
 
 .payment-value.paid {
-  color: #059669;
+  color: var(--color-success-dark);
 }
 
 .payment-value.remaining {
-  color: #dc2626;
+  color: var(--color-error-main);
 }
 
 .payment-clickable {
@@ -1750,7 +1739,7 @@ MODAL OVERLAY STYLES (from page.js <style jsx>)
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
   background: #ffffff;
 }
 
@@ -1758,27 +1747,27 @@ MODAL OVERLAY STYLES (from page.js <style jsx>)
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .modal-subtitle {
   margin: 4px 0 0 0;
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .close-btn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
 }
 
 .close-btn:hover {
-  background: #e2e8f0;
-  color: #ef4444;
+  background: var(--color-border);
+  color: var(--color-error-main);
 }
 
 .modal-body {
@@ -1791,7 +1780,7 @@ MODAL OVERLAY STYLES (from page.js <style jsx>)
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 /* ===========================
@@ -1821,8 +1810,8 @@ TIMELINE STYLES (from page.js <style jsx>)
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #10b981;
-  border: 2px solid #d1fae5;
+  background: var(--color-success-main);
+  border: 2px solid var(--color-success-lighter);
   flex-shrink: 0;
   z-index: 1;
 }
@@ -1830,7 +1819,7 @@ TIMELINE STYLES (from page.js <style jsx>)
 .timeline-line {
   width: 2px;
   flex: 1;
-  background: #e5e7eb;
+  background: var(--color-divider);
   margin-top: 4px;
 }
 
@@ -1849,18 +1838,18 @@ TIMELINE STYLES (from page.js <style jsx>)
 
 .timeline-type {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .timeline-date {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .timeline-message {
-  color: #475569;
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
   margin-top: 0.25rem;
@@ -1876,18 +1865,18 @@ TIMELINE STYLES (from page.js <style jsx>)
 }
 
 .timeline-status.success {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .timeline-status.pending {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 .timeline-status.failed {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 /* ===========================
