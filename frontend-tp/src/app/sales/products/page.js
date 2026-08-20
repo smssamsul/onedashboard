@@ -127,15 +127,15 @@ export default function AdminProductsPage() {
     if (status === "1") {
       return (
         <span style={{
-          background: '#ecfdf5', color: '#059669', border: '1px solid #34d399',
-          padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600
+          background: 'var(--color-success-lighter)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-main)',
+          padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600
         }}>Active</span>
       );
     }
     return (
       <span style={{
-        background: '#fef2f2', color: '#dc2626', border: '1px solid #f87171',
-        padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600
+        background: 'var(--color-error-lighter)', color: 'var(--color-error-dark)', border: '1px solid var(--color-error-main)',
+        padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600
       }}>Inactive</span>
     );
   }, []);
@@ -180,7 +180,7 @@ export default function AdminProductsPage() {
         <section className="dashboard-summary products-summary">
           <article className="summary-card summary-card--combined summary-card--three-cols">
             <div className="summary-card__column">
-              <div className="summary-card__icon accent-orange">
+              <div className="summary-card__icon color-info">
                 <Package size={22} />
               </div>
               <div>
@@ -190,7 +190,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="summary-card__divider"></div>
             <div className="summary-card__column">
-              <div className="summary-card__icon accent-orange">
+              <div className="summary-card__icon color-success">
                 <CheckCircle size={22} />
               </div>
               <div>
@@ -200,7 +200,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="summary-card__divider"></div>
             <div className="summary-card__column">
-              <div className="summary-card__icon accent-orange">
+              <div className="summary-card__icon color-warning">
                 <Search size={22} />
               </div>
               <div>
@@ -288,13 +288,13 @@ export default function AdminProductsPage() {
                       <td className="sticky-left-1" style={{ width: '250px', minWidth: '250px' }}>
                         <div className="product-table__info">
                           {p.unit_bisnis_rel?.nama && (
-                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.15rem' }}>
+                            <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '0.15rem' }}>
                               {p.unit_bisnis_rel.nama}
                             </span>
                           )}
                           <span
                             className="product-table__name"
-                            style={{ display: 'block', fontWeight: 600, color: '#0ea5e9', cursor: 'pointer', marginBottom: '0.25rem' }}
+                            style={{ display: 'block', fontWeight: 600, color: 'var(--color-info-dark)', cursor: 'pointer', marginBottom: '0.25rem' }}
                             onClick={() => router.push(`/sales/products/view/${p.id}`)}
                           >
                             {p.nama || "-"}
@@ -360,13 +360,13 @@ export default function AdminProductsPage() {
                                 style={{
                                   fontSize: "0.875rem",
                                   fontWeight: 600,
-                                  color: "#111827",
+                                  color: "var(--color-text-primary)",
                                 }}
                               >
                                 {formatListRupiah(revenue)}
                               </span>
                               {showTrainerFee && (
-                                <span style={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.35 }}>
+                                <span style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", lineHeight: 1.35 }}>
                                   fee trainer ({pct.toFixed(1)}%) = {formatListRupiah(trainerFeeRp)}
                                 </span>
                               )}
@@ -379,7 +379,7 @@ export default function AdminProductsPage() {
                         {(() => {
                           const jadwalArr = p.jadwal_rel || [];
                           if (jadwalArr.length === 0) {
-                            return <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>;
+                            return <span style={{ color: 'var(--color-text-disabled)', fontSize: '0.75rem' }}>—</span>;
                           }
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -387,16 +387,16 @@ export default function AdminProductsPage() {
                                 <div key={idx} style={{
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  background: '#f0f9ff',
-                                  border: '1px solid #bae6fd',
-                                  borderRadius: '6px',
+                                  background: 'var(--color-info-lighter)',
+                                  border: '1px solid var(--color-info-main)',
+                                  borderRadius: 'var(--radius-sm)',
                                   padding: '4px 8px',
                                   minWidth: '130px',
                                 }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0369a1', lineHeight: 1.3 }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-info-dark)', lineHeight: 1.3 }}>
                                     {j.nama_jadwal || `Jadwal ${idx + 1}`}
                                   </span>
-                                  <span style={{ fontSize: '0.72rem', color: '#475569', marginTop: '1px' }}>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: '1px' }}>
                                     {j.waktu_mulai ? formatDate(j.waktu_mulai) : '—'}
                                   </span>
                                 </div>
@@ -418,24 +418,26 @@ export default function AdminProductsPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="customers-pagination">
-              <button
-                className="customers-pagination__btn"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                <i className="pi pi-chevron-left" />
-              </button>
-              <span className="customers-pagination__info">
-                Page {currentPage} of {totalPages} ({filtered.length} total)
-              </span>
-              <button
-                className="customers-pagination__btn"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <i className="pi pi-chevron-right" />
-              </button>
+            <div className="pagination-bar" style={{ justifyContent: "center" }}>
+              <div className="pagination-bar__nav">
+                <button
+                  className="pagination-bar__btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ‹
+                </button>
+                <span className="pagination-bar__info">
+                  Page {currentPage} of {totalPages} ({filtered.length} total)
+                </span>
+                <button
+                  className="pagination-bar__btn"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  ›
+                </button>
+              </div>
             </div>
           )}
         </section>

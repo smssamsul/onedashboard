@@ -217,7 +217,7 @@ export default function ProductPerformanceAll({ productStats, productSummary, lo
                 .product-row-main.is-expanded { background-color: var(--color-grey-100); }
 
                 .data-table th {
-                    background-color: var(--color-grey-100); color: var(--color-text-secondary); font-weight: 700;
+                    background-color: var(--color-primary-main); color: #ffffff; font-weight: 700;
                     font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px;
                 }
                 .data-table th:first-child { border-top-left-radius: var(--radius-sm); border-bottom-left-radius: var(--radius-sm); }

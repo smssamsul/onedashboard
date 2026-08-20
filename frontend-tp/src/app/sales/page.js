@@ -782,9 +782,9 @@ export default function Dashboard() {
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>FOLLOW UP</th>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TANGGAL</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>FOLLOW UP</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -843,10 +843,10 @@ export default function Dashboard() {
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>PRODUK</th>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TOTAL</th>
-                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TANGGAL</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>PRODUK</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TOTAL</th>
+                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -361,24 +361,21 @@ export default function LogPixelPage() {
 
           {/* PAGINATION */}
           {paginationInfo && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderTop: "1px solid #f1f5f9" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>Tampilkan:</span>
-                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
-                  style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #e2e8f0", outline: "none", cursor: "pointer" }}>
+            <div className="pagination-bar">
+              <div className="pagination-bar__pagesize">
+                <span>Tampilkan:</span>
+                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
                   {PER_PAGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt} Data</option>)}
                 </select>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <button onClick={() => setPage(p => p - 1)} disabled={page <= 1}
-                  style={{ padding: "6px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: page <= 1 ? "#f8fafc" : "white", color: page <= 1 ? "#cbd5e1" : "#374151", cursor: page <= 1 ? "not-allowed" : "pointer" }}>
+              <div className="pagination-bar__nav">
+                <button className="pagination-bar__btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>
                   ‹
                 </button>
-                <span style={{ fontSize: "0.875rem", color: "#64748b", fontWeight: 500 }}>
+                <span className="pagination-bar__info">
                   Halaman {page} dari {paginationInfo.last_page} ({paginationInfo.total} total)
                 </span>
-                <button onClick={() => setPage(p => p + 1)} disabled={page >= paginationInfo.last_page}
-                  style={{ padding: "6px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: page >= paginationInfo.last_page ? "#f8fafc" : "white", color: page >= paginationInfo.last_page ? "#cbd5e1" : "#374151", cursor: page >= paginationInfo.last_page ? "not-allowed" : "pointer" }}>
+                <button className="pagination-bar__btn" onClick={() => setPage(p => p + 1)} disabled={page >= paginationInfo.last_page}>
                   ›
                 </button>
               </div>

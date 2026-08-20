@@ -658,8 +658,8 @@ body {
 .data-table th {
   text-align: left;
   padding: var(--space-3) var(--space-2);
-  color: var(--dash-muted);
-  background-color: var(--color-grey-100);
+  color: #ffffff;
+  background-color: var(--color-primary-main);
   font-weight: var(--font-semibold);
   font-size: 0.75rem;
   text-transform: uppercase;
