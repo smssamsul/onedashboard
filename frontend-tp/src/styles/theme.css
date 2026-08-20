@@ -34,7 +34,7 @@
   --sidebar-section-text: #7189aa;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
-  --sidebar-active-bg: var(--color-accent-main);
+  --sidebar-active-bg: #596f9e;
   --sidebar-active-text: #ffffff;
 
   /* --- Grey scale --- */
