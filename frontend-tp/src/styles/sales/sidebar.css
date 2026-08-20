@@ -6,12 +6,6 @@
 :root {
   --sidebar-width: 16.25rem;
   --sidebar-compact-width: 4.5rem;
-  --sidebar-bg: var(--color-bg-paper);
-  --sidebar-border: var(--color-divider);
-  --sidebar-accent: var(--color-primary-main);
-  --sidebar-accent-soft: var(--color-primary-lighter);
-  --sidebar-text: var(--color-text-primary);
-  --sidebar-muted: var(--color-text-secondary);
   --sidebar-shadow: none;
 }
 
@@ -32,7 +26,7 @@
   transition: width 200ms ease, transform 220ms ease, box-shadow 220ms ease;
 }
 
-/* Custom Scrollbar - Tipis dan Halus */
+/* Custom Scrollbar - Tipis dan Halus (sidebar selalu gelap, jadi thumb terang) */
 .sidebar::-webkit-scrollbar {
   width: 6px;
 }
@@ -42,19 +36,19 @@
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 3px;
   transition: background 200ms ease;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* Firefox */
 .sidebar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 
 .sidebar--tablet.sidebar--compact,
@@ -138,7 +132,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
+  color: var(--sidebar-section-text);
   padding: 0.5rem 0.75rem 0.25rem;
   margin-top: 0.15rem;
   user-select: none;
@@ -175,7 +169,7 @@
   flex: 1;
 }
 
-/* Wrapper icon - tanpa kotak/background sendiri, ikut warna baris (gaya Mantis) */
+/* Wrapper icon - tanpa kotak/background sendiri, ikut warna baris */
 .sidebar-item-icon-wrapper {
   flex-shrink: 0;
   width: 24px;
@@ -194,11 +188,12 @@
 }
 
 .sidebar-item:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-muted);
+  color: var(--sidebar-text);
+  opacity: 0.85;
 }
 
-.sidebar-item-active .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-accent);
+.sidebar-item.sidebar-item-active .sidebar-item-icon-wrapper svg {
+  color: var(--sidebar-active-text);
 }
 
 /* Chevron icon (panah) tidak pakai background */
@@ -212,24 +207,29 @@
 
 /* Hover state untuk item tidak aktif */
 .sidebar-item:not(.sidebar-item-active):hover {
-  background: var(--color-grey-100);
-  color: var(--sidebar-text);
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-strong);
 }
 
 .sidebar-item:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-accent);
+  color: var(--sidebar-text-strong);
+  opacity: 1;
 }
 
-/* Active state - tint tipis warna aksen, gaya Mantis (bukan kotak putih+shadow) */
-.sidebar-item-active {
-  background: var(--sidebar-accent-soft);
-  color: var(--sidebar-accent);
+/* Active state - pill solid warna aksen (teal), teks putih. Selector digabung
+   .sidebar-item.sidebar-item-active (bukan cuma .sidebar-item-active) supaya
+   spesifisitasnya jelas menang atas .sidebar-item biasa - kalau seri (sama-sama
+   1 class), browser kadang gagal invalidate ulang nilai var() dependent-nya
+   pas ada perubahan tema live. */
+.sidebar-item.sidebar-item-active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
   font-weight: 600;
   box-shadow: none;
 }
 
-.sidebar-item-active span:not(.sidebar-item-icon-wrapper) {
-  color: var(--sidebar-accent);
+.sidebar-item.sidebar-item-active span:not(.sidebar-item-icon-wrapper) {
+  color: var(--sidebar-active-text);
 }
 
 .sidebar-footer {
@@ -249,7 +249,7 @@
   height: 44px;
   border-radius: 999px;
   border: none;
-  background: var(--sidebar-accent);
+  background: var(--sidebar-active-bg);
   color: #fff;
   display: flex;
   align-items: center;
@@ -268,7 +268,7 @@
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   z-index: 40;
 }
@@ -349,20 +349,20 @@
 
 /* Pastikan icon wrapper untuk item dengan submenu memiliki warna yang sama dengan item biasa */
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-muted);
+  color: var(--sidebar-text);
 }
 
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active {
-  background: var(--sidebar-accent-soft);
+  background: var(--sidebar-active-bg);
 }
 
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu.sidebar-item-active .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-accent);
+  color: var(--sidebar-active-text);
 }
 
 /* Hover state untuk item dengan submenu saat collapsed */
 .sidebar--desktop.sidebar--collapsed .sidebar-item.has-submenu:not(.sidebar-item-active):hover .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-accent);
+  color: var(--sidebar-text-strong);
 }
 
 /* Submenu disembunyikan saat collapsed - hanya menu utama yang tampil */
@@ -425,24 +425,24 @@
   text-align: left;
 }
 
-/* === SUBMENU (Modern + Icon + Smooth) === */
+/* === SUBMENU === */
 .submenu-list {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
   margin-left: 0.75rem;
   padding-left: 0.5rem;
-  border-left: 1px solid var(--color-divider);
+  border-left: 1px solid var(--sidebar-border);
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   margin-top: 0;
   padding-top: 0;
   padding-bottom: 0;
-  transition: max-height 400ms cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 400ms cubic-bezier(0.4, 0, 0.2, 1), 
-              margin-top 400ms cubic-bezier(0.4, 0, 0.2, 1), 
-              padding-top 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+  transition: max-height 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding-top 400ms cubic-bezier(0.4, 0, 0.2, 1),
               padding-bottom 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -461,20 +461,20 @@
   gap: 0.5rem;
   padding: 0.375rem 0.625rem;
   font-size: 0.82rem;
-  color: var(--sidebar-muted);
+  color: var(--sidebar-text);
   border-radius: var(--radius-sm);
   transition: color 160ms ease, background 160ms ease;
 }
 
 /* Subtle hover only (professional) */
 .submenu-item:hover {
-  background: var(--color-grey-100);
-  color: var(--sidebar-text);
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-strong);
 }
 
-.submenu-item-active {
-  background: var(--sidebar-accent-soft);
-  color: var(--sidebar-accent);
+.submenu-item.submenu-item-active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
   font-weight: 600;
 }
 
@@ -487,7 +487,8 @@
 /* Chevron icon (panah kanan/bawah) - tidak pakai background kotak */
 .sidebar-item.has-submenu .flex + svg,
 .sidebar-item.has-submenu > svg:last-child {
-  color: var(--color-grey-400);
+  color: var(--sidebar-text);
+  opacity: 0.7;
   transition: transform 300ms ease, color 200ms ease;
   background: transparent !important;
   padding: 0;
@@ -499,17 +500,19 @@
 .sidebar-item.has-submenu.open .flex + svg,
 .sidebar-item.has-submenu.open > svg:last-child {
   transform: rotate(90deg);
-  color: var(--sidebar-accent);
+  color: var(--sidebar-text-strong);
+  opacity: 1;
 }
 
-/* Item dengan submenu yang lagi terbuka (tapi bukan halaman aktif) - tint sama seperti hover/active */
+/* Item dengan submenu yang lagi terbuka (tapi bukan halaman aktif) - tint halus */
 .sidebar-item.has-submenu.open:not(.sidebar-item-active) {
-  background: var(--sidebar-accent-soft);
-  color: var(--sidebar-accent);
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-strong);
 }
 
 .sidebar-item.has-submenu.open:not(.sidebar-item-active) .sidebar-item-icon-wrapper svg {
-  color: var(--sidebar-accent);
+  color: var(--sidebar-text-strong);
+  opacity: 1;
 }
 /* ==========================================================
    CONTENT POSITIONING SAAT ADA / TIDAK ADA SIDEBAR
@@ -566,20 +569,4 @@
     margin-left: 0;
     width: 100%;
   }
-}
-
-[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-[data-theme="dark"] .sidebar {
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
-}
-
-[data-theme="dark"] .sidebar-overlay {
-  background: rgba(0, 0, 0, 0.55);
 }
