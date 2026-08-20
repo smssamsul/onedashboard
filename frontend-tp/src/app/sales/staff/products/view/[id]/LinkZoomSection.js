@@ -98,7 +98,6 @@ export default function LinkZoomSection({ productId, productName }) {
 
       if (res.ok && data?.success && Array.isArray(data.data)) {
         setWebinars(data.data);
-        console.log("✅ [LINK ZOOM] Webinars loaded:", data.data);
       } else {
         setWebinars([]);
       }

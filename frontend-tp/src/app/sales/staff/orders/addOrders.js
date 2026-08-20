@@ -446,7 +446,6 @@ export default function AddOrders({ onClose, onAdd }) {
       status_pembayaran: formData.status_pembayaran === 4 ? 4 : (formData.status_pembayaran === null ? null : 0),
     };
 
-    console.log("[ADD_ORDERS] Payload sebelum kirim:", JSON.stringify(payload, null, 2));
 
     const res = await createOrder(payload);
 

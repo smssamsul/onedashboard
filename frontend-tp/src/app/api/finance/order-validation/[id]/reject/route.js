@@ -36,10 +36,6 @@ export async function POST(request, { params }) {
     const requestBody = { catatan: catatan.trim() };
     const backendUrl = `${BACKEND_URL}/api/finance/order-validation/${id}/reject`;
     
-    console.log(`🔴 [FINANCE-REJECT] Rejecting order: ${id}`);
-    console.log(`🔴 [FINANCE-REJECT] Backend URL: ${backendUrl}`);
-    console.log(`🔴 [FINANCE-REJECT] Request body:`, requestBody);
-    console.log(`🔴 [FINANCE-REJECT] Token present:`, !!token);
 
     // Forward request to backend
     const response = await fetch(backendUrl, {
@@ -53,8 +49,6 @@ export async function POST(request, { params }) {
     });
 
     const text = await response.text();
-    console.log(`📥 [FINANCE-REJECT] Response status: ${response.status}`);
-    console.log(`📥 [FINANCE-REJECT] Response text:`, text);
     
     let json;
 
@@ -73,7 +67,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`📥 [FINANCE-REJECT] Parsed response:`, json);
 
     // Return response from backend (forward as-is)
     return NextResponse.json(json, { 

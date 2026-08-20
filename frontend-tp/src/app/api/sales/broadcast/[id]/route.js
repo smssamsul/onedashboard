@@ -19,8 +19,6 @@ export async function DELETE(request, { params }) {
     // Hard delete dengan force=true agar benar-benar dihapus, bukan hanya ubah status
     const deleteUrl = `${BACKEND_URL}/api/sales/broadcast/${id}?force=true`;
 
-    console.log(`🗑️ [BROADCAST-DELETE] Hard deleting broadcast: ${id}`);
-    console.log(`🗑️ [BROADCAST-DELETE] Delete URL: ${deleteUrl}`);
 
     const response = await fetch(deleteUrl, {
       method: "DELETE",
@@ -32,8 +30,6 @@ export async function DELETE(request, { params }) {
     });
 
     const text = await response.text();
-    console.log(`📥 [BROADCAST-DELETE] Response status: ${response.status}`);
-    console.log(`📥 [BROADCAST-DELETE] Response text:`, text);
 
     let json;
     try {

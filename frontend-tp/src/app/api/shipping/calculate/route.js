@@ -74,7 +74,6 @@ export async function GET(request) {
         console.error('[SHIPPING_CALCULATE] Fetch failed:', fetchError.message, 'URL:', costUrl);
       }
       // Fallback ke RajaOngkir API
-      console.log('[SHIPPING_CALCULATE] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(receiver_destination_id, parseInt(weight, 10), courier);
       } catch (fallbackError) {
@@ -123,7 +122,6 @@ export async function GET(request) {
     // Tangani response kosong - coba fallback
     if (!responseText || responseText.trim().length === 0) {
       console.error('[SHIPPING_CALCULATE] Empty response from API');
-      console.log('[SHIPPING_CALCULATE] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(receiver_destination_id, parseInt(weight, 10), courier);
       } catch (fallbackError) {
@@ -142,7 +140,6 @@ export async function GET(request) {
     let json;
     try {
       json = JSON.parse(responseText);
-      console.log('[SHIPPING_CALCULATE] Response parsed successfully, keys:', Object.keys(json));
     } catch (parseError) {
       // Log error untuk debugging
       console.error('[SHIPPING_CALCULATE] JSON parse error:', parseError.message);
@@ -175,7 +172,6 @@ export async function GET(request) {
     } else {
       // Format tidak dikenal - log untuk debugging dan coba fallback
       console.error('[SHIPPING_CALCULATE] Unknown response format. Response:', JSON.stringify(json).substring(0, 1000));
-      console.log('[SHIPPING_CALCULATE] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(receiver_destination_id, parseInt(weight, 10), courier);
       } catch (fallbackError) {
@@ -215,7 +211,6 @@ export async function GET(request) {
     console.error('[SHIPPING_CALCULATE] Unexpected error:', error);
     
     // Fallback ke RajaOngkir API
-    console.log('[SHIPPING_CALCULATE] Trying fallback to RajaOngkir API...');
     try {
       return await fallbackToRajaOngkir(receiver_destination_id, parseInt(weight, 10), courier);
     } catch (fallbackError) {
@@ -271,7 +266,6 @@ async function fallbackToRajaOngkir(destination, weight = 1000, courier = 'jne')
     const price = parseInt(cost.value || 0, 10);
     const etd = cost.etd || '';
 
-    console.log('[SHIPPING_CALCULATE] Fallback to RajaOngkir successful, price:', price);
     
     return NextResponse.json({
       success: true,

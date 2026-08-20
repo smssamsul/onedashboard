@@ -384,7 +384,6 @@ export async function POST(request) {
       delete payloadToSend.header;
     }
 
-    console.log("📤 [POST_PRODUK2] Sending to backend");
 
     // Send to backend
     const response = await fetch(`${BACKEND_URL}/api/admin/produk`, {

@@ -74,7 +74,6 @@ export default function PaymentPage() {
       if (storedOrderData) {
         try {
           localStorageOrderData = JSON.parse(storedOrderData);
-          console.log("[PAYMENT] Order data from localStorage:", localStorageOrderData);
         } catch (e) {
           console.error("[PAYMENT] Error parsing stored order data:", e);
         }
@@ -119,13 +118,11 @@ export default function PaymentPage() {
 
         if (!orderStillUnpaid) {
           // Order sudah terbayar, hapus data dari localStorage
-          console.log("[PAYMENT] Order sudah terbayar, removing from localStorage");
           localStorage.removeItem("customer_order_data");
           localStorage.removeItem("pending_order");
         }
       } else if (unpaidOrdersList.length === 0 && localStorageOrderData) {
         // Tidak ada unpaid orders, hapus data
-        console.log("[PAYMENT] No unpaid orders, removing from localStorage");
         localStorage.removeItem("customer_order_data");
         localStorage.removeItem("pending_order");
       }
@@ -147,8 +144,6 @@ export default function PaymentPage() {
     // Ambil paymentMethod dari objek order (yang sudah di-map dengan prioritas API)
     const paymentMethod = String(order.paymentMethod || "manual").toLowerCase();
     const { productName, totalHarga, nama, email, orderId } = order;
-
-    console.log("[PAYMENT_PAGE] Processing Payment:", { orderId, paymentMethod, productName });
 
     // Jika metode pembayaran adalah E-Payment (ewallet, cc, va, doku)
     const isEpayment = ["ewallet", "cc", "va", "doku"].includes(paymentMethod);
@@ -185,8 +180,6 @@ export default function PaymentPage() {
         } else if (paymentMethod === "cc") {
           endpoint = "/api/doku/create-payment-cc";
         }
-
-        console.log("[PAYMENT_PAGE] Triggering API:", endpoint);
 
         const response = await fetch(endpoint, {
           method: "POST",
@@ -229,7 +222,6 @@ export default function PaymentPage() {
         ? totalHarga.replace(/\D/g, "")
         : totalHarga;
 
-      console.log("[PAYMENT_PAGE] Redirecting to Manual Transfer");
       router.push(`/payment?product=${encodeURIComponent(productName)}&harga=${amountValue || "0"}&via=manual&order_id=${orderId || ""}&sumber=dashboard`);
     }
   };

@@ -14,7 +14,6 @@ export async function GET(request) {
 
     const backendUrl = `${BACKEND_URL}/api/finance/order-validation/statistics`;
     
-    console.log("🔍 [FINANCE-STATS] Fetching statistics from:", backendUrl);
     
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -27,7 +26,6 @@ export async function GET(request) {
     });
 
     const text = await response.text();
-    console.log("📥 [FINANCE-STATS] Response status:", response.status);
     
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {

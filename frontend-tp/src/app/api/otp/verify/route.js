@@ -23,8 +23,6 @@ export async function POST(request) {
       CryptoJS.enc.Hex
     );
 
-    console.log("[OTP_VERIFY] Timestamp:", timestamp);
-    console.log("[OTP_VERIFY] Hash:", hash);
 
     // Kirim ke backend
     const response = await fetch(`${BACKEND_URL}/api/otp/verify`, {

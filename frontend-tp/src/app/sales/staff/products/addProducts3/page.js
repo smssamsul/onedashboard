@@ -555,27 +555,19 @@ export default function AddProducts3Page() {
 
   // Handler untuk expand/collapse komponen
   const handleToggleExpand = (blockId) => {
-    console.log('[handleToggleExpand] Called with blockId:', blockId);
-    console.log('[handleToggleExpand] Current collapsedBlockIds:', Array.from(collapsedBlockIds));
-    console.log('[handleToggleExpand] Block exists?', blocks.find(b => b.id === blockId));
 
     setCollapsedBlockIds((prev) => {
       const newSet = new Set(prev);
       const wasCollapsed = newSet.has(blockId);
-      console.log('[handleToggleExpand] Before toggle - wasCollapsed:', wasCollapsed);
 
       if (wasCollapsed) {
         // Jika sudah collapsed, expand (hapus dari set)
         newSet.delete(blockId);
-        console.log('[handleToggleExpand] Expanding block - removed from set');
       } else {
         // Jika sudah expanded, collapse (tambah ke set)
         newSet.add(blockId);
-        console.log('[handleToggleExpand] Collapsing block - added to set');
       }
 
-      console.log('[handleToggleExpand] After toggle - newSet:', Array.from(newSet));
-      console.log('[handleToggleExpand] BlockId:', blockId, 'Now Collapsed:', newSet.has(blockId));
       return newSet;
     });
   };
@@ -585,7 +577,6 @@ export default function AddProducts3Page() {
     // Default expanded, kecuali jika ada di collapsedBlockIds
     const isExpanded = !collapsedBlockIds.has(block.id);
 
-    console.log('[renderComponent] Block:', block.id, 'Type:', block.type, 'isExpanded:', isExpanded, 'inCollapsedSet:', collapsedBlockIds.has(block.id));
 
     const commonProps = {
       data: block.data,
@@ -598,7 +589,6 @@ export default function AddProducts3Page() {
       onDelete: () => deleteBlock(block.id),
       isExpanded: isExpanded,
       onToggleExpand: () => {
-        console.log('[renderComponent] onToggleExpand callback called for block:', block.id);
         handleToggleExpand(block.id);
       },
     };
@@ -690,12 +680,6 @@ export default function AddProducts3Page() {
 
     // Debug log untuk melihat data yang digunakan
     if (blockToRender.type === 'list') {
-      console.log(`[RENDER] Rendering list block:`, {
-        id: blockToRender.id,
-        hasData: !!blockToRender.data,
-        items: blockToRender.data?.items || [],
-        componentTitle: blockToRender.data?.componentTitle
-      });
     }
 
     switch (blockToRender.type) {
@@ -1655,7 +1639,6 @@ export default function AddProducts3Page() {
 
         const handleClick = (e) => {
           if (buttonData.fbPixelEvent) {
-            console.log(`[Preview] Trigger Facebook Pixel Event: ${buttonData.fbPixelEvent}`);
           }
           if (isAnchor) {
             e.preventDefault();
@@ -1750,19 +1733,6 @@ export default function AddProducts3Page() {
         });
 
         // ✅ DEBUG: Log untuk tracking identifier
-        console.log(`[SECTION RENDER] Section ID: "${sectionComponentId}"`, {
-          sectionBlockId: blockToRender.id,
-          sectionConfigComponentId: blockToRender.config?.componentId,
-          childCount: childComponents.length,
-          allBlocksWithParentId: blocks
-            .filter(b => b.parentId)
-            .map(b => ({
-              id: b.id,
-              type: b.type,
-              parentId: b.parentId,
-              match: b.parentId === sectionComponentId ? "✅ MATCH" : "❌ NO MATCH"
-            }))
-        });
 
         // ✅ FIX #3: Build section styles from block.style.container, bukan block.data
         const sectionData = blockToRender.data || {};
@@ -3307,7 +3277,6 @@ export default function AddProducts3Page() {
       toast.success("Produk berhasil disimpan dan dipublish!", { id: "save-product" });
 
       // Redirect langsung ke halaman products
-      console.log("Redirecting to /sales/staff/products...");
       window.location.href = "/sales/staff/products";
 
     } catch (error) {
@@ -3463,7 +3432,6 @@ export default function AddProducts3Page() {
   // Handler untuk exit tanpa save
   const handleExitWithoutSave = () => {
     setShowExitModal(false);
-    console.log("Exiting to /sales/staff/products...");
     window.location.href = "/sales/staff/products";
   };
 

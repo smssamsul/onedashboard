@@ -53,7 +53,6 @@ export default function FollowupReportPage() {
     async function loadLogs() {
       try {
         const res = await getLogsFollowUp();
-        console.log("📥 [REPORT] API Response:", res);
 
         const mappedLogs = (res.data || []).map((item) => {
           const status = getLogStatus(item);

@@ -31,7 +31,6 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
         );
         
         setTrainers(trainerUsers);
-        console.log("✅ [TRAINER] Trainers loaded:", trainerUsers);
       } catch (err) {
         console.error("❌ [TRAINER] Error fetching trainers:", err);
         toast.error("Gagal memuat daftar trainer");

@@ -128,7 +128,6 @@ export default function WorkshopPage() {
         status_pembayaran: 4, // Status DP (Down Payment)
       };
 
-      console.log("📤 [WORKSHOP] Submitting order:", payload);
 
       // Submit order ke API
       const response = await fetch("/api/order", {
@@ -151,7 +150,6 @@ export default function WorkshopPage() {
         throw new Error("Order ID tidak ditemukan dalam response");
       }
 
-      console.log("✅ [WORKSHOP] Order created:", orderId);
 
       // Simpan data order ke localStorage untuk payment page
       const orderData = {

@@ -29,14 +29,8 @@ export default function CustomerLayout({ children }) {
   }, [pathname]);
 
   useEffect(() => {
-    console.log("🔵 [CUSTOMER_LAYOUT] Checking authentication...");
     const session = getCustomerSession();
 
-    console.log("🔵 [CUSTOMER_LAYOUT] Session:", {
-      isAuthenticated: session.isAuthenticated,
-      hasToken: !!session.token,
-      user: session.user
-    });
 
     // Set customer info untuk ditampilkan di navbar
     if (session.user) {
@@ -58,7 +52,6 @@ export default function CustomerLayout({ children }) {
     if (debugLog) {
       try {
         const debug = JSON.parse(debugLog);
-        console.log("🔍 [CUSTOMER_LAYOUT DEBUG] Previous login attempt:", debug);
       } catch (e) {
         console.error("Failed to parse debug log:", e);
       }
@@ -108,7 +101,6 @@ export default function CustomerLayout({ children }) {
       console.warn("⚠️ [CUSTOMER_LAYOUT] Allowing access for verification");
     }
 
-    console.log("✅ [CUSTOMER_LAYOUT] Authenticated, setting authorized to true");
     setIsAuthorized(true);
   }, [router]);
 

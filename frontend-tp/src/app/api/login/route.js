@@ -16,20 +16,12 @@ export async function POST(request) {
   const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Log immediately when function is called
-  console.log('[LOGIN_PROXY] ========== LOGIN REQUEST STARTED ==========');
-  console.log('[LOGIN_PROXY] Request ID:', requestId);
-  console.log('[LOGIN_PROXY] Timestamp:', new Date().toISOString());
-  console.log('[LOGIN_PROXY] Environment:', process.env.NODE_ENV);
-  console.log('[LOGIN_PROXY] Vercel:', !!process.env.VERCEL);
-  console.log('[LOGIN_PROXY] Vercel Region:', process.env.VERCEL_REGION || 'unknown');
 
   try {
     // Parse request body with error handling
     let body;
     try {
       body = await request.json();
-      console.log('[LOGIN_PROXY] ✅ Request body parsed successfully');
-      console.log('[LOGIN_PROXY] Request body:', { email: body.email, password: '***' });
     } catch (parseError) {
       console.error('[LOGIN_PROXY] ❌ Failed to parse request body:', parseError);
       return NextResponse.json(
@@ -56,8 +48,6 @@ export async function POST(request) {
     }
 
     const backendUrl = getBackendUrl('/login');
-    console.log('[LOGIN_PROXY] Backend URL:', backendUrl);
-    console.log('[LOGIN_PROXY] Request ID:', requestId);
 
     // Create AbortController for timeout - increase to 30 seconds for Vercel
     const controller = new AbortController();
@@ -70,10 +60,6 @@ export async function POST(request) {
     let response;
     try {
       const fetchStartTime = Date.now();
-      console.log('[LOGIN_PROXY] 🚀 Starting fetch request to backend...');
-      console.log('[LOGIN_PROXY] Request ID:', requestId);
-      console.log('[LOGIN_PROXY] Backend URL:', backendUrl);
-      console.log('[LOGIN_PROXY] Timeout:', timeoutDuration, 'ms');
 
       // Make the fetch request
       response = await fetch(backendUrl, {
@@ -91,11 +77,6 @@ export async function POST(request) {
       });
 
       const fetchDuration = Date.now() - fetchStartTime;
-      console.log('[LOGIN_PROXY] ✅ Fetch completed in', fetchDuration, 'ms');
-      console.log('[LOGIN_PROXY] Request ID:', requestId);
-      console.log('[LOGIN_PROXY] Response status:', response.status, response.statusText);
-      console.log('[LOGIN_PROXY] Response ok:', response.ok);
-      console.log('[LOGIN_PROXY] Response headers:', Object.fromEntries(response.headers.entries()));
 
       clearTimeout(timeoutId);
     } catch (fetchError) {
@@ -184,18 +165,6 @@ export async function POST(request) {
 
     // Log response for debugging (without sensitive data)
     const totalDuration = Date.now() - startTime;
-    console.log('[LOGIN_PROXY] ✅ ========== LOGIN SUCCESS ==========');
-    console.log('[LOGIN_PROXY] Request ID:', requestId);
-    console.log('[LOGIN_PROXY] Total duration:', totalDuration, 'ms');
-    console.log('[LOGIN_PROXY] Response data:', {
-      success: data?.success,
-      hasToken: !!data?.token,
-      hasUser: !!data?.user,
-      userId: data?.user?.id,
-      userEmail: data?.user?.email,
-      userDivisi: data?.user?.divisi
-    });
-    console.log('[LOGIN_PROXY] ======================================');
 
     return NextResponse.json(data, {
       status: response.status,

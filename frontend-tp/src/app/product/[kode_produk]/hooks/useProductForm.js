@@ -171,7 +171,6 @@ export function useProductForm({
             // ==========================================
 
             if (isTestMode) {
-                console.log("[TEST MODE] Payload yang seharusnya dikirim ke backend:", payload);
                 await new Promise(resolve => setTimeout(resolve, 1500)); // Simulasi loading API
 
                 const dummyOrderId = "TEST-" + Math.floor(Math.random() * 100000);

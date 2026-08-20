@@ -37,8 +37,6 @@ export async function GET(request, { params }) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log("🔍 [WEBINAR GET] Fetching webinar for product:", produkId);
-    console.log("🔍 [WEBINAR GET] Backend URL:", `${BACKEND_URL}/api/sales/webinar/${produkId}`);
 
     const res = await fetch(`${BACKEND_URL}/api/sales/webinar/${produkId}`, {
       method: "GET",
@@ -49,14 +47,12 @@ export async function GET(request, { params }) {
       },
     });
 
-    console.log("🔍 [WEBINAR GET] Backend response status:", res.status);
 
     const data = await res.json().catch((err) => {
       console.error("❌ [WEBINAR GET] JSON parse error:", err);
       return {};
     });
 
-    console.log("🔍 [WEBINAR GET] Backend response data:", data);
 
     if (!res.ok) {
       // Jika 404, berarti belum ada webinar untuk produk ini (bukan error)
@@ -153,17 +149,11 @@ export async function POST(request, { params }) {
     };
     
     // Validasi payload sesuai dokumentasi
-    console.log("🔍 [WEBINAR POST] Validated payload:", payload);
 
     // Get authorization token from request
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
 
-    console.log("🔍 [WEBINAR POST] ========== UPDATE WEBINAR ==========");
-    console.log("🔍 [WEBINAR POST] Webinar ID:", webinarId);
-    console.log("🔍 [WEBINAR POST] Backend URL:", `${BACKEND_URL}/api/sales/webinar/${webinarId}`);
-    console.log("🔍 [WEBINAR POST] Payload:", JSON.stringify(payload, null, 2));
-    console.log("🔍 [WEBINAR POST] Request method: POST (update)");
 
     // Menggunakan POST karena backend tidak mendukung PUT method
     const res = await fetch(`${BACKEND_URL}/api/sales/webinar/${webinarId}`, {
@@ -176,7 +166,6 @@ export async function POST(request, { params }) {
       body: JSON.stringify(payload),
     });
 
-    console.log("🔍 [WEBINAR POST] Backend response status:", res.status);
 
     const data = await res.json().catch(() => ({}));
 
@@ -197,7 +186,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log("✅ [WEBINAR POST] Success - Response:", data);
     return NextResponse.json(data, { status: res.status, headers: corsHeaders });
   } catch (error) {
     console.error("❌ [WEBINAR POST] API Proxy Error:", error);

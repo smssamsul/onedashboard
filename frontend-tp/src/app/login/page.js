@@ -49,11 +49,6 @@ function LoginPageContent() {
           // dll
           targetRoute = getDivisionHome(userDivisi, userLevel);
 
-          console.log('[Login] User sudah login, redirect ke:', {
-            divisi: userDivisi,
-            level: userLevel,
-            targetRoute
-          });
         } catch (error) {
           console.error('[Login] Error parsing user data:', error);
           // Fallback ke division_home jika ada

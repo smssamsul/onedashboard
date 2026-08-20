@@ -138,9 +138,7 @@ const summaryCards = useMemo(
 
   const handleSaveAdd = async (newUser) => {
     try {
-      console.log("[CREATE_USER] Creating user with payload:", newUser);
       const result = await createUser(newUser);
-      console.log("[CREATE_USER] Create result:", result);
       
       if (!result.success) {
         throw new Error(result.message || "Gagal menambahkan user");
@@ -168,16 +166,9 @@ const summaryCards = useMemo(
     if (!selectedUser) return;
 
     try {
-      console.log("[UPDATE_USER] Updating user:", {
-        id: selectedUser.id,
-        oldEmail: selectedUser.email,
-        newEmail: updatedData.email,
-        data: updatedData
-      });
       
       const result = await updateUser(selectedUser.id, updatedData);
       
-      console.log("[UPDATE_USER] Update result:", result);
       
       // ⚠️ PERINGATAN: Jika email berubah, backend harus update email di tabel authentication juga
       if (selectedUser.email !== updatedData.email) {

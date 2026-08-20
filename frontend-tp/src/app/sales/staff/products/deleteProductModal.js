@@ -27,7 +27,6 @@ export default function DeleteProductModal({ product, onClose, onDeleted }) {
 
       const data = await res.json();
 
-      console.log("🗑️ Delete response:", data);
 
       if (!res.ok || !data.success) {
         throw new Error(data.message || "Gagal menghapus produk");

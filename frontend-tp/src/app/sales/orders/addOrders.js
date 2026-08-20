@@ -269,7 +269,6 @@ export default function AddOrders({ onClose, onAdd }) {
         p.name.toLowerCase().trim() === formData.provinsi.toLowerCase().trim()
       );
       if (match) {
-        console.log("📍 Auto-match Province:", match.name);
         setSelectedRegionIds(prev => ({ ...prev, provinceId: match.id }));
       }
     }
@@ -282,7 +281,6 @@ export default function AddOrders({ onClose, onAdd }) {
         c.name.toLowerCase().trim() === formData.kabupaten.toLowerCase().trim()
       );
       if (match) {
-        console.log("📍 Auto-match City:", match.name);
         setSelectedRegionIds(prev => ({ ...prev, cityId: match.id }));
       }
     }
@@ -295,7 +293,6 @@ export default function AddOrders({ onClose, onAdd }) {
         d.name.toLowerCase().trim() === formData.kecamatan.toLowerCase().trim()
       );
       if (match) {
-        console.log("📍 Auto-match District:", match.name);
         setSelectedRegionIds(prev => ({ ...prev, districtId: match.id }));
       }
     }
@@ -536,7 +533,6 @@ export default function AddOrders({ onClose, onAdd }) {
       utm_content: formData.utm_content || "",
     };
 
-    console.log("[ADD_ORDERS] Payload sebelum kirim:", JSON.stringify(payload, null, 2));
 
     const res = await createOrder(payload);
 

@@ -30,8 +30,6 @@ export async function GET(request, { params }) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log("🟢 [WEBINAR_JOIN] Fetching webinar data for order:", idOrder);
-    console.log("🟢 [WEBINAR_JOIN] Backend URL:", `${BACKEND_URL}/api/webinar/join-order/${idOrder}`);
 
     // Forward ke backend
     const response = await fetch(`${BACKEND_URL}/api/webinar/join-order/${idOrder}`, {
@@ -43,13 +41,10 @@ export async function GET(request, { params }) {
       },
     });
 
-    console.log("🟢 [WEBINAR_JOIN] Backend response status:", response.status);
-    console.log("🟢 [WEBINAR_JOIN] Backend response ok:", response.ok);
 
     let data;
     try {
       data = await response.json();
-      console.log("🟢 [WEBINAR_JOIN] Backend response data:", JSON.stringify(data, null, 2));
     } catch (parseError) {
       console.error("❌ [WEBINAR_JOIN] Failed to parse JSON:", parseError);
       const text = await response.text();
@@ -73,13 +68,6 @@ export async function GET(request, { params }) {
     }
 
     // Response sesuai dokumentasi: { success: true, data: { meetingNumber, password, signature, ... } }
-    console.log("✅ [WEBINAR_JOIN] Success - Response data structure:", {
-      success: data?.success,
-      hasMeetingNumber: !!data?.data?.meetingNumber,
-      hasPassword: !!data?.data?.password,
-      hasSignature: !!data?.data?.signature,
-      hasWebinar: !!data?.data?.webinar,
-    });
 
     return NextResponse.json(data, { status: response.status, headers: corsHeaders });
   } catch (error) {

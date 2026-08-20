@@ -56,7 +56,6 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
         );
         
         setTrainers(trainerUsers);
-        console.log("✅ [TRAINER] Trainers loaded:", trainerUsers);
       } catch (err) {
         console.error("❌ [TRAINER] Error fetching trainers:", err);
         toast.error("Gagal memuat daftar trainer");
@@ -203,7 +202,6 @@ export default function TrainerSection({ productId, product, onProductUpdate }) 
       const data = await res.json();
       
       if (data.success) {
-        console.log("✅ [TRAINER FOLLOWUP] Auto-saved");
       }
     } catch (err) {
       console.error("❌ [TRAINER FOLLOWUP] Error saving:", err);

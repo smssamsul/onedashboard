@@ -192,8 +192,6 @@ export default function AddLeadModal({ onClose, onSuccess }) {
         return;
       }
       
-      console.log("📤 Submitting lead with sales_id:", salesId, "type:", typeof salesId, "isStaffLevel2:", isStaffLevel2, "currentUser:", currentUser);
-      console.log("📤 Form data sales_id:", formData.sales_id, "type:", typeof formData.sales_id);
       
       const payload = {
         customer_id: Number(formData.customer_id),
@@ -208,7 +206,6 @@ export default function AddLeadModal({ onClose, onSuccess }) {
         ...(formData.next_follow_up_at && { next_follow_up_at: formatDateTime(formData.next_follow_up_at) }),
       };
 
-      console.log("📤 Payload:", JSON.stringify(payload, null, 2));
 
       const res = await fetch(`${BASE_URL}/sales/lead`, {
         method: "POST",

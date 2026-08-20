@@ -12,7 +12,6 @@ export default function TestPixelPage() {
 
   const addLog = (msg) => {
     setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
-    console.log(msg);
   };
 
   // Fetch daftar produk saat komponen dimuat
@@ -63,7 +62,6 @@ export default function TestPixelPage() {
 
       if (json.success && json.data) {
         setFullProductData(json.data);
-        console.log("DATA PRODUK", json.data);
 
         // Ekstrak Pixel ID secara aman dari struktur baru (landingpage[0].analytics.facebook.pixels)
         let extractedPixels = [];

@@ -213,12 +213,6 @@ const [submitProgress, setSubmitProgress] = useState("");
     formData.append("landingpage", String(form.landingpage || 1));
     formData.append("status", String(form.status || 1));
     
-    console.log("[FORMDATA] Basic fields:", {
-      kategori: kategoriId,
-      nama: form.nama,
-      kode: kode,
-      url: "/" + kode
-    });
     
     // ============================
     // 2. HEADER IMAGE (REQUIRED) - File langsung
@@ -317,15 +311,6 @@ const [submitProgress, setSubmitProgress] = useState("");
     formData.append("video", JSON.stringify(videoArray));
     
     // Log semua array fields untuk debugging
-    console.log("[FORMDATA] Array fields:", {
-      assign: normalizedAssign,
-      list_point: listPointArray,
-      custom_field: customFieldArray,
-      event_fb_pixel: eventFbPixelArray,
-      fb_pixel: fbPixelArray,
-      gtm: gtmArray,
-      video: videoArray,
-    });
     
     return formData;
   }
@@ -339,30 +324,13 @@ const handleSubmit = async () => {
 
   try {
     // 1) kategori validation - ambil ID dari kategori yang dipilih
-    console.log("[VALIDATION] ========== KATEGORI VALIDATION ==========");
-    console.log("form.kategori raw:", form.kategori);
-    console.log("form.kategori type:", typeof form.kategori);
-    console.log("form.kategori is null:", form.kategori === null);
-    console.log("form.kategori is undefined:", form.kategori === undefined);
-    console.log("form.kategori is empty string:", form.kategori === "");
     
     let kategoriId = null;
     if (form.kategori !== null && form.kategori !== undefined && form.kategori !== "") {
       // form.kategori adalah string ID dari dropdown (contoh: "7")
       kategoriId = Number(form.kategori);
-      console.log("Kategori ID parsed:", kategoriId);
     }
 
-    console.log("[VALIDATION] Kategori check:", {
-      formKategori: form.kategori,
-      kategoriId: kategoriId,
-      type: typeof form.kategori,
-      isValid: !Number.isNaN(kategoriId) && kategoriId > 0,
-      isNull: kategoriId === null,
-      isNaN: Number.isNaN(kategoriId),
-      isZeroOrNegative: kategoriId <= 0
-    });
-    console.log("[VALIDATION] ========================================");
     
     if (!kategoriId || Number.isNaN(kategoriId) || kategoriId <= 0) {
       console.error("[VALIDATION] KATEGORI INVALID!");
@@ -371,7 +339,6 @@ const handleSubmit = async () => {
       return;
     }
     
-    console.log("[VALIDATION] Kategori valid:", kategoriId);
 
     // 3) assign normalization
     const normalizedAssign = Array.isArray(form.assign)
@@ -393,7 +360,6 @@ const handleSubmit = async () => {
     );
 
     // DEBUG: Log FormData untuk tracking (detail)
-    console.log("[FORMDATA] ========== DETAIL FORMDATA ==========");
     const formDataEntries = [];
     const formDataJSON = {};
     
@@ -407,7 +373,6 @@ const handleSubmit = async () => {
           sizeBytes: value.size,
           mimeType: value.type
         };
-        console.log(`  ${key}: [File] ${value.name} (${(value.size / 1024).toFixed(2)} KB)`);
       } else {
         const str = String(value);
         formDataEntries.push({ key, type: "String", value: str.length > 200 ? str.substring(0, 200) + "..." : str });
@@ -426,47 +391,18 @@ const handleSubmit = async () => {
           formDataJSON[key] = str.length > 200 ? str.substring(0, 200) + "..." : str;
         }
         
-        console.log(`  ${key}: ${displayValue.length > 200 ? displayValue.substring(0, 200) + "..." : displayValue}`);
       }
     }
     console.table(formDataEntries);
     
     // Tampilkan sebagai JSON yang readable
-    console.log("[FORMDATA] ========== FORMDATA AS JSON ==========");
-    console.log(JSON.stringify(formDataJSON, null, 2));
-    console.log("[FORMDATA] =====================================");
     
     // Verify critical fields
-    console.log("[FORMDATA] ========== CRITICAL FIELDS VERIFICATION ==========");
     const kategoriInFormData = formData.get("kategori");
     const namaInFormData = formData.get("nama");
     const assignInFormData = formData.get("assign");
     const headerInFormData = formData.get("header");
     
-    console.log({
-      kategori: {
-        value: kategoriInFormData,
-        type: typeof kategoriInFormData,
-        exists: kategoriInFormData !== null,
-        isEmpty: kategoriInFormData === "" || kategoriInFormData === "null" || kategoriInFormData === "undefined"
-      },
-      nama: {
-        value: namaInFormData,
-        type: typeof namaInFormData,
-        exists: namaInFormData !== null,
-        isEmpty: !namaInFormData || namaInFormData === ""
-      },
-      assign: {
-        value: assignInFormData,
-        type: typeof assignInFormData,
-        parsed: assignInFormData ? JSON.parse(assignInFormData) : null
-      },
-      header: {
-        exists: headerInFormData !== null,
-        isFile: headerInFormData instanceof File,
-        name: headerInFormData instanceof File ? headerInFormData.name : null
-      }
-    });
 
     // Final check sebelum kirim
     if (!kategoriInFormData || kategoriInFormData === "" || kategoriInFormData === "null" || kategoriInFormData === "undefined") {
@@ -484,13 +420,10 @@ const handleSubmit = async () => {
       throw new Error("Header image tidak ditemukan di FormData.");
     }
     
-    console.log("[FORMDATA] All critical fields verified");
-    console.log("[FORMDATA] =================================================");
 
     // ============================
     // SIMPAN REQUEST DATA KE LOCALSTORAGE DULU
     // ============================
-    console.log("[LOCALSTORAGE] ========== SAVING REQUEST DATA ==========");
     const requestDataToSave = {
       timestamp: new Date().toISOString(),
       formData: {}
@@ -522,46 +455,21 @@ const handleSubmit = async () => {
     // Simpan ke localStorage
     try {
       localStorage.setItem("last_product_request", JSON.stringify(requestDataToSave, null, 2));
-      console.log("[LOCALSTORAGE] Request data saved to localStorage");
-      console.log("[LOCALSTORAGE] Key: 'last_product_request'");
-      console.log("[LOCALSTORAGE] Data preview:", {
-        timestamp: requestDataToSave.timestamp,
-        fieldsCount: Object.keys(requestDataToSave.formData).length,
-        fields: Object.keys(requestDataToSave.formData)
-      });
-      console.log("[LOCALSTORAGE] Full data:", JSON.stringify(requestDataToSave, null, 2));
     } catch (error) {
       console.error("[LOCALSTORAGE] Failed to save to localStorage:", error);
     }
-    console.log("[LOCALSTORAGE] ==========================================");
 
     // FETCH dengan FormData (sesuai dokumentasi Postman)
     setSubmitProgress("Mengirim data ke server...");
     
     // Log request untuk network tracking
-    console.log("[NETWORK] ========== REQUEST FORMDATA ==========");
-    console.log("URL:", "/api/sales/produk");
-    console.log("Method:", "POST");
-    console.log("Content-Type:", "multipart/form-data (auto-set by browser)");
     const token = localStorage.getItem("token") || "";
-    console.log("Headers:", {
-      "Accept": "application/json",
-      "Authorization": token ? `Bearer ${token.substring(0, 20)}...` : "MISSING"
-    });
-    console.log("FormData entries count:", formDataEntries.length);
     
     // Verify data sebelum kirim
-    console.log("[NETWORK] ========== PRE-SEND VERIFICATION ==========");
     const preKategori = formData.get("kategori");
     const preNama = formData.get("nama");
     const preAssign = formData.get("assign");
     const preHeader = formData.get("header");
-    console.log("Kategori:", preKategori);
-    console.log("Nama:", preNama);
-    console.log("Assign:", preAssign);
-    console.log("Header:", preHeader instanceof File ? `File(${preHeader.name}, ${(preHeader.size / 1024).toFixed(2)} KB)` : "NULL");
-    console.log("[NETWORK] ===========================================");
-    console.log("[NETWORK] ======================================");
     
     const res = await fetch("/api/sales/produk", {
       method: "POST",
@@ -573,11 +481,6 @@ const handleSubmit = async () => {
       body: formData
     });
     
-    console.log("[NETWORK] ========== RESPONSE RECEIVED ==========");
-    console.log("Response status:", res.status);
-    console.log("Response statusText:", res.statusText);
-    console.log("Response headers:", Object.fromEntries(res.headers.entries()));
-    console.log("[NETWORK] =======================================");
 
     const contentType = res.headers.get("content-type") || "";
     let data;
@@ -639,7 +542,6 @@ const handleSubmit = async () => {
     }
 
     // Handle success response sesuai format backend
-    console.log("[API SUCCESS]", data);
     setSubmitProgress("");
     
     if (data.success && data.data) {
@@ -702,8 +604,6 @@ useEffect(() => {
       const kategoriData = await kategoriRes.json();
       
       // Logging struktur JSON lengkap
-      console.log("Success:", kategoriData.success);
-      console.log("Data:", kategoriData.data);
       console.table(kategoriData.data);
       
       // Filter hanya kategori yang aktif (status === "1")
@@ -726,8 +626,6 @@ useEffect(() => {
       const produkData = await produkRes.json();
       
       // Logging struktur JSON lengkap
-      console.log("Success:", produkData.success);
-      console.log("Data:", produkData.data);
       console.table(produkData.data);
 
       // 3️⃣ Fetch users - filter hanya status 1
@@ -739,8 +637,6 @@ useEffect(() => {
       const usersJson = await usersRes.json();
       
       // Logging struktur JSON lengkap
-      console.log("Success:", usersJson.success);
-      console.log("Data:", usersJson.data);
       console.table(usersJson.data);
       
       // Map users dengan prioritas: user_rel > sales_rel > nama langsung
@@ -773,7 +669,6 @@ useEffect(() => {
       setUserOptions(userOpts);
       
       // Log untuk debugging
-      console.log("📋 User Options (Assign By):", userOpts);
 
       // ✅ SELALU generate kode dari nama dengan dash
       const kodeGenerated = generateKode(produkData.nama || "produk-baru");
@@ -903,19 +798,11 @@ useEffect(() => {
               optionValue="value"
               onChange={(e) => {
                 const selectedValue = e.value;
-                console.log("[KATEGORI] Dropdown onChange:", {
-                  selectedValue: selectedValue,
-                  type: typeof selectedValue,
-                  isNull: selectedValue === null,
-                  isUndefined: selectedValue === undefined,
-                  isEmpty: selectedValue === ""
-                });
                 // Ensure value is set as string ID (PrimeReact returns value directly from optionValue)
                 // optionValue adalah String(k.id), jadi sudah string
                 const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
                   ? String(selectedValue) 
                   : null;
-                console.log("[KATEGORI] Setting kategori to:", finalValue);
                 handleChange("kategori", finalValue);
               }}
               placeholder="Pilih Kategori"

@@ -23,7 +23,6 @@ export async function GET(request, { params }) {
 
     const backendUrl = `${BACKEND_URL}/api/sales/broadcast/${id}/penerima`;
     
-    console.log("🔍 [SALES-BROADCAST-PENERIMA] Fetching penerima from:", backendUrl);
     
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -36,7 +35,6 @@ export async function GET(request, { params }) {
     });
 
     const text = await response.text();
-    console.log("📥 [SALES-BROADCAST-PENERIMA] Response status:", response.status);
     
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
@@ -66,7 +64,6 @@ export async function GET(request, { params }) {
       );
     }
 
-    console.log("📥 [SALES-BROADCAST-PENERIMA] Response:", json);
 
     return NextResponse.json(json, { status: response.status });
   } catch (error) {

@@ -27,7 +27,6 @@ export default function WebinarGatewayPage() {
       if (typeof window !== 'undefined' && window.ZoomMtg) {
         try {
           window.ZoomMtg.leaveMeeting({});
-          console.log("🚪 Zoom leaving meeting...");
         } catch (e) {
           console.warn("⚠️ Zoom leave cleanup warning:", e);
         }

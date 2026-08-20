@@ -30,7 +30,6 @@ function VerifyOrderOTPPageContent() {
     try {
       window.fbq("track", "Subscribe");
       if (process.env.NODE_ENV === "development") {
-        console.log("[FB PIXEL] Subscribe event triggered on verify-order page");
       }
     } catch (e) {
       console.error("[FB PIXEL] Error triggering Subscribe event:", e);
@@ -154,7 +153,6 @@ function VerifyOrderOTPPageContent() {
 
       const result = await response.json();
 
-      console.log("[VERIFY_ORDER] OTP Verify response:", result);
 
       if (result.success) {
         setMessage("Verifikasi berhasil!");
@@ -169,20 +167,16 @@ function VerifyOrderOTPPageContent() {
         if (storedOrder) {
           try {
             currentOrderData = JSON.parse(storedOrder);
-            console.log("[VERIFY_ORDER] Order data from localStorage:", currentOrderData);
           } catch (e) {
             console.error("[VERIFY_ORDER] Error parsing stored order:", e);
           }
         }
 
         // Log orderData untuk debug
-        console.log("[VERIFY_ORDER] Order data before login:", currentOrderData);
-        console.log("[VERIFY_ORDER] Email from order:", currentOrderData?.email);
 
         // Setelah verifikasi OTP berhasil, login otomatis dengan email dari form landing page
         // Password default dari backend: 123456
         if (currentOrderData?.email) {
-          console.log("[VERIFY_ORDER] Attempting auto-login with email:", currentOrderData.email);
 
           // Login dengan password default dari backend: 123456
           const loginResult = await loginCustomer({
@@ -190,10 +184,8 @@ function VerifyOrderOTPPageContent() {
             password: "123456", // Password default dari backend
           });
 
-          console.log("[VERIFY_ORDER] Login result:", loginResult);
 
           if (loginResult.success) {
-            console.log("[VERIFY_ORDER] Auto-login successful! Redirecting to dashboard...");
             toast.success("Login berhasil! Mengarahkan ke dashboard...");
 
             // Simpan data order ke localStorage dengan key yang persisten untuk payment page
@@ -215,7 +207,6 @@ function VerifyOrderOTPPageContent() {
 
               // Simpan ke localStorage dengan key yang tidak akan dihapus
               localStorage.setItem("customer_order_data", JSON.stringify(orderDataForPayment));
-              console.log("[VERIFY_ORDER] Saved order data for payment:", orderDataForPayment);
             }
 
             // Jangan hapus pending_order dulu, biarkan tetap ada untuk fallback
@@ -284,7 +275,6 @@ function VerifyOrderOTPPageContent() {
 
     const { paymentMethod, productName, totalHarga } = dataToUse;
 
-    console.log("[VERIFY_ORDER] Redirecting to payment with method:", paymentMethod);
 
     // Hapus pending order dari localStorage setelah data sudah diambil
     localStorage.removeItem("pending_order");
@@ -293,20 +283,16 @@ function VerifyOrderOTPPageContent() {
 
     switch (method) {
       case "ewallet":
-        console.log("[VERIFY_ORDER] Calling DOKU e-wallet");
         callDoku("ewallet", dataToUse);
         break;
       case "cc":
-        console.log("[VERIFY_ORDER] Calling DOKU credit card");
         callDoku("cc", dataToUse);
         break;
       case "va":
-        console.log("[VERIFY_ORDER] Calling DOKU virtual account");
         callDoku("va", dataToUse);
         break;
       case "manual":
       default:
-        console.log("[VERIFY_ORDER] Redirecting to manual payment page");
         // Manual transfer - langsung redirect ke payment page
         const query = new URLSearchParams({
           product: productName || "",
@@ -363,8 +349,6 @@ function VerifyOrderOTPPageContent() {
         return;
     }
 
-    console.log("[VERIFY_ORDER] Calling DOKU endpoint:", endpoint);
-    console.log("[VERIFY_ORDER] Payload:", { name: nama, email, amount: totalHarga, product_name: productName, order_id: orderId });
 
     try {
       const payload = {
@@ -382,11 +366,9 @@ function VerifyOrderOTPPageContent() {
       });
 
       const json = await response.json();
-      console.log("[VERIFY_ORDER] DOKU response:", json);
 
       // Response harus memiliki success: true dan payment_url
       if (json.success === true && json.payment_url) {
-        console.log("[VERIFY_ORDER] Opening DOKU in new tab:", json.payment_url);
 
         // Simpan invoice_number dan order_id dari DOKU jika ada
         if (json.invoice_number) {
@@ -455,7 +437,6 @@ function VerifyOrderOTPPageContent() {
 
       const result = await response.json();
 
-      console.log("[VERIFY_ORDER] OTP Resend response:", result);
 
       if (result.success) {
         setMessage("Kode OTP baru telah dikirim ke WhatsApp Anda!");

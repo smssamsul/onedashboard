@@ -87,8 +87,6 @@ export default function useOrders({ mode = "admin" } = {}) {
             utm_content: formData.utm_content || "",
           };
           
-          console.log("[CREATE ORDER] Has existing customer:", hasExistingCustomer);
-          console.log("[CREATE ORDER] Payload:", JSON.stringify(payload, null, 2));
           
           res = await createOrderAdmin(payload);
         } else {

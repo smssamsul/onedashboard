@@ -41,7 +41,6 @@ export default function OTPVerificationModal({ customerInfo, onClose, onOTPSent,
         wa: waNumber,
       };
 
-      console.log("🟢 [SEND_OTP] Sending OTP request:", payload);
 
       const response = await fetch("/api/customer/otp/send", {
         method: "POST",
@@ -54,7 +53,6 @@ export default function OTPVerificationModal({ customerInfo, onClose, onOTPSent,
 
       const data = await response.json();
 
-      console.log("🟢 [SEND_OTP] Response:", data);
 
       if (!response.ok) {
         throw new Error(data?.message || data?.error || "Gagal mengirim OTP");

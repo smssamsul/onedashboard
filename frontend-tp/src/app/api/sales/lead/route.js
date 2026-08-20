@@ -84,8 +84,6 @@ export async function POST(request) {
       ...(body.next_follow_up_at && { next_follow_up_at: formatDateTime(body.next_follow_up_at) }),
     };
 
-    console.log("🔍 [LEAD POST] Creating lead with payload:", payload);
-    console.log("🔍 [LEAD POST] Backend URL:", `${BACKEND_URL}/api/sales/lead`);
 
     const response = await fetch(`${BACKEND_URL}/api/sales/lead`, {
       method: "POST",
@@ -98,7 +96,6 @@ export async function POST(request) {
     });
 
     const text = await response.text();
-    console.log("🔍 [LEAD POST] Backend response status:", response.status);
 
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
@@ -198,8 +195,6 @@ export async function GET(request) {
     // Build backend URL
     const backendUrl = `${BACKEND_URL}/api/sales/lead?${params.toString()}`;
     
-    console.log("🔍 Fetching leads from:", backendUrl);
-    console.log("📄 Query params - page:", page, "per_page:", perPage);
 
     // Fetch from backend
     const response = await fetch(backendUrl, {

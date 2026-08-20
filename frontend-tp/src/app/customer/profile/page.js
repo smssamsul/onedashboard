@@ -96,7 +96,6 @@ function ChangeWAModal({ isOpen, onClose, customerId }) {
                         verifikasi: 0
                     };
                     localStorage.setItem("customer_user", JSON.stringify(updatedUser));
-                    console.log("Updated local user for re-verification:", updatedUser);
                 }
 
                 onClose();
@@ -573,7 +572,7 @@ export default function CustomerProfilePage() {
 
                 if (json.success && json.data) {
                     const user = json.data;
-                    console.log("Profile Data:", user); // Debug
+                    // Debug
 
                     setFormData(prev => ({
                         ...prev,

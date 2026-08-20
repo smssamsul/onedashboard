@@ -47,7 +47,6 @@ export default function QuickActions({ unpaidCount = 0, onUpdateProfile }) {
       href: '#',
       onClick: () => {
         // Open help/contact
-        console.log('Open help');
       },
     },
   ];

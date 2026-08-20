@@ -8,7 +8,6 @@ export const POST = withErrorHandler(async (request) => {
 
   const body = await request.json();
 
-  console.log("🟢 [OTP_VERIFY] Request body:", body);
 
   // Validasi body
   if (!body.customer_id || !body.otp) {

@@ -13,9 +13,6 @@ export async function GET(request) {
     // Build backend URL with query parameters
     const backendUrl = `${BACKEND_URL}/api/finance/order-validation?page=${page}&per_page=${perPage}`;
     
-    console.log("🔍 [FINANCE-ORDERS] Fetching orders from:", backendUrl);
-    console.log("🔑 [FINANCE-ORDERS] Auth header present:", !!authHeader);
-    console.log("📄 [FINANCE-ORDERS] Query params - page:", page, "per_page:", perPage);
     
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -28,8 +25,6 @@ export async function GET(request) {
     });
 
     const text = await response.text();
-    console.log("📥 [FINANCE-ORDERS] Response status:", response.status);
-    console.log("📥 [FINANCE-ORDERS] Response text preview:", text.substring(0, 500));
     
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
@@ -65,7 +60,6 @@ export async function GET(request) {
 
     // Forward pagination object if exists
     if (json.pagination) {
-      console.log("📊 [FINANCE-ORDERS] Pagination:", json.pagination);
     }
 
     return NextResponse.json(json, { status: response.status });

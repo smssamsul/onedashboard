@@ -20,9 +20,6 @@ export async function GET(request, { params }) {
     // Build backend URL
     const backendUrl = `${BACKEND_URL}/api/finance/order-validation/${id}`;
     
-    console.log("🔍 [FINANCE-ORDER-DETAIL] Fetching order detail from:", backendUrl);
-    console.log("🔑 [FINANCE-ORDER-DETAIL] Auth header present:", !!authHeader);
-    console.log("🆔 [FINANCE-ORDER-DETAIL] Order validation ID:", id);
     
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -35,8 +32,6 @@ export async function GET(request, { params }) {
     });
 
     const text = await response.text();
-    console.log("📥 [FINANCE-ORDER-DETAIL] Response status:", response.status);
-    console.log("📥 [FINANCE-ORDER-DETAIL] Response text preview:", text.substring(0, 500));
     
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {

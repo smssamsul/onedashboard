@@ -77,7 +77,6 @@ export function trackSalesUploadedPaymentPurchase({ produk, value, currency = "I
 
   const pixelIds = normalizeFbPixelIds(produk?.fb_pixel);
   if (!pixelIds.length) {
-    console.log("[FB PIXEL Sales] Lewati: tidak ada pixel di pengaturan landing page", produk?.id);
     return false;
   }
 
@@ -122,7 +121,6 @@ export function trackSalesUploadedPaymentPurchase({ produk, value, currency = "I
 
     try {
       window.fbq("track", "Purchase", params);
-      console.log("[FB PIXEL Sales] Purchase terkirim", params);
     } catch (e) {
       console.error("[FB PIXEL Sales] track Purchase gagal", e);
     }

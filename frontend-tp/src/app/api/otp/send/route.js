@@ -12,7 +12,6 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    console.log("[OTP_SEND] Request body:", body);
 
     // Validasi request body
     if (!body?.customer_id || !body?.wa) {

@@ -668,7 +668,6 @@ export default function DaftarPesanan() {
   const fetchOrders = useCallback(async (pageNumber = 1) => {
     // Prevent multiple simultaneous calls using ref
     if (fetchingRef.current) {
-      console.log("⏸️ Already fetching, skipping duplicate request for page", pageNumber);
       return;
     }
 
@@ -771,12 +770,6 @@ export default function DaftarPesanan() {
           const isLastPage = json.pagination.current_page >= json.pagination.last_page;
           setHasMore(!isLastPage);
           setPaginationInfo(json.pagination);
-          console.log("📄 Pagination info:", {
-            current_page: json.pagination.current_page,
-            last_page: json.pagination.last_page,
-            total: json.pagination.total,
-            hasMore: !isLastPage
-          });
         } else {
           setPaginationInfo(null);
           // Fallback pagination: cek jumlah data untuk menentukan hasMore
@@ -905,7 +898,6 @@ export default function DaftarPesanan() {
     if (loading || !hasMore) return; // Jangan load jika sedang loading atau sudah habis
 
     const nextPage = page + 1;
-    console.log("🔄 Next page clicked, loading page:", nextPage);
     setPage(nextPage);
   }, [page, hasMore, loading]);
 
@@ -914,7 +906,6 @@ export default function DaftarPesanan() {
     if (loading || page <= 1) return; // Jangan load jika sedang loading atau sudah di page 1
 
     const prevPage = page - 1;
-    console.log("🔄 Previous page clicked, loading page:", prevPage);
     setPage(prevPage);
   }, [page, loading]);
 

@@ -22,7 +22,6 @@ export async function POST(request, { params }) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log(`🟢 [FINANCE-APPROVE] Approving order: ${id}`);
 
     // Forward request to backend
     const response = await fetch(`${BACKEND_URL}/api/finance/order-validation/${id}/approve`, {
@@ -51,8 +50,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`📥 [FINANCE-APPROVE] Response status: ${response.status}`);
-    console.log(`📥 [FINANCE-APPROVE] Response:`, json);
 
     // Return response from backend
     return NextResponse.json(json, { status: response.status });

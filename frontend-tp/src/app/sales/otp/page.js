@@ -46,20 +46,15 @@ export default function CustomerOTPPage() {
 
     // Cek apakah user sudah verifikasi
     const isVerified = session.user.verifikasi === 1 || session.user.verifikasi === "1";
-    console.log("[OTP] User verification status:", isVerified);
-    console.log("[OTP] User verifikasi value:", session.user.verifikasi);
 
     // Jika sudah verifikasi, langsung ke dashboard
     if (isVerified) {
-      console.log("[OTP] User already verified, redirecting to dashboard");
       router.replace("/customer/dashboard");
       return;
     }
 
     setCustomerId(session.user.id);
     setWa(session.user.wa || session.user.phone);
-    console.log("[OTP] Customer ID:", session.user.id);
-    console.log("[OTP] WA:", session.user.wa || session.user.phone);
     resetOtpTimer();
   }, [router]);
 
@@ -122,7 +117,6 @@ export default function CustomerOTPPage() {
     setMessage("");
 
     try {
-      console.log("[OTP] Verifying OTP...");
       const result = await verifyCustomerOTP(customerId, code);
 
       if (result.success) {
@@ -138,12 +132,10 @@ export default function CustomerOTPPage() {
             customer_id: result.data.customer_id || session.user.id || session.user.customer_id,
           };
           localStorage.setItem("customer_user", JSON.stringify(updatedUser));
-          console.log("[OTP] User data updated with verification:", updatedUser);
         } else if (session.user) {
           // Fallback jika tidak ada data dari response
           session.user.verifikasi = 1;
           localStorage.setItem("customer_user", JSON.stringify(session.user));
-          console.log("[OTP] User data updated (fallback):", session.user);
         }
 
         // Tampilkan modal updateCustomer setelah verifikasi berhasil
@@ -169,7 +161,6 @@ export default function CustomerOTPPage() {
     setMessage("");
 
     try {
-      console.log("[OTP] Resending OTP...");
       const result = await resendCustomerOTP(customerId, wa);
 
       if (result.success) {

@@ -153,8 +153,8 @@ export default function TableExperiment() {
     }, []);
 
     // Placeholder handlers
-    const handleView = (order) => { console.log("View", order.id); };
-    const handleEdit = (order) => { console.log("Edit", order.id); };
+    const handleView = (order) => { };
+    const handleEdit = (order) => { };
     const handleOpenImageModal = (url) => { window.open(url, "_blank"); };
 
     return (
