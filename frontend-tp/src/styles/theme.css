@@ -9,14 +9,14 @@
 :root {
   --font-base: "Public Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* --- Primary (navy, dipakai tombol utama & elemen interaktif) --- */
-  --color-primary-lighter: #eef1f7;
-  --color-primary-100: #d7ddec;
-  --color-primary-light: #34446e;
-  --color-primary-400: #1c2c52;
-  --color-primary-main: #0f1b3d;
-  --color-primary-dark: #0a1329;
-  --color-primary-darker: #060a1a;
+  /* --- Primary (navy #1e3a5f sesuai pilihan user, dipakai tombol utama & elemen interaktif) --- */
+  --color-primary-lighter: #eaeff4;
+  --color-primary-100: #cbd8e4;
+  --color-primary-light: #4a6b91;
+  --color-primary-400: #2d5077;
+  --color-primary-main: #1e3a5f;
+  --color-primary-dark: #16293f;
+  --color-primary-darker: #0d1a29;
   --color-primary-contrast: #ffffff;
 
   /* --- Accent teal (highlight/active, dipisah dari primary) --- */
@@ -26,14 +26,14 @@
   --color-accent-dark: #0f9488;
   --color-accent-contrast: #ffffff;
 
-  /* --- Sidebar (navy tetap, tidak ikut toggle light/dark) --- */
-  --sidebar-bg: #0f1b3d;
-  --sidebar-bg-elevated: #142449;
-  --sidebar-text: #aab6d6;
+  /* --- Sidebar (navy #1e3a5f tetap, tidak ikut toggle light/dark) --- */
+  --sidebar-bg: #1e3a5f;
+  --sidebar-bg-elevated: #264a76;
+  --sidebar-text: #ffffff;
   --sidebar-text-strong: #ffffff;
-  --sidebar-section-text: #5f6d92;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-section-text: #7189aa;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
   --sidebar-active-bg: var(--color-accent-main);
   --sidebar-active-text: #ffffff;
 
@@ -66,7 +66,7 @@
   --color-info-dark: #006d75;
 
   /* --- Surfaces & text --- */
-  --color-bg-default: #fafafb;
+  --color-bg-default: #f8fafc;
   --color-bg-paper: #ffffff;
   --color-text-primary: #262626;
   --color-text-secondary: #8c8c8c;

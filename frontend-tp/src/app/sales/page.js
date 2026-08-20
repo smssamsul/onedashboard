@@ -140,25 +140,25 @@ export default function Dashboard() {
         title: "Total Orders",
         value: overview?.orders_total?.toLocaleString("id-ID") ?? (loading ? "…" : "0"),
         icon: <ShoppingCart size={24} />,
-        color: "accent-orange",
+        color: "color-info",
       },
       {
         title: "Total Paid",
         value: overview?.orders_paid?.toLocaleString("id-ID") ?? (loading ? "…" : "0"),
         icon: <CreditCard size={24} />,
-        color: "accent-orange",
+        color: "color-success",
       },
       {
         title: "Paid Ratio",
         value: overview?.paid_ratio_formatted ?? (loading ? "…" : "0%"),
         icon: <Percent size={24} />,
-        color: "accent-orange",
+        color: "color-warning",
       },
       {
         title: "Unpaid Orders",
         value: overview?.orders_unpaid?.toLocaleString("id-ID") ?? (loading ? "…" : "0"),
         icon: <Package size={24} />,
-        color: "accent-orange",
+        color: "color-error",
       },
     ];
   }, [overview, loading]);
@@ -169,31 +169,31 @@ export default function Dashboard() {
         title: "Gross Revenue",
         value: financial?.gross_revenue_formatted ?? (loading ? "…" : "Rp0"),
         icon: <DollarSign size={24} />,
-        color: "accent-orange",
+        color: "color-info",
       },
       {
         title: "Shipping Cost",
         value: financial?.shipping_cost_formatted ?? (loading ? "…" : "Rp0"),
         icon: <Truck size={24} />,
-        color: "accent-orange",
+        color: "color-warning",
       },
       {
         title: "Net Revenue",
         value: financial?.net_revenue_formatted ?? (loading ? "…" : "Rp0"),
         icon: <Wallet size={24} />,
-        color: "accent-orange",
+        color: "color-accent",
       },
       {
         title: "Gross Profit",
         value: financial?.gross_profit_formatted ?? (loading ? "…" : "Rp0"),
         icon: <PiggyBank size={24} />,
-        color: "accent-orange",
+        color: "color-success",
       },
       {
         title: "Net Profit",
         value: financial?.net_profit_formatted ?? (loading ? "…" : "Rp0"),
         icon: <TrendingUp size={24} />,
-        color: "accent-orange",
+        color: "color-primary",
       },
     ];
   }, [financial, loading]);
@@ -448,7 +448,7 @@ export default function Dashboard() {
                 {/* Tab Navigation */}
                 <div className="staff-tabs-nav">
                   {loadingStatistics ? (
-                    <div style={{ padding: '0.5rem', color: '#64748b' }}>Loading tabs...</div>
+                    <div style={{ padding: '0.5rem', color: 'var(--color-text-secondary)' }}>Loading tabs...</div>
                   ) : (
                     salesStatistics.map((staff) => (
                       <button
@@ -466,9 +466,9 @@ export default function Dashboard() {
                 {/* Tab Content (The Card) */}
                 <div className="staff-tabs-content">
                   {loadingStatistics ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading performa sales...</div>
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading performa sales...</div>
                   ) : salesStatistics.length === 0 ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Belum ada data sales.</div>
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Belum ada data sales.</div>
                   ) : (
                     salesStatistics
                       .filter(s => s.sales_id === activeStaffId)
@@ -495,7 +495,7 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               {staff.sales_email && (
-                                <p className="staff-card__email" style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                                <p className="staff-card__email" style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
                                   {staff.sales_email}
                                 </p>
                               )}
@@ -508,7 +508,7 @@ export default function Dashboard() {
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">Total Customers</p>
                                 <p className="staff-card__stat-value">{staff.customers?.total ?? 0}</p>
-                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Overall</p>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)' }}>Overall</p>
                               </div>
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">New leads</p>
@@ -520,7 +520,7 @@ export default function Dashboard() {
                                     </span>
                                   )}
                                 </div>
-                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>This Period</p>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)' }}>This Period</p>
                               </div>
                             </div>
 
@@ -529,7 +529,7 @@ export default function Dashboard() {
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">Total Orders</p>
                                 <p className="staff-card__stat-value">{staff.orders?.total ?? 0}</p>
-                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Overall</p>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)' }}>Overall</p>
                               </div>
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">Orders</p>
@@ -541,7 +541,7 @@ export default function Dashboard() {
                                     </span>
                                   )}
                                 </div>
-                                <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>This Period</p>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)' }}>This Period</p>
                               </div>
                             </div>
 
@@ -556,7 +556,7 @@ export default function Dashboard() {
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">Revenue</p>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                  <p className="staff-card__stat-value" style={{ color: '#059669' }}>
+                                  <p className="staff-card__stat-value" style={{ color: 'var(--color-success-dark)' }}>
                                     {staff.revenue?.this_period_formatted ?? "Rp 0"}
                                   </p>
                                   {staff.revenue?.growth !== 0 && (
@@ -578,7 +578,7 @@ export default function Dashboard() {
                               </div>
                               <div className="staff-card__stat">
                                 <p className="staff-card__stat-label">Last Activity</p>
-                                <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginTop: '2px' }}>
                                   Active {periodInfo ? 'this month' : 'now'}
                                 </p>
                               </div>
@@ -602,13 +602,13 @@ export default function Dashboard() {
                   gap: 0.5rem;
                   overflow-x: auto;
                   padding-bottom: 0.5rem;
-                  border-bottom: 1px solid #f1f5f9;
+                  border-bottom: 1px solid var(--color-divider);
                 }
                 .staff-tabs-nav::-webkit-scrollbar {
                   height: 4px;
                 }
                 .staff-tabs-nav::-webkit-scrollbar-thumb {
-                  background: #e2e8f0;
+                  background: var(--color-grey-200);
                   border-radius: 10px;
                 }
                 .staff-tab-btn {
@@ -616,10 +616,10 @@ export default function Dashboard() {
                   align-items: center;
                   gap: 8px;
                   padding: 8px 16px;
-                  background: #f8fafc;
-                  border: 1px solid #e2e8f0;
+                  background: var(--color-bg-default);
+                  border: 1px solid var(--color-border);
                   border-radius: 10px;
-                  color: #64748b;
+                  color: var(--color-text-secondary);
                   font-size: 0.85rem;
                   font-weight: 600;
                   cursor: pointer;
@@ -627,14 +627,14 @@ export default function Dashboard() {
                   transition: all 0.2s;
                 }
                 .staff-tab-btn:hover {
-                  background: #f1f5f9;
-                  border-color: #cbd5e1;
+                  background: var(--color-grey-100);
+                  border-color: var(--color-grey-300);
                 }
                 .staff-tab-btn.active {
-                  background: #f97316;
-                  border-color: #f97316;
+                  background: var(--color-primary-main);
+                  border-color: var(--color-primary-main);
                   color: #fff;
-                  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+                  box-shadow: none;
                 }
                 .staff-tabs-content {
                   animation: fadeIn 0.3s ease;
@@ -655,22 +655,22 @@ export default function Dashboard() {
                   padding: 2px 6px;
                   border-radius: 4px;
                 }
-                .growth-indicator.up { background: #dcfce7; color: #15803d; }
-                .growth-indicator.down { background: #fef2f2; color: #b91c1c; }
+                .growth-indicator.up { background: var(--color-success-lighter); color: var(--color-success-dark); }
+                .growth-indicator.down { background: var(--color-error-lighter); color: var(--color-error-dark); }
                 .growth-indicator.small { font-size: 0.65rem; }
                 .conversion-badge {
                   display: flex;
                   align-items: center;
                   gap: 4px;
-                  background: #eff6ff;
-                  color: #3b82f6;
+                  background: var(--color-info-lighter);
+                  color: var(--color-info-dark);
                   padding: 4px 8px;
                   border-radius: 6px;
                   font-size: 0.7rem;
                   font-weight: 700;
                 }
                 .staff-card__stat-value.highlight {
-                  color: #1e293b;
+                  color: var(--color-text-primary);
                   font-size: 1.1rem;
                   font-weight: 800;
                 }
@@ -734,17 +734,17 @@ export default function Dashboard() {
             {LazyResponsiveContainer && LazyChart && LazyLine && LazyXAxis && LazyTooltip && LazyCartesianGrid ? (
               <LazyResponsiveContainer width="100%" height={280}>
                 <LazyChart data={chartHasData ? activityTrend : [{ label: "-", orders: 0, transactions: 0 }]}>
-                  <LazyCartesianGrid stroke="#F1F5F9" vertical={false} />
-                  <LazyXAxis dataKey="label" stroke="#94A3B8" fontSize={12} tickMargin={12} />
+                  <LazyCartesianGrid stroke="var(--color-divider)" vertical={false} />
+                  <LazyXAxis dataKey="label" stroke="var(--color-text-secondary)" fontSize={12} tickMargin={12} />
                   <LazyTooltip
-                    contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0" }}
+                    contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)" }}
                     formatter={(value, name) => [value, name === "orders" ? "Order" : "Transaksi"]}
                   />
-                  <LazyLine type="monotone" dataKey="orders" stroke="#ff6c00" strokeWidth={3} dot={false} name="orders" />
+                  <LazyLine type="monotone" dataKey="orders" stroke="var(--color-primary-main)" strokeWidth={3} dot={false} name="orders" />
                   <LazyLine
                     type="monotone"
                     dataKey="transactions"
-                    stroke="#c85400"
+                    stroke="var(--color-accent-main)"
                     strokeWidth={3}
                     dot={false}
                     name="transactions"
@@ -752,7 +752,7 @@ export default function Dashboard() {
                 </LazyChart>
               </LazyResponsiveContainer>
             ) : (
-              <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+              <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
                 Loading chart...
               </div>
             )}
@@ -774,17 +774,17 @@ export default function Dashboard() {
               `}</style>
 
             {/* TABLE 1: RECENT FOLLOW UP */}
-            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: '#1e293b' }}>
+            <div style={{ background: 'var(--color-bg-paper)', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: 'var(--color-text-primary)' }}>
                 Riwayat Terakhir Follow Up
               </h3>
               <div className="table-wrapper" style={{ margin: 0 }}>
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>FOLLOW UP</th>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>CUSTOMER</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>FOLLOW UP</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TANGGAL</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -811,14 +811,14 @@ export default function Dashboard() {
                         }
 
                         return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 500, fontSize: '0.8rem', color: '#334155' }}>
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--color-divider)' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 500, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
                               {log.customer_rel?.nama || log.customer_nama || log.customer?.nama || "-"}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#334155' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
                               {label}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#64748b' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                               {formatDateTime(log.create_at || log.created_at)}
                             </td>
                           </tr>
@@ -826,7 +826,7 @@ export default function Dashboard() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan="3" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Belum ada follow up terbaru.</td>
+                        <td colSpan="3" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Belum ada follow up terbaru.</td>
                       </tr>
                     )}
                   </tbody>
@@ -835,18 +835,18 @@ export default function Dashboard() {
             </div>
 
             {/* TABLE 2: RECENT ORDERS */}
-            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: '#1e293b' }}>
+            <div style={{ background: 'var(--color-bg-paper)', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: 'var(--color-text-primary)' }}>
                 Pembelian Terakhir
               </h3>
               <div className="table-wrapper" style={{ margin: 0 }}>
                 <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>PRODUK</th>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TOTAL</th>
-                      <th style={{ background: '#f97316', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>CUSTOMER</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>PRODUK</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TOTAL</th>
+                      <th style={{ background: 'var(--color-grey-100)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>TANGGAL</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -867,16 +867,16 @@ export default function Dashboard() {
 
                         return (
                           <tr key={idx}>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 500, fontSize: '0.8rem', color: '#334155' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 500, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
                               {customerName}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#334155' }} title={productName}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-text-primary)' }} title={productName}>
                               {productName.length > 13 ? productName.substring(0, 13) + "..." : productName}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
                               {formatCurrency(order.total_harga)}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#64748b' }}>
+                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                               {formatDateTime(order.created_at || order.create_at || order.tanggal_dibuat)}
                             </td>
                           </tr>
@@ -884,7 +884,7 @@ export default function Dashboard() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan="4" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Belum ada order terbaru.</td>
+                        <td colSpan="4" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Belum ada order terbaru.</td>
                       </tr>
                     )}
                   </tbody>

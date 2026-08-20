@@ -8,22 +8,22 @@
 
 :root {
   /* === COLOR SYSTEM === */
-  --dash-bg: #f8f9fa;
-  --dash-surface: #ffffff;
-  --dash-border: #e9ecef;
-  --dash-text: #344767;
-  --dash-text-dark: #252f40;
-  --dash-muted: #67748e;
-  --dash-muted-light: #a0aec0;
-  --dash-muted-strong: #495057;
+  --dash-bg: var(--color-bg-default);
+  --dash-surface: var(--color-bg-paper);
+  --dash-border: var(--color-border);
+  --dash-text: var(--color-text-primary);
+  --dash-text-dark: var(--color-text-primary);
+  --dash-muted: var(--color-text-secondary);
+  --dash-muted-light: var(--color-text-disabled);
+  --dash-muted-strong: var(--color-text-secondary);
 
-  /* Accent Colors - Refined */
-  --accent-primary: #fb8500;
-  --accent-primary-light: rgba(251, 133, 0, 0.1);
-  --accent-primary-dark: #e67700;
+  /* Accent - navy (samakan dengan primary global) */
+  --accent-primary: var(--color-primary-main);
+  --accent-primary-light: var(--color-primary-lighter);
+  --accent-primary-dark: var(--color-primary-dark);
 
   /* === TYPOGRAPHY SCALE === */
-  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family: var(--font-base);
 
   /* Font Sizes - Consistent Scale */
   --text-xs: 0.75rem;
@@ -72,29 +72,22 @@
   --space-12: 3rem;
   /* 48px */
 
-  /* === BORDER RADIUS - Soft & Consistent === */
-  --radius-sm: 0.5rem;
-  /* 8px - Small elements */
-  --radius-md: 0.75rem;
-  /* 12px - Cards, buttons */
-  --radius-lg: 1rem;
-  /* 16px - Large cards */
-  --radius-xl: 1.25rem;
-  /* 20px - Panels */
+  /* === BORDER RADIUS ===
+     --radius-sm/--radius-md sengaja tidak dideklarasi ulang di sini - biar
+     ikut token global dari theme.css (:root yang sama), bukan nilai lokal. */
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-card);
   --radius-full: 9999px;
-  /* Full circle */
 
-  /* === SHADOWS - Soft UI Style === */
-  /* Soft shadows create depth without being harsh */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-
-  /* Soft shadow for cards (premium feel) */
-  --shadow-card: 0 4px 20px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 8px 30px 0 rgba(0, 0, 0, 0.12), 0 2px 6px 0 rgba(0, 0, 0, 0.08);
+  /* === SHADOWS ===
+     Card data tidak pakai shadow, cukup border (lebih clean, tidak "berat"). */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-card: none;
+  --shadow-card-hover: none;
 
   /* === ICON SIZING === */
   --icon-xs: 1rem;
@@ -168,53 +161,67 @@ body {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  box-shadow: var(--shadow-card);
-  transition: all var(--transition-base);
+  box-shadow: none;
+  transition: border-color var(--transition-base);
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle hover effect - premium feel */
-.summary-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-primary-dark));
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
 .summary-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  border-color: var(--color-grey-300);
 }
 
-.summary-card:hover::before {
-  opacity: 1;
-}
-
-/* Icon Container - Smaller, supporting role */
+/* Icon Container - kotak flat pastel, warna beda per kartu (lihat .color-*) */
 .summary-card__icon {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-dark) 100%);
-  color: #ffffff;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
-  opacity: 0.9;
 }
 
 .summary-card__icon svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-  color: #ffffff;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* Warna kotak ikon - flat pastel, dipilih beda-beda per kartu statistik */
+.summary-card__icon.color-info,
+.revenue-card__icon.color-info {
+  background: var(--color-info-lighter);
+  color: var(--color-info-dark);
+}
+
+.summary-card__icon.color-success,
+.revenue-card__icon.color-success {
+  background: var(--color-success-lighter);
+  color: var(--color-success-dark);
+}
+
+.summary-card__icon.color-error,
+.revenue-card__icon.color-error {
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
+}
+
+.summary-card__icon.color-warning,
+.revenue-card__icon.color-warning {
+  background: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
+}
+
+.summary-card__icon.color-primary,
+.revenue-card__icon.color-primary {
+  background: var(--color-primary-lighter);
+  color: var(--color-primary-main);
+}
+
+.summary-card__icon.color-accent,
+.revenue-card__icon.color-accent {
+  background: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
 }
 
 /* Typography - Value is the hero */
@@ -250,12 +257,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base);
-}
-
-.panel:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: none;
 }
 
 .panel__header {
@@ -335,32 +337,27 @@ body {
   border: 1px solid var(--dash-border);
   background: var(--dash-surface);
   align-items: flex-start;
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-base);
+  box-shadow: none;
+  transition: border-color var(--transition-base);
 }
 
 .revenue-card:hover {
-  box-shadow: var(--shadow-sm);
-  transform: translateX(4px);
-  border-color: var(--accent-primary-light);
+  border-color: var(--color-grey-300);
 }
 
 .revenue-card__icon {
   width: 3rem;
   height: 3rem;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-dark) 100%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.2);
 }
 
 .revenue-card__icon svg {
   width: var(--icon-md);
   height: var(--icon-md);
-  color: #ffffff;
 }
 
 .revenue-card__label {
@@ -443,14 +440,13 @@ body {
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   margin-bottom: var(--space-4);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   scroll-snap-align: start;
   scroll-snap-stop: always;
   min-height: 550px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all var(--transition-base);
 }
 
 .staff-card:last-child {
@@ -470,13 +466,13 @@ body {
   width: 4rem;
   height: 4rem;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-dark) 100%);
+  background: var(--color-primary-main);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px 0 rgba(251, 133, 0, 0.3);
+  box-shadow: none;
 }
 
 .staff-card__avatar svg {
@@ -597,12 +593,12 @@ body {
 .dashboard-alert {
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-md);
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid var(--color-error-main);
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
 }
 
 /* ============================================
@@ -662,9 +658,8 @@ body {
 .data-table th {
   text-align: left;
   padding: var(--space-3) var(--space-2);
-  color: #fff;
-  background-color: #f97316;
-  /* Update to Orange */
+  color: var(--dash-muted);
+  background-color: var(--color-grey-100);
   font-weight: var(--font-semibold);
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -692,7 +687,7 @@ body {
 }
 
 .data-table tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--color-grey-50);
 }
 
 .data-table .table-empty {
