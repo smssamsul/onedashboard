@@ -1,9 +1,10 @@
 /*
- * Design tokens dashboard: sidebar navy gelap tetap (tidak ikut toggle
- * light/dark), aksen teal untuk highlight/active state, tombol utama navy,
- * card putih bordered tanpa shadow, background halaman abu-abu lembut biar
- * tidak "menyilaukan". Dipakai bareng di semua halaman lewat CSS variable -
- * sidebar.css dan layout.css tinggal referensi var ini, bukan hex literal.
+ * Design tokens dashboard: sidebar navy gelap, aksen teal untuk
+ * highlight/active state, tombol utama navy, card putih bordered tanpa
+ * shadow, background halaman abu-abu lembut biar tidak "menyilaukan".
+ * Cuma mode terang - dark mode tidak dipakai. Dipakai bareng di semua
+ * halaman lewat CSS variable - sidebar.css dan layout.css tinggal
+ * referensi var ini, bukan hex literal.
  */
 
 :root {
@@ -53,7 +54,7 @@
 
   /* --- Semantic --- */
   --color-success-lighter: #f6ffed;
-  --color-success-main: #52c41a;
+  --color-success-main: #237804;
   --color-success-dark: #237804;
   --color-error-lighter: #fff1f0;
   --color-error-main: #ff4d4f;
@@ -62,7 +63,7 @@
   --color-warning-main: #faad14;
   --color-warning-dark: #ad6800;
   --color-info-lighter: #e6fffb;
-  --color-info-main: #13c2c2;
+  --color-info-main: #006d75;
   --color-info-dark: #006d75;
 
   /* --- Surfaces & text --- */
@@ -83,66 +84,8 @@
   --shadow-popover: 0 8px 24px rgba(38, 38, 38, 0.12);
 }
 
-[data-theme="dark"] {
-  /* Navy pucat kurang "nyala" jadi tombol di atas bg gelap - pakai teal
-     (senada dengan accent) sebagai primary supaya tetap kelihatan sebagai CTA. */
-  --color-primary-lighter: #0d3833;
-  --color-primary-100: #145248;
-  --color-primary-light: #2dd4bf;
-  --color-primary-400: #2dd4bf;
-  --color-primary-main: #2dd4bf;
-  --color-primary-dark: #5eead4;
-  --color-primary-darker: #99f6e4;
-  --color-primary-contrast: #06231f;
-
-  --color-accent-lighter: #0d3833;
-  --color-accent-light: #2dd4bf;
-  --color-accent-main: #2dd4bf;
-  --color-accent-dark: #5eead4;
-  --color-accent-contrast: #06231f;
-
-  --color-grey-0: #161b26;
-  --color-grey-50: #1a2030;
-  --color-grey-100: #20273a;
-  --color-grey-200: #29314a;
-  --color-grey-300: #3a4359;
-  --color-grey-400: #545e78;
-  --color-grey-500: #8b95ab;
-  --color-grey-600: #aab2c5;
-  --color-grey-700: #e5e9f0;
-  --color-grey-800: #f2f4f8;
-  --color-grey-900: #ffffff;
-  --color-grey-border: #2a3245;
-
-  --color-success-lighter: #12281c;
-  --color-success-main: #73d13d;
-  --color-success-dark: #b7eb8f;
-  --color-error-lighter: #2e1a14;
-  --color-error-main: #ff7875;
-  --color-error-dark: #ffa39e;
-  --color-warning-lighter: #2c2413;
-  --color-warning-main: #ffd666;
-  --color-warning-dark: #ffe58f;
-  --color-info-lighter: #0f2a2a;
-  --color-info-main: #36cfc9;
-  --color-info-dark: #5cdbd3;
-
-  --color-bg-default: #0f1319;
-  --color-bg-paper: #161b26;
-  --color-text-primary: #e5e9f0;
-  --color-text-secondary: #8b95ab;
-  --color-text-disabled: #545e78;
-  --color-divider: #232b3d;
-  --color-border: var(--color-grey-border);
-
-  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
-
-  color-scheme: dark;
-}
-
 /* --- PrimeReact (lara theme) var overrides, biar komponen Prime ikut tema --- */
-:root,
-[data-theme="dark"] {
+:root {
   --primary-color: var(--color-primary-main) !important;
   --primary-color-text: var(--color-primary-contrast) !important;
   --surface-ground: var(--color-bg-default) !important;

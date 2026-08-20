@@ -197,27 +197,6 @@ body.sidebar-collapsed:not(.sidebar-expanded) .layout-main--with-sidebar {
   font-weight: 500;
 }
 
-.layout-theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--layout-border);
-  background: var(--layout-surface);
-  color: var(--layout-muted);
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-  flex-shrink: 0;
-}
-
-.layout-theme-toggle:hover {
-  background: var(--color-grey-100);
-  border-color: var(--color-grey-300);
-  color: var(--layout-heading);
-}
-
 /* === ACCOUNT MENU (moved from sidebar) === */
 .layout-account {
   position: relative;

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
-import { Menu, Sun, Moon } from "lucide-react";
+import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { getDivisionHome } from "@/lib/divisionRoutes";
 import {
@@ -128,28 +128,7 @@ export default function Layout({ children, title, description, aboveContent = nu
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [superOpsTab, setSuperOpsTab] = useState("hub");
-  const [themeMode, setThemeMode] = useState("light");
   const accountRef = useRef(null);
-
-  // Sinkron dengan data-theme yang sudah di-set duluan oleh script blocking
-  // di app/layout.js (biar tidak ada kedipan tema saat halaman pertama load).
-  useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme");
-    setThemeMode(current === "dark" ? "dark" : "light");
-  }, []);
-
-  const toggleTheme = () => {
-    setThemeMode((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try {
-        localStorage.setItem("theme-mode", next);
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  };
 
   const isSuperOps = useMemo(() => isSuperOpsUser(user), [user]);
 
@@ -367,16 +346,6 @@ export default function Layout({ children, title, description, aboveContent = nu
               </div>
 
               <div className="layout-header__actions">
-                <button
-                  type="button"
-                  className="layout-theme-toggle"
-                  onClick={toggleTheme}
-                  aria-label={themeMode === "dark" ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
-                  title={themeMode === "dark" ? "Mode terang" : "Mode gelap"}
-                >
-                  {themeMode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-
                 <div className="layout-account" ref={accountRef}>
                   <button
                     type="button"
