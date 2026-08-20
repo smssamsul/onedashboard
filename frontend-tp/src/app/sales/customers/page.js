@@ -423,7 +423,7 @@ export default function AdminCustomerPage() {
           {/* Main Stats Card */}
           <article className="summary-card summary-card--combined summary-card--three-cols">
             <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
+              <div className={`summary-card__icon color-info`}>
                 <Users size={22} />
               </div>
               <div>
@@ -433,7 +433,7 @@ export default function AdminCustomerPage() {
             </div>
             <div className="summary-card__divider"></div>
             <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
+              <div className={`summary-card__icon color-success`}>
                 <CheckCircle size={22} />
               </div>
               <div>
@@ -445,7 +445,7 @@ export default function AdminCustomerPage() {
             </div>
             <div className="summary-card__divider"></div>
             <div className="summary-card__column">
-              <div className={`summary-card__icon accent-orange`}>
+              <div className={`summary-card__icon color-warning`}>
                 <Filter size={22} />
               </div>
               <div>
@@ -495,8 +495,8 @@ export default function AdminCustomerPage() {
                 onClick={() => setShowFilterModal(true)}
                 style={{
                   backgroundColor: "white",
-                  border: "1px solid #fab005",
-                  color: "#fab005",
+                  border: "1px solid var(--color-warning-main)",
+                  color: "var(--color-warning-main)",
                   padding: "8px",
                   borderRadius: "8px",
                   cursor: "pointer",
@@ -507,7 +507,7 @@ export default function AdminCustomerPage() {
                   width: "40px",
                   transition: "all 0.2s"
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fff9db"}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-warning-lighter)"}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
                 title="Filter Data"
               >
@@ -526,8 +526,8 @@ export default function AdminCustomerPage() {
                   }}
                   style={{
                     backgroundColor: "#fff",
-                    border: "1px solid #f97316",
-                    color: "#f97316",
+                    border: "1px solid var(--color-primary-main)",
+                    color: "var(--color-primary-main)",
                     padding: "8px 16px",
                     borderRadius: "8px",
                     cursor: "pointer",
@@ -622,19 +622,19 @@ export default function AdminCustomerPage() {
                                 fontWeight: 600,
                                 textTransform: 'uppercase',
                                 backgroundColor:
-                                  cust.keanggotaan === 'bronze' ? '#fef3c7' :
-                                    cust.keanggotaan === 'silver' ? '#f3f4f6' :
-                                      cust.keanggotaan === 'gold' ? '#fef9c3' :
-                                        cust.keanggotaan === 'platinum' ? '#e0e7ff' : '#f3f4f6',
+                                  cust.keanggotaan === 'bronze' ? 'var(--color-warning-lighter)' :
+                                    cust.keanggotaan === 'silver' ? 'var(--color-grey-100)' :
+                                      cust.keanggotaan === 'gold' ? 'var(--color-warning-lighter)' :
+                                        cust.keanggotaan === 'platinum' ? 'var(--color-accent-lighter)' : 'var(--color-grey-100)',
                                 color:
-                                  cust.keanggotaan === 'bronze' ? '#92400e' :
-                                    cust.keanggotaan === 'silver' ? '#4b5563' :
-                                      cust.keanggotaan === 'gold' ? '#ca8a04' :
-                                        cust.keanggotaan === 'platinum' ? '#4338ca' : '#6b7280',
-                                border: `1px solid ${cust.keanggotaan === 'bronze' ? '#fbbf24' :
-                                  cust.keanggotaan === 'silver' ? '#9ca3af' :
-                                    cust.keanggotaan === 'gold' ? '#eab308' :
-                                      cust.keanggotaan === 'platinum' ? '#6366f1' : '#d1d5db'
+                                  cust.keanggotaan === 'bronze' ? 'var(--color-warning-dark)' :
+                                    cust.keanggotaan === 'silver' ? 'var(--color-text-secondary)' :
+                                      cust.keanggotaan === 'gold' ? 'var(--color-warning-dark)' :
+                                        cust.keanggotaan === 'platinum' ? 'var(--color-accent-dark)' : 'var(--color-text-secondary)',
+                                border: `1px solid ${cust.keanggotaan === 'bronze' ? 'var(--color-warning-main)' :
+                                  cust.keanggotaan === 'silver' ? 'var(--color-text-secondary)' :
+                                    cust.keanggotaan === 'gold' ? 'var(--color-warning-main)' :
+                                      cust.keanggotaan === 'platinum' ? 'var(--color-accent-main)' : 'var(--color-grey-300)'
                                   }`
                               }}
                             >
@@ -648,12 +648,12 @@ export default function AdminCustomerPage() {
                       <td className="sticky-left-2">
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span
-                            style={{ color: '#0ea5e9', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ color: 'var(--color-info-main)', fontWeight: 600, cursor: 'pointer' }}
                             onClick={() => handleView(cust)}
                           >
                             {cust.nama || "-"}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                             Sales: {cust.sales_rel?.nama || userMap.get(String(cust.sales_id)) || cust.sales_nama || "-"}
                           </span>
                         </div>
@@ -705,9 +705,9 @@ export default function AdminCustomerPage() {
                             borderRadius: '0.375rem',
                             fontSize: '0.7rem',
                             fontWeight: 600,
-                            backgroundColor: cust.verifikasi === "1" || cust.verifikasi === true ? '#ecfdf5' : '#fef2f2',
-                            color: cust.verifikasi === "1" || cust.verifikasi === true ? '#059669' : '#dc2626',
-                            border: `1px solid ${cust.verifikasi === "1" || cust.verifikasi === true ? '#34d399' : '#f87171'}`
+                            backgroundColor: cust.verifikasi === "1" || cust.verifikasi === true ? 'var(--color-success-lighter)' : 'var(--color-error-lighter)',
+                            color: cust.verifikasi === "1" || cust.verifikasi === true ? 'var(--color-success-dark)' : 'var(--color-error-main)',
+                            border: `1px solid ${cust.verifikasi === "1" || cust.verifikasi === true ? 'var(--color-success-main)' : 'var(--color-error-main)'}`
                           }}
                         >
                           {cust.verifikasi === "1" || cust.verifikasi === true ? "Verified" : "Unverified"}
@@ -731,7 +731,7 @@ export default function AdminCustomerPage() {
           </div>
           <div className="customers-pagination-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0 1rem', paddingBottom: '1rem' }}>
             <div className="per-page-selector" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Tampilkan:</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Tampilkan:</span>
               <select 
                 value={perPage} 
                 onChange={(e) => {
@@ -741,7 +741,7 @@ export default function AdminCustomerPage() {
                 style={{ 
                   padding: '4px 8px', 
                   borderRadius: '6px', 
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--color-grey-300)',
                   fontSize: '0.875rem',
                   outline: 'none',
                   cursor: 'pointer',
