@@ -9,7 +9,7 @@ export default function HRLoginPage() {
       <div className="hr-login-left">
         <div className="hr-login-box">
           <div className="hr-logo">
-            <img src="/assets/logo.png" alt="Logo" className="hr-login-logo" />
+            <img src="/assets/logo-boosterin.png" alt="Logo" className="hr-login-logo" />
           </div>
           <h3>Welcome to One Dashboard</h3>
           <p>Sign in to your HR account</p>

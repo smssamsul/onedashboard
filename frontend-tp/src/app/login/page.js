@@ -277,7 +277,7 @@ function LoginPageContent() {
       <div className="login-left">
         <div className="login-box">
           <div className="login-logo">
-            <img src="/assets/logo.png" alt="Logo" className="login-logo__img" />
+            <img src="/assets/logo-boosterin.png" alt="Logo" className="login-logo__img" />
           </div>
           <h3>Welcome to One Dashboard</h3>
           <p>Sign in to your account</p>
