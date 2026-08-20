@@ -286,7 +286,7 @@ export default function CustomerOTPPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: #f8fafc;
+          background-color: var(--color-bg-default);
           padding: 20px;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
@@ -298,7 +298,7 @@ export default function CustomerOTPPage() {
           padding: 40px;
           border-radius: 24px;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--color-border);
         }
 
         .verify-header {
@@ -315,7 +315,7 @@ export default function CustomerOTPPage() {
         .verify-header h1 {
           font-size: 24px;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--color-text-primary);
           margin: 0 0 12px 0;
           letter-spacing: -0.5px;
         }
@@ -323,14 +323,14 @@ export default function CustomerOTPPage() {
         .subtitle {
           font-size: 14px;
           line-height: 1.6;
-          color: #64748b;
+          color: var(--color-text-secondary);
           margin: 0;
         }
 
         .phone-number {
           display: block;
           font-weight: 600;
-          color: #0f172a;
+          color: var(--color-text-primary);
           margin-top: 4px;
         }
 
@@ -344,25 +344,25 @@ export default function CustomerOTPPage() {
         .otp-digit {
           width: 48px;
           height: 56px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--color-border);
           border-radius: 12px;
           font-size: 24px;
           font-weight: 600;
           text-align: center;
-          color: #0f172a;
+          color: var(--color-text-primary);
           background: white;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           outline: none;
         }
 
         .otp-digit:focus {
-          border-color: #f59e0b;
+          border-color: var(--color-warning-main);
           box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
           transform: translateY(-2px);
         }
 
         .otp-digit.filled {
-          background-color: #fffbeb;
+          background-color: var(--color-warning-lighter);
           border-color: #fcd34d;
         }
 
@@ -373,27 +373,27 @@ export default function CustomerOTPPage() {
           gap: 8px;
           margin-bottom: 24px;
           font-size: 13px;
-          color: #64748b;
+          color: var(--color-text-secondary);
         }
 
         .status-indicator {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background-color: #cbd5e1;
+          background-color: var(--color-grey-300);
         }
 
         .status-indicator.active {
-          background-color: #22c55e;
+          background-color: var(--color-success-main);
           box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
         }
 
         .status-indicator.expired {
-          background-color: #ef4444;
+          background-color: var(--color-error-main);
         }
 
         .timer-text strong {
-          color: #0f172a;
+          color: var(--color-text-primary);
           font-weight: 600;
           font-variant-numeric: tabular-nums;
         }
@@ -408,21 +408,21 @@ export default function CustomerOTPPage() {
         }
 
         .message-alert.success {
-          background-color: #f0fdf4;
-          color: #16a34a;
+          background-color: var(--color-success-lighter);
+          color: var(--color-success-main);
           border: 1px solid #bbf7d0;
         }
 
         .message-alert.error {
-          background-color: #fef2f2;
-          color: #dc2626;
-          border: 1px solid #fecaca;
+          background-color: var(--color-error-lighter);
+          color: var(--color-error-main);
+          border: 1px solid var(--color-error-lighter);
         }
 
         .verify-button {
           width: 100%;
           padding: 16px;
-          background: linear-gradient(to bottom, #f59e0b, #d97706);
+          background: linear-gradient(to bottom, var(--color-warning-main), var(--color-warning-dark));
           color: white;
           border: none;
           border-radius: 16px;
@@ -441,8 +441,8 @@ export default function CustomerOTPPage() {
         }
 
         .verify-button:disabled {
-          background: #e2e8f0;
-          color: #94a3b8;
+          background: var(--color-border);
+          color: var(--color-text-secondary);
           cursor: not-allowed;
           box-shadow: none;
         }
@@ -470,7 +470,7 @@ export default function CustomerOTPPage() {
           margin-top: 20px;
           background: none;
           border: none;
-          color: #64748b;
+          color: var(--color-text-secondary);
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
@@ -478,7 +478,7 @@ export default function CustomerOTPPage() {
         }
 
         .resend-link:hover:not(:disabled) {
-          color: #f59e0b;
+          color: var(--color-warning-main);
         }
 
         .resend-link:disabled {

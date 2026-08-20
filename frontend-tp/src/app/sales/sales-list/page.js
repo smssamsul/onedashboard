@@ -179,7 +179,7 @@ export default function SalesListPage() {
                                 className="customers-button customers-button--primary"
                                 onClick={() => setShowAdd(true)}
                                 style={{
-                                    background: '#fb8500',
+                                    background: 'var(--color-primary-main)',
                                     color: 'white',
                                     padding: '0.75rem 1.5rem',
                                     borderRadius: '0.5rem',
@@ -224,17 +224,17 @@ export default function SalesListPage() {
                                     filteredData.map((item) => (
                                         <tr key={item.id}>
                                             <td>
-                                                <span style={{ fontWeight: 500, color: '#475569' }}>
+                                                <span style={{ fontWeight: 500, color: 'var(--color-text-secondary)' }}>
                                                     {item.urutan || "-"}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                                                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                                                     {item.user_rel?.nama || "-"}
                                                 </span>
                                             </td>
                                             <td>
-                                                <div style={{ color: '#475569' }}>{item.user_rel?.email || "-"}</div>
+                                                <div style={{ color: 'var(--color-text-secondary)' }}>{item.user_rel?.email || "-"}</div>
                                             </td>
                                             <td>
                                                 {item.no_wa ? (
@@ -246,8 +246,8 @@ export default function SalesListPage() {
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
                                                             gap: '0.35rem',
-                                                            background: '#dcfce7',
-                                                            color: '#16a34a',
+                                                            background: 'var(--color-success-lighter)',
+                                                            color: 'var(--color-success-main)',
                                                             fontWeight: 600,
                                                             fontSize: '0.8rem',
                                                             padding: '0.25rem 0.6rem',
@@ -265,25 +265,25 @@ export default function SalesListPage() {
                                                         {item.no_wa}
                                                     </a>
                                                 ) : (
-                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Belum diset</span>
+                                                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>Belum diset</span>
                                                 )}
                                             </td>
                                             <td>
                                                 {item.woowa_key ? (
                                                     <div style={{
                                                         fontFamily: 'monospace',
-                                                        background: '#f8fafc',
+                                                        background: 'var(--color-bg-default)',
                                                         padding: '0.25rem 0.5rem',
                                                         borderRadius: '0.25rem',
                                                         fontSize: '0.75rem',
-                                                        color: '#475569',
-                                                        border: '1px solid #cbd5e1',
+                                                        color: 'var(--color-text-secondary)',
+                                                        border: '1px solid var(--color-grey-300)',
                                                         display: 'inline-block'
                                                     }} title={item.woowa_key}>
                                                         {item.woowa_key}
                                                     </div>
                                                 ) : (
-                                                    <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Not Configured</span>
+                                                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Not Configured</span>
                                                 )}
                                             </td>
                                             {/* Kolom Baileys Status — hanya tampil jika engine = baileys */}
@@ -296,7 +296,7 @@ export default function SalesListPage() {
                                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                                     <span style={{
                                                                         display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                                        background: '#dcfce7', color: '#16a34a',
+                                                                        background: 'var(--color-success-lighter)', color: 'var(--color-success-main)',
                                                                         fontWeight: 600, fontSize: '0.8rem',
                                                                         padding: '0.25rem 0.6rem', borderRadius: '0.4rem',
                                                                         border: '1px solid #bbf7d0'
@@ -318,7 +318,7 @@ export default function SalesListPage() {
                                                                         }}
                                                                         style={{
                                                                             background: 'none', border: 'none', cursor: 'pointer',
-                                                                            color: '#ef4444', fontSize: '0.75rem', textDecoration: 'underline', padding: 0
+                                                                            color: 'var(--color-error-main)', fontSize: '0.75rem', textDecoration: 'underline', padding: 0
                                                                         }}
                                                                         title="Logout Baileys"
                                                                     >
@@ -328,22 +328,22 @@ export default function SalesListPage() {
                                                             );
                                                         }
                                                         if (st === undefined) {
-                                                            return <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>...</span>;
+                                                            return <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>...</span>;
                                                         }
                                                         return (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                                                 <span style={{
                                                                     display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                                    background: '#fee2e2', color: '#dc2626',
+                                                                    background: 'var(--color-error-lighter)', color: 'var(--color-error-main)',
                                                                     fontWeight: 600, fontSize: '0.75rem',
                                                                     padding: '0.2rem 0.5rem', borderRadius: '0.4rem',
-                                                                    border: '1px solid #fecaca'
+                                                                    border: '1px solid var(--color-error-lighter)'
                                                                 }}>Not Connected</span>
                                                                 <button
                                                                     id={`btn-qr-sales-${item.id}`}
                                                                     onClick={() => setQrModal({ salesId: item.id, salesName: item.user_rel?.nama || `Sales #${item.id}` })}
                                                                     style={{
-                                                                        background: '#4f46e5', color: 'white',
+                                                                        background: 'var(--color-accent-dark)', color: 'white',
                                                                         border: 'none', cursor: 'pointer',
                                                                         fontSize: '0.72rem', fontWeight: 600,
                                                                         padding: '0.2rem 0.5rem', borderRadius: '0.35rem'
@@ -358,7 +358,7 @@ export default function SalesListPage() {
                                                 </td>
                                             )}
                                             <td>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#475569' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-secondary)' }}>
                                                     <span>{formatDate(item.last_update_lead)}</span>
                                                 </div>
                                             </td>
@@ -388,15 +388,15 @@ export default function SalesListPage() {
                     </div>
 
                     {/* Pagination - Visual Placeholder matching image style */}
-                    <div className="customers-pagination" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", padding: "1.5rem", flexWrap: "wrap", borderTop: "1px solid #e2e8f0" }}>
+                    <div className="customers-pagination" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", padding: "1.5rem", flexWrap: "wrap", borderTop: "1px solid var(--color-border)" }}>
                         <button
                             className="customers-pagination__btn"
                             disabled
                             style={{
                                 padding: "0.5rem 1rem",
                                 minWidth: "100px",
-                                background: "#e5e7eb",
-                                color: "#9ca3af",
+                                background: "var(--color-divider)",
+                                color: "var(--color-text-secondary)",
                                 border: "none",
                                 borderRadius: "0.5rem",
                                 cursor: "not-allowed",
@@ -411,7 +411,7 @@ export default function SalesListPage() {
 
                         <div style={{
                             fontSize: "0.9rem",
-                            color: "#475569",
+                            color: "var(--color-text-secondary)",
                             fontWeight: 500
                         }}>
                             Page 1 of 1 ({salesData.length} total)
@@ -423,8 +423,8 @@ export default function SalesListPage() {
                             style={{
                                 padding: "0.5rem 1rem",
                                 minWidth: "100px",
-                                background: "#e5e7eb",
-                                color: "#9ca3af",
+                                background: "var(--color-divider)",
+                                color: "var(--color-text-secondary)",
                                 border: "none",
                                 borderRadius: "0.5rem",
                                 cursor: "not-allowed",

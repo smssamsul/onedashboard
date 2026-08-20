@@ -272,26 +272,26 @@ export default function SalesTodoListPage() {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "high":
-        return "#ef4444";
+        return "var(--color-error-main)";
       case "medium":
-        return "#f59e0b";
+        return "var(--color-warning-main)";
       case "low":
-        return "#10b981";
+        return "var(--color-success-main)";
       default:
-        return "#6b7280";
+        return "var(--color-text-secondary)";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "completed":
-        return "#10b981";
+        return "var(--color-success-main)";
       case "in_progress":
-        return "#3b82f6";
+        return "var(--color-info-main)";
       case "pending":
-        return "#6b7280";
+        return "var(--color-text-secondary)";
       default:
-        return "#6b7280";
+        return "var(--color-text-secondary)";
     }
   };
 
@@ -303,7 +303,7 @@ export default function SalesTodoListPage() {
             <h1 style={{ fontSize: "1.875rem", fontWeight: "700", margin: "0 0 0.5rem 0" }}>
               Todo List Saya
             </h1>
-            <p style={{ color: "#6b7280", margin: 0 }}>Kelola tugas dan aktivitas harian Anda</p>
+            <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>Kelola tugas dan aktivitas harian Anda</p>
           </div>
           <button
             onClick={() => {
@@ -315,7 +315,7 @@ export default function SalesTodoListPage() {
               alignItems: "center",
               gap: "0.5rem",
               padding: "0.75rem 1.5rem",
-              backgroundColor: "#4f46e5",
+              backgroundColor: "var(--color-accent-dark)",
               color: "white",
               border: "none",
               borderRadius: "8px",
@@ -343,7 +343,7 @@ export default function SalesTodoListPage() {
             onChange={(e) => setFilters({ ...filters, filter: e.target.value })}
             style={{
               padding: "0.5rem 1rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
             }}
@@ -360,7 +360,7 @@ export default function SalesTodoListPage() {
             onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
             style={{
               padding: "0.5rem 1rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
             }}
@@ -379,7 +379,7 @@ export default function SalesTodoListPage() {
                 left: "0.75rem",
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "#9ca3af",
+                color: "var(--color-text-secondary)",
               }}
             />
             <input
@@ -390,7 +390,7 @@ export default function SalesTodoListPage() {
               style={{
                 width: "100%",
                 padding: "0.5rem 1rem 0.5rem 2.5rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 fontSize: "0.875rem",
               }}
@@ -412,12 +412,12 @@ export default function SalesTodoListPage() {
             style={{
               textAlign: "center",
               padding: "4rem",
-              backgroundColor: "#f9fafb",
+              backgroundColor: "var(--color-grey-50)",
               borderRadius: "8px",
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--color-divider)",
             }}
           >
-            <p style={{ color: "#6b7280" }}>Tidak ada todo list</p>
+            <p style={{ color: "var(--color-text-secondary)" }}>Tidak ada todo list</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -426,7 +426,7 @@ export default function SalesTodoListPage() {
                 key={todo.id}
                 style={{
                   backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "8px",
                   padding: "1.5rem",
                   display: "flex",
@@ -445,9 +445,9 @@ export default function SalesTodoListPage() {
                   }}
                 >
                   {todo.status === "completed" ? (
-                    <CheckCircle2 size={24} color="#10b981" />
+                    <CheckCircle2 size={24} color="var(--color-success-main)" />
                   ) : (
-                    <Circle size={24} color="#9ca3af" />
+                    <Circle size={24} color="var(--color-text-secondary)" />
                   )}
                 </button>
 
@@ -460,7 +460,7 @@ export default function SalesTodoListPage() {
                           fontSize: "1.125rem",
                           fontWeight: "600",
                           textDecoration: todo.status === "completed" ? "line-through" : "none",
-                          color: todo.status === "completed" ? "#9ca3af" : "#111827",
+                          color: todo.status === "completed" ? "var(--color-text-secondary)" : "var(--color-text-primary)",
                         }}
                       >
                         {todo.title}
@@ -469,7 +469,7 @@ export default function SalesTodoListPage() {
                         <p
                           style={{
                             margin: "0 0 0.75rem 0",
-                            color: "#6b7280",
+                            color: "var(--color-text-secondary)",
                             fontSize: "0.875rem",
                             textDecoration: todo.status === "completed" ? "line-through" : "none",
                           }}
@@ -484,24 +484,24 @@ export default function SalesTodoListPage() {
                         style={{
                           padding: "0.5rem",
                           background: "none",
-                          border: "1px solid #d1d5db",
+                          border: "1px solid var(--color-grey-300)",
                           borderRadius: "4px",
                           cursor: "pointer",
                         }}
                       >
-                        <Edit size={16} color="#6b7280" />
+                        <Edit size={16} color="var(--color-text-secondary)" />
                       </button>
                       <button
                         onClick={() => handleDelete(todo.id)}
                         style={{
                           padding: "0.5rem",
                           background: "none",
-                          border: "1px solid #d1d5db",
+                          border: "1px solid var(--color-grey-300)",
                           borderRadius: "4px",
                           cursor: "pointer",
                         }}
                       >
-                        <Trash2 size={16} color="#ef4444" />
+                        <Trash2 size={16} color="var(--color-error-main)" />
                       </button>
                     </div>
                   </div>
@@ -532,13 +532,13 @@ export default function SalesTodoListPage() {
                       {todo.status === "completed" ? "Completed" : todo.status === "in_progress" ? "In Progress" : "Pending"}
                     </span>
                     {todo.due_date && (
-                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#6b7280", fontSize: "0.875rem" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
                         <Calendar size={14} />
                         {new Date(todo.due_date).toLocaleDateString("id-ID")}
                       </span>
                     )}
                     {todo.assignee && (
-                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#6b7280", fontSize: "0.875rem" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
                         <User size={14} />
                         {todo.assignee.nama}
                       </span>
@@ -558,7 +558,7 @@ export default function SalesTodoListPage() {
               disabled={pagination.current_page === 1}
               style={{
                 padding: "0.5rem 1rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 cursor: pagination.current_page === 1 ? "not-allowed" : "pointer",
                 opacity: pagination.current_page === 1 ? 0.5 : 1,
@@ -574,7 +574,7 @@ export default function SalesTodoListPage() {
               disabled={pagination.current_page === pagination.last_page}
               style={{
                 padding: "0.5rem 1rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 cursor: pagination.current_page === pagination.last_page ? "not-allowed" : "pointer",
                 opacity: pagination.current_page === pagination.last_page ? 0.5 : 1,
@@ -650,7 +650,7 @@ export default function SalesTodoListPage() {
                     style={{
                       width: "100%",
                       padding: "0.75rem",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--color-grey-300)",
                       borderRadius: "6px",
                       fontSize: "0.875rem",
                     }}
@@ -668,7 +668,7 @@ export default function SalesTodoListPage() {
                     style={{
                       width: "100%",
                       padding: "0.75rem",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--color-grey-300)",
                       borderRadius: "6px",
                       fontSize: "0.875rem",
                       resize: "vertical",
@@ -687,7 +687,7 @@ export default function SalesTodoListPage() {
                       style={{
                         width: "100%",
                         padding: "0.75rem",
-                        border: "1px solid #d1d5db",
+                        border: "1px solid var(--color-grey-300)",
                         borderRadius: "6px",
                         fontSize: "0.875rem",
                       }}
@@ -708,7 +708,7 @@ export default function SalesTodoListPage() {
                       style={{
                         width: "100%",
                         padding: "0.75rem",
-                        border: "1px solid #d1d5db",
+                        border: "1px solid var(--color-grey-300)",
                         borderRadius: "6px",
                         fontSize: "0.875rem",
                       }}
@@ -730,7 +730,7 @@ export default function SalesTodoListPage() {
                     style={{
                       width: "100%",
                       padding: "0.75rem",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--color-grey-300)",
                       borderRadius: "6px",
                       fontSize: "0.875rem",
                     }}
@@ -755,7 +755,7 @@ export default function SalesTodoListPage() {
                     style={{
                       width: "100%",
                       padding: "0.75rem",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--color-grey-300)",
                       borderRadius: "6px",
                       fontSize: "0.875rem",
                     }}
@@ -782,7 +782,7 @@ export default function SalesTodoListPage() {
                     }}
                     style={{
                       padding: "0.75rem 1.5rem",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--color-grey-300)",
                       borderRadius: "6px",
                       background: "white",
                       cursor: "pointer",
@@ -796,7 +796,7 @@ export default function SalesTodoListPage() {
                       padding: "0.75rem 1.5rem",
                       border: "none",
                       borderRadius: "6px",
-                      background: "#4f46e5",
+                      background: "var(--color-accent-dark)",
                       color: "white",
                       cursor: "pointer",
                       display: "flex",

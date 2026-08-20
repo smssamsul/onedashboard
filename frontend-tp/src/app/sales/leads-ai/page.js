@@ -329,14 +329,14 @@ export default function LeadsAiPage() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      new: { bg: "#dbeafe", color: "#2563eb", label: "New" },
-      lead: { bg: "#d1fae5", color: "#059669", label: "Lead" },
-      hot: { bg: "#fee2e2", color: "#dc2626", label: "Hot" },
-      warm: { bg: "#fef3c7", color: "#d97706", label: "Warm" },
-      cold: { bg: "#dbeafe", color: "#2563eb", label: "Cold" },
-      trash: { bg: "#f3f4f6", color: "#6b7280", label: "Trash" },
+      new: { bg: "var(--color-info-lighter)", color: "var(--color-info-dark)", label: "New" },
+      lead: { bg: "var(--color-success-lighter)", color: "var(--color-success-dark)", label: "Lead" },
+      hot: { bg: "var(--color-error-lighter)", color: "var(--color-error-main)", label: "Hot" },
+      warm: { bg: "var(--color-warning-lighter)", color: "var(--color-warning-dark)", label: "Warm" },
+      cold: { bg: "var(--color-info-lighter)", color: "var(--color-info-dark)", label: "Cold" },
+      trash: { bg: "var(--color-grey-100)", color: "var(--color-text-secondary)", label: "Trash" },
     };
-    const statusInfo = statusMap[status?.toLowerCase()] || { bg: "#f3f4f6", color: "#6b7280", label: status || "-" };
+    const statusInfo = statusMap[status?.toLowerCase()] || { bg: "var(--color-grey-100)", color: "var(--color-text-secondary)", label: status || "-" };
     return (
       <span
         style={{
@@ -359,15 +359,15 @@ export default function LeadsAiPage() {
       <style>{slideInStyle}</style>
       <div style={{ padding: "1.5rem" }}>
         {/* Filters */}
-        <div style={{ background: "white", borderRadius: "8px", border: "1px solid #e5e7eb", padding: "1.25rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "white", borderRadius: "8px", border: "1px solid var(--color-divider)", padding: "1.25rem", marginBottom: "1.5rem" }}>
           {/* Main Filters Row */}
           <div style={{ display: "flex", gap: "1rem", marginBottom: showAdvancedFilters ? "1rem" : "0", flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ position: "relative", flex: "1", minWidth: "250px" }}>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                 Pencarian
               </label>
               <div style={{ position: "relative" }}>
-                <Search size={18} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+                <Search size={18} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-secondary)" }} />
                 <input
                   type="text"
                   placeholder="Cari nama, nomor telepon, atau pesan..."
@@ -376,7 +376,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 1rem 0.625rem 2.5rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -385,7 +385,7 @@ export default function LeadsAiPage() {
             </div>
             
             <div style={{ minWidth: "150px" }}>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                 Status
               </label>
               <select
@@ -394,7 +394,7 @@ export default function LeadsAiPage() {
                 style={{
                   width: "100%",
                   padding: "0.625rem 1rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "6px",
                   fontSize: "0.875rem",
                 }}
@@ -413,9 +413,9 @@ export default function LeadsAiPage() {
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                 style={{
                   padding: "0.625rem 1rem",
-                  background: showAdvancedFilters ? "#3b82f6" : "white",
-                  color: showAdvancedFilters ? "white" : "#374151",
-                  border: "1px solid #e5e7eb",
+                  background: showAdvancedFilters ? "var(--color-info-main)" : "white",
+                  color: showAdvancedFilters ? "white" : "var(--color-text-primary)",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "6px",
                   cursor: "pointer",
                   display: "flex",
@@ -471,8 +471,8 @@ export default function LeadsAiPage() {
                   style={{
                     padding: "0.625rem 1rem",
                     background: "white",
-                    color: "#ef4444",
-                    border: "1px solid #e5e7eb",
+                    color: "var(--color-error-main)",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     cursor: "pointer",
                     display: "flex",
@@ -494,7 +494,7 @@ export default function LeadsAiPage() {
             <div
               style={{
                 paddingTop: "1rem",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid var(--color-divider)",
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "1rem",
@@ -502,7 +502,7 @@ export default function LeadsAiPage() {
               }}
             >
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Nama
                 </label>
                 <input
@@ -513,7 +513,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -521,7 +521,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Nomor Telepon
                 </label>
                 <input
@@ -532,7 +532,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -540,7 +540,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Produk
                 </label>
                 <input
@@ -551,7 +551,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -559,7 +559,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Lokasi
                 </label>
                 <input
@@ -570,7 +570,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -578,7 +578,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Sales
                 </label>
                 <select
@@ -587,7 +587,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                     backgroundColor: "white",
@@ -603,7 +603,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Tanggal Dari
                 </label>
                 <input
@@ -613,7 +613,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -621,7 +621,7 @@ export default function LeadsAiPage() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "#6b7280", marginBottom: "0.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                   Tanggal Sampai
                 </label>
                 <input
@@ -631,7 +631,7 @@ export default function LeadsAiPage() {
                   style={{
                     width: "100%",
                     padding: "0.625rem 0.75rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "6px",
                     fontSize: "0.875rem",
                   }}
@@ -642,20 +642,22 @@ export default function LeadsAiPage() {
         </div>
 
         {/* Table */}
-        <div style={{ background: "white", borderRadius: "8px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
+        <div style={{ background: "var(--color-bg-paper)", borderRadius: "var(--radius-card)", border: "1px solid var(--color-divider)", overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                <tr style={{ background: "var(--color-primary-main)" }}>
                   {LEADS_COLUMNS.map((col) => (
                     <th
                       key={col}
                       style={{
                         padding: "0.75rem 1rem",
                         textAlign: "left",
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        color: "#374151",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "#ffffff",
                       }}
                     >
                       {col}
@@ -666,24 +668,24 @@ export default function LeadsAiPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={LEADS_COLUMNS.length} style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
+                    <td colSpan={LEADS_COLUMNS.length} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                       Memuat data...
                     </td>
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan={LEADS_COLUMNS.length} style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
+                    <td colSpan={LEADS_COLUMNS.length} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
                       Tidak ada data
                     </td>
                   </tr>
                 ) : (
                   leads.map((lead) => (
-                    <tr key={lead.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                    <tr key={lead.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
                       <td style={{ padding: "0.75rem 1rem", fontSize: "0.875rem" }}>
                         <span
                           onClick={() => lead.phone_number && loadChatConversation(lead.phone_number)}
                           style={{
-                            color: lead.phone_number ? "#3b82f6" : "inherit",
+                            color: lead.phone_number ? "var(--color-info-main)" : "inherit",
                             cursor: lead.phone_number ? "pointer" : "default",
                             textDecoration: lead.phone_number ? "underline" : "none",
                           }}
@@ -698,17 +700,17 @@ export default function LeadsAiPage() {
                       <td style={{ padding: "0.75rem 1rem", fontSize: "0.875rem" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                           {lead.last_reply_at && (
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                               Last Reply: {formatDate(lead.last_reply_at)}
                             </div>
                           )}
                           {lead.created_at && (
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                               Created: {formatDate(lead.created_at)}
                             </div>
                           )}
                           {lead.updated_at && (
-                            <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                               Updated: {formatDate(lead.updated_at)}
                             </div>
                           )}
@@ -723,7 +725,7 @@ export default function LeadsAiPage() {
                             onClick={() => handleView(lead)}
                             style={{
                               padding: "0.375rem",
-                              background: "#3b82f6",
+                              background: "var(--color-info-main)",
                               color: "white",
                               border: "none",
                               borderRadius: "4px",
@@ -755,7 +757,7 @@ export default function LeadsAiPage() {
                             onClick={() => handleDelete(lead)}
                             style={{
                               padding: "0.375rem",
-                              background: "#ef4444",
+                              background: "var(--color-error-main)",
                               color: "white",
                               border: "none",
                               borderRadius: "4px",
@@ -778,8 +780,8 @@ export default function LeadsAiPage() {
 
           {/* Pagination */}
           {paginationInfo && paginationInfo.last_page > 1 && (
-            <div style={{ padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e5e7eb" }}>
-              <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+            <div style={{ padding: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--color-divider)" }}>
+              <div style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
                 Menampilkan {((paginationInfo.current_page - 1) * paginationInfo.per_page) + 1} - {Math.min(paginationInfo.current_page * paginationInfo.per_page, paginationInfo.total)} dari {paginationInfo.total}
               </div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -793,8 +795,8 @@ export default function LeadsAiPage() {
                   disabled={page === 1}
                   style={{
                     padding: "0.5rem 1rem",
-                    border: "1px solid #e5e7eb",
-                    background: page === 1 ? "#f3f4f6" : "white",
+                    border: "1px solid var(--color-divider)",
+                    background: page === 1 ? "var(--color-grey-100)" : "white",
                     borderRadius: "6px",
                     cursor: page === 1 ? "not-allowed" : "pointer",
                     fontSize: "0.875rem",
@@ -812,8 +814,8 @@ export default function LeadsAiPage() {
                   disabled={!hasMore}
                   style={{
                     padding: "0.5rem 1rem",
-                    border: "1px solid #e5e7eb",
-                    background: !hasMore ? "#f3f4f6" : "white",
+                    border: "1px solid var(--color-divider)",
+                    background: !hasMore ? "var(--color-grey-100)" : "white",
                     borderRadius: "6px",
                     cursor: !hasMore ? "not-allowed" : "pointer",
                     fontSize: "0.875rem",
@@ -860,88 +862,88 @@ export default function LeadsAiPage() {
             <h2 style={{ margin: "0 0 1rem 0", fontSize: "1.25rem", fontWeight: 600 }}>Detail Lead</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Nama</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Nama</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.name || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Nomor Telepon</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Nomor Telepon</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.phone_number || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Pesan Pertama</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Pesan Pertama</label>
                 <div style={{ fontSize: "0.9375rem", whiteSpace: "pre-wrap" }}>{selectedLead.first_message || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Status</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Status</label>
                 <div>{getStatusBadge(selectedLead.status)}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Produk</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Produk</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.product || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Lokasi</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Lokasi</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.location || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Waktu Dibuat</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Waktu Dibuat</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.created_at ? formatDate(selectedLead.created_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Waktu Diupdate</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Waktu Diupdate</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.updated_at ? formatDate(selectedLead.updated_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Last Reply</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Last Reply</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.last_reply_at ? formatDate(selectedLead.last_reply_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Follow Up At</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Follow Up At</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.followup_at ? formatDate(selectedLead.followup_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Assigned At</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Assigned At</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.assigned_at ? formatDate(selectedLead.assigned_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Last Contact At</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Last Contact At</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.last_contact_at ? formatDate(selectedLead.last_contact_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Next Follow Up At</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Next Follow Up At</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.next_follow_up_at ? formatDate(selectedLead.next_follow_up_at) : "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Source</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Source</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.source || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Lead Score</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Lead Score</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.lead_score ?? "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Lead Label</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Lead Label</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.lead_label || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Minat Produk</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Minat Produk</label>
                 <div style={{ fontSize: "0.9375rem" }}>{selectedLead.minat_produk || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Alasan Tertarik</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Alasan Tertarik</label>
                 <div style={{ fontSize: "0.9375rem", whiteSpace: "pre-wrap" }}>{selectedLead.alasan_tertarik || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Alasan Belum</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Alasan Belum</label>
                 <div style={{ fontSize: "0.9375rem", whiteSpace: "pre-wrap" }}>{selectedLead.alasan_belum || "-"}</div>
               </div>
               <div>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Harapan</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Harapan</label>
                 <div style={{ fontSize: "0.9375rem", whiteSpace: "pre-wrap" }}>{selectedLead.harapan || "-"}</div>
               </div>
               {selectedLead.assigned_sales && (
                 <div>
-                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>Assigned Sales</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--color-text-secondary)", display: "block", marginBottom: "0.25rem" }}>Assigned Sales</label>
                   <div style={{ fontSize: "0.9375rem" }}>{selectedLead.assigned_sales.nama || "-"}</div>
                 </div>
               )}
@@ -951,7 +953,7 @@ export default function LeadsAiPage() {
                 onClick={() => setShowViewLead(false)}
                 style={{
                   padding: "0.5rem 1rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   background: "white",
                   borderRadius: "6px",
                   cursor: "pointer",
@@ -1100,7 +1102,7 @@ export default function LeadsAiPage() {
             }}
           >
             {chatMessages.length === 0 ? (
-              <div style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>Belum ada pesan</div>
+              <div style={{ textAlign: "center", color: "var(--color-text-secondary)", padding: "2rem" }}>Belum ada pesan</div>
             ) : (
               chatMessages.map((msg) => {
                 const isSent = msg.sender_type === "AI" || msg.sender_type === "bot" || msg.sender_type === "sales" || msg.sender_type === "system";
@@ -1131,14 +1133,14 @@ export default function LeadsAiPage() {
                       }}
                     >
                       {isSent ? (
-                        <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: "right", color: "#6b7280" }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: "right", color: "var(--color-text-secondary)" }}>
                           {senderLabel}
                         </div>
                       ) : (
-                        <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", color: "#6b7280" }}>{senderLabel}</div>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", color: "var(--color-text-secondary)" }}>{senderLabel}</div>
                       )}
-                      <div style={{ fontSize: "0.875rem", lineHeight: 1.4, color: "#111827", margin: 0 }}>{msg.message_text}</div>
-                      <div style={{ fontSize: "0.6875rem", color: "#6b7280", marginTop: "0.25rem", textAlign: isSent ? "right" : "left" }}>
+                      <div style={{ fontSize: "0.875rem", lineHeight: 1.4, color: "var(--color-text-primary)", margin: 0 }}>{msg.message_text}</div>
+                      <div style={{ fontSize: "0.6875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem", textAlign: isSent ? "right" : "left" }}>
                         {time}
                       </div>
                     </div>
@@ -1163,7 +1165,7 @@ export default function LeadsAiPage() {
               style={{
                 flex: 1,
                 padding: "0.625rem 1rem",
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--color-divider)",
                 borderRadius: "21px",
                 fontSize: "0.875rem",
                 resize: "none",
@@ -1300,7 +1302,7 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
     <form onSubmit={handleSubmit}>
       <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", paddingRight: "0.5rem" }}>
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Nama *
           </label>
           <input
@@ -1311,18 +1313,18 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           />
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Nomor Telepon *
           </label>
           <input
@@ -1333,18 +1335,18 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           />
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Chat Pertama *
           </label>
           <textarea
@@ -1355,20 +1357,20 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               resize: "vertical",
               transition: "border-color 0.2s",
               fontFamily: "inherit",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           />
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Status *
           </label>
           <select
@@ -1378,15 +1380,15 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               backgroundColor: "white",
               cursor: "pointer",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           >
             <option value="new">New</option>
             <option value="lead">Lead</option>
@@ -1398,7 +1400,7 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Produk
           </label>
           <input
@@ -1408,18 +1410,18 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           />
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Lokasi
           </label>
           <input
@@ -1429,18 +1431,18 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           />
         </div>
         
         <div>
-          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "#374151" }}>
+          <label style={{ fontSize: "0.875rem", fontWeight: 500, display: "block", marginBottom: "0.5rem", color: "var(--color-text-primary)" }}>
             Sales Sign
           </label>
           <select
@@ -1450,15 +1452,15 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
             style={{
               width: "100%",
               padding: "0.625rem 0.75rem",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--color-grey-300)",
               borderRadius: "6px",
               fontSize: "0.875rem",
-              backgroundColor: loadingSales ? "#f3f4f6" : "white",
+              backgroundColor: loadingSales ? "var(--color-grey-100)" : "white",
               cursor: loadingSales ? "not-allowed" : "pointer",
               transition: "border-color 0.2s",
             }}
-            onFocus={(e) => !loadingSales && (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
+            onFocus={(e) => !loadingSales && (e.target.style.borderColor = "var(--color-info-main)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-grey-300)")}
           >
             <option value="">Pilih Sales</option>
             {salesList.map((sales) => (
@@ -1475,7 +1477,7 @@ function EditLeadForm({ lead, onClose, onSuccess }) {
           onClick={onClose}
           style={{
             padding: "0.5rem 1rem",
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--color-divider)",
             background: "white",
             borderRadius: "6px",
             cursor: "pointer",

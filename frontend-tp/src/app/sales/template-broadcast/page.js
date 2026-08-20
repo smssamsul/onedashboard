@@ -200,25 +200,25 @@ export default function TemplateBroadcastPage() {
     <Layout title="Template Broadcast">
       <style>{`
         :root {
-            --primary: #F1A124;
+            --primary: var(--color-primary-main);
             --primary-light: #f7c376;
-            --secondary: #3b82f6;
+            --secondary: var(--color-info-main);
             --surface: #ffffff;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
+            --text: var(--color-text-primary);
+            --text-muted: var(--color-text-secondary);
+            --border: var(--color-border);
             --radius-sm: 0.375rem;
             --radius: 0.5rem;
             --radius-lg: 0.75rem;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-sm: none;
+            --shadow: none;
         }
 
         .tb-container {
             padding: 1.5rem;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: var(--text);
-            background: #f8fafc;
+            background: var(--color-bg-default);
             min-height: 100vh;
         }
 
@@ -285,14 +285,14 @@ export default function TemplateBroadcastPage() {
         }
 
         th {
-            background: #f8fafc;
+            background: var(--color-primary-main);
             padding: 1rem 1.5rem;
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--text-muted);
-            font-weight: 600;
-            border-bottom: 1px solid var(--border);
+            color: #ffffff;
+            font-weight: 700;
+            border-bottom: none;
         }
 
         td {
@@ -325,11 +325,11 @@ export default function TemplateBroadcastPage() {
             transition: all 0.2s;
         }
 
-        .action-btn.edit { background: #fef3c7; color: #d97706; }
+        .action-btn.edit { background: var(--color-warning-lighter); color: var(--color-warning-dark); }
         .action-btn.edit:hover { background: #fde68a; }
 
-        .action-btn.delete { background: #fee2e2; color: #dc2626; }
-        .action-btn.delete:hover { background: #fecaca; }
+        .action-btn.delete { background: var(--color-error-lighter); color: var(--color-error-main); }
+        .action-btn.delete:hover { background: var(--color-error-lighter); }
 
         /* Modal Styles */
         .modal-overlay {
@@ -412,7 +412,7 @@ export default function TemplateBroadcastPage() {
             font-size: 0.75rem;
             color: var(--text-muted);
             margin-top: 0.5rem;
-            background: #f8fafc;
+            background: var(--color-bg-default);
             padding: 0.75rem;
             border-radius: var(--radius-sm);
         }
@@ -423,7 +423,7 @@ export default function TemplateBroadcastPage() {
             display: flex;
             justify-content: flex-end;
             gap: 0.75rem;
-            background: #f8fafc;
+            background: var(--color-bg-default);
             border-bottom-left-radius: var(--radius-lg);
             border-bottom-right-radius: var(--radius-lg);
         }
@@ -453,8 +453,8 @@ export default function TemplateBroadcastPage() {
         }
         
         .btn-secondary-small {
-            background: #e2e8f0;
-            color: #334155;
+            background: var(--color-border);
+            color: var(--color-text-primary);
             border: none;
             font-size: 0.75rem;
             padding: 0.375rem 0.625rem;
@@ -463,7 +463,7 @@ export default function TemplateBroadcastPage() {
             font-weight: 500;
         }
         .btn-secondary-small:hover {
-            background: #cbd5e1;
+            background: var(--color-grey-300);
         }
       `}</style>
 
@@ -480,7 +480,7 @@ export default function TemplateBroadcastPage() {
         </div>
 
         {error && (
-          <div style={{ background: "#fee2e2", color: "#dc2626", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1.5rem" }}>
+          <div style={{ background: "var(--color-error-lighter)", color: "var(--color-error-main)", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1.5rem" }}>
             {error}
           </div>
         )}
@@ -557,7 +557,7 @@ export default function TemplateBroadcastPage() {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Judul Template <span style={{ color: "#dc2626" }}>*</span></label>
+                  <label>Judul Template <span style={{ color: "var(--color-error-main)" }}>*</span></label>
                   <input
                     type="text"
                     name="judul"
@@ -569,7 +569,7 @@ export default function TemplateBroadcastPage() {
                 </div>
                 
                 <div className="form-group">
-                  <label>Isi Template <span style={{ color: "#dc2626" }}>*</span></label>
+                  <label>Isi Template <span style={{ color: "var(--color-error-main)" }}>*</span></label>
                   <textarea
                     ref={textareaRef}
                     name="isi"
