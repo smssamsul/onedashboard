@@ -3,17 +3,18 @@ HR LOGIN PAGE STYLES
 =========================== */
 
 :root {
-  --hr-primary: #f1a124;
-  --hr-primary-hover: #df9620;
-  --hr-success: #4ADE80;
-  --hr-warning: #FACC15;
-  --hr-danger: #F87171;
+  --hr-primary: var(--color-primary-main);
+  --hr-primary-hover: var(--color-primary-dark);
+  --hr-accent: var(--color-accent-main);
+  --hr-success: var(--color-success-main);
+  --hr-warning: var(--color-warning-main);
+  --hr-danger: var(--color-error-main);
   --hr-gray-bg: #ffffff;
-  --hr-gray-border: #E5E7EB;
-  --hr-gray-text: #6B7280;
-  --hr-dark-text: #111827;
+  --hr-gray-border: var(--color-border);
+  --hr-gray-text: var(--color-text-secondary);
+  --hr-dark-text: var(--color-text-primary);
   --hr-white: #ffffff;
-  --hr-radius: 8px;
+  --hr-radius: 12px;
   --hr-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
@@ -28,7 +29,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   min-height: 100vh;
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  font-family: var(--font-base);
   background: var(--hr-gray-bg);
 }
 
@@ -99,9 +100,9 @@ body {
 }
 
 .hr-form-group input:focus {
-  border-color: var(--hr-primary);
+  border-color: var(--hr-accent);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(241, 161, 36, 0.15);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 
 .hr-remember-forgot {
@@ -125,7 +126,7 @@ body {
 }
 
 .hr-remember-forgot a {
-  color: var(--hr-primary);
+  color: var(--hr-accent);
   text-decoration: none;
   transition: text-decoration 0.2s ease;
 }
@@ -153,7 +154,7 @@ body {
 }
 
 .hr-btn-signin:disabled {
-  background: #f6c068;
+  background: var(--color-primary-light);
   cursor: not-allowed;
   transform: none;
   opacity: 0.8;
@@ -169,7 +170,7 @@ body {
   justify-content: center;
   color: white;
   position: relative;
-  background-image: linear-gradient(135deg, #f1a124 0%, #df9620 100%);
+  background-image: linear-gradient(135deg, var(--color-primary-main) 0%, var(--color-primary-dark) 100%);
   background-size: cover;
   background-position: center;
   padding: clamp(2rem, 5vw, 4rem);

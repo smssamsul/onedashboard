@@ -1,6 +1,6 @@
-:root, body 
+:root, body
 {
-  font-family: Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  font-family: var(--font-base);
 }
 
 /* ===========================
@@ -8,17 +8,18 @@ LOGIN PAGE STYLES
 =========================== */
 
 :root {
-  --login-primary: #f97316;;
-  --login-primary-hover: #df9620;
-  --login-success: #4ADE80;
-  --login-warning: #FACC15;
-  --login-danger: #F87171;
+  --login-primary: var(--color-primary-main);
+  --login-primary-hover: var(--color-primary-dark);
+  --login-accent: var(--color-accent-main);
+  --login-success: var(--color-success-main);
+  --login-warning: var(--color-warning-main);
+  --login-danger: var(--color-error-main);
   --login-gray-bg: #ffffff;
-  --login-gray-border: #E5E7EB;
-  --login-gray-text: #6B7280;
-  --login-dark-text: #111827;
+  --login-gray-border: var(--color-border);
+  --login-gray-text: var(--color-text-secondary);
+  --login-dark-text: var(--color-text-primary);
   --login-white: #ffffff;
-  --login-radius: 8px;
+  --login-radius: 12px;
   --login-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
@@ -126,9 +127,9 @@ body {
 }
 
 .login-form-group input:focus {
-  border-color: var(--login-primary);
+  border-color: var(--login-accent);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(241, 161, 36, 0.15);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 
 .login-password-wrapper {
@@ -148,13 +149,13 @@ body {
   background: transparent;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--login-primary);
+  color: var(--login-accent);
   cursor: pointer;
   padding: 0;
 }
 
 .login-password-toggle:focus-visible {
-  outline: 2px solid var(--login-primary);
+  outline: 2px solid var(--login-accent);
   outline-offset: 2px;
 }
 
@@ -180,7 +181,7 @@ body {
 }
 
 .login-remember-forgot a {
-  color: var(--login-primary);
+  color: var(--login-accent);
   text-decoration: none;
   transition: text-decoration 0.2s ease;
 }
@@ -208,7 +209,7 @@ body {
 }
 
 .login-btn-signin:disabled {
-  background: #f6c068;
+  background: var(--color-primary-light);
   cursor: not-allowed;
   transform: none;
   opacity: 0.8;
@@ -225,7 +226,7 @@ body {
 .login-right {
   flex: 1.1 1 480px;
   min-height: 250px;
-  background: #ff7e00;
+  background: linear-gradient(135deg, var(--color-primary-main) 0%, var(--color-primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;

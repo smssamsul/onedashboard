@@ -8,7 +8,7 @@
  */
 
 :root {
-  --font-base: "Public Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-base: "Plus Jakarta Sans", "Public Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* --- Primary (navy #1e3a5f sesuai pilihan user, dipakai tombol utama & elemen interaktif) --- */
   --color-primary-lighter: #eaeff4;
