@@ -27,7 +27,6 @@ export async function GET(request) {
 
     const data = await response.json();
 
-    console.log("🟢 [CUSTOMER_GET] Backend response:", data);
 
     if (!response.ok) {
       return NextResponse.json(
@@ -64,8 +63,6 @@ export async function POST(request) {
     const token = authHeader.replace("Bearer ", "");
     const body = await request.json();
 
-    console.log("🟢 [CUSTOMER_UPDATE] Request body:", body);
-    console.log("🟢 [CUSTOMER_UPDATE] Token:", token ? "exists" : "missing");
 
     // Forward ke backend
     const response = await fetch(`${BACKEND_URL}/api/customer/customer`, {
@@ -80,7 +77,6 @@ export async function POST(request) {
 
     const data = await response.json();
 
-    console.log("🟢 [CUSTOMER_UPDATE] Backend response:", data);
 
     if (!response.ok) {
       return NextResponse.json(

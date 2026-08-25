@@ -14,8 +14,8 @@ use App\Models\OrderCustomer;
 use App\Models\Produk;
 use App\Services\LokasiKeywordService;
 use App\Services\AnalisaMetaAdsService;
+use App\Jobs\SyncMetaAdsInsightsJob;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -900,7 +900,10 @@ class MetaAdsPerformanceController extends Controller
 
     /**
      * Trigger sync manual dari tombol "Sync" di dashboard.
-     * Jalan sinkron (nunggu selesai) supaya user langsung dapat hasil/errornya.
+     * Jalan di background (queue) - Meta Graph API bisa lambat/timeout dan
+     * sync 1 akun saja bisa lebih lama dari max_execution_time PHP, jadi
+     * request ini cuma dispatch job lalu langsung balas. Progress/hasilnya
+     * dibaca lewat syncStatus() (di-polling dari frontend).
      */
     public function sync(Request $request)
     {
@@ -911,23 +914,51 @@ class MetaAdsPerformanceController extends Controller
             ], 422);
         }
 
-        // Batasi rentang biar request-nya gak kelamaan / timeout.
+        $status = Cache::get(SyncMetaAdsInsightsJob::CACHE_KEY);
+        if (($status['status'] ?? null) === 'running') {
+            return response()->json([
+                'success' => false,
+                'status' => 'running',
+                'message' => 'Sync sebelumnya masih berjalan, tunggu sebentar.',
+            ], 409);
+        }
+
+        // Batasi rentang biar job-nya gak kelamaan.
         $days = (int) $request->get('days', 30);
         $days = max(1, min($days, 90));
 
-        Artisan::call('meta-ads:sync-insights', ['--days' => $days]);
-        $output = trim(Artisan::output());
+        Cache::put(SyncMetaAdsInsightsJob::CACHE_KEY, [
+            'status' => 'pending',
+            'message' => 'Sync dijadwalkan...',
+            'output' => null,
+            'started_at' => null,
+            'finished_at' => null,
+        ], now()->addHour());
 
-        // Command menangkap error Meta per-akun secara internal dan tetap exit 0,
-        // jadi status gagal dideteksi dari teks output biar user tetap dapat feedback.
-        $gagal = str_contains($output, 'Gagal sync') || str_contains($output, 'Error tak terduga');
+        SyncMetaAdsInsightsJob::dispatch($days);
 
         return response()->json([
-            'success' => !$gagal,
-            'message' => $gagal
-                ? 'Sebagian/seluruh akun gagal di-sync. Cek detail error.'
-                : 'Sync selesai. Data performa sudah diperbarui.',
-            'output' => $output,
-        ], $gagal ? 422 : 200);
+            'success' => true,
+            'status' => 'pending',
+            'message' => 'Sync dimulai di background.',
+        ]);
+    }
+
+    /**
+     * Status sync yang sedang/baru berjalan (di-polling frontend setelah sync()).
+     */
+    public function syncStatus(Request $request)
+    {
+        $status = Cache::get(SyncMetaAdsInsightsJob::CACHE_KEY);
+
+        if (!$status) {
+            return response()->json([
+                'success' => true,
+                'status' => 'idle',
+                'message' => null,
+            ]);
+        }
+
+        return response()->json(array_merge(['success' => true], $status));
     }
 }

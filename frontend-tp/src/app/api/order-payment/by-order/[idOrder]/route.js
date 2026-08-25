@@ -23,7 +23,6 @@ export async function GET(request, { params }) {
     const token = authHeader.replace("Bearer ", "");
 
     const backendUrl = `${BACKEND_URL}/api/order-payment/by-order/${idOrder}`;
-    console.log("🔍 [PAYMENT-HISTORY] Fetch:", backendUrl);
 
     const res = await fetch(backendUrl, {
       method: "GET",

@@ -78,12 +78,10 @@ export function trackFinanceApprovedPurchase({ produk, value, currency = "IDR", 
 
   const pixelIds = normalizeFbPixelIds(produk?.fb_pixel);
   if (!pixelIds.length) {
-    console.log("[FB PIXEL Finance] Lewati: tidak ada pixel di pengaturan landing page", produk?.id);
     return false;
   }
 
   if (!productEnablesPurchaseEvent(produk?.event_fb_pixel)) {
-    console.log("[FB PIXEL Finance] Lewati: event Purchase tidak aktif di produk", produk?.id);
     return false;
   }
 
@@ -123,7 +121,6 @@ export function trackFinanceApprovedPurchase({ produk, value, currency = "IDR", 
 
     try {
       window.fbq("track", "Purchase", params);
-      console.log("[FB PIXEL Finance] Purchase terkirim", params);
     } catch (e) {
       console.error("[FB PIXEL Finance] track Purchase gagal", e);
     }

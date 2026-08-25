@@ -400,7 +400,6 @@ export default function HrSettingPage() {
         strategy="lazyOnload"
         onLoad={() => {
           // Map will be initialized in useEffect after Leaflet loads
-          console.log("Leaflet loaded");
         }}
       />
       

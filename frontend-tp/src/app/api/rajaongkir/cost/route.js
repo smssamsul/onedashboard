@@ -69,12 +69,6 @@ export async function POST(request) {
     params.append('weight', String(weightNum));
     params.append('courier', String(courierValue).toLowerCase());
 
-    console.log('[RAJAONGKIR_COST] Requesting cost (V2 Basic):', {
-      origin: String(origin),      // Hardcode: 73655
-      destination: String(destination), // city_id atau subdistrict_id tujuan
-      weight: weightNum,
-      courier: courierValue.toLowerCase()
-    });
 
     let response;
     try {

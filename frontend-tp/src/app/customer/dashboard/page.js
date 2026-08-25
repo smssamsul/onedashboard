@@ -48,7 +48,6 @@ export default function DashboardPage() {
     : sessionVerifikasi;
 
   // Debug verification status
-  console.log("[DASHBOARD] Verif Check:", { api: customerInfo?.verifikasi, session: sessionVerifikasi, final: verifikasiValue });
   const isVerified = Number(verifikasiValue) === 1 || verifikasiValue === true || String(verifikasiValue) === "1";
 
   // Fungsi untuk mengecek apakah data customer sudah lengkap
@@ -70,16 +69,13 @@ export default function DashboardPage() {
 
     // Combine info for completeness check
     const combinedInfo = { ...session?.user, ...customerInfo };
-    console.log("[DASHBOARD] Checking Data Completeness:", combinedInfo);
 
     // Cek apakah data customer sudah lengkap
     const isComplete = isCustomerDataComplete(combinedInfo);
-    console.log("[DASHBOARD] Is Data Complete?", isComplete);
 
     // 1. Jika data sudah LENGKAP, segera bersihkan semua trigger modal
     if (isComplete) {
       if (localStorage.getItem("customer_show_update_modal")) {
-        console.log("[DASHBOARD] Data complete, removing localStorage flag");
         localStorage.removeItem("customer_show_update_modal");
       }
       if (showUpdateModal) {
@@ -101,7 +97,6 @@ export default function DashboardPage() {
     } else {
       // Jika tidak ada flag, tapi data tetap tidak lengkap, munculkan dengan alasan 'data'
       if (!showUpdateModal) {
-        console.log("[DASHBOARD] Customer data incomplete, showing modal");
         setShowUpdateModal(true);
         setUpdateModalReason("data");
       }
@@ -121,7 +116,6 @@ export default function DashboardPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const handleUpdateSuccess = (data) => {
-    console.log("[DASHBOARD] Update success, data received:", data);
 
     const session = getCustomerSession();
     if (session.user) {
@@ -161,7 +155,6 @@ export default function DashboardPage() {
     const orderId = order.id;
     const totalHarga = order.total_harga || order.total || "0";
 
-    console.log("[DASHBOARD] Processing payment:", { orderId, paymentMethod, productName });
 
     // Jika metode pembayaran adalah E-Payment
     const isEpayment = ["ewallet", "cc", "va", "doku"].includes(paymentMethod);
@@ -201,7 +194,6 @@ export default function DashboardPage() {
           endpoint = "/api/doku/create-payment-cc";
         }
 
-        console.log("[DASHBOARD] Triggering API:", { endpoint, orderId });
 
         const response = await fetch(endpoint, {
           method: "POST",
@@ -244,7 +236,6 @@ export default function DashboardPage() {
         ? totalHarga.replace(/\D/g, "")
         : totalHarga;
 
-      console.log("[DASHBOARD] Redirecting to Manual Transfer");
       router.push(`/payment?product=${encodeURIComponent(productName)}&harga=${amountValue}&via=manual&order_id=${orderId}&sumber=dashboard`);
     }
   };

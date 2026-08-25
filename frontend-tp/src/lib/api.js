@@ -62,8 +62,6 @@ const handleResponse = async (res, endpoint, options = {}) => {
       `%c📡 [${options.method || "GET"}] ${endpoint}`,
       "color: #3B82F6; font-weight: bold"
     );
-    console.log("Status:", res.status, res.statusText);
-    console.log("Response:", data);
     console.groupEnd();
   }
 

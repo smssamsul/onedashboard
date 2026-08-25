@@ -38,12 +38,8 @@ export async function GET(request) {
       );
     }
 
-    console.log('[RAJAONGKIR_CITIES] Response status:', response.status);
-    console.log('[RAJAONGKIR_CITIES] Response headers:', Object.fromEntries(response.headers.entries()));
 
     const responseText = await response.text();
-    console.log('[RAJAONGKIR_CITIES] Raw response status:', response.status);
-    console.log('[RAJAONGKIR_CITIES] Raw response (first 1000 chars):', responseText.substring(0, 1000));
 
     // Check HTTP status
     if (!response.ok) {
@@ -75,8 +71,6 @@ export async function GET(request) {
       );
     }
 
-    console.log('[RAJAONGKIR_CITIES] Parsed JSON keys:', Object.keys(json));
-    console.log('[RAJAONGKIR_CITIES] Parsed JSON sample:', JSON.stringify(json).substring(0, 1000));
 
     // Validate top-level structure
     // RajaOngkir bisa return error langsung atau dalam struktur rajaongkir
@@ -187,7 +181,6 @@ export async function GET(request) {
       );
     }
 
-    console.log('[RAJAONGKIR_CITIES] Found', results.length, 'cities');
 
     let list = results;
 

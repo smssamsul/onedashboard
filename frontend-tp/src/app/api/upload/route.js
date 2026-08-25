@@ -93,7 +93,6 @@ export async function POST(request) {
         const buffer = Buffer.from(arrayBuffer);
 
         // Convert to WebP
-        console.log(`🖼️ [UPLOAD] Converting ${uploadFile.name} to WebP...`);
         const webpBuffer = await convertToWebP(buffer, 75);
 
         // Generate filename and save
@@ -104,7 +103,6 @@ export async function POST(request) {
 
         const publicUrl = `/uploads/${filename}`;
         
-        console.log(`✅ [UPLOAD] Saved: ${filename} (${webpBuffer.length} bytes)`);
 
         uploadedFiles.push({
           original_name: uploadFile.name,

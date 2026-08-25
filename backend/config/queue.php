@@ -66,7 +66,10 @@ return [
             'driver' => 'redis',
             'connection' => 'default',
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => 90,
+            // 400s - di atas timeout job SyncMetaAdsInsightsJob (280s), supaya job
+            // itu yang menyerah lebih dulu lewat timeout-nya sendiri, bukan
+            // di-redeliver dobel oleh Redis karena dianggap hilang.
+            'retry_after' => 400,
             'block_for' => null,
             'after_commit' => false,
         ],

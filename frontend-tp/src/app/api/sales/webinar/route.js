@@ -50,8 +50,6 @@ export async function POST(request) {
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
 
-    console.log("🔍 [WEBINAR POST] Creating webinar with payload:", payload);
-    console.log("🔍 [WEBINAR POST] Backend URL:", `${BACKEND_URL}/api/sales/webinar`);
 
     const res = await fetch(`${BACKEND_URL}/api/sales/webinar`, {
       method: "POST",
@@ -63,7 +61,6 @@ export async function POST(request) {
       body: JSON.stringify(payload),
     });
 
-    console.log("🔍 [WEBINAR POST] Backend response status:", res.status);
 
     const data = await res.json().catch(() => ({}));
 

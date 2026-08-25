@@ -354,14 +354,14 @@ export default function PercakapanPage() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      new: { bg: "#dbeafe", color: "#2563eb", label: "New" },
-      lead: { bg: "#d1fae5", color: "#059669", label: "Lead" },
-      hot: { bg: "#fee2e2", color: "#dc2626", label: "Hot" },
-      warm: { bg: "#fef3c7", color: "#d97706", label: "Warm" },
-      cold: { bg: "#dbeafe", color: "#2563eb", label: "Cold" },
-      trash: { bg: "#f3f4f6", color: "#6b7280", label: "Trash" },
+      new: { bg: "var(--color-info-lighter)", color: "var(--color-info-dark)", label: "New" },
+      lead: { bg: "var(--color-success-lighter)", color: "var(--color-success-dark)", label: "Lead" },
+      hot: { bg: "var(--color-error-lighter)", color: "var(--color-error-main)", label: "Hot" },
+      warm: { bg: "var(--color-warning-lighter)", color: "var(--color-warning-dark)", label: "Warm" },
+      cold: { bg: "var(--color-info-lighter)", color: "var(--color-info-dark)", label: "Cold" },
+      trash: { bg: "var(--color-grey-100)", color: "var(--color-text-secondary)", label: "Trash" },
     };
-    const statusInfo = statusMap[status] || { bg: "#f3f4f6", color: "#6b7280", label: status || "-" };
+    const statusInfo = statusMap[status] || { bg: "var(--color-grey-100)", color: "var(--color-text-secondary)", label: status || "-" };
     return (
       <span
         style={{
@@ -392,7 +392,7 @@ export default function PercakapanPage() {
       <style>{slideInStyle}</style>
       <div style={{ display: "flex", height: "calc(100vh - 120px)", background: "#ECE5DD", borderRadius: "8px", overflow: "hidden" }}>
         {/* Sidebar */}
-        <div style={{ width: "350px", background: "white", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
+        <div style={{ width: "350px", background: "white", borderRight: "1px solid var(--color-divider)", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "1rem", background: "#075E54", color: "white", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600 }}>Percakapan</h3>
             <button
@@ -417,9 +417,9 @@ export default function PercakapanPage() {
               display: "flex",
               gap: "0.375rem",
               padding: "0.625rem 0.75rem",
-              borderBottom: "1px solid #e5e7eb",
+              borderBottom: "1px solid var(--color-divider)",
               overflowX: "auto",
-              background: "#f8fafc",
+              background: "var(--color-bg-default)",
             }}
           >
             <button
@@ -430,9 +430,9 @@ export default function PercakapanPage() {
                 borderRadius: "16px",
                 fontSize: "0.8125rem",
                 fontWeight: 600,
-                border: "1px solid " + (selectedSalesId === null ? "#075E54" : "#e5e7eb"),
+                border: "1px solid " + (selectedSalesId === null ? "#075E54" : "var(--color-divider)"),
                 background: selectedSalesId === null ? "#075E54" : "white",
-                color: selectedSalesId === null ? "white" : "#374151",
+                color: selectedSalesId === null ? "white" : "var(--color-text-primary)",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -451,9 +451,9 @@ export default function PercakapanPage() {
                     borderRadius: "16px",
                     fontSize: "0.8125rem",
                     fontWeight: 600,
-                    border: "1px solid " + (isActive ? "#075E54" : "#e5e7eb"),
+                    border: "1px solid " + (isActive ? "#075E54" : "var(--color-divider)"),
                     background: isActive ? "#075E54" : "white",
-                    color: isActive ? "white" : "#374151",
+                    color: isActive ? "white" : "var(--color-text-primary)",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
                   }}
@@ -464,9 +464,9 @@ export default function PercakapanPage() {
               );
             })}
           </div>
-          <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid #e5e7eb" }}>
+          <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--color-divider)" }}>
             <div style={{ position: "relative" }}>
-              <Search size={16} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+              <Search size={16} style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-secondary)" }} />
               <input
                 type="text"
                 placeholder="Cari percakapan..."
@@ -475,7 +475,7 @@ export default function PercakapanPage() {
                 style={{
                   width: "100%",
                   padding: "0.5rem 1rem 0.5rem 2.5rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "20px",
                   fontSize: "0.875rem",
                   background: "#f0f2f5",
@@ -485,9 +485,9 @@ export default function PercakapanPage() {
           </div>
           <div ref={conversationListRef} style={{ flex: 1, overflowY: "auto", position: "relative" }}>
             {loading ? (
-              <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>Memuat percakapan...</div>
+              <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Memuat percakapan...</div>
             ) : filteredConversations.length === 0 ? (
-              <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>Tidak ada percakapan</div>
+              <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Tidak ada percakapan</div>
             ) : (
               <>
                 {filteredConversations.map((conv) => {
@@ -502,7 +502,7 @@ export default function PercakapanPage() {
                     onClick={() => loadConversation(conv.id)}
                     style={{
                       padding: "0.75rem 1rem",
-                      borderBottom: "1px solid #e5e7eb",
+                      borderBottom: "1px solid var(--color-divider)",
                       cursor: "pointer",
                       background: isActive ? "#e9edef" : "white",
                       display: "flex",
@@ -533,18 +533,18 @@ export default function PercakapanPage() {
                       {initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: "0.9375rem", marginBottom: "0.25rem", color: "#111827" }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.9375rem", marginBottom: "0.25rem", color: "var(--color-text-primary)" }}>
                         {conv.name || phone}
                       </div>
                       {conv.name && (
-                        <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.25rem" }}>
+                        <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.25rem" }}>
                           {phone}
                         </div>
                       )}
                       <div
                         style={{
                           fontSize: "0.8125rem",
-                          color: "#6b7280",
+                          color: "var(--color-text-secondary)",
                           display: "-webkit-box",
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
@@ -558,7 +558,7 @@ export default function PercakapanPage() {
                       </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.25rem" }}>
-                      <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{formatTime(conv.last_message_at)}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>{formatTime(conv.last_message_at)}</div>
                       {getStatusBadge(conv.status)}
                     </div>
                   </div>
@@ -570,10 +570,10 @@ export default function PercakapanPage() {
                     style={{
                       padding: "1rem",
                       textAlign: "center",
-                      color: isLoadingMore ? "#128C7E" : "#6b7280",
+                      color: isLoadingMore ? "#128C7E" : "var(--color-text-secondary)",
                       fontSize: "0.875rem",
-                      background: "#f9fafb",
-                      borderTop: "1px solid #e5e7eb",
+                      background: "var(--color-grey-50)",
+                      borderTop: "1px solid var(--color-divider)",
                     }}
                   >
                     {isLoadingMore ? "Memuat lebih banyak..." : "Scroll ke bawah untuk memuat lebih banyak"}
@@ -638,7 +638,7 @@ export default function PercakapanPage() {
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem", background: "#ECE5DD" }}>
                 {selectedConversation.detail_percakapan?.length === 0 ? (
-                  <div style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>Belum ada pesan</div>
+                  <div style={{ textAlign: "center", color: "var(--color-text-secondary)", padding: "2rem" }}>Belum ada pesan</div>
                 ) : (
                   selectedConversation.detail_percakapan?.map((msg) => {
                     const isSent = msg.sender_type === "AI" || msg.sender_type === "bot" || msg.sender_type === "sales" || msg.sender_type === "system";
@@ -670,18 +670,18 @@ export default function PercakapanPage() {
                           }}
                         >
                           {isSent ? (
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: "right", color: "#6b7280" }}>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: "right", color: "var(--color-text-secondary)" }}>
                               {senderLabel}
                             </div>
                           ) : (
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", color: "#6b7280" }}>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", color: "var(--color-text-secondary)" }}>
                               {senderLabel}
                             </div>
                           )}
-                          <div style={{ fontSize: "0.9375rem", lineHeight: 1.4, color: "#111827", margin: 0 }}>
+                          <div style={{ fontSize: "0.9375rem", lineHeight: 1.4, color: "var(--color-text-primary)", margin: 0 }}>
                             {msg.message_text}
                           </div>
-                          <div style={{ fontSize: "0.6875rem", color: "#6b7280", marginTop: "0.25rem", textAlign: isSent ? "right" : "left" }}>
+                          <div style={{ fontSize: "0.6875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem", textAlign: isSent ? "right" : "left" }}>
                             {time}
                           </div>
                         </div>
@@ -705,7 +705,7 @@ export default function PercakapanPage() {
                   style={{
                     flex: 1,
                     padding: "0.625rem 1rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--color-divider)",
                     borderRadius: "21px",
                     fontSize: "0.9375rem",
                     resize: "none",
@@ -736,7 +736,7 @@ export default function PercakapanPage() {
               </div>
             </>
           ) : (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280", textAlign: "center" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-secondary)", textAlign: "center" }}>
               <div>
                 <p style={{ fontSize: "1.125rem", marginBottom: "0.5rem" }}>Pilih percakapan untuk memulai</p>
                 <p style={{ fontSize: "0.875rem", opacity: 0.7 }}>Pilih percakapan dari daftar di sebelah kiri</p>
@@ -781,9 +781,9 @@ export default function PercakapanPage() {
                 value={newPhoneNumber}
                 onChange={(e) => setNewPhoneNumber(e.target.value)}
                 placeholder="6281234567890"
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e5e7eb", borderRadius: "4px" }}
+                style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-divider)", borderRadius: "4px" }}
               />
-              <small style={{ color: "#6b7280", fontSize: "0.75rem" }}>Format: 6281234567890 (tanpa + dan spasi)</small>
+              <small style={{ color: "var(--color-text-secondary)", fontSize: "0.75rem" }}>Format: 6281234567890 (tanpa + dan spasi)</small>
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>Pesan *</label>
@@ -792,13 +792,13 @@ export default function PercakapanPage() {
                 onChange={(e) => setNewMessageText(e.target.value)}
                 rows={4}
                 placeholder="Ketik pesan yang ingin dikirim..."
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e5e7eb", borderRadius: "4px", resize: "vertical" }}
+                style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-divider)", borderRadius: "4px", resize: "vertical" }}
               />
             </div>
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowAddModal(false)}
-                style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb", background: "white", borderRadius: "4px", cursor: "pointer" }}
+                style={{ padding: "0.5rem 1rem", border: "1px solid var(--color-divider)", background: "white", borderRadius: "4px", cursor: "pointer" }}
               >
                 Batal
               </button>
@@ -858,7 +858,7 @@ export default function PercakapanPage() {
                 style={{
                   width: "100%",
                   padding: "0.5rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "4px",
                 }}
               >
@@ -875,7 +875,7 @@ export default function PercakapanPage() {
                 onClick={() => setShowStatusModal(false)}
                 style={{
                   padding: "0.5rem 1rem",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   background: "white",
                   borderRadius: "4px",
                   cursor: "pointer",

@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 function getGreeting(hour) {
-  if (hour >= 4 && hour < 11) return { text: "Selamat Pagi", emoji: "🌅" };
-  if (hour >= 11 && hour < 15) return { text: "Selamat Siang", emoji: "☀️" };
-  if (hour >= 15 && hour < 19) return { text: "Selamat Sore", emoji: "🌇" };
-  return { text: "Selamat Malam", emoji: "🌙" };
+  if (hour >= 4 && hour < 11) return { text: "Selamat Pagi" };
+  if (hour >= 11 && hour < 15) return { text: "Selamat Siang" };
+  if (hour >= 15 && hour < 19) return { text: "Selamat Sore" };
+  return { text: "Selamat Malam" };
 }
 
 function formatLongDateId(date) {
@@ -55,7 +55,7 @@ export default function GreetingBanner({ name }) {
   return (
     <section className="greeting-banner" aria-label="Greeting banner">
       <div className="greeting-banner__title">
-        {greeting.text}, {displayName}! <span aria-hidden="true">{greeting.emoji}</span>
+        {greeting.text}, {displayName}!
       </div>
       <div className="greeting-banner__meta">
         {formatLongDateId(now)} • {formatTimeId(now)}

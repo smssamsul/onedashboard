@@ -76,11 +76,6 @@ export default function DetailProdukPage({ params }) {
     async function fetchData() {
       try {
         const data = await getProductById(id);
-        console.log("📦 [VIEW PRODUCT] Fetched data:", data);
-        console.log("📦 [VIEW PRODUCT] Data type:", Array.isArray(data) ? "array" : typeof data);
-        console.log("📦 [VIEW PRODUCT] Nama produk:", data?.nama);
-        console.log("📦 [VIEW PRODUCT] Header:", data?.header);
-        console.log("📦 [VIEW PRODUCT] Gambar:", data?.gambar);
 
         if (!data) {
           console.error("❌ [VIEW PRODUCT] No data received");

@@ -519,27 +519,19 @@ export default function EditProductsPage() {
 
   // Handler untuk expand/collapse komponen
   const handleToggleExpand = (blockId) => {
-    console.log('[handleToggleExpand] Called with blockId:', blockId);
-    console.log('[handleToggleExpand] Current collapsedBlockIds:', Array.from(collapsedBlockIds));
-    console.log('[handleToggleExpand] Block exists?', blocks.find(b => b.id === blockId));
 
     setCollapsedBlockIds((prev) => {
       const newSet = new Set(prev);
       const wasCollapsed = newSet.has(blockId);
-      console.log('[handleToggleExpand] Before toggle - wasCollapsed:', wasCollapsed);
 
       if (wasCollapsed) {
         // Jika sudah collapsed, expand (hapus dari set)
         newSet.delete(blockId);
-        console.log('[handleToggleExpand] Expanding block - removed from set');
       } else {
         // Jika sudah expanded, collapse (tambah ke set)
         newSet.add(blockId);
-        console.log('[handleToggleExpand] Collapsing block - added to set');
       }
 
-      console.log('[handleToggleExpand] After toggle - newSet:', Array.from(newSet));
-      console.log('[handleToggleExpand] BlockId:', blockId, 'Now Collapsed:', newSet.has(blockId));
       return newSet;
     });
   };
@@ -549,7 +541,6 @@ export default function EditProductsPage() {
     // Default expanded, kecuali jika ada di collapsedBlockIds
     const isExpanded = !collapsedBlockIds.has(block.id);
 
-    console.log('[renderComponent] Block:', block.id, 'Type:', block.type, 'isExpanded:', isExpanded, 'inCollapsedSet:', collapsedBlockIds.has(block.id));
 
     const commonProps = {
       data: block.data,
@@ -562,7 +553,6 @@ export default function EditProductsPage() {
       onDelete: () => deleteBlock(block.id),
       isExpanded: isExpanded,
       onToggleExpand: () => {
-        console.log('[renderComponent] onToggleExpand callback called for block:', block.id);
         handleToggleExpand(block.id);
       },
     };
@@ -1676,30 +1666,6 @@ export default function EditProductsPage() {
         });
 
         // ✅ DEBUG: Log untuk tracking identifier
-        console.log(`[SECTION RENDER] Section ID: "${sectionComponentId}"`, {
-          sectionBlockId: blockToRender.id,
-          sectionConfigComponentId: blockToRender.config?.componentId,
-          sectionDataComponentId: blockToRender.data?.componentId,
-          childCount: childComponents.length,
-          allBlocksWithParentId: blocks
-            .filter(b => {
-              const bpId = b.parentId || b.config?.parentId || b.data?.parentId;
-              return !!bpId;
-            })
-            .map(b => {
-              const bpId = b.parentId || b.config?.parentId || b.data?.parentId;
-              const actualSectionComponentId = sectionComponentId || blockToRender.data?.componentId;
-              return {
-                id: b.id,
-                type: b.type,
-                parentId_root: b.parentId,
-                parentId_config: b.config?.parentId,
-                parentId_data: b.data?.parentId,
-                parentId_final: bpId,
-                match: bpId === actualSectionComponentId ? "✅ MATCH" : "❌ NO MATCH"
-              };
-            })
-        });
 
         // ✅ FIX #3: Build section styles from block.style.container, bukan block.data (sama dengan addProducts3)
         const sectionData = blockToRender.data || {};
@@ -2755,7 +2721,6 @@ export default function EditProductsPage() {
               value: Number(p.id),
             }));
             setMetaPixelOptions(pixelOpts);
-            console.log("📋 Meta Pixel Options (edit):", pixelOpts);
           }
         } catch (error) {
           console.error("[META PIXEL] Error fetch pixel list:", error);
@@ -4102,7 +4067,6 @@ export default function EditProductsPage() {
   // Handler untuk exit tanpa save
   const handleExitWithoutSave = () => {
     setShowExitModal(false);
-    console.log("Exiting to /sales/products...");
     window.location.href = "/sales/products";
   };
 

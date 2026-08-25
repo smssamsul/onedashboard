@@ -107,19 +107,6 @@ export default function SectionComponent({
   const childBlocks = allBlocks.filter(b => b.parentId === sectionComponentId);
   
   // ✅ DEBUG: Log untuk tracking identifier
-  console.log(`[SECTION EDITOR] Section ID: "${sectionComponentId}"`, {
-    sectionBlockId: block?.id,
-    sectionConfigComponentId: block?.config?.componentId,
-    childCount: childBlocks.length,
-    allBlocksWithParentId: allBlocks
-      .filter(b => b.parentId)
-      .map(b => ({
-        id: b.id,
-        type: b.type,
-        parentId: b.parentId,
-        match: b.parentId === sectionComponentId ? "✅ MATCH" : "❌ NO MATCH"
-      }))
-  });
   
   const handleChange = (field, value) => {
     // ✅ ARSITEKTUR BENAR: Tidak ada data.children, hanya update field biasa

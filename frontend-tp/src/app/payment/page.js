@@ -250,14 +250,12 @@ function BankTransferPageContent() {
 
         // Skip jika dari dashboard
         if (sumberFromQuery === "dashboard") {
-          console.log("[FB PIXEL] Accessed from dashboard - skip tracking");
           return;
         }
 
         // Skip jika test mode (tidak ada order nyata di DB)
         const isTestOrder = String(orderId).startsWith("TEST-");
         if (isTestOrder) {
-          console.log("[FB PIXEL] Test mode - skip fetch public order");
           return;
         }
 
@@ -275,7 +273,6 @@ function BankTransferPageContent() {
         const pixelIds = (produk?.pixel_list || []).map((p) => p.pixel).filter(Boolean);
 
         if (pixelIds.length === 0) {
-          console.log("[FB PIXEL] No pixel configuration found for this product.");
           return;
         }
 
@@ -483,7 +480,6 @@ function BankTransferPageContent() {
                 try {
                   fbq('init', id);
                   fbq('track', 'Purchase', eventParams);
-                  console.log('[FB PIXEL] Purchase tracked on pixel', id, eventParams);
                   fetch('/api/pixel-log', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

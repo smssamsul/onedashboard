@@ -21,8 +21,8 @@
 
 /* Subtle hover - very soft */
 .customers-table__row:hover {
-    background: #fafbfc;
-    border-color: #e5e7eb;
+    background: var(--color-grey-50);
+    border-color: var(--color-divider);
     box-shadow: var(--shadow-sm);
     /* No transform - just background & shadow change */
 }
@@ -98,16 +98,16 @@
 
 /* Verified - Soft Green */
 .customers-verif-tag.is-verified {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border-color: rgba(16, 185, 129, 0.2);
+    background: rgba(82, 196, 26, 0.1);
+    color: var(--color-success-dark);
+    border-color: rgba(82, 196, 26, 0.2);
 }
 
 /* Unverified - Soft Neutral (NOT red/error) */
 .customers-verif-tag.is-unverified {
-    background: #f3f4f6;
-    color: #6b7280;
-    border-color: #e5e7eb;
+    background: var(--color-grey-100);
+    color: var(--color-text-secondary);
+    border-color: var(--color-divider);
     /* Neutral gray - not error red */
 }
 
@@ -163,7 +163,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    color: #059669;
+    color: var(--color-success-dark);
     font-size: var(--text-xs);
     text-decoration: none;
     transition: color var(--transition-fast);
@@ -171,7 +171,7 @@
 }
 
 .wa-link:hover {
-    color: #047857;
+    color: var(--color-success-dark);
 }
 
 .wa-link svg {
@@ -187,11 +187,11 @@
 /* ============================================
    ACTION BUTTONS - Minimal & Soft
    ============================================ */
-/* View Button - Neutral Gray #64748B */
+/* View Button - Neutral Gray var(--color-text-secondary) */
 .customers-action-btn {
-    background: rgba(100, 116, 139, 0.1);
-    border: 1px solid rgba(100, 116, 139, 0.2);
-    color: #64748B;
+    background: rgba(140, 140, 140, 0.1);
+    border: 1px solid rgba(140, 140, 140, 0.2);
+    color: var(--color-text-secondary);
     border-radius: var(--radius-sm);
     padding: 0.375rem;
     font-size: var(--text-sm);
@@ -205,37 +205,37 @@
 }
 
 .customers-action-btn:hover {
-    background: rgba(100, 116, 139, 0.15);
-    border-color: rgba(100, 116, 139, 0.3);
-    color: #475569;
+    background: rgba(140, 140, 140, 0.15);
+    border-color: rgba(140, 140, 140, 0.3);
+    color: var(--color-text-secondary);
     transform: none;
     /* No transform - just color change */
 }
 
 /* Edit Button - Orange brand (soft) */
 .customers-action-btn--ghost {
-    background: rgba(241, 161, 36, 0.1);
-    border: 1px solid rgba(241, 161, 36, 0.2);
-    color: #f1a124;
+    background: rgba(30, 58, 95, 0.1);
+    border: 1px solid rgba(30, 58, 95, 0.2);
+    color: var(--color-primary-main);
 }
 
 .customers-action-btn--ghost:hover {
-    background: rgba(241, 161, 36, 0.15);
-    border-color: rgba(241, 161, 36, 0.3);
-    color: #c85400;
+    background: rgba(30, 58, 95, 0.15);
+    border-color: rgba(30, 58, 95, 0.3);
+    color: var(--color-primary-dark);
 }
 
-/* Delete Button - Red #DC2626 */
+/* Delete Button - Red var(--color-error-main) */
 .customers-action-btn--danger {
-    background: rgba(220, 38, 38, 0.1);
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    color: #DC2626;
+    background: rgba(255, 77, 79, 0.1);
+    border: 1px solid rgba(255, 77, 79, 0.2);
+    color: var(--color-error-main);
 }
 
 .customers-action-btn--danger:hover {
-    background: rgba(220, 38, 38, 0.15);
-    border-color: rgba(220, 38, 38, 0.3);
-    color: #B91C1C;
+    background: rgba(255, 77, 79, 0.15);
+    border-color: rgba(255, 77, 79, 0.3);
+    color: var(--color-error-dark);
 }
 
 .customers-action-btn i {
@@ -324,7 +324,9 @@
     width: 100%;
 }
 
-/* Icon styling for customers summary - simple solid orange */
+/* Icon styling for customers summary - warna per kartu diatur lewat
+   .color-info/.color-success/.color-warning (lihat dashboard-premium.css),
+   di sini cuma layout dasar + fallback kalau tidak ada modifier warna. */
 .customers-summary .summary-card__icon {
     width: 2.5rem;
     height: 2.5rem;
@@ -332,10 +334,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #fb8500;
     color: #ffffff;
     flex-shrink: 0;
-    box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
+    box-shadow: none;
+}
+
+.customers-summary .summary-card__icon:not([class*="color-"]) {
+    background: var(--color-primary-main);
 }
 
 .customers-summary .summary-card__icon svg {
@@ -465,21 +470,21 @@
 }
 
 .followup-status-badge--pending {
-    background: rgba(217, 119, 6, 0.1);
-    color: #d97706;
-    border-color: rgba(217, 119, 6, 0.2);
+    background: rgba(250, 173, 20, 0.1);
+    color: var(--color-warning-dark);
+    border-color: rgba(250, 173, 20, 0.2);
 }
 
 .followup-status-badge--terkirim {
-    background: rgba(5, 150, 105, 0.1);
-    color: #059669;
-    border-color: rgba(5, 150, 105, 0.2);
+    background: rgba(35, 120, 4, 0.1);
+    color: var(--color-success-dark);
+    border-color: rgba(35, 120, 4, 0.2);
 }
 
 .followup-status-badge--gagal {
-    background: rgba(220, 38, 38, 0.1);
-    color: #dc2626;
-    border-color: rgba(220, 38, 38, 0.2);
+    background: rgba(255, 77, 79, 0.1);
+    color: var(--color-error-main);
+    border-color: rgba(255, 77, 79, 0.2);
 }
 
 /* ============================================
@@ -606,33 +611,33 @@
    SUMMARY CARD - Accent Colors
    ============================================ */
 .summary-card__icon--orange {
-    background: #fb8500 !important;
-    box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
+    background: var(--color-primary-main) !important;
+    box-shadow: none;
 }
 
 .summary-card__icon.accent-orange {
-    background: #fb8500 !important;
-    box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
+    background: var(--color-primary-main) !important;
+    box-shadow: none;
 }
 
 .summary-card__icon.accent-indigo {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.25);
+    background: linear-gradient(135deg, var(--color-accent-main) 0%, var(--color-accent-dark) 100%);
+    box-shadow: none;
 }
 
 .summary-card__icon.accent-amber {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
+    background: linear-gradient(135deg, var(--color-warning-main) 0%, var(--color-warning-dark) 100%);
+    box-shadow: none;
 }
 
 .summary-card__icon.accent-emerald {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
+    background: linear-gradient(135deg, var(--color-success-main) 0%, var(--color-success-dark) 100%);
+    box-shadow: none;
 }
 
 .summary-card__icon.accent-rose {
     background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
-    box-shadow: 0 4px 14px 0 rgba(253, 164, 175, 0.25);
+    box-shadow: none;
 }
 
 /* ============================================

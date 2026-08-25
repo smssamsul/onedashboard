@@ -60,9 +60,6 @@ export async function GET(request) {
       });
     });
 
-    console.log("🔍 Fetching orders from:", backendUrl);
-    console.log("🔑 Auth header present:", !!authHeader);
-    console.log("📄 Query params - page:", page, "per_page:", perPage);
 
     const response = await fetch(backendUrl, {
       method: "GET",
@@ -75,9 +72,6 @@ export async function GET(request) {
     });
 
     const text = await response.text();
-    console.log("📥 Response status:", response.status);
-    console.log("📥 Response headers:", Object.fromEntries(response.headers.entries()));
-    console.log("📥 Response text preview:", text.substring(0, 500));
 
     // Check if response is HTML
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
@@ -114,8 +108,6 @@ export async function GET(request) {
     }
 
     // Logging struktur JSON lengkap sesuai requirement
-    console.log("✅ Success:", json.success);
-    console.log("📊 Data:", json.data);
     console.table(json.data);
 
     // Ensure response format is consistent

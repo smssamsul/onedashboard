@@ -292,33 +292,20 @@ export default function UpdateOrders({ order, onClose, onSave }) {
       }
 
       // Log untuk debugging - pastikan semua field ada
-      console.log("🔍 [KONFIRMASI] ========== REQUEST DATA ==========");
-      console.log("🔍 [KONFIRMASI] waktu_pembayaran:", waktuPembayaran);
-      console.log("🔍 [KONFIRMASI] metode_pembayaran:", metodeBayar);
-      console.log("🔍 [KONFIRMASI] amount:", amountValue);
-      console.log("🔍 [KONFIRMASI] nama_pengirim:", namaPengirim);
-      console.log("🔍 [KONFIRMASI] no_rek_pengirim:", noRekPengirim);
-      console.log("🔍 [KONFIRMASI] bukti_pembayaran:", bukti?.file ? `[File] ${bukti.file.name} (${bukti.file.size} bytes)` : "TIDAK ADA");
-      console.log("🔍 [KONFIRMASI] FormData entries:");
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
-          console.log(`  ✅ ${key}: [File] ${value.name} (${value.size} bytes)`);
         } else {
-          console.log(`  ✅ ${key}: ${value}`);
         }
       }
-      console.log("🔍 [KONFIRMASI] ====================================");
 
       // --- MULAI DEMO MODE PIXEL ---
       // (Ubah ke false nanti jika ingin data benar-benar terkirim ke backend)
       const isDemoMode = false;
 
       if (isDemoMode) {
-        console.log("🛠️ [DEMO MODE] Menjalankan test Pixel Purchase tanpa kirim ke backend...");
 
         let finalProdukRel = order?.produk_rel;
         try {
-          console.log("🔍 [DEMO MODE] Mengambil detail order untuk mengekstrak Pixel (karena di list tidak ada)...");
           const token = localStorage.getItem("token");
           const detailRes = await fetch(`${BASE_URL}/sales/order/${order.id}`, {
             headers: {
@@ -330,7 +317,6 @@ export default function UpdateOrders({ order, onClose, onSave }) {
             const detailData = await detailRes.json();
             if (detailData?.data?.produk_rel) {
               finalProdukRel = detailData.data.produk_rel;
-              console.log("✅ [DEMO MODE] Detail order berhasil diambil, fb_pixel:", finalProdukRel.fb_pixel);
             }
           }
         } catch (err) {
@@ -338,7 +324,6 @@ export default function UpdateOrders({ order, onClose, onSave }) {
         }
 
         if (finalProdukRel) {
-          console.log("[SALES DEMO] Triggering Purchase Pixel...");
           trackSalesUploadedPaymentPurchase({
             produk: finalProdukRel,
             value: amountValue,
@@ -476,7 +461,6 @@ export default function UpdateOrders({ order, onClose, onSave }) {
         }
 
         if (realProdukRel) {
-          console.log("[SALES] Triggering Purchase Pixel...");
           trackSalesUploadedPaymentPurchase({
             produk: realProdukRel,
             value: amountValue,
@@ -525,7 +509,6 @@ export default function UpdateOrders({ order, onClose, onSave }) {
       };
 
       // Log untuk debugging
-      console.log("🔍 [UPDATE ORDER] Payload yang dikirim:", payload);
 
       const res = await fetch(`${BASE_URL}/sales/order/${order.id}`, {
         method: "PUT",

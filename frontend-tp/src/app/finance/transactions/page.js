@@ -178,7 +178,6 @@ export default function FinanceOrders() {
   const fetchOrders = useCallback(async (pageNumber = 1) => {
     // Prevent multiple simultaneous calls using ref
     if (fetchingRef.current) {
-      console.log("⏸️ Already fetching, skipping duplicate request for page", pageNumber);
       return;
     }
 
@@ -213,21 +212,9 @@ export default function FinanceOrders() {
         setOrders(json.data);
         // Debug: log struktur data untuk melihat apakah order_rel sudah include status_pembayaran
         if (json.data.length > 0) {
-          console.log("🔍 Sample payment data structure:", {
-            payment: json.data[0],
-            orderRel: json.data[0]?.order_rel,
-            hasStatusPembayaran: json.data[0]?.order_rel?.status_pembayaran !== undefined,
-            statusPembayaran: json.data[0]?.order_rel?.status_pembayaran,
-          });
         }
         // Debug: log struktur data untuk melihat apakah order_rel sudah include status_pembayaran
         if (json.data.length > 0) {
-          console.log("🔍 Sample payment data structure:", {
-            payment: json.data[0],
-            orderRel: json.data[0]?.order_rel,
-            hasStatusPembayaran: json.data[0]?.order_rel?.status_pembayaran !== undefined,
-            statusPembayaran: json.data[0]?.order_rel?.status_pembayaran,
-          });
         }
 
         // Gunakan pagination object jika tersedia, jika tidak gunakan fallback
@@ -235,12 +222,6 @@ export default function FinanceOrders() {
           const isLastPage = json.pagination.current_page >= json.pagination.last_page;
           setHasMore(!isLastPage);
           setPaginationInfo(json.pagination);
-          console.log("📄 Pagination info (finance):", {
-            current_page: json.pagination.current_page,
-            last_page: json.pagination.last_page,
-            total: json.pagination.total,
-            hasMore: !isLastPage,
-          });
         } else {
           setPaginationInfo(null);
           // Fallback pagination: cek jumlah data untuk menentukan hasMore
@@ -335,7 +316,6 @@ export default function FinanceOrders() {
     if (loading || !hasMore) return; // Jangan load jika sedang loading atau sudah habis
 
     const nextPage = page + 1;
-    console.log("🔄 Next page clicked, loading page:", nextPage);
     setPage(nextPage);
   }, [page, hasMore, loading]);
 
@@ -344,7 +324,6 @@ export default function FinanceOrders() {
     if (loading || page <= 1) return; // Jangan load jika sedang loading atau sudah di page 1
 
     const prevPage = page - 1;
-    console.log("🔄 Previous page clicked, loading page:", prevPage);
     setPage(prevPage);
   }, [page, loading]);
 
@@ -560,11 +539,6 @@ export default function FinanceOrders() {
       }
 
       // Log untuk debugging
-      console.log("🔴 Reject Order Request:", {
-        orderId: order.id,
-        catatan: catatan,
-        orderStatus: order.status,
-      });
 
       const res = await fetch(`/api/finance/order-validation/${order.id}/reject`, {
         method: "POST",
@@ -579,7 +553,6 @@ export default function FinanceOrders() {
       const json = await res.json();
 
       // Log response untuk debugging
-      console.log("🔴 Reject Order Response:", json);
 
       if (json.success) {
         setShowReject(false);

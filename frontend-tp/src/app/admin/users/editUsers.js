@@ -312,7 +312,6 @@ export default function EditUserModal({ user, onClose, onSave }) {
       no_telp: formData.no_telp.trim(),
     };
 
-    console.log("Payload update user:", payload);
 
     try {
       await onSave(payload);

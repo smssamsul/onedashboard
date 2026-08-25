@@ -27,9 +27,6 @@ export async function GET(req) {
   const baseUrl = BACKEND_URL.replace(/\/+$/, "");
   const backendUrl = `${baseUrl}/storage/${cleanPath}`;
 
-  console.log("[IMAGE PROXY] Input path:", rawPath);
-  console.log("[IMAGE PROXY] Clean path:", cleanPath);
-  console.log("[IMAGE PROXY] Backend URL:", backendUrl);
 
   try {
     const result = await fetch(backendUrl, {
@@ -39,7 +36,6 @@ export async function GET(req) {
       },
     });
 
-    console.log("[IMAGE PROXY] Backend status:", result.status);
 
     if (!result.ok) {
       console.error("[IMAGE PROXY] Backend error:", result.status, backendUrl);

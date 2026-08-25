@@ -195,13 +195,13 @@ export default function LandingPageStudio({ blocks = [], onBlocksChange, form, o
             label="Simpan" 
             icon="pi pi-save"
             className="save-btn"
-            onClick={() => console.log("Save")}
+            onClick={() => {}}
           />
           <Button 
             label="Simpan & Terbitkan" 
             icon="pi pi-send"
             className="save-publish-btn"
-            onClick={() => console.log("Save & Publish")}
+            onClick={() => {}}
           />
         </div>
       </div>

@@ -294,10 +294,10 @@ export default function BonusProdukPage() {
                     gap: 45px; /* Spacing between toolbars and table cards */
                 }
                 .card-shadow {
-                    background: #fff;
-                    border-radius: 8px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-                    border: 1px solid #f1f5f9;
+                    background: var(--color-bg-paper);
+                    border-radius: var(--radius-card);
+                    box-shadow: none;
+                    border: 1px solid var(--color-divider);
                 }
 
                 /* Search Area */
@@ -314,7 +314,7 @@ export default function BonusProdukPage() {
                     padding: 0 15px;
                     height: 48px;
                     border-radius: 10px;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border);
                 }
                 .search-input-large {
                     flex: 1;
@@ -322,15 +322,15 @@ export default function BonusProdukPage() {
                     outline: none;
                     background: transparent;
                     font-size: 14px;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     padding-left: 10px;
                 }
-                .search-icon-left { color: #94a3b8; }
+                .search-icon-left { color: var(--color-text-secondary); }
 
                 /* Main Table Card */
                 .main-content-card { 
                     overflow: hidden; 
-                    border: 1px solid #e2e8f0; 
+                    border: 1px solid var(--color-border); 
                     border-radius: 12px; 
                     background: #fff;
                 }
@@ -341,11 +341,11 @@ export default function BonusProdukPage() {
                     align-items: center;
                 }
                 .card-header-titles { display: flex; flex-direction: column; gap: 4px; }
-                .eyebrow-text { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-                .card-title { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
+                .eyebrow-text { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+                .card-title { font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
                 
                 .btn-primary-orange {
-                    background: #ff7a00;
+                    background: var(--color-primary-main);
                     color: white;
                     border: none;
                     padding: 10px 24px;
@@ -358,52 +358,52 @@ export default function BonusProdukPage() {
                     gap: 8px;
                     transition: all 0.2s;
                 }
-                .btn-primary-orange:hover { background: #e66e00; }
+                .btn-primary-orange:hover { background: var(--color-primary-dark); }
 
                 /* Table Styling */
                 .bonus-table-clean { width: 100%; border-collapse: collapse; }
                 .bonus-table-clean thead th {
-                    background: #f8fafc;
+                    background: var(--color-primary-main);
                     padding: 18px 35px;
                     text-align: left;
                     font-size: 11px;
                     font-weight: 800;
-                    color: #475569;
-                    border-bottom: 2px solid #f1f5f9;
+                    color: #ffffff;
+                    border-bottom: none;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
                 .bonus-table-clean tr td {
                     padding: 22px 35px;
-                    color: #334155;
+                    color: var(--color-text-primary);
                     font-size: 14px;
-                    border-bottom: 1px solid #f8fafc;
+                    border-bottom: 1px solid var(--color-bg-default);
                     vertical-align: middle;
                 }
                 .date-cell {
                     display: flex;
                     align-items: center;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 500;
                     font-size: 13px;
                 }
                 .text-right { text-align: right !important; }
                 
                 .article-info-simple { display: flex; flex-direction: column; gap: 4px; }
-                .article-title-main { font-weight: 700; color: #1e293b; font-size: 15px; }
-                .article-slug-small { font-size: 12px; color: #94a3b8; font-family: monospace; }
+                .article-title-main { font-weight: 700; color: var(--color-text-primary); font-size: 15px; }
+                .article-slug-small { font-size: 12px; color: var(--color-text-secondary); font-family: monospace; }
 
                 .tag-badges-row { display: flex; flex-wrap: wrap; gap: 6px; }
                 .tag-badge-minimal {
-                    background: #eff6ff;
-                    color: #3b82f6;
+                    background: var(--color-info-lighter);
+                    color: var(--color-info-main);
                     padding: 4px 10px;
                     border-radius: 6px;
                     font-size: 12px;
                     font-weight: 600;
-                    border: 1px solid #dbeafe;
+                    border: 1px solid var(--color-info-lighter);
                 }
-                .no-tags { color: #cbd5e1; font-style: italic; }
+                .no-tags { color: var(--color-grey-300); font-style: italic; }
 
                 .status-badge-modern {
                     display: inline-block;
@@ -414,13 +414,13 @@ export default function BonusProdukPage() {
                     text-transform: uppercase;
                 }
                 .status-badge-modern.is-published {
-                    background: #ecfdf5;
-                    color: #059669;
-                    border: 1px solid #d1fae5;
+                    background: var(--color-success-lighter);
+                    color: var(--color-success-dark);
+                    border: 1px solid var(--color-success-lighter);
                 }
                 .status-badge-modern.is-draft {
-                    background: #f1f5f9;
-                    color: #64748b;
+                    background: var(--color-divider);
+                    color: var(--color-text-secondary);
                 }
 
                 .action-buttons-premium {
@@ -431,8 +431,8 @@ export default function BonusProdukPage() {
                 }
                 .btn-view-boxed, .btn-edit-boxed, .btn-delete-boxed {
                     background: #fff;
-                    border: 1px solid #e2e8f0;
-                    color: #64748b;
+                    border: 1px solid var(--color-border);
+                    color: var(--color-text-secondary);
                     width: 38px;
                     height: 38px;
                     border-radius: 10px;
@@ -443,19 +443,19 @@ export default function BonusProdukPage() {
                     justify-content: center;
                 }
                 .btn-view-boxed:hover {
-                    border-color: #ff7a00;
-                    color: #ff7a00;
-                    background: #fff7ed;
+                    border-color: var(--color-primary-main);
+                    color: var(--color-primary-main);
+                    background: var(--color-warning-lighter);
                 }
                 .btn-edit-boxed:hover {
-                    border-color: #3b82f6;
-                    color: #3b82f6;
-                    background: #eff6ff;
+                    border-color: var(--color-info-main);
+                    color: var(--color-info-main);
+                    background: var(--color-info-lighter);
                 }
                 .btn-delete-boxed:hover {
-                    border-color: #ef4444;
-                    color: #ef4444;
-                    background: #fef2f2;
+                    border-color: var(--color-error-main);
+                    color: var(--color-error-main);
+                    background: var(--color-error-lighter);
                 }
 
                 .empty-state-modern {
@@ -478,7 +478,7 @@ export default function BonusProdukPage() {
                     position: absolute;
                     width: 120px;
                     height: 120px;
-                    background: #fff7ed;
+                    background: var(--color-warning-lighter);
                     border-radius: 50%;
                     filter: blur(20px);
                     z-index: 1;
@@ -486,26 +486,26 @@ export default function BonusProdukPage() {
                 .empty-icon { 
                     position: relative;
                     z-index: 2;
-                    color: #ff7a00; 
+                    color: var(--color-primary-main); 
                     opacity: 0.8;
                 }
                 .empty-state-modern h3 { 
                     font-size: 22px; 
                     font-weight: 800; 
-                    color: #1e293b; 
+                    color: var(--color-text-primary); 
                     margin: 0 0 12px 0; 
                     letter-spacing: -0.01em;
                 }
                 .empty-state-modern p { 
-                    color: #64748b; 
+                    color: var(--color-text-secondary); 
                     font-size: 15px; 
                     line-height: 1.6;
                     margin-bottom: 32px;
                 }
                 .btn-outline-create {
                     background: white;
-                    border: 1px solid #e2e8f0;
-                    color: #1e293b;
+                    border: 1px solid var(--color-border);
+                    color: var(--color-text-primary);
                     padding: 12px 24px;
                     border-radius: 12px;
                     font-weight: 700;
@@ -514,9 +514,9 @@ export default function BonusProdukPage() {
                     transition: all 0.2s;
                 }
                 .btn-outline-create:hover {
-                    border-color: #ff7a00;
-                    color: #ff7a00;
-                    background: #fff7ed;
+                    border-color: var(--color-primary-main);
+                    color: var(--color-primary-main);
+                    background: var(--color-warning-lighter);
                 }
 
                 .editor-view-header {
@@ -531,8 +531,8 @@ export default function BonusProdukPage() {
                     align-items: center;
                     gap: 8px;
                     background: white;
-                    border: 1px solid #e2e8f0;
-                    color: #64748b;
+                    border: 1px solid var(--color-border);
+                    color: var(--color-text-secondary);
                     padding: 10px 18px;
                     border-radius: 12px;
                     font-size: 14px;
@@ -541,12 +541,12 @@ export default function BonusProdukPage() {
                     margin-bottom: 16px;
                     transition: all 0.2s;
                 }
-                .btn-back:hover { border-color: #1e293b; color: #1e293b; }
-                .editor-title { font-size: 32px; font-weight: 800; color: #1e293b; margin: 0; letter-spacing: -0.03em; }
-                .editor-subtitle { color: #64748b; font-size: 16px; font-weight: 500; margin-top: 6px; }
+                .btn-back:hover { border-color: var(--color-text-primary); color: var(--color-text-primary); }
+                .editor-title { font-size: 32px; font-weight: 800; color: var(--color-text-primary); margin: 0; letter-spacing: -0.03em; }
+                .editor-subtitle { color: var(--color-text-secondary); font-size: 16px; font-weight: 500; margin-top: 6px; }
                 
                 .btn-publish-orange {
-                    background: #ff7a00;
+                    background: var(--color-primary-main);
                     color: white;
                     border: none;
                     padding: 14px 32px;
@@ -555,17 +555,17 @@ export default function BonusProdukPage() {
                     font-size: 15px;
                     cursor: pointer;
                     transition: all 0.3s;
-                    box-shadow: 0 4px 14px rgba(255, 122, 0, 0.2);
+                    box-shadow: none;
                 }
                 .btn-publish-orange:hover {
-                    background: #e66e00;
+                    background: var(--color-primary-dark);
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(255, 122, 0, 0.3);
+                    box-shadow: none;
                 }
                 .btn-cancel-top {
                     background: white;
-                    border: 1px solid #e2e8f0;
-                    color: #64748b;
+                    border: 1px solid var(--color-border);
+                    color: var(--color-text-secondary);
                     padding: 14px 28px;
                     border-radius: 14px;
                     font-weight: 700;
@@ -574,19 +574,19 @@ export default function BonusProdukPage() {
                     margin-right: 12px;
                     transition: all 0.2s;
                 }
-                .btn-cancel-top:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+                .btn-cancel-top:hover { border-color: var(--color-error-main); color: var(--color-error-main); background: var(--color-error-lighter); }
 
                 .spinner.orange {
                     width: 32px;
                     height: 32px;
-                    border: 4px solid #f1f5f9;
-                    border-top: 4px solid #ff7a00;
+                    border: 4px solid var(--color-divider);
+                    border-top: 4px solid var(--color-primary-main);
                     border-radius: 50%;
                     animation: spin 1s linear infinite;
                     margin: 0 auto 16px;
                 }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .loading-state { text-align: center; padding: 100px 0; color: #64748b; font-weight: 500; }
+                .loading-state { text-align: center; padding: 100px 0; color: var(--color-text-secondary); font-weight: 500; }
             `}</style>
         </Layout>
     );

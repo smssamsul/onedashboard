@@ -924,7 +924,7 @@ export default function Sidebar({
             }
           >
             <Image
-              src="/assets/logo.png"
+              src="/assets/logo-boosterin.png"
               alt="Logo"
               width={130}
               height={50}

@@ -17,8 +17,6 @@ export async function GET(request) {
     
     const authHeader = request.headers.get("authorization");
     
-    console.log("🔍 [KNOWLEDGE_SOURCE] Fetching from:", url);
-    console.log("🔍 [KNOWLEDGE_SOURCE] Auth header present:", !!authHeader);
     
     const res = await fetch(url, {
       method: "GET",
@@ -30,7 +28,6 @@ export async function GET(request) {
       cache: "no-store",
     });
 
-    console.log("🔍 [KNOWLEDGE_SOURCE] Response status:", res.status);
     
     if (!res.ok) {
       const errorText = await res.text();

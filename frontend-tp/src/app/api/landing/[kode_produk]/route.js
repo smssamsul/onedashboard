@@ -34,7 +34,6 @@ export async function GET(request, { params }) {
     // Decode URL encoding
     const decodedKode = decodeURIComponent(kode_produk);
 
-    console.log(`[LANDING] Fetching product with kode: ${decodedKode}`);
 
     // Gunakan endpoint sesuai dokumentasi: /api/landing/{kode_produk}
     let response = await fetch(`${BACKEND_URL}/api/landing/${decodedKode}`, {
@@ -52,7 +51,6 @@ export async function GET(request, { params }) {
       // Jika tidak ditemukan dengan kode asli, coba dengan slug
       const slugKode = generateSlug(decodedKode);
       if (slugKode !== decodedKode) {
-        console.log(`[LANDING] Product not found, trying with slug: ${slugKode}`);
 
         response = await fetch(`${BACKEND_URL}/api/landing/${slugKode}`, {
           method: "GET",
@@ -77,7 +75,6 @@ export async function GET(request, { params }) {
       );
     }
 
-    console.log(`[LANDING] Product found: ${data.data?.nama || data.nama}`);
 
     // 🔥 SOLUSI FINAL: Gunakan Response manual agar header Cache-Control murni 'no-store'
     return new Response(JSON.stringify(data), {

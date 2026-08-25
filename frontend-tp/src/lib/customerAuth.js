@@ -19,8 +19,6 @@ export async function customerFetch(endpoint, options = {}) {
   const token = localStorage.getItem("customer_token");
   const url = buildUrl(endpoint);
 
-  console.log("🔵 [CUSTOMER_FETCH] URL:", url);
-  console.log("🔵 [CUSTOMER_FETCH] Method:", options.method || "GET");
 
   const headers = {
     Accept: "application/json",
@@ -31,9 +29,7 @@ export async function customerFetch(endpoint, options = {}) {
     ...options.headers,
   };
 
-  console.log("🔵 [CUSTOMER_FETCH] Headers:", headers);
   if (options.body && !(options.body instanceof FormData)) {
-    console.log("🔵 [CUSTOMER_FETCH] Body:", options.body);
   }
 
   const response = await fetch(url, {
@@ -42,13 +38,10 @@ export async function customerFetch(endpoint, options = {}) {
     headers,
   });
 
-  console.log("🟡 [CUSTOMER_FETCH] Response status:", response.status);
-  console.log("🟡 [CUSTOMER_FETCH] Response ok:", response.ok);
 
   let data;
   try {
     data = await response.json();
-    console.log("🟡 [CUSTOMER_FETCH] Response data:", data);
   } catch (error) {
     console.error("❌ [CUSTOMER_FETCH] Failed to parse JSON:", error);
     data = null;
@@ -76,13 +69,10 @@ export async function customerFetch(endpoint, options = {}) {
     });
   }
 
-  console.log("✅ [CUSTOMER_FETCH] Success, returning data");
   return data;
 }
 
 export async function loginCustomer(payload) {
-  console.log("🔵 [LOGIN_CUSTOMER] Starting loginCustomer...");
-  console.log("🔵 [LOGIN_CUSTOMER] Payload:", { email: payload?.email, password: "***" });
 
   if (!payload?.email || !payload?.password) {
     console.error("❌ [LOGIN_CUSTOMER] Missing email or password");
@@ -91,7 +81,6 @@ export async function loginCustomer(payload) {
 
   // Gunakan fetch langsung untuk handle 401 dengan lebih baik
   const url = buildUrl("/login");
-  console.log("🔵 [LOGIN_CUSTOMER] URL:", url);
 
   try {
     const response = await fetch(url, {
@@ -103,13 +92,10 @@ export async function loginCustomer(payload) {
       body: JSON.stringify(payload),
     });
 
-    console.log("🟡 [LOGIN_CUSTOMER] Response status:", response.status);
-    console.log("🟡 [LOGIN_CUSTOMER] Response ok:", response.ok);
 
     let data;
     try {
       data = await response.json();
-      console.log("🟡 [LOGIN_CUSTOMER] Response data:", data);
     } catch (e) {
       console.error("❌ [LOGIN_CUSTOMER] Failed to parse JSON:", e);
       data = null;
@@ -133,7 +119,6 @@ export async function loginCustomer(payload) {
       // Simpan token jika ada (WAJIB untuk kirim OTP)
       if (data?.token) {
         localStorage.setItem("customer_token", data.token);
-        console.log("✅ [LOGIN_CUSTOMER] Token stored in localStorage");
       } else {
         console.error("❌ [LOGIN_CUSTOMER] No token in response!");
       }
@@ -141,12 +126,10 @@ export async function loginCustomer(payload) {
       // Simpan user data jika ada
       if (data?.user) {
         localStorage.setItem("customer_user", JSON.stringify(data.user));
-        console.log("✅ [LOGIN_CUSTOMER] User data stored:", data.user);
       }
 
       // Cek apakah login berhasil (ada token dan success = true)
       if (data?.success === true && data?.token) {
-        console.log("✅ [LOGIN_CUSTOMER] Login successful!");
         toast.success(data?.message || "Login berhasil.");
 
         // Cek apakah user sudah verifikasi (handle string "1", number 1, dan boolean true)
@@ -154,11 +137,6 @@ export async function loginCustomer(payload) {
         const isVerified = verifikasiValue === 1 || verifikasiValue === "1" || verifikasiValue === true;
         const needsVerification = !isVerified;
 
-        console.log("🔵 [LOGIN_CUSTOMER] Verification check:");
-        console.log("🔵 [LOGIN_CUSTOMER] verifikasi value:", verifikasiValue);
-        console.log("🔵 [LOGIN_CUSTOMER] verifikasi type:", typeof verifikasiValue);
-        console.log("🔵 [LOGIN_CUSTOMER] isVerified:", isVerified);
-        console.log("🔵 [LOGIN_CUSTOMER] needsVerification:", needsVerification);
 
         return {
           success: true,
@@ -289,9 +267,6 @@ export async function sendCustomerOTP(customerId, wa, tokenFromCaller) {
 
 
 export async function verifyCustomerOTP(customerId, otp) {
-  console.log("🔵 [VERIFY_OTP] Verifying OTP...");
-  console.log("🔵 [VERIFY_OTP] Customer ID:", customerId);
-  console.log("🔵 [VERIFY_OTP] OTP:", otp);
 
   const token = localStorage.getItem("customer_token");
 
@@ -310,11 +285,8 @@ export async function verifyCustomerOTP(customerId, otp) {
     });
 
     const data = await response.json();
-    console.log("🟡 [VERIFY_OTP] Response:", data);
 
     if (response.ok && data?.success === true) {
-      console.log("✅ [VERIFY_OTP] OTP verified successfully");
-      console.log("✅ [VERIFY_OTP] Response data:", data.data);
 
       // Update user data dengan verifikasi = 1 dari response
       const currentUser = getCustomerSession().user;
@@ -326,7 +298,6 @@ export async function verifyCustomerOTP(customerId, otp) {
           customer_id: data.data.customer_id || currentUser.id || currentUser.customer_id,
         };
         localStorage.setItem("customer_user", JSON.stringify(updatedUserData));
-        console.log("✅ [VERIFY_OTP] User data updated with verification status:", updatedUserData);
       }
 
       toast.success(data?.message || "OTP valid, akun telah diverifikasi");
@@ -354,7 +325,6 @@ export async function verifyCustomerOTP(customerId, otp) {
 }
 
 export async function resendCustomerOTP(customerId, wa) {
-  console.log("🔵 [RESEND_OTP] Resending OTP...");
 
   // Ambil token dari localStorage
   const token = localStorage.getItem("customer_token");

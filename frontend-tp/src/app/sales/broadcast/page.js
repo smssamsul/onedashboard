@@ -323,23 +323,23 @@ export default function BroadcastPage() {
     <Layout title="Broadcast">
       <style>{`
         :root {
-            --primary: #F1A124;
+            --primary: var(--color-primary-main);
             --primary-light: #f7c376;
-            --secondary: #3b82f6;
-            --accent: #F1A124;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --bg: #f8fafc;
+            --secondary: var(--color-info-main);
+            --accent: var(--color-primary-main);
+            --success: var(--color-success-main);
+            --danger: var(--color-error-main);
+            --warning: var(--color-warning-main);
+            --bg: var(--color-bg-default);
             --surface: #ffffff;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
+            --text: var(--color-text-primary);
+            --text-muted: var(--color-text-secondary);
+            --border: var(--color-border);
             --radius-sm: 0.375rem;
             --radius: 0.5rem;
             --radius-lg: 0.75rem;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-sm: none;
+            --shadow: none;
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
 
@@ -429,14 +429,14 @@ export default function BroadcastPage() {
         }
 
         th {
-            background: #f8fafc;
+            background: var(--color-primary-main);
             padding: 0.75rem 1.5rem;
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--text-muted);
-            font-weight: 600;
-            border-bottom: 1px solid var(--border);
+            color: #ffffff;
+            font-weight: 700;
+            border-bottom: none;
         }
 
         td {
@@ -447,7 +447,7 @@ export default function BroadcastPage() {
         }
 
         tbody tr:hover {
-            background: #fcfcfc;
+            background: var(--color-grey-50);
         }
 
         .action-group {
@@ -477,11 +477,11 @@ export default function BroadcastPage() {
         .action-btn.send:hover { background: #99f6e4; }
         .action-btn.send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .action-btn.view { background: #dbeafe; color: #2563eb; }
+        .action-btn.view { background: var(--color-info-lighter); color: var(--color-info-dark); }
         .action-btn.view:hover { background: #bfdbfe; }
 
-        .action-btn.delete { background: #fee2e2; color: #dc2626; }
-        .action-btn.delete:hover { background: #fecaca; }
+        .action-btn.delete { background: var(--color-error-lighter); color: var(--color-error-main); }
+        .action-btn.delete:hover { background: var(--color-error-lighter); }
         .action-btn.delete:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .status-badge {
@@ -490,14 +490,14 @@ export default function BroadcastPage() {
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
-            background: #f1f5f9;
-            color: #64748b;
+            background: var(--color-divider);
+            color: var(--color-text-secondary);
         }
 
-        .status-success { background: #d1fae5; color: #059669; }
-        .status-failed { background: #fee2e2; color: #dc2626; }
-        .status-processing { background: #fef3c7; color: #d97706; }
-        .status-draft { background: #e0e7ff; color: #4f46e5; }
+        .status-success { background: var(--color-success-lighter); color: var(--color-success-dark); }
+        .status-failed { background: var(--color-error-lighter); color: var(--color-error-main); }
+        .status-processing { background: var(--color-warning-lighter); color: var(--color-warning-dark); }
+        .status-draft { background: var(--color-accent-lighter); color: var(--color-accent-dark); }
       `}</style>
       
       <div className="bc-container">
@@ -516,7 +516,7 @@ export default function BroadcastPage() {
         </div>
 
         {error && (
-          <div style={{ background: "#fee2e2", color: "#dc2626", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1.5rem" }}>
+          <div style={{ background: "var(--color-error-lighter)", color: "var(--color-error-main)", padding: "1rem", borderRadius: "0.5rem", marginBottom: "1.5rem" }}>
             {error}
           </div>
         )}

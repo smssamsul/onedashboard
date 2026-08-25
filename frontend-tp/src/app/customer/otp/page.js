@@ -45,12 +45,9 @@ export default function CustomerOTPPage() {
 
     // Cek apakah user sudah verifikasi
     const isVerified = session.user.verifikasi === 1 || session.user.verifikasi === "1";
-    console.log("🔵 [OTP] User verification status:", isVerified);
-    console.log("🔵 [OTP] User verifikasi value:", session.user.verifikasi);
 
     // Jika sudah verifikasi, langsung ke dashboard
     if (isVerified) {
-      console.log("✅ [OTP] User already verified, redirecting to dashboard");
       router.replace("/customer/dashboard");
       return;
     }
@@ -60,8 +57,6 @@ export default function CustomerOTPPage() {
 
     setCustomerId(customerIdValue);
     setWa(waNumber);
-    console.log("🔵 [OTP] Customer ID:", customerIdValue);
-    console.log("🔵 [OTP] WA:", waNumber);
     resetOtpTimer();
   }, [router]);
 
@@ -124,7 +119,6 @@ export default function CustomerOTPPage() {
     setMessage("");
 
     try {
-      console.log("🔵 [OTP] Verifying OTP...");
 
       const token = localStorage.getItem("customer_token");
       const response = await fetch("/api/customer/otp/verify", {
@@ -141,7 +135,6 @@ export default function CustomerOTPPage() {
       });
 
       const result = await response.json();
-      console.log("[OTP] Verify response:", result);
 
       if (result.success) {
         setMessage("Verifikasi berhasil!");
@@ -159,12 +152,10 @@ export default function CustomerOTPPage() {
             customer_id: result.data.customer_id || session.user.id || session.user.customer_id,
           };
           localStorage.setItem("customer_user", JSON.stringify(updatedUser));
-          console.log("✅ [OTP] User data updated with verification:", updatedUser);
         } else if (session.user) {
           // Fallback jika tidak ada data dari response
           session.user.verifikasi = 1;
           localStorage.setItem("customer_user", JSON.stringify(session.user));
-          console.log("✅ [OTP] User data updated (fallback):", session.user);
         }
 
         // Redirect ke dashboard setelah verifikasi berhasil
@@ -192,7 +183,6 @@ export default function CustomerOTPPage() {
     setMessage("");
 
     try {
-      console.log("🔵 [OTP] Resending OTP...");
 
       // Format nomor WA (pastikan format 62xxxxxxxxxx)
       let waNumber = wa.trim();
@@ -225,7 +215,6 @@ export default function CustomerOTPPage() {
       });
 
       const result = await response.json();
-      console.log("[OTP] Resend response:", result);
 
       if (result.success) {
         setMessage("Kode OTP baru telah dikirim ke WhatsApp Anda!");

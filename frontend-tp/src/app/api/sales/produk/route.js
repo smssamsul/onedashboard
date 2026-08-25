@@ -41,7 +41,6 @@ const getSharp = async () => {
   if (sharpModule === null) {
     try {
       sharpModule = (await import("sharp")).default;
-      console.log("✅ Sharp loaded successfully");
     } catch (err) {
       console.warn("⚠️ Sharp not available:", err.message);
       sharpModule = false;
@@ -71,7 +70,6 @@ const isValidExtension = (extension) => {
 const compressImage = async (buffer, extension, filename) => {
   const sharp = await getSharp();
   if (!sharp) {
-    console.log(`  ⚠️ Sharp not available, skipping compression for ${filename}`);
     return null;
   }
 
@@ -79,10 +77,8 @@ const compressImage = async (buffer, extension, filename) => {
     const targetSizeBytes = IMAGE_CONFIG.targetSizeKB * 1024;
     const originalSizeKB = (buffer.length / 1024).toFixed(2);
 
-    console.log(`  📊 Original size: ${originalSizeKB} KB`);
 
     if (buffer.length <= targetSizeBytes) {
-      console.log(`  ✅ File already under ${IMAGE_CONFIG.targetSizeKB}KB, skipping compression`);
       return buffer;
     }
 
@@ -113,7 +109,6 @@ const compressImage = async (buffer, extension, filename) => {
       }
 
       const sizeKB = (compressedBuffer.length / 1024).toFixed(2);
-      console.log(`  🔄 Attempt ${attempts}: Quality ${quality} → ${sizeKB} KB`);
 
       if (compressedBuffer.length <= targetSizeBytes || attempts >= maxAttempts) {
         break;
@@ -126,7 +121,6 @@ const compressImage = async (buffer, extension, filename) => {
     const finalSizeKB = (compressedBuffer.length / 1024).toFixed(2);
     const reduction = Math.round((1 - compressedBuffer.length / buffer.length) * 100);
 
-    console.log(`  ✅ Compressed: ${originalSizeKB} KB → ${finalSizeKB} KB (${reduction}% reduction, quality: ${quality})`);
 
     return compressedBuffer;
   } catch (err) {
@@ -158,7 +152,6 @@ const convertFileToBase64 = async (file) => {
 
     // Compress if it's an image
     if (file.type.startsWith("image/")) {
-      console.log(`  🔄 Compressing ${file.name}...`);
       const compressedBuffer = await compressImage(buffer, extension, file.name);
       if (compressedBuffer) {
         buffer = compressedBuffer;
@@ -399,8 +392,6 @@ export async function GET(request) {
     const forwardQuery = request.nextUrl?.search ?? "";
     const backendListUrl = `${BACKEND_URL}/api/sales/produk${forwardQuery}`;
 
-    console.log("🟢 [GET_PRODUK] Fetching products...");
-    console.log("🟢 [GET_PRODUK] Backend URL:", backendListUrl);
 
     const response = await fetch(backendListUrl, {
       method: "GET",
@@ -500,7 +491,6 @@ export async function POST(request) {
       const incomingFormData = await request.formData();
 
       // DEBUG: Log incoming FormData
-      console.log("[ROUTE] ========== INCOMING FORMDATA ==========");
       const incomingEntries = [];
       const incomingJSON = {};
 
@@ -530,18 +520,9 @@ export async function POST(request) {
       console.table(incomingEntries);
 
       // Tampilkan sebagai JSON yang readable
-      console.log("[ROUTE] ========== INCOMING FORMDATA AS JSON ==========");
-      console.log(JSON.stringify(incomingJSON, null, 2));
-      console.log("[ROUTE] ==============================================");
 
       // Verify kategori exists
       const kategoriValue = incomingFormData.get("kategori");
-      console.log("[ROUTE] Kategori check:", {
-        exists: kategoriValue !== null,
-        value: kategoriValue,
-        type: typeof kategoriValue,
-        stringValue: String(kategoriValue)
-      });
 
       if (!kategoriValue || kategoriValue === "" || kategoriValue === "null" || kategoriValue === "undefined") {
         console.error("[ROUTE] ❌ KATEGORI TIDAK ADA ATAU INVALID!");
@@ -564,7 +545,6 @@ export async function POST(request) {
       // ============================
       // SIMPAN REQUEST DATA KE OBJECT DULU (untuk debugging)
       // ============================
-      console.log("[ROUTE] ========== SAVING REQUEST DATA ==========");
       const requestDataToLog = {
         timestamp: new Date().toISOString(),
         incomingFormData: {}
@@ -591,15 +571,10 @@ export async function POST(request) {
         }
       }
 
-      console.log("[ROUTE] Request data object:", JSON.stringify(requestDataToLog, null, 2));
-      console.log("[ROUTE] Fields count:", Object.keys(requestDataToLog.incomingFormData).length);
-      console.log("[ROUTE] Fields:", Object.keys(requestDataToLog.incomingFormData));
-      console.log("[ROUTE] ==========================================");
 
       // Create FormData untuk forward ke backend (menggunakan form-data package)
       const forwardFormData = new FormData();
 
-      console.log("[ROUTE] ========== BUILDING FORWARD FORMDATA ==========");
       let appendedCount = 0;
       const appendedFields = [];
 
@@ -617,32 +592,22 @@ export async function POST(request) {
           });
           appendedCount++;
           appendedFields.push({ key, type: "File", name: value.name, size: buffer.length });
-          console.log(`[ROUTE] ✅ File appended: ${key} = ${value.name} (${(value.size / 1024).toFixed(2)} KB, buffer: ${buffer.length} bytes)`);
         } else {
           // Forward string values as-is
           const strValue = String(value);
           forwardFormData.append(key, strValue);
           appendedCount++;
           appendedFields.push({ key, type: "String", value: strValue.length > 50 ? strValue.substring(0, 50) + "..." : strValue });
-          console.log(`[ROUTE] ✅ String appended: ${key} = ${strValue.length > 50 ? strValue.substring(0, 50) + "..." : strValue}`);
         }
       }
 
-      console.log(`[ROUTE] Total appended: ${appendedCount} fields`);
-      console.log("[ROUTE] Appended fields:", appendedFields.map(f => `${f.key} (${f.type})`).join(", "));
-      console.log("[ROUTE] ==============================================");
 
       // Verify data di incomingFormData sebelum forward
-      console.log("[ROUTE] ========== VERIFYING INCOMING DATA ==========");
       const verifyKategori = incomingFormData.get("kategori");
       const verifyNama = incomingFormData.get("nama");
       const verifyAssign = incomingFormData.get("assign");
       const verifyHeader = incomingFormData.get("header");
 
-      console.log("Kategori:", verifyKategori ? String(verifyKategori) : "NULL");
-      console.log("Nama:", verifyNama ? String(verifyNama) : "NULL");
-      console.log("Assign:", verifyAssign ? String(verifyAssign) : "NULL");
-      console.log("Header:", verifyHeader instanceof File ? `File(${verifyHeader.name}, ${(verifyHeader.size / 1024).toFixed(2)} KB)` : "NULL");
 
       if (!verifyKategori || !verifyNama || !verifyHeader) {
         console.error("[ROUTE] ❌ MISSING CRITICAL FIELDS IN INCOMING!");
@@ -665,20 +630,10 @@ export async function POST(request) {
           { status: 400, headers: corsHeaders }
         );
       }
-      console.log("[ROUTE] ✅ All critical fields present in incoming");
-      console.log("[ROUTE] ==============================================");
 
       // Get headers untuk FormData (PENTING: harus dipanggil sebelum fetch)
       const formDataHeaders = forwardFormData.getHeaders();
 
-      console.log("[ROUTE] ========== REQUEST DETAILS ==========");
-      console.log("URL:", `${BACKEND_URL}/api/sales/produk`);
-      console.log("Method:", "POST");
-      console.log("Content-Type:", formDataHeaders["content-type"]);
-      console.log("Content-Length:", formDataHeaders["content-length"] || "not set");
-      console.log("Token:", token.substring(0, 20) + "...");
-      console.log("Total fields to send:", appendedCount);
-      console.log("[ROUTE] ======================================");
 
       // Forward ke backend Laravel dengan FormData
       // PENTING: form-data package perlu digunakan dengan cara yang benar
@@ -700,15 +655,8 @@ export async function POST(request) {
         // Remove content-length jika ada (biar form-data handle sendiri)
         delete headers["content-length"];
 
-        console.log("[ROUTE] Final headers:", {
-          "content-type": headers["content-type"]?.substring(0, 50) + "...",
-          "accept": headers["Accept"],
-          "authorization": headers["Authorization"]?.substring(0, 30) + "...",
-          "has-boundary": headers["content-type"]?.includes("boundary")
-        });
 
         // Forward dengan axios yang lebih kompatibel dengan form-data package
-        console.log("[ROUTE] Sending request to backend using axios...");
 
         // Axios lebih kompatibel dengan form-data package
         const axiosResponse = await axios.post(
@@ -735,9 +683,6 @@ export async function POST(request) {
           json: async () => axiosResponse.data,
         };
 
-        console.log("[ROUTE] ✅ Request sent successfully");
-        console.log("[ROUTE] Backend response status:", response.status);
-        console.log("[ROUTE] Backend response ok:", response.ok);
       } catch (axiosError) {
         console.error("[ROUTE] ❌ Axios error:", axiosError);
 
@@ -774,9 +719,6 @@ export async function POST(request) {
       // Handle JSON request (untuk backward compatibility dan format baru)
       const reqBody = await request.json();
 
-      console.log("[ROUTE] ========== INCOMING JSON PAYLOAD ==========");
-      console.log("Payload keys:", Object.keys(reqBody));
-      console.log("[ROUTE] ============================================");
 
       // Check if this is the new format with landingpage array
       const isNewFormat = reqBody.landingpage && Array.isArray(reqBody.landingpage);
@@ -785,7 +727,6 @@ export async function POST(request) {
 
       if (isNewFormat) {
         // New format: langsung forward dengan struktur yang sesuai
-        console.log("[ROUTE] Detected new JSON format with landingpage array");
 
         payloadToSend = {
           nama: reqBody.nama || "",
@@ -860,9 +801,6 @@ export async function POST(request) {
         payloadToSend.harga_coret = String(payloadToSend.harga_coret || "0");
       }
 
-      console.log("[ROUTE] ========== PAYLOAD TO SEND ==========");
-      console.log("Payload keys:", Object.keys(payloadToSend));
-      console.log("[ROUTE] =====================================");
 
       // Send JSON to backend
       response = await fetch(`${BACKEND_URL}/api/sales/produk`, {
@@ -890,21 +828,13 @@ export async function POST(request) {
       }
 
       // Log response untuk debugging
-      console.log("[ROUTE] Backend response:", {
-        status: response.status,
-        success: data?.success,
-        message: data?.message,
-        hasData: !!data?.data
-      });
 
       // Jika success dan ada data, pastikan data adalah array
       if (data?.success && data?.data) {
         // Jika data bukan array, wrap dalam array
         if (!Array.isArray(data.data)) {
           data.data = [data.data];
-          console.log("[ROUTE] ✅ Wrapped data in array");
         }
-        console.log("[ROUTE] ✅ Data received:", Array.isArray(data.data) ? `Array(${data.data.length})` : "Not array");
       }
     } catch (parseError) {
       console.error("[ROUTE] ❌ Failed to parse response:", parseError);
@@ -1026,14 +956,12 @@ export async function POST(request) {
       // Pastikan data adalah array
       const responseData = Array.isArray(data.data) ? data.data : [data.data];
 
-      console.log("[ROUTE] ✅ Returning success response with data array:", responseData.length, "items");
 
       // ✅ FIX: Invalidate cache for the product page
       try {
         const product = responseData[0];
         const kode = product?.kode || product?.url?.replace(/^\//, '');
         if (kode) {
-          console.log(`[ROUTE] Revalidating path: /product/${kode}`);
           revalidatePath(`/product/${kode}`);
           revalidatePath(`/product/${kode}`, 'page');
         }
@@ -1049,7 +977,6 @@ export async function POST(request) {
     }
 
     // Fallback jika format berbeda
-    console.log("[ROUTE] ⚠️ Returning fallback response");
     return NextResponse.json(data, { headers: corsHeaders });
 
   } catch (error) {

@@ -50,7 +50,6 @@ export async function getProducts(includeDeleted = false, options = {}) {
         list = list.filter(p => p.status === "1" || p.status === 1);
       }
 
-      console.log("📦 getProducts() →", list.length, "produk aktif");
 
       return list;
     }
@@ -81,7 +80,6 @@ export async function deleteProduct(id, force = true) {
       throw new Error(res?.message || "Gagal menghapus produk");
     }
 
-    console.log(`🗑️ deleteProduct(${id}, force=${force}) → success`);
 
     return true; // biar gampang dipakai di hooks
   } catch (err) {
@@ -101,7 +99,6 @@ export async function duplicateProduct(id) {
       throw new Error(res?.message || "Gagal menduplikasi produk");
     }
 
-    console.log("📄 duplicateProduct →", res.data);
 
     return res.data || null; // produk baru
   } catch (err) {
@@ -131,7 +128,6 @@ export async function getProductById(id) {
       detail = res.data;
     }
 
-    console.log("🔍 getProductById →", detail);
 
     return detail;
   } catch (err) {
@@ -171,7 +167,6 @@ export async function updateProductStatus(id, status) {
       throw new Error(res?.message || "Gagal mengupdate status produk");
     }
 
-    console.log(`🔄 updateProductStatus(${id}, ${status}) → success`);
 
     return res.data || null;
   } catch (err) {

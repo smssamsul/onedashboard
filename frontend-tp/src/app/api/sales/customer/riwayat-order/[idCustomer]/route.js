@@ -31,7 +31,6 @@ export async function GET(request, { params }) {
     const token = authHeader.replace("Bearer ", "");
 
     const backendUrl = `${BACKEND_URL}/api/sales/customer/riwayat-order/${customerId}`;
-    console.log("🔍 [CUSTOMER HISTORY] Fetch:", backendUrl);
 
     const res = await fetch(backendUrl, {
       method: "GET",

@@ -16,8 +16,6 @@ export async function POST(request) {
 
     const body = await request.json();
 
-    console.log("🟢 [OTP_RESEND] Request body:", body);
-    console.log("🟢 [OTP_RESEND] Has token:", !!token);
 
     // Validasi body
     if (!body.customer_id || !body.wa) {
@@ -47,7 +45,6 @@ export async function POST(request) {
       }),
     });
 
-    console.log("🟢 [OTP_RESEND] Backend status:", response.status);
 
     const responseText = await response.text();
     let data;
@@ -62,7 +59,6 @@ export async function POST(request) {
       );
     }
 
-    console.log("🟢 [OTP_RESEND] Backend response:", data);
 
     if (!response.ok) {
       return NextResponse.json(

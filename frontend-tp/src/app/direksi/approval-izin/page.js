@@ -127,7 +127,6 @@ export default function DireksiApprovalIzinPage() {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log('Request aborted');
         return;
       }
       console.error("Error loading data:", error);

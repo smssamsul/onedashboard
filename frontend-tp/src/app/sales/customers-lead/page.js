@@ -44,9 +44,9 @@ const SCORE_LABELS = [
 ];
 
 const SCORE_CONFIG = {
-  hot:  { bg: "#fff1f2", border: "#fca5a5", color: "#b91c1c", label: "HOT"  },
-  warm: { bg: "#fffbeb", border: "#fcd34d", color: "#92400e", label: "WARM" },
-  cold: { bg: "#eff6ff", border: "#93c5fd", color: "#1e40af", label: "COLD" },
+  hot:  { bg: "#fff1f2", border: "#fca5a5", color: "var(--color-error-dark)", label: "HOT"  },
+  warm: { bg: "var(--color-warning-lighter)", border: "#fcd34d", color: "var(--color-warning-dark)", label: "WARM" },
+  cold: { bg: "var(--color-info-lighter)", border: "#93c5fd", color: "var(--color-info-dark)", label: "COLD" },
 };
 
 // ── Format date ringkas ───────────────────────────────────
@@ -267,7 +267,7 @@ export default function CustomersLeadPage() {
         <section style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1.25rem", marginBottom: "1.5rem" }}>
           {/* Total */}
           <SummaryCard
-            bg="linear-gradient(135deg,#f0f9ff,#e0f2fe)"
+            bg="linear-gradient(135deg,var(--color-info-lighter),var(--color-info-lighter))"
             border="#bae6fd"
             label="Total Lead"
             value={totalLeads}
@@ -275,7 +275,7 @@ export default function CustomersLeadPage() {
           />
           {/* Hot */}
           <SummaryCard
-            bg="linear-gradient(135deg,#fff1f2,#fee2e2)"
+            bg="linear-gradient(135deg,#fff1f2,var(--color-error-lighter))"
             border="#fca5a5"
             label="Hot"
             value={apiStats.hot}
@@ -285,7 +285,7 @@ export default function CustomersLeadPage() {
           />
           {/* Warm */}
           <SummaryCard
-            bg="linear-gradient(135deg,#fffbeb,#fef3c7)"
+            bg="linear-gradient(135deg,var(--color-warning-lighter),var(--color-warning-lighter))"
             border="#fcd34d"
             label="Warm"
             value={apiStats.warm}
@@ -295,7 +295,7 @@ export default function CustomersLeadPage() {
           />
           {/* Cold */}
           <SummaryCard
-            bg="linear-gradient(135deg,#eff6ff,#dbeafe)"
+            bg="linear-gradient(135deg,var(--color-info-lighter),var(--color-info-lighter))"
             border="#93c5fd"
             label="Cold"
             value={apiStats.cold}
@@ -310,7 +310,7 @@ export default function CustomersLeadPage() {
         <section style={{
           background: "white", borderRadius: "16px",
           padding: "1rem 1.5rem", marginBottom: "1.5rem",
-          border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          border: "1px solid var(--color-divider)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
           display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap",
         }}>
           {/* Search */}
@@ -349,9 +349,9 @@ export default function CustomersLeadPage() {
                 style={{
                   display: "flex", alignItems: "center", gap: "8px",
                   padding: "8px 16px", borderRadius: "10px",
-                  border: produkFilter.length > 0 ? "1px solid #3b82f6" : "1px solid #e2e8f0",
-                  background: produkFilter.length > 0 ? "#eff6ff" : "#fff",
-                  color: produkFilter.length > 0 ? "#1d4ed8" : "#475569",
+                  border: produkFilter.length > 0 ? "1px solid var(--color-info-main)" : "1px solid var(--color-border)",
+                  background: produkFilter.length > 0 ? "var(--color-info-lighter)" : "#fff",
+                  color: produkFilter.length > 0 ? "var(--color-info-dark)" : "var(--color-text-secondary)",
                   fontWeight: 500, fontSize: "0.875rem", cursor: "pointer",
                   transition: "all 0.2s"
                 }}
@@ -366,12 +366,12 @@ export default function CustomersLeadPage() {
               {showProdukDropdown && (
                 <div style={{
                   position: "absolute", top: "100%", left: 0, marginTop: "8px",
-                  width: "280px", background: "#fff", border: "1px solid #e2e8f0",
+                  width: "280px", background: "#fff", border: "1px solid var(--color-border)",
                   borderRadius: "12px", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
                   zIndex: 50, padding: "8px",
                   maxHeight: "300px", overflowY: "auto"
                 }}>
-                  <div style={{ padding: "8px", fontSize: "0.75rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <div style={{ padding: "8px", fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Filter Produk
                   </div>
                   <button
@@ -379,14 +379,14 @@ export default function CustomersLeadPage() {
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       width: "100%", padding: "10px 12px", borderRadius: "8px",
-                      border: "none", background: produkFilter.length === 0 ? "#f1f5f9" : "transparent",
-                      color: produkFilter.length === 0 ? "#0f172a" : "#475569",
+                      border: "none", background: produkFilter.length === 0 ? "var(--color-divider)" : "transparent",
+                      color: produkFilter.length === 0 ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                       fontWeight: produkFilter.length === 0 ? 600 : 400,
                       textAlign: "left", cursor: "pointer", fontSize: "0.875rem", transition: "all 0.15s"
                     }}
                   >
                     Semua Produk
-                    {produkFilter.length === 0 && <i className="pi pi-check" style={{ color: "#3b82f6", fontSize: "0.8rem" }} />}
+                    {produkFilter.length === 0 && <i className="pi pi-check" style={{ color: "var(--color-info-main)", fontSize: "0.8rem" }} />}
                   </button>
 
                   {produkOptions.map((opt) => {
@@ -401,14 +401,14 @@ export default function CustomersLeadPage() {
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         width: "100%", padding: "10px 12px", borderRadius: "8px",
-                        border: "none", background: isSelected ? "#f1f5f9" : "transparent",
-                        color: isSelected ? "#0f172a" : "#475569",
+                        border: "none", background: isSelected ? "var(--color-divider)" : "transparent",
+                        color: isSelected ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                         fontWeight: isSelected ? 600 : 400,
                         textAlign: "left", cursor: "pointer", fontSize: "0.875rem", transition: "all 0.15s"
                       }}
                     >
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "200px" }}>{opt.nama}</span>
-                      {isSelected && <i className="pi pi-check" style={{ color: "#3b82f6", fontSize: "0.8rem" }} />}
+                      {isSelected && <i className="pi pi-check" style={{ color: "var(--color-info-main)", fontSize: "0.8rem" }} />}
                     </button>
                     );
                   })}
@@ -436,7 +436,7 @@ export default function CustomersLeadPage() {
           {activeFilters && (
             <button onClick={() => { setSalesFilter("all"); setScoreFilter("all"); setSearchInput(""); }}
               style={{ padding:"8px 13px", borderRadius:"10px",
-                border:"1px solid #fca5a5", background:"#fff1f2", color:"#dc2626",
+                border:"1px solid #fca5a5", background:"#fff1f2", color:"var(--color-error-main)",
                 fontWeight:500, cursor:"pointer", fontSize:"0.85rem" }}>
               Reset
             </button>
@@ -447,21 +447,21 @@ export default function CustomersLeadPage() {
           {/* Refresh */}
           <button onClick={() => requestRefresh(null)} disabled={loading}
             style={{ padding:"8px 15px", borderRadius:"10px",
-              border:"1px solid #e2e8f0", background:"white", color:"#6b7280",
+              border:"1px solid var(--color-border)", background:"white", color:"var(--color-text-secondary)",
               cursor: loading ? "not-allowed":"pointer", fontSize:"0.875rem" }}>
             {loading ? "Memuat..." : "Refresh"}
           </button>
         </section>
 
         {/* ── TABLE ── */}
-        <section style={{ background:"white", borderRadius:"16px", border:"1px solid #f1f5f9", boxShadow:"0 2px 8px rgba(0,0,0,0.04)", overflow:"hidden" }}>
+        <section style={{ background:"white", borderRadius:"16px", border:"1px solid var(--color-divider)", boxShadow:"0 2px 8px rgba(0,0,0,0.04)", overflow:"hidden" }}>
           {/* Header */}
-          <div style={{ padding:"1.25rem 1.5rem", borderBottom:"1px solid #f1f5f9", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ padding:"1.25rem 1.5rem", borderBottom:"1px solid var(--color-divider)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div>
-              <p style={{ fontSize:"0.72rem", color:"#94a3b8", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.08em" }}>CRM / Customer Lead</p>
-              <h3 style={{ fontSize:"1.1rem", fontWeight:700, color:"#0f172a", marginTop:"2px" }}>Lead</h3>
+              <p style={{ fontSize:"0.72rem", color:"var(--color-text-secondary)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.08em" }}>CRM / Customer Lead</p>
+              <h3 style={{ fontSize:"1.1rem", fontWeight:700, color:"var(--color-text-primary)", marginTop:"2px" }}>Lead</h3>
             </div>
-            {loading && <span style={{ fontSize:"0.85rem", color:"#94a3b8" }}><i className="pi pi-spin pi-spinner" /> Memuat...</span>}
+            {loading && <span style={{ fontSize:"0.85rem", color:"var(--color-text-secondary)" }}><i className="pi pi-spin pi-spinner" /> Memuat...</span>}
           </div>
 
           {/* Table */}
@@ -481,7 +481,7 @@ export default function CustomersLeadPage() {
               <tbody>
                 {loading && customers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign:"center", padding:"3rem", color:"#94a3b8" }}>
+                    <td colSpan={7} style={{ textAlign:"center", padding:"3rem", color:"var(--color-text-secondary)" }}>
                       <i className="pi pi-spin pi-spinner" style={{ fontSize:"1.5rem" }} />
                       <p style={{ marginTop:"0.5rem" }}>Memuat data...</p>
                     </td>
@@ -498,17 +498,17 @@ export default function CustomersLeadPage() {
                           <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
                             <span
                               onClick={() => { setSelectedCustomer(cust); setShowView(true); }}
-                              style={{ color:"#0ea5e9", fontWeight:600, cursor:"pointer", fontSize:"0.92rem" }}
+                              style={{ color:"var(--color-info-main)", fontWeight:600, cursor:"pointer", fontSize:"0.92rem" }}
                             >
                               {cust.nama || "-"}
                             </span>
                             {cust.nama_panggilan && (
-                              <span style={{ fontSize:"0.73rem", color:"#94a3b8" }}>
+                              <span style={{ fontSize:"0.73rem", color:"var(--color-text-secondary)" }}>
                                 {cust.sapaan} {cust.nama_panggilan}
                               </span>
                             )}
                             {cust.profesi && (
-                              <span style={{ fontSize:"0.73rem", color:"#64748b" }}>{cust.profesi}</span>
+                              <span style={{ fontSize:"0.73rem", color:"var(--color-text-secondary)" }}>{cust.profesi}</span>
                             )}
                           </div>
                         </td>
@@ -517,10 +517,10 @@ export default function CustomersLeadPage() {
                         <td>
                           {cust.wa ? (
                             <a href={`https://wa.me/${cust.wa.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
-                              style={{ color:"#22c55e", textDecoration:"none", fontSize:"0.87rem", fontWeight:500 }}>
+                              style={{ color:"var(--color-success-main)", textDecoration:"none", fontSize:"0.87rem", fontWeight:500 }}>
                               {cust.wa}
                             </a>
-                          ) : <span style={{ color:"#cbd5e1" }}>-</span>}
+                          ) : <span style={{ color:"var(--color-grey-300)" }}>-</span>}
                         </td>
 
                         {/* Label hot/warm/cold */}
@@ -535,7 +535,7 @@ export default function CustomersLeadPage() {
                               {scoreConf.label}
                             </span>
                           ) : (
-                            <span style={{ color:"#cbd5e1", fontSize:"0.82rem" }}>—</span>
+                            <span style={{ color:"var(--color-grey-300)", fontSize:"0.82rem" }}>—</span>
                           )}
                         </td>
 
@@ -546,7 +546,7 @@ export default function CustomersLeadPage() {
                               {cust.minat_produk}
                             </span>
                           ) : (
-                            <span style={{ color:"#cbd5e1", fontSize:"0.82rem" }}>—</span>
+                            <span style={{ color:"var(--color-grey-300)", fontSize:"0.82rem" }}>—</span>
                           )}
                         </td>
 
@@ -556,19 +556,19 @@ export default function CustomersLeadPage() {
                             <div 
                               onClick={() => setSelectedFollowupDetail(followup)}
                               style={{ display:"flex", flexDirection:"column", gap:"4px", cursor: "pointer", padding: "4px", borderRadius: "8px", transition: "background 0.2s" }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = "#f1f5f9"}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--color-divider)"}
                               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                               title="Klik untuk lihat detail followup"
                             >
                               <div style={{ display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap" }}>
-                                <span style={{ fontSize:"0.78rem", color:"#64748b", fontWeight:600 }}>
+                                <span style={{ fontSize:"0.78rem", color:"var(--color-text-secondary)", fontWeight:600 }}>
                                   {fmt(followup.date)}
                                 </span>
                                 {followup.channel && (
                                   <span style={{
                                     padding:"1px 7px", borderRadius:"10px",
-                                    background:"#f8fafc", border:"1px solid #e2e8f0",
-                                    fontSize:"0.7rem", color:"#64748b",
+                                    background:"var(--color-bg-default)", border:"1px solid var(--color-border)",
+                                    fontSize:"0.7rem", color:"var(--color-text-secondary)",
                                   }}>
                                     {followup.channel}
                                   </span>
@@ -576,7 +576,7 @@ export default function CustomersLeadPage() {
                               </div>
                               {followup.note && (
                                 <p style={{
-                                  fontSize:"0.77rem", color:"#475569",
+                                  fontSize:"0.77rem", color:"var(--color-text-secondary)",
                                   margin:0, lineHeight:1.4,
                                   overflow:"hidden", display:"-webkit-box",
                                   WebkitLineClamp:2, WebkitBoxOrient:"vertical",
@@ -587,7 +587,7 @@ export default function CustomersLeadPage() {
                               )}
                               {followup.keterangan && (
                                 <p style={{
-                                  fontSize:"0.77rem", color:"#94a3b8",
+                                  fontSize:"0.77rem", color:"var(--color-text-secondary)",
                                   margin:0, lineHeight:1.4,
                                   overflow:"hidden", display:"-webkit-box",
                                   WebkitLineClamp:1, WebkitBoxOrient:"vertical",
@@ -598,7 +598,7 @@ export default function CustomersLeadPage() {
                               )}
                             </div>
                           ) : (
-                            <span style={{ fontSize:"0.78rem", color:"#94a3b8", fontStyle:"italic" }}>
+                            <span style={{ fontSize:"0.78rem", color:"var(--color-text-secondary)", fontStyle:"italic" }}>
                               Belum ada followup
                             </span>
                           )}
@@ -608,9 +608,9 @@ export default function CustomersLeadPage() {
                         <td>
                           <span style={{
                             display:"inline-block", padding:"3px 10px",
-                            borderRadius:"8px", background:"#f8fafc",
-                            border:"1px solid #e2e8f0", fontSize:"0.82rem",
-                            color:"#475569", fontWeight:500,
+                            borderRadius:"8px", background:"var(--color-bg-default)",
+                            border:"1px solid var(--color-border)", fontSize:"0.82rem",
+                            color:"var(--color-text-secondary)", fontWeight:500,
                           }}>
                             {cust.sales_rel?.nama || cust.sales_nama || (cust.sales_id ? `Sales #${cust.sales_id}` : "—")}
                           </span>
@@ -635,21 +635,21 @@ export default function CustomersLeadPage() {
                               style={{
                                 padding: "4px 8px",
                                 borderRadius: "8px",
-                                border: "1px solid #e2e8f0",
+                                border: "1px solid var(--color-border)",
                                 fontSize: "0.75rem",
                                 fontWeight: 600,
                                 cursor: updatingId === cust.id ? "not-allowed" : "pointer",
                                 outline: "none",
-                                background: updatingId === cust.id ? "#f8fafc" :
+                                background: updatingId === cust.id ? "var(--color-bg-default)" :
                                   cust.score_label === "hot"  ? "#fff1f2" :
-                                  cust.score_label === "warm" ? "#fffbeb" :
-                                  cust.score_label === "cold" ? "#eff6ff" :
-                                  "#f8fafc",
-                                color: updatingId === cust.id ? "#94a3b8" :
-                                  cust.score_label === "hot"  ? "#b91c1c" :
-                                  cust.score_label === "warm" ? "#92400e" :
-                                  cust.score_label === "cold" ? "#1e40af" :
-                                  "#64748b",
+                                  cust.score_label === "warm" ? "var(--color-warning-lighter)" :
+                                  cust.score_label === "cold" ? "var(--color-info-lighter)" :
+                                  "var(--color-bg-default)",
+                                color: updatingId === cust.id ? "var(--color-text-secondary)" :
+                                  cust.score_label === "hot"  ? "var(--color-error-dark)" :
+                                  cust.score_label === "warm" ? "var(--color-warning-dark)" :
+                                  cust.score_label === "cold" ? "var(--color-info-dark)" :
+                                  "var(--color-text-secondary)",
                                 minWidth: "80px",
                                 opacity: updatingId === cust.id ? 0.6 : 1,
                               }}
@@ -666,7 +666,7 @@ export default function CustomersLeadPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} style={{ textAlign:"center", padding:"4rem 2rem", color:"#94a3b8" }}>
+                    <td colSpan={7} style={{ textAlign:"center", padding:"4rem 2rem", color:"var(--color-text-secondary)" }}>
                       <p style={{ fontWeight:500 }}>
                         {activeFilters ? "Tidak ada lead yang sesuai filter" : "Belum ada data lead"}
                       </p>
@@ -679,19 +679,19 @@ export default function CustomersLeadPage() {
 
           {/* Pagination */}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-            padding:"1rem 1.5rem", borderTop:"1px solid #f1f5f9" }}>
+            padding:"1rem 1.5rem", borderTop:"1px solid var(--color-divider)" }}>
             <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-              <span style={{ fontSize:"0.875rem", color:"#6b7280" }}>Tampilkan:</span>
+              <span style={{ fontSize:"0.875rem", color:"var(--color-text-secondary)" }}>Tampilkan:</span>
               <select value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                style={{ padding:"4px 8px", borderRadius:"6px", border:"1px solid #e2e8f0",
+                style={{ padding:"4px 8px", borderRadius:"6px", border:"1px solid var(--color-border)",
                   fontSize:"0.875rem", outline:"none", cursor:"pointer", background:"#fff" }}>
                 {PER_PAGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt} Data</option>)}
               </select>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
               <PaginationBtn label="‹" disabled={page <= 1 || loading} onClick={() => setPage(p => p - 1)} />
-              <span style={{ fontSize:"0.875rem", color:"#64748b", fontWeight:500 }}>
+              <span style={{ fontSize:"0.875rem", color:"var(--color-text-secondary)", fontWeight:500 }}>
                 Halaman {page}{paginationInfo?.last_page ? ` dari ${paginationInfo.last_page} (${paginationInfo.total} total)` : ""}
               </span>
               <PaginationBtn label="›" disabled={!hasMore || loading} onClick={() => setPage(p => p + 1)} />
@@ -744,7 +744,7 @@ export default function CustomersLeadPage() {
 
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        .data-table tbody tr:hover td { background:#f8fafc!important; }
+        .data-table tbody tr:hover td { background:var(--color-bg-default)!important; }
         .data-table tbody tr { transition:background .12s; }
         .data-table td { vertical-align:top; padding:14px 12px!important; }
         
@@ -755,25 +755,25 @@ export default function CustomersLeadPage() {
         <div className="modal-overlay" style={{ zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', position: 'fixed', inset: 0 }} onClick={() => setSelectedFollowupDetail(null)}>
           <div className="modal-card" style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Detail Follow Up</h2>
-              <button onClick={() => setSelectedFollowupDetail(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>Detail Follow Up</h2>
+              <button onClick={() => setSelectedFollowupDetail(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--color-text-secondary)' }}>&times;</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Tanggal</span>
-                <div style={{ color: '#0f172a', fontWeight: 500, marginTop: '4px' }}>{new Date(selectedFollowupDetail.date).toLocaleString('id-ID')}</div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Tanggal</span>
+                <div style={{ color: 'var(--color-text-primary)', fontWeight: 500, marginTop: '4px' }}>{new Date(selectedFollowupDetail.date).toLocaleString('id-ID')}</div>
               </div>
               <div>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Via / Channel</span>
-                <div style={{ color: '#0f172a', fontWeight: 500, marginTop: '4px' }}>{selectedFollowupDetail.channel || '-'}</div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Via / Channel</span>
+                <div style={{ color: 'var(--color-text-primary)', fontWeight: 500, marginTop: '4px' }}>{selectedFollowupDetail.channel || '-'}</div>
               </div>
               <div>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Respon</span>
-                <div style={{ color: '#0f172a', fontWeight: 500, marginTop: '4px' }}>{selectedFollowupDetail.note || '-'}</div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Respon</span>
+                <div style={{ color: 'var(--color-text-primary)', fontWeight: 500, marginTop: '4px' }}>{selectedFollowupDetail.note || '-'}</div>
               </div>
               <div>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Keterangan / Catatan</span>
-                <div style={{ color: '#0f172a', fontWeight: 500, marginTop: '4px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Keterangan / Catatan</span>
+                <div style={{ color: 'var(--color-text-primary)', fontWeight: 500, marginTop: '4px', background: 'var(--color-bg-default)', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', whiteSpace: 'pre-wrap' }}>
                   {selectedFollowupDetail.keterangan || '-'}
                 </div>
               </div>
@@ -781,7 +781,7 @@ export default function CustomersLeadPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button 
                 onClick={() => setSelectedFollowupDetail(null)}
-                style={{ padding: '0.5rem 1.25rem', background: '#2563eb', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '0.5rem 1.25rem', background: 'var(--color-info-dark)', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}
               >
                 Tutup
               </button>
@@ -808,11 +808,11 @@ function SummaryCard({ bg, border, label, value, shadow, onClick, active }) {
         transition:"all 0.18s",
         outline: active ? `2px solid ${border}` : "none",
       }}>
-      <p style={{ fontSize:"0.73rem", color:"#64748b", fontWeight:600, textTransform:"uppercase",
+      <p style={{ fontSize:"0.73rem", color:"var(--color-text-secondary)", fontWeight:600, textTransform:"uppercase",
         letterSpacing:"0.05em", marginBottom:"6px" }}>
         {label}
       </p>
-      <p style={{ fontSize:"1.9rem", fontWeight:800, color:"#0f172a", lineHeight:1 }}>
+      <p style={{ fontSize:"1.9rem", fontWeight:800, color:"var(--color-text-primary)", lineHeight:1 }}>
         {value ?? 0}
       </p>
     </article>
@@ -823,8 +823,8 @@ function FilterBtn({ label, active, onClick }) {
   return (
     <button type="button" onClick={onClick} style={{
       display:"flex", alignItems:"center", gap:"6px", padding:"8px 14px",
-      borderRadius:"10px", border: active ? "1px solid #f59e0b" : "1px solid #e5e7eb",
-      background: active ? "#fffbeb" : "white", color: active ? "#92400e" : "#374151",
+      borderRadius:"10px", border: active ? "1px solid var(--color-warning-main)" : "1px solid var(--color-divider)",
+      background: active ? "var(--color-warning-lighter)" : "white", color: active ? "var(--color-warning-dark)" : "var(--color-text-primary)",
       fontWeight:500, cursor:"pointer", fontSize:"0.875rem", whiteSpace:"nowrap",
     }}>
       {label} ▾
@@ -837,15 +837,15 @@ function DropdownMenu({ options, selected, onSelect }) {
     <div style={{
       position:"absolute", top:"calc(100% + 6px)", left:0, minWidth:"180px",
       background:"white", borderRadius:"12px", boxShadow:"0 8px 24px rgba(0,0,0,0.12)",
-      border:"1px solid #f1f5f9", zIndex:200, overflow:"hidden",
+      border:"1px solid var(--color-divider)", zIndex:200, overflow:"hidden",
     }}>
       {options.map(opt => (
         <button key={opt.value} type="button" onClick={() => onSelect(opt.value)} style={{
           width:"100%", padding:"9px 14px", textAlign:"left",
-          background: selected === opt.value ? "#f0f9ff" : "transparent",
-          border:"none", cursor:"pointer", color:"#374151",
+          background: selected === opt.value ? "var(--color-info-lighter)" : "transparent",
+          border:"none", cursor:"pointer", color:"var(--color-text-primary)",
           fontWeight: selected === opt.value ? 600 : 400, fontSize:"0.875rem",
-          borderTop: opt.value !== options[0].value ? "1px solid #f8fafc" : "none",
+          borderTop: opt.value !== options[0].value ? "1px solid var(--color-bg-default)" : "none",
         }}>
           {opt.label}
         </button>
@@ -858,7 +858,7 @@ function ActionBtn({ icon, title, onClick }) {
   return (
     <button className="customers-action-btn" title={title} onClick={onClick} style={{
       width:"32px", height:"32px", borderRadius:"8px",
-      border:"1px solid #e2e8f0", background:"#f8fafc", color:"#64748b",
+      border:"1px solid var(--color-border)", background:"var(--color-bg-default)", color:"var(--color-text-secondary)",
       cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
     }}>
       <i className={`pi ${icon}`} style={{ fontSize:"13px" }} />
@@ -870,9 +870,9 @@ function PaginationBtn({ label, disabled, onClick }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       padding:"6px 14px", borderRadius:"8px",
-      border:"1px solid #e2e8f0",
-      background: disabled ? "#f8fafc" : "white",
-      color: disabled ? "#cbd5e1" : "#374151",
+      border:"1px solid var(--color-border)",
+      background: disabled ? "var(--color-bg-default)" : "white",
+      color: disabled ? "var(--color-grey-300)" : "var(--color-text-primary)",
       cursor: disabled ? "not-allowed" : "pointer",
       fontWeight:500, fontSize:"0.9rem",
     }}>

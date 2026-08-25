@@ -125,7 +125,7 @@ export default function EcoursePage() {
                     background: #fff;
                     border-radius: 12px;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-                    border: 1px solid #f1f5f9;
+                    border: 1px solid var(--color-divider);
                 }
                 .mt-4 { margin-top: 1rem; }
 
@@ -138,7 +138,7 @@ export default function EcoursePage() {
                     padding: 0 15px;
                     height: 48px;
                     border-radius: 10px;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border);
                 }
                 .search-input-large {
                     flex: 1;
@@ -146,10 +146,10 @@ export default function EcoursePage() {
                     outline: none;
                     background: transparent;
                     font-size: 14px;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     padding-left: 10px;
                 }
-                .search-icon-left { color: #94a3b8; }
+                .search-icon-left { color: var(--color-text-secondary); }
 
                 .main-content-card { overflow: hidden; }
                 .card-header-inner {
@@ -157,11 +157,11 @@ export default function EcoursePage() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    border-bottom: 1px solid #f1f5f9;
+                    border-bottom: 1px solid var(--color-divider);
                 }
                 .card-header-titles { display: flex; flex-direction: column; gap: 4px; }
-                .eyebrow-text { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-                .card-title { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
+                .eyebrow-text { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+                .card-title { font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
                 .table-container-clean { padding: 24px 30px; }
                 .course-grid {
@@ -174,18 +174,18 @@ export default function EcoursePage() {
                     align-items: center;
                     gap: 14px;
                     padding: 18px;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border);
                     border-radius: 12px;
                     text-decoration: none;
                     transition: all 0.2s;
                 }
-                .course-card:hover { border-color: #ff7a00; box-shadow: 0 4px 12px rgba(255, 122, 0, 0.1); }
+                .course-card:hover { border-color: var(--color-primary-main); box-shadow: 0 4px 12px rgba(255, 122, 0, 0.1); }
                 .course-card-icon {
                     width: 44px;
                     height: 44px;
                     border-radius: 10px;
-                    background: #fff7ed;
-                    color: #ff7a00;
+                    background: var(--color-warning-lighter);
+                    color: var(--color-primary-main);
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -194,14 +194,14 @@ export default function EcoursePage() {
                 .course-card-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
                 .course-card-title {
                     font-weight: 600;
-                    color: #1e293b;
+                    color: var(--color-text-primary);
                     font-size: 14px;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
                 }
-                .course-card-sub { font-size: 12px; color: #94a3b8; }
-                .course-card-arrow { color: #cbd5e1; flex-shrink: 0; }
+                .course-card-sub { font-size: 12px; color: var(--color-text-secondary); }
+                .course-card-arrow { color: var(--color-grey-300); flex-shrink: 0; }
 
                 .empty-state-modern {
                     padding: 80px 40px;
@@ -221,16 +221,16 @@ export default function EcoursePage() {
                     position: absolute;
                     width: 100px;
                     height: 100px;
-                    background: #fff7ed;
+                    background: var(--color-warning-lighter);
                     border-radius: 50%;
                     filter: blur(15px);
                 }
-                .empty-icon { position: relative; color: #ff7a00; }
-                .empty-state-modern h3 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 10px 0; }
-                .empty-state-modern p { color: #64748b; font-size: 14px; margin-bottom: 24px; max-width: 400px; }
+                .empty-icon { position: relative; color: var(--color-primary-main); }
+                .empty-state-modern h3 { font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin: 0 0 10px 0; }
+                .empty-state-modern p { color: var(--color-text-secondary); font-size: 14px; margin-bottom: 24px; max-width: 400px; }
 
-                .loading-state { text-align: center; padding: 60px 0; color: #64748b; }
-                .spinner-icon { animation: spin 1s linear infinite; color: #ff7a00; margin: 0 auto 16px; }
+                .loading-state { text-align: center; padding: 60px 0; color: var(--color-text-secondary); }
+                .spinner-icon { animation: spin 1s linear infinite; color: var(--color-primary-main); margin: 0 auto 16px; }
                 @keyframes spin { 100% { transform: rotate(360deg); } }
             `}</style>
         </Layout>

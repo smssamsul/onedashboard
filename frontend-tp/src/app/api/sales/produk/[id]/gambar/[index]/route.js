@@ -22,7 +22,6 @@ export async function DELETE(request, { params }) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log(`[DELETE GAMBAR] Product ID: ${id}, Index: ${index}`);
 
     const response = await fetch(`${BACKEND_URL}/api/produk/${id}/gambar/${index}`, {
       method: "DELETE",
@@ -34,7 +33,6 @@ export async function DELETE(request, { params }) {
 
     const data = await response.json().catch(() => ({}));
 
-    console.log(`[DELETE GAMBAR] Backend response:`, response.status, data);
 
     if (!response.ok) {
       return NextResponse.json(

@@ -318,10 +318,6 @@ export default function Page() {
       const stored = localStorage.getItem(`product_original_data_${productId}`);
       if (stored) {
         originalData = JSON.parse(stored);
-        console.log("[FORMDATA] ✅ Original data loaded from localStorage:", {
-          productId: productId,
-          fields: Object.keys(originalData)
-        });
       }
     } catch (error) {
       console.error("[FORMDATA] ❌ Failed to load original data from localStorage:", error);
@@ -369,12 +365,6 @@ export default function Page() {
     formData.append("landingpage", String(form.landingpage || getValue("landingpage") || "1"));
     formData.append("status", String(form.status || getValue("status") || "1"));
 
-    console.log("[FORMDATA] Basic fields:", {
-      kategori: kategoriId,
-      nama: form.nama,
-      kode: kode,
-      url: "/" + kode
-    });
 
     // ============================
     // 2. HEADER IMAGE - File langsung (jika ada file baru)
@@ -528,23 +518,8 @@ export default function Page() {
     const videoJsonString = JSON.stringify(videoArray);
     formData.append("video", videoJsonString);
 
-    console.log("[FORMDATA] Video field:", {
-      form_video: form.video,
-      videoArray: videoArray,
-      videoJsonString: videoJsonString,
-      videoCount: videoArray.length
-    });
 
     // Log semua array fields untuk debugging
-    console.log("[FORMDATA] Array fields:", {
-      assign: normalizedAssign,
-      list_point: listPointArray,
-      custom_field: customFieldArray,
-      event_fb_pixel: eventFbPixelArray,
-      fb_pixel: fbPixelArray,
-      gtm: gtmArray,
-      video: videoArray,
-    });
 
     // ============================
     // 6. JADWAL (SCHEDULES) - JSON string
@@ -585,24 +560,13 @@ export default function Page() {
       }
 
       // 1) kategori validation - ambil ID dari kategori yang dipilih
-      console.log("[VALIDATION] ========== KATEGORI VALIDATION ==========");
-      console.log("form.kategori raw:", form.kategori);
-      console.log("form.kategori type:", typeof form.kategori);
 
       let kategoriId = null;
       if (form.kategori !== null && form.kategori !== undefined && form.kategori !== "") {
         // form.kategori adalah string ID dari dropdown (contoh: "7")
         kategoriId = Number(form.kategori);
-        console.log("Kategori ID parsed:", kategoriId);
       }
 
-      console.log("[VALIDATION] Kategori check:", {
-        formKategori: form.kategori,
-        kategoriId: kategoriId,
-        type: typeof form.kategori,
-        isValid: !Number.isNaN(kategoriId) && kategoriId > 0
-      });
-      console.log("[VALIDATION] ========================================");
 
       if (!kategoriId || Number.isNaN(kategoriId) || kategoriId <= 0) {
         console.error("[VALIDATION] KATEGORI INVALID!");
@@ -611,7 +575,6 @@ export default function Page() {
         return;
       }
 
-      console.log("[VALIDATION] Kategori valid:", kategoriId);
 
       // 2) assign normalization
       const normalizedAssign = Array.isArray(form.assign)
@@ -633,7 +596,6 @@ export default function Page() {
       );
 
       // DEBUG: Log FormData untuk tracking (detail)
-      console.log("[FORMDATA] ========== DETAIL FORMDATA ==========");
       const formDataEntries = [];
       const formDataJSON = {};
 
@@ -647,7 +609,6 @@ export default function Page() {
             sizeBytes: value.size,
             mimeType: value.type
           };
-          console.log(`  ${key}: [File] ${value.name} (${(value.size / 1024).toFixed(2)} KB)`);
         } else {
           const str = String(value);
           formDataEntries.push({ key, type: "String", value: str.length > 200 ? str.substring(0, 200) + "..." : str });
@@ -666,18 +627,13 @@ export default function Page() {
             formDataJSON[key] = str.length > 200 ? str.substring(0, 200) + "..." : str;
           }
 
-          console.log(`  ${key}: ${displayValue.length > 200 ? displayValue.substring(0, 200) + "..." : displayValue}`);
         }
       }
       console.table(formDataEntries);
 
       // Tampilkan sebagai JSON yang readable
-      console.log("[FORMDATA] ========== FORMDATA AS JSON ==========");
-      console.log(JSON.stringify(formDataJSON, null, 2));
-      console.log("[FORMDATA] =====================================");
 
       // Verify critical fields
-      console.log("[FORMDATA] ========== CRITICAL FIELDS VERIFICATION ==========");
       const kategoriInFormData = formData.get("kategori");
       const namaInFormData = formData.get("nama");
       const assignInFormData = formData.get("assign");
@@ -694,39 +650,6 @@ export default function Page() {
         }
       }
 
-      console.log({
-        kategori: {
-          value: kategoriInFormData,
-          type: typeof kategoriInFormData,
-          exists: kategoriInFormData !== null,
-          isEmpty: kategoriInFormData === "" || kategoriInFormData === "null" || kategoriInFormData === "undefined"
-        },
-        nama: {
-          value: namaInFormData,
-          type: typeof namaInFormData,
-          exists: namaInFormData !== null,
-          isEmpty: !namaInFormData || namaInFormData === ""
-        },
-        assign: {
-          value: assignInFormData,
-          type: typeof assignInFormData,
-          parsed: assignInFormData ? JSON.parse(assignInFormData) : null
-        },
-        header: {
-          exists: headerInFormData !== null,
-          isFile: headerInFormData instanceof File,
-          name: headerInFormData instanceof File ? headerInFormData.name : null
-        },
-        video: {
-          value: videoInFormData,
-          type: typeof videoInFormData,
-          exists: videoInFormData !== null,
-          parsed: videoParsed,
-          isArray: Array.isArray(videoParsed),
-          count: Array.isArray(videoParsed) ? videoParsed.length : 0,
-          raw: String(videoInFormData)
-        }
-      });
 
       // Final check sebelum kirim (sama seperti addProducts, tapi header tidak wajib untuk edit)
       if (!kategoriInFormData || kategoriInFormData === "" || kategoriInFormData === "null" || kategoriInFormData === "undefined") {
@@ -745,13 +668,10 @@ export default function Page() {
         console.warn("[FORMDATA] Header file baru tidak ditemukan di FormData, tapi ini OK untuk edit");
       }
 
-      console.log("[FORMDATA] All critical fields verified");
-      console.log("[FORMDATA] =================================================");
 
       // ============================
       // SIMPAN REQUEST DATA KE LOCALSTORAGE DULU
       // ============================
-      console.log("[LOCALSTORAGE] ========== SAVING REQUEST DATA ==========");
       const requestDataToSave = {
         timestamp: new Date().toISOString(),
         productId: productId,
@@ -761,49 +681,22 @@ export default function Page() {
       // Simpan ke localStorage
       try {
         localStorage.setItem("last_product_update_request", JSON.stringify(requestDataToSave, null, 2));
-        console.log("[LOCALSTORAGE] Request data saved to localStorage");
-        console.log("[LOCALSTORAGE] Key: 'last_product_update_request'");
-        console.log("[LOCALSTORAGE] Data preview:", {
-          timestamp: requestDataToSave.timestamp,
-          productId: requestDataToSave.productId,
-          fieldsCount: Object.keys(requestDataToSave.formData).length,
-          fields: Object.keys(requestDataToSave.formData)
-        });
-        console.log("[LOCALSTORAGE] Full data:", JSON.stringify(requestDataToSave, null, 2));
       } catch (error) {
         console.error("[LOCALSTORAGE] Failed to save to localStorage:", error);
       }
-      console.log("[LOCALSTORAGE] ==========================================");
 
       // FETCH dengan FormData (sama seperti addProducts, tapi endpoint berbeda)
       setSubmitStatus("Mengirim data ke server...");
 
       // Log request untuk network tracking
-      console.log("[NETWORK] ========== REQUEST FORMDATA ==========");
-      console.log("URL:", `/api/sales/produk/${productId}`);
-      console.log("Method:", "POST (with _method=PUT in FormData)");
-      console.log("Content-Type:", "multipart/form-data (auto-set by browser)");
       const token = localStorage.getItem("token") || "";
-      console.log("Headers:", {
-        "Accept": "application/json",
-        "Authorization": token ? `Bearer ${token.substring(0, 20)}...` : "MISSING"
-      });
-      console.log("FormData entries count:", formDataEntries.length);
 
       // Verify data sebelum kirim
-      console.log("[NETWORK] ========== PRE-SEND VERIFICATION ==========");
       const preMethod = formData.get("_method");
       const preKategori = formData.get("kategori");
       const preNama = formData.get("nama");
       const preAssign = formData.get("assign");
       const preHeader = formData.get("header");
-      console.log("_method:", preMethod);
-      console.log("Kategori:", preKategori);
-      console.log("Nama:", preNama);
-      console.log("Assign:", preAssign);
-      console.log("Header:", preHeader instanceof File ? `File(${preHeader.name}, ${(preHeader.size / 1024).toFixed(2)} KB)` : "NULL");
-      console.log("[NETWORK] ===========================================");
-      console.log("[NETWORK] ======================================");
 
       const res = await fetch(`/api/sales/produk/${productId}`, {
         method: "POST", // WAJIB POST untuk FormData, dengan _method=PUT di FormData
@@ -815,11 +708,6 @@ export default function Page() {
         body: formData
       });
 
-      console.log("[NETWORK] ========== RESPONSE RECEIVED ==========");
-      console.log("Response status:", res.status);
-      console.log("Response statusText:", res.statusText);
-      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
-      console.log("[NETWORK] =======================================");
 
       const contentType = res.headers.get("content-type") || "";
       let data;
@@ -881,12 +769,6 @@ export default function Page() {
       }
 
       // Handle success response sesuai format backend
-      console.log("[API SUCCESS] ========== RESPONSE DATA ==========");
-      console.log("[API SUCCESS] Full response:", JSON.stringify(data, null, 2));
-      console.log("[API SUCCESS] Response success:", data.success);
-      console.log("[API SUCCESS] Response message:", data.message);
-      console.log("[API SUCCESS] Response data:", data.data);
-      console.log("[API SUCCESS] ====================================");
 
       setSubmitStatus("");
 
@@ -949,9 +831,6 @@ export default function Page() {
       );
       const produkResponse = await produkRes.json();
 
-      console.log("🔍 [EDIT PRODUCT] Response:", produkResponse);
-      console.log("🔍 [EDIT PRODUCT] Response.data:", produkResponse.data);
-      console.log("🔍 [EDIT PRODUCT] Is array:", Array.isArray(produkResponse.data));
 
       if (!produkRes.ok || !produkResponse.success) {
         throw new Error(produkResponse.message || "Gagal memuat data produk");
@@ -974,9 +853,6 @@ export default function Page() {
         throw new Error("Data produk tidak ditemukan");
       }
 
-      console.log("✅ [EDIT PRODUCT] Produk data loaded:", produkData);
-      console.log("✅ [EDIT PRODUCT] Nama:", produkData.nama);
-      console.log("✅ [EDIT PRODUCT] Kategori:", produkData.kategori, produkData.kategori_rel);
 
       // Helper function untuk parse JSON fields
       const safeParseJSON = (value, fallback = []) => {
@@ -1012,8 +888,6 @@ export default function Page() {
       // SELALU generate kode dari nama dengan dash
       const kodeGenerated = generateKode(produkData.nama || "produk-baru");
 
-      console.log("🔧 [LOAD] Nama produk:", produkData.nama);
-      console.log("🔧 [LOAD] Kode generated (dengan dash):", kodeGenerated);
 
       // Parse gambar - handle existing images (type: "url")
       const parsedGambar = safeParseJSON(produkData.gambar, []).map(g => {
@@ -1114,7 +988,6 @@ export default function Page() {
         })),
       };
 
-      console.log("🔧 [EDIT] Setting form with data:", updatedForm);
       setForm(updatedForm);
 
       // Set user yang membuat produk (created by)
@@ -1159,33 +1032,11 @@ export default function Page() {
       // Simpan ke localStorage
       try {
         localStorage.setItem(`product_original_data_${productId}`, JSON.stringify(originalProductData));
-        console.log("[LOCALSTORAGE] ✅ Original product data saved:", {
-          productId: productId,
-          key: `product_original_data_${productId}`,
-          fields: Object.keys(originalProductData)
-        });
       } catch (error) {
         console.error("[LOCALSTORAGE] ❌ Failed to save original product data:", error);
       }
 
-      console.log("✅ [EDIT] Product data loaded:", {
-        nama: produkData.nama,
-        kode_from_backend: produkData.kode,
-        kode_generated: kodeGenerated,
-        kategori: kategoriId,
-        tanggal_event: parsedTanggalEvent,
-        list_point: parsedListPoint,
-        testimoni: parsedTestimoni.length,
-        gambar: parsedGambar.length,
-        created_by: produkData.user_input_rel,
-      });
 
-      console.log("✅ [EDIT] Form state after setForm:", {
-        nama: form.nama,
-        kategori: form.kategori,
-        harga_asli: form.harga_asli,
-        harga_coret: form.harga_coret,
-      });
 
       // 4️⃣ Fetch Meta Pixel list
       try {
@@ -1207,7 +1058,6 @@ export default function Page() {
             value: Number(p.id),
           }));
           setMetaPixelOptions(pixelOpts);
-          console.log("📋 Meta Pixel Options (EDIT):", pixelOpts);
         }
       } catch (error) {
         console.error("[META PIXEL] Error fetch pixel-meta:", error);
@@ -1301,8 +1151,6 @@ export default function Page() {
         const kategoriData = await kategoriRes.json();
 
         // Logging struktur JSON lengkap
-        console.log("Success:", kategoriData.success);
-        console.log("Data:", kategoriData.data);
         console.table(kategoriData.data);
 
         // Filter hanya kategori yang aktif (status === "1")
@@ -1328,8 +1176,6 @@ export default function Page() {
         const usersJson = await usersRes.json();
 
         // Logging struktur JSON lengkap
-        console.log("Success:", usersJson.success);
-        console.log("Data:", usersJson.data);
         console.table(usersJson.data);
 
         const userOpts = Array.isArray(usersJson.data)
@@ -1448,18 +1294,10 @@ export default function Page() {
                 optionValue="value"
                 onChange={(e) => {
                   const selectedValue = e.value;
-                  console.log("[KATEGORI] Dropdown onChange:", {
-                    selectedValue: selectedValue,
-                    type: typeof selectedValue,
-                    isNull: selectedValue === null,
-                    isUndefined: selectedValue === undefined,
-                    isEmpty: selectedValue === ""
-                  });
                   // Ensure value is set as string ID (PrimeReact returns value directly from optionValue)
                   const finalValue = selectedValue !== null && selectedValue !== undefined && selectedValue !== ""
                     ? String(selectedValue)
                     : null;
-                  console.log("[KATEGORI] Setting kategori to:", finalValue);
                   handleChange("kategori", finalValue);
                 }}
                 placeholder="Pilih Kategori"

@@ -51,8 +51,6 @@ export async function getOrders(page = 1, per_page = 15, sales_id = null) {
     });
 
     // Logging struktur JSON lengkap sesuai requirement
-    console.log("📦 getOrders() - Success:", res.success);
-    console.log("📦 getOrders() - Response:", res);
 
     // Handle pagination response format (Laravel pagination)
     if (res.success === true && res.data) {
@@ -179,7 +177,6 @@ export async function createOrderAdmin(data) {
     total_harga: String(data.total_harga ?? ""),
   };
 
-  console.log("📦 Payload dikirim ke backend:", payload);
 
   return api("/sales/order-admin", {
     method: "POST",

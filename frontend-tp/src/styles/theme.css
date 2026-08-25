@@ -1,0 +1,106 @@
+/*
+ * Design tokens dashboard: sidebar navy gelap, aksen teal untuk
+ * highlight/active state, tombol utama navy, card putih bordered tanpa
+ * shadow, background halaman abu-abu lembut biar tidak "menyilaukan".
+ * Cuma mode terang - dark mode tidak dipakai. Dipakai bareng di semua
+ * halaman lewat CSS variable - sidebar.css dan layout.css tinggal
+ * referensi var ini, bukan hex literal.
+ */
+
+:root {
+  --font-base: "Plus Jakarta Sans", "Public Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* --- Primary (navy #1e3a5f sesuai pilihan user, dipakai tombol utama & elemen interaktif) --- */
+  --color-primary-lighter: #eaeff4;
+  --color-primary-100: #cbd8e4;
+  --color-primary-light: #4a6b91;
+  --color-primary-400: #2d5077;
+  --color-primary-main: #1e3a5f;
+  --color-primary-dark: #16293f;
+  --color-primary-darker: #0d1a29;
+  --color-primary-contrast: #ffffff;
+
+  /* --- Accent teal (highlight/active, dipisah dari primary) --- */
+  --color-accent-lighter: #e6fbf7;
+  --color-accent-light: #5eead4;
+  --color-accent-main: #14b8a6;
+  --color-accent-dark: #0f9488;
+  --color-accent-contrast: #ffffff;
+
+  /* --- Sidebar (navy #1e3a5f tetap, tidak ikut toggle light/dark) --- */
+  --sidebar-bg: #1e3a5f;
+  --sidebar-bg-elevated: #264a76;
+  --sidebar-text: #ffffff;
+  --sidebar-text-strong: #ffffff;
+  --sidebar-section-text: #7189aa;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: #596f9e;
+  --sidebar-active-text: #ffffff;
+
+  /* --- Grey scale --- */
+  --color-grey-0: #ffffff;
+  --color-grey-50: #fafafa;
+  --color-grey-100: #f5f5f5;
+  --color-grey-200: #f0f0f0;
+  --color-grey-300: #d9d9d9;
+  --color-grey-400: #bfbfbf;
+  --color-grey-500: #8c8c8c;
+  --color-grey-600: #595959;
+  --color-grey-700: #262626;
+  --color-grey-800: #141414;
+  --color-grey-900: #000000;
+  --color-grey-border: #e6ebf1;
+
+  /* --- Semantic --- */
+  --color-success-lighter: #f6ffed;
+  --color-success-main: #237804;
+  --color-success-dark: #237804;
+  --color-error-lighter: #fff1f0;
+  --color-error-main: #ff4d4f;
+  --color-error-dark: #a8071a;
+  --color-warning-lighter: #fffbe6;
+  --color-warning-main: #faad14;
+  --color-warning-dark: #ad6800;
+  --color-info-lighter: #e6fffb;
+  --color-info-main: #006d75;
+  --color-info-dark: #006d75;
+
+  /* --- Surfaces & text --- */
+  --color-bg-default: #f8fafc;
+  --color-bg-paper: #ffffff;
+  --color-text-primary: #262626;
+  --color-text-secondary: #8c8c8c;
+  --color-text-disabled: #bfbfbf;
+  --color-divider: #f0f0f0;
+  --color-border: var(--color-grey-border);
+
+  /* --- Shape --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-card: 16px;
+  --shadow-card: none;
+  --shadow-popover: 0 8px 24px rgba(38, 38, 38, 0.12);
+}
+
+/* --- PrimeReact (lara theme) var overrides, biar komponen Prime ikut tema --- */
+:root {
+  --primary-color: var(--color-primary-main) !important;
+  --primary-color-text: var(--color-primary-contrast) !important;
+  --surface-ground: var(--color-bg-default) !important;
+  --surface-section: var(--color-bg-paper) !important;
+  --surface-card: var(--color-bg-paper) !important;
+  --surface-overlay: var(--color-bg-paper) !important;
+  --surface-border: var(--color-border) !important;
+  --surface-hover: var(--color-grey-100) !important;
+  --text-color: var(--color-text-primary) !important;
+  --text-color-secondary: var(--color-text-secondary) !important;
+  --font-family: var(--font-base) !important;
+}
+
+body {
+  font-family: var(--font-base);
+  background: var(--color-bg-default);
+  color: var(--color-text-primary);
+}

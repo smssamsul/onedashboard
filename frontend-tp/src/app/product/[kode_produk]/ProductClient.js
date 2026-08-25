@@ -468,7 +468,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
     try {
       window.fbq("track", eventName, params);
       if (process.env.NODE_ENV === "development") {
-        console.log("[FB PIXEL EVENT]", eventName, params);
       }
 
       // Log sukses ke backend
@@ -531,7 +530,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
         setProductData(null);
         setLandingpage(null);
 
-        console.log(`[CLIENT-FETCH] Mengambil data segar untuk: ${kode_produk}...`);
 
         const timestamp = new Date().getTime();
         const res = await fetch(`/api/landing/${kode_produk}?t=${timestamp}`, {
@@ -597,7 +595,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             setLandingpage(lpData);
           }
 
-          console.log('[CLIENT-FETCH] Data Berhasil di-update (Fresh)!');
 
           // ✅ Facebook Pixel: Track Landing Page View ketika data produk berhasil dimuat
           trackFacebookEvent("ViewContent", {
@@ -625,7 +622,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
     // Fungsi untuk fetch ulang data paling baru secara manual (tanpa Router Refresh)
     const refreshData = async () => {
       try {
-        console.log('[LIVE-SYNC] Mendapat sinyal update, mengambil data terbaru...');
 
         const timestamp = new Date().getTime();
         const res = await fetch(`/api/landing/${kode_produk}?t=${timestamp}`, {
@@ -645,7 +641,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             jadwal: result.data.jadwal_rel || result.data.jadwal || []
           });
           setLandingpage(result.landingpage);
-          console.log('[LIVE-SYNC] Data berhasil di-update secara instan di browser!');
         } else {
           // Fallback reload hanya jika benar-benar gagal total
           window.location.reload();
@@ -2818,11 +2813,9 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       .map((p) => p.pixel)
       .filter(Boolean);
 
-    console.log('setting di pixel', productData?.pixel_list)
   }
 
   // console.log('analFbPixels', analFbPixels);
-  console.log('productData.pixel_list', productData?.pixel_list);
 
   // ✅ Facebook Pixel: Track Lead ketika landing page produk dibuka
   useEffect(() => {
@@ -3238,7 +3231,6 @@ function ProductClient({ initialProductData, initialLandingPage }) {
                 pixelIds.forEach(function(id) {
                   if (!id) return;
                   fbq('init', id);
-                  console.log('[FB PIXEL] init pixel ID:', id);
                 });
               }
             } catch (e) {

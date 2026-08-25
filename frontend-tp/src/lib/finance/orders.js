@@ -30,8 +30,6 @@ export async function getOrders(page = 1, per_page = 15) {
     const res = await api(`/finance/order-validation?${queryParams.toString()}`, { method: "GET" });
     
     // Logging struktur JSON lengkap sesuai requirement
-    console.log("📦 getOrders() - Success:", res.success);
-    console.log("📦 getOrders() - Response:", res);
     
     // Handle pagination response format (Laravel pagination)
     if (res.success === true && res.data) {

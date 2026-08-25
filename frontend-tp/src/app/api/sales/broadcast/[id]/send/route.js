@@ -16,7 +16,6 @@ export async function POST(request, { params }) {
 
     const token = authHeader.replace("Bearer ", "");
 
-    console.log(`📤 [BROADCAST-SEND] Sending broadcast: ${id}`);
 
     const response = await fetch(`${BACKEND_URL}/api/sales/broadcast/${id}/send`, {
       method: "POST",
@@ -28,8 +27,6 @@ export async function POST(request, { params }) {
     });
 
     const text = await response.text();
-    console.log(`📥 [BROADCAST-SEND] Response status: ${response.status}`);
-    console.log(`📥 [BROADCAST-SEND] Response text:`, text);
 
     let json;
     try {

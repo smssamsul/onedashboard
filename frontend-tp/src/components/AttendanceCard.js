@@ -206,14 +206,11 @@ export default function AttendanceCard() {
 
   // Open check-in modal
   const handleOpenCheckIn = async () => {
-    console.log("handleOpenCheckIn called");
     try {
       const loaded = await getCurrentUserKaryawan();
-      console.log("Karyawan loaded:", loaded);
       // Selalu buka modal, tidak peduli apakah karyawan berhasil di-load atau tidak
       setShowCheckInModal(true);
       resetForm();
-      console.log("Modal state set to true");
     } catch (error) {
       console.error("Error opening check-in modal:", error);
       // Tetap buka modal meskipun ada error
@@ -706,11 +703,9 @@ export default function AttendanceCard() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log("Check In button clicked", { attendance, hasCheckIn: !!attendance?.check_in });
               if (!attendance?.check_in) {
                 handleOpenCheckIn();
               } else {
-                console.log("Check In already done, button disabled");
               }
             }}
             disabled={!!attendance?.check_in}
@@ -723,7 +718,6 @@ export default function AttendanceCard() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log("Check Out button clicked");
               handleOpenCheckOut();
             }}
             disabled={!attendance?.check_in || attendance?.check_out ? true : false}

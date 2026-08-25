@@ -103,26 +103,26 @@ export default function SalesTodoListSayaPage() {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "high":
-        return "#ef4444";
+        return "var(--color-error-main)";
       case "medium":
-        return "#f59e0b";
+        return "var(--color-warning-main)";
       case "low":
-        return "#10b981";
+        return "var(--color-success-main)";
       default:
-        return "#6b7280";
+        return "var(--color-text-secondary)";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "completed":
-        return "#10b981";
+        return "var(--color-success-main)";
       case "in_progress":
-        return "#3b82f6";
+        return "var(--color-info-main)";
       case "pending":
-        return "#6b7280";
+        return "var(--color-text-secondary)";
       default:
-        return "#6b7280";
+        return "var(--color-text-secondary)";
     }
   };
 
@@ -143,7 +143,7 @@ export default function SalesTodoListSayaPage() {
           <h1 style={{ fontSize: "1.875rem", fontWeight: "700", margin: "0 0 0.5rem 0" }}>
             Todo List Saya
           </h1>
-          <p style={{ color: "#6b7280", margin: 0 }}>Kelola todo list pribadi Anda</p>
+          <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>Kelola todo list pribadi Anda</p>
         </div>
 
         {/* Filters */}
@@ -152,7 +152,7 @@ export default function SalesTodoListSayaPage() {
             backgroundColor: "white",
             padding: "1.5rem",
             borderRadius: "8px",
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--color-divider)",
             marginBottom: "1.5rem",
           }}
         >
@@ -162,7 +162,7 @@ export default function SalesTodoListSayaPage() {
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
               style={{
                 padding: "0.5rem 1rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 fontSize: "0.875rem",
               }}
@@ -178,7 +178,7 @@ export default function SalesTodoListSayaPage() {
               onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
               style={{
                 padding: "0.5rem 1rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 fontSize: "0.875rem",
               }}
@@ -196,7 +196,7 @@ export default function SalesTodoListSayaPage() {
               placeholder="Due Date"
               style={{
                 padding: "0.5rem 1rem",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-grey-300)",
                 borderRadius: "6px",
                 fontSize: "0.875rem",
               }}
@@ -210,7 +210,7 @@ export default function SalesTodoListSayaPage() {
                   left: "0.75rem",
                   top: "50%",
                   transform: "translateY(-50%)",
-                  color: "#9ca3af",
+                  color: "var(--color-text-secondary)",
                 }}
               />
               <input
@@ -221,7 +221,7 @@ export default function SalesTodoListSayaPage() {
                 style={{
                   width: "100%",
                   padding: "0.5rem 1rem 0.5rem 2.5rem",
-                  border: "1px solid #d1d5db",
+                  border: "1px solid var(--color-grey-300)",
                   borderRadius: "6px",
                   fontSize: "0.875rem",
                 }}
@@ -240,12 +240,12 @@ export default function SalesTodoListSayaPage() {
             style={{
               textAlign: "center",
               padding: "4rem",
-              backgroundColor: "#f9fafb",
+              backgroundColor: "var(--color-grey-50)",
               borderRadius: "8px",
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--color-divider)",
             }}
           >
-            <p style={{ color: "#6b7280" }}>Tidak ada todo list</p>
+            <p style={{ color: "var(--color-text-secondary)" }}>Tidak ada todo list</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -254,7 +254,7 @@ export default function SalesTodoListSayaPage() {
                 key={todo.id}
                 style={{
                   backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--color-divider)",
                   borderRadius: "8px",
                   padding: "1.5rem",
                 }}
@@ -267,7 +267,7 @@ export default function SalesTodoListSayaPage() {
                         fontSize: "1.125rem",
                         fontWeight: "600",
                         textDecoration: todo.status === "completed" ? "line-through" : "none",
-                        color: todo.status === "completed" ? "#9ca3af" : "#111827",
+                        color: todo.status === "completed" ? "var(--color-text-secondary)" : "var(--color-text-primary)",
                       }}
                     >
                       {todo.title}
@@ -276,7 +276,7 @@ export default function SalesTodoListSayaPage() {
                       <p
                         style={{
                           margin: "0 0 0.75rem 0",
-                          color: "#6b7280",
+                          color: "var(--color-text-secondary)",
                           fontSize: "0.875rem",
                           textDecoration: todo.status === "completed" ? "line-through" : "none",
                         }}
@@ -313,13 +313,13 @@ export default function SalesTodoListSayaPage() {
                     {todo.status === "completed" ? "Completed" : todo.status === "in_progress" ? "In Progress" : "Pending"}
                   </span>
                   {todo.due_date && (
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#6b7280", fontSize: "0.875rem" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
                       <Calendar size={14} />
                       {new Date(todo.due_date).toLocaleDateString("id-ID")}
                     </span>
                   )}
                   {todo.created_by && todo.created_by !== todo.assigned_to && (
-                    <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
                       Dari: {todo.created_by?.nama || "Atasan"}
                     </span>
                   )}

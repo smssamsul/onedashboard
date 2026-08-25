@@ -32,8 +32,6 @@ export async function PUT(request, { params }) {
     const token = authHeader.replace("Bearer ", "");
     const reqBody = await request.json();
     
-    console.log(`[TRAINER_UPDATE] ========== PUT /api/sales/produk/${id}/trainer ==========`);
-    console.log(`[TRAINER_UPDATE] Request body:`, reqBody);
     
     if (!reqBody || (reqBody.trainer !== null && typeof reqBody.trainer !== "number")) {
       return NextResponse.json(
@@ -77,7 +75,6 @@ export async function PUT(request, { params }) {
         }
       );
 
-      console.log(`[TRAINER_UPDATE] ✅ Backend response:`, response.data);
       
       // Response sesuai dokumentasi: { success: true, message: "...", data: {...} }
       return NextResponse.json(response.data, { headers: corsHeaders });

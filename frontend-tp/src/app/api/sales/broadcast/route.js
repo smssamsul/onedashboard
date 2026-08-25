@@ -46,7 +46,6 @@ export async function POST(request) {
     const token = authHeader.replace("Bearer ", "");
     const body = await request.json();
 
-    console.log("📤 [BROADCAST-POST] Request body from frontend:", JSON.stringify(body, null, 2));
 
     // Validate required fields
     if (!body.nama || !body.pesan) {
@@ -149,7 +148,6 @@ export async function POST(request) {
       }
     }
 
-    console.log("📤 [BROADCAST-POST] Final request body to backend:", JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(`${BACKEND_URL}/api/sales/broadcast`, {
       method: "POST",
@@ -162,8 +160,6 @@ export async function POST(request) {
     });
 
     const text = await response.text();
-    console.log("📥 [BROADCAST-POST] Response status:", response.status);
-    console.log("📥 [BROADCAST-POST] Response text:", text);
 
     let json;
     try {

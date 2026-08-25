@@ -215,7 +215,6 @@ export default function UpdateCustomerModal({
       const data = await response.json();
       if (response.ok && data.success && data.data) {
         const user = data.data;
-        console.log("📥 [UPDATE_CUSTOMER] Fetched detail:", user);
 
         setFormData((prev) => ({
           ...prev,
@@ -291,9 +290,7 @@ export default function UpdateCustomerModal({
         delete payload.password;
       }
 
-      console.log("📤 [UPDATE_CUSTOMER] Sending payload:", payload);
       const result = await updateCustomer(payload);
-      console.log("📥 [UPDATE_CUSTOMER] API Response:", result);
 
       if (typeof onSuccess === "function") {
         // Kirim data dari API response, atau fallback ke formData jika API tidak return data lengkap
@@ -302,7 +299,6 @@ export default function UpdateCustomerModal({
           ...result?.data,       // Override dengan data dari API jika ada
           password: undefined,   // Jangan simpan password
         };
-        console.log("✅ [UPDATE_CUSTOMER] Success data to save:", successData);
         onSuccess(successData);
       }
       if (typeof onClose === "function") {

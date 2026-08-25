@@ -84,7 +84,6 @@ export default function LeadsPage() {
   const fetchLeads = useCallback(async (pageNumber = 1) => {
     // Prevent multiple simultaneous calls
     if (fetchingRef.current) {
-      console.log("⏸️ Already fetching, skipping duplicate request for page", pageNumber);
       return;
     }
 
@@ -154,12 +153,6 @@ export default function LeadsPage() {
           const isLastPage = json.pagination.current_page >= json.pagination.last_page;
           setHasMore(!isLastPage);
           setPaginationInfo(json.pagination);
-          console.log("📄 Pagination info (leads):", {
-            current_page: json.pagination.current_page,
-            last_page: json.pagination.last_page,
-            total: json.pagination.total,
-            hasMore: !isLastPage,
-          });
         } else {
           setPaginationInfo(null);
           // Fallback pagination: cek jumlah data untuk menentukan hasMore
@@ -272,7 +265,6 @@ export default function LeadsPage() {
     if (loading || !hasMore) return;
     
     const nextPage = page + 1;
-    console.log("🔄 Next page clicked, loading page:", nextPage);
     setPage(nextPage);
   }, [page, hasMore, loading]);
 
@@ -281,7 +273,6 @@ export default function LeadsPage() {
     if (loading || page <= 1) return;
     
     const prevPage = page - 1;
-    console.log("🔄 Previous page clicked, loading page:", prevPage);
     setPage(prevPage);
   }, [page, loading]);
 

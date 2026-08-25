@@ -59,7 +59,6 @@ export async function GET(request) {
         console.error('[SHIPPING_SEARCH] Fetch failed:', fetchError.message, 'URL:', searchUrl);
       }
       // Fallback ke RajaOngkir API
-      console.log('[SHIPPING_SEARCH] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(search);
       } catch (fallbackError) {
@@ -89,7 +88,6 @@ export async function GET(request) {
       }
       
       // Error lainnya - coba fallback
-      console.log('[SHIPPING_SEARCH] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(search);
       } catch (fallbackError) {
@@ -108,7 +106,6 @@ export async function GET(request) {
     // Tangani response kosong - coba fallback
     if (!responseText || responseText.trim().length === 0) {
       console.error('[SHIPPING_SEARCH] Empty response from API');
-      console.log('[SHIPPING_SEARCH] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(search);
       } catch (fallbackError) {
@@ -125,7 +122,6 @@ export async function GET(request) {
     let json;
     try {
       json = JSON.parse(responseText);
-      console.log('[SHIPPING_SEARCH] Response parsed successfully, keys:', Object.keys(json));
     } catch (parseError) {
       // Log error untuk debugging
       console.error('[SHIPPING_SEARCH] JSON parse error:', parseError.message);
@@ -156,7 +152,6 @@ export async function GET(request) {
     } else {
       // Format tidak dikenal - log untuk debugging dan coba fallback
       console.error('[SHIPPING_SEARCH] Unknown response format. Response:', JSON.stringify(json).substring(0, 1000));
-      console.log('[SHIPPING_SEARCH] Trying fallback to RajaOngkir API...');
       try {
         return await fallbackToRajaOngkir(search);
       } catch (fallbackError) {
@@ -201,7 +196,6 @@ export async function GET(request) {
     console.error('[SHIPPING_SEARCH] Unexpected error:', error);
     
     // Fallback ke RajaOngkir API
-    console.log('[SHIPPING_SEARCH] Trying fallback to RajaOngkir API...');
     try {
       return await fallbackToRajaOngkir(search);
     } catch (fallbackError) {
@@ -262,7 +256,6 @@ async function fallbackToRajaOngkir(search) {
       label: `${city.city_name}, ${city.province}`.trim(),
     }));
 
-    console.log('[SHIPPING_SEARCH] Fallback to RajaOngkir successful, found', formattedCities.length, 'cities');
     
     return NextResponse.json({
       success: true,

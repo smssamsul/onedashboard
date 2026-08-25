@@ -213,8 +213,8 @@
 }
 
 .leads-filter-btn.is-active:hover {
-  background: #c85400;
-  border-color: #c85400;
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
 }
 
 .leads-filter-dropdown-menu {
@@ -411,7 +411,7 @@
   color: #ffffff;
   border-color: var(--accent-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(251, 133, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(30, 58, 95, 0.2);
 }
 
 .leads-table__action-btn:active {
@@ -549,33 +549,33 @@
 }
 
 .leads-status.status-new {
-  background: #93c5fd;
+  background: var(--color-info-main);
   color: #ffffff;
 }
 
 .leads-status.status-contacted {
   background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  color: var(--color-warning-main);
 }
 
 .leads-status.status-qualified {
   background: rgba(139, 92, 246, 0.15);
-  color: #8b5cf6;
+  color: var(--color-accent-main);
 }
 
 .leads-status.status-converted {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--color-success-main);
 }
 
 .leads-status.status-lost {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: var(--color-error-main);
 }
 
 .leads-status.status-default {
   background: rgba(107, 114, 128, 0.15);
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Assign Sales */
@@ -646,21 +646,21 @@
 
 .leads-action-btn--edit:hover {
   background: rgba(251, 133, 0, 0.1);
-  border-color: #c85400;
-  color: #c85400;
+  border-color: var(--color-primary-dark);
+  color: var(--color-primary-dark);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(251, 133, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(30, 58, 95, 0.2);
 }
 
 .leads-action-btn--delete {
-  background: #ef4444;
+  background: var(--color-error-main);
   color: #ffffff;
-  border-color: #ef4444;
+  border-color: var(--color-error-main);
 }
 
 .leads-action-btn--delete:hover {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: var(--color-error-main);
+  border-color: var(--color-error-main);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }

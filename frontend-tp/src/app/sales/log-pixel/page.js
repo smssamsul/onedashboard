@@ -130,11 +130,11 @@ export default function LogPixelPage() {
         <section style={{
           background: "white", borderRadius: "16px",
           padding: "1rem 1.5rem", marginBottom: "1.5rem",
-          border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          border: "1px solid var(--color-divider)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
           display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap",
         }}>
           <div className="customers-search" style={{ flex: "1 1 260px", position: "relative" }}>
-            <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+            <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-secondary)" }} />
             <input
               type="text"
               placeholder="Cari Event, Pixel ID, Customer..."
@@ -142,7 +142,7 @@ export default function LogPixelPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               style={{
                 width: "100%", padding: "10px 10px 10px 36px",
-                borderRadius: "10px", border: "1px solid #e2e8f0",
+                borderRadius: "10px", border: "1px solid var(--color-border)",
                 outline: "none", fontSize: "0.9rem"
               }}
             />
@@ -155,10 +155,10 @@ export default function LogPixelPage() {
               style={{
                 padding: "10px 14px",
                 borderRadius: "10px",
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--color-border)",
                 outline: "none",
                 fontSize: "0.9rem",
-                color: "#334155",
+                color: "var(--color-text-primary)",
                 background: "white",
                 cursor: "pointer",
                 minWidth: "150px"
@@ -179,19 +179,19 @@ export default function LogPixelPage() {
                 onChange={(e) => setStartDate(e.target.value)}
                 style={{
                   padding: "9px 12px", borderRadius: "10px",
-                  border: "1px solid #e2e8f0", outline: "none",
-                  fontSize: "0.85rem", color: "#475569"
+                  border: "1px solid var(--color-border)", outline: "none",
+                  fontSize: "0.85rem", color: "var(--color-text-secondary)"
                 }}
               />
-              <span style={{ color: "#94a3b8" }}>-</span>
+              <span style={{ color: "var(--color-text-secondary)" }}>-</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 style={{
                   padding: "9px 12px", borderRadius: "10px",
-                  border: "1px solid #e2e8f0", outline: "none",
-                  fontSize: "0.85rem", color: "#475569"
+                  border: "1px solid var(--color-border)", outline: "none",
+                  fontSize: "0.85rem", color: "var(--color-text-secondary)"
                 }}
               />
             </div>
@@ -204,10 +204,10 @@ export default function LogPixelPage() {
               style={{
                 padding: "10px 14px",
                 borderRadius: "10px",
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--color-border)",
                 outline: "none",
                 fontSize: "0.9rem",
-                color: "#334155",
+                color: "var(--color-text-primary)",
                 background: "white",
                 cursor: "pointer",
                 minWidth: "150px"
@@ -225,8 +225,8 @@ export default function LogPixelPage() {
           <button onClick={() => fetchLogs(1)} disabled={loading}
             style={{
               display: "flex", alignItems: "center", gap: "6px", padding: "8px 15px",
-              borderRadius: "10px", border: "1px solid #e2e8f0", background: "white",
-              color: "#6b7280", cursor: loading ? "not-allowed" : "pointer", fontSize: "0.875rem"
+              borderRadius: "10px", border: "1px solid var(--color-border)", background: "white",
+              color: "var(--color-text-secondary)", cursor: loading ? "not-allowed" : "pointer", fontSize: "0.875rem"
             }}>
             <RefreshCw size={15} style={loading ? { animation: "spin 1s linear infinite" } : {}} />
             Refresh
@@ -234,50 +234,50 @@ export default function LogPixelPage() {
         </section>
 
         {/* TABLE */}
-        <section style={{ background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
-          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <section style={{ background: "white", borderRadius: "16px", border: "1px solid var(--color-divider)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--color-divider)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <p style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>API Logs</p>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a", marginTop: "2px" }}>Facebook Pixel Events</h3>
+              <p style={{ fontSize: "0.72rem", color: "var(--color-text-secondary)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>API Logs</p>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--color-text-primary)", marginTop: "2px" }}>Facebook Pixel Events</h3>
             </div>
-            {loading && <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Memuat...</span>}
+            {loading && <span style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Memuat...</span>}
           </div>
 
           <div className="table-wrapper" style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
               <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>TANGGAL</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>EVENT</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>PIXEL ID</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>ORDER INFO</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>PRODUK</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>STATUS</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>PAYLOAD</th>
+                <tr style={{ background: "var(--color-bg-default)", borderBottom: "2px solid var(--color-border)" }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>TANGGAL</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>EVENT</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>PIXEL ID</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>ORDER INFO</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>PRODUK</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>STATUS</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "0.8rem", color: "var(--color-text-secondary)", fontWeight: 600 }}>PAYLOAD</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && logs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
                       Memuat data...
                     </td>
                   </tr>
                 ) : logs.length > 0 ? (
                   logs.map((log) => (
-                    <tr key={log.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <tr key={log.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
                       {/* Tanggal */}
-                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "#475569" }}>
+                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
                         {fmtDate(log.create_at)}
                         <br/>
-                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{log.source || 'N/A'}</span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>{log.source || 'N/A'}</span>
                       </td>
 
                       {/* Event */}
                       <td style={{ padding: "12px 16px" }}>
                         <span style={{
                           display: "inline-block", padding: "4px 8px", borderRadius: "6px",
-                          background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534",
+                          background: "var(--color-success-lighter)", border: "1px solid #bbf7d0", color: "var(--color-success-dark)",
                           fontSize: "0.8rem", fontWeight: 600
                         }}>
                           {log.event_name || 'N/A'}
@@ -285,7 +285,7 @@ export default function LogPixelPage() {
                       </td>
 
                       {/* Pixel ID */}
-                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "#0f172a", fontWeight: 500 }}>
+                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "var(--color-text-primary)", fontWeight: 500 }}>
                         {log.pixel_id || '-'}
                       </td>
 
@@ -293,27 +293,27 @@ export default function LogPixelPage() {
                       <td style={{ padding: "12px 16px", fontSize: "0.875rem" }}>
                         {log.order ? (
                           <div>
-                            <div style={{ color: "#0ea5e9", fontWeight: 600 }}>{log.order.kode_order || '-'}</div>
-                            <div style={{ color: "#64748b", fontSize: "0.8rem" }}>
+                            <div style={{ color: "var(--color-info-main)", fontWeight: 600 }}>{log.order.kode_order || '-'}</div>
+                            <div style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>
                               {log.order.customer_rel?.nama || log.order.customer || '-'}
                             </div>
                           </div>
                         ) : (
-                          <span style={{ color: "#94a3b8" }}>-</span>
+                          <span style={{ color: "var(--color-text-secondary)" }}>-</span>
                         )}
                       </td>
 
                       {/* Produk */}
-                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "#475569" }}>
+                      <td style={{ padding: "12px 16px", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
                         {log.produk ? log.produk.nama : '-'}
                       </td>
 
                       {/* Status */}
                       <td style={{ padding: "12px 16px", textAlign: "center" }}>
                         {log.status == '1' || String(log.status).startsWith('2') ? (
-                          <span style={{ color: "#22c55e", fontWeight: 600 }}>OK</span>
+                          <span style={{ color: "var(--color-success-main)", fontWeight: 600 }}>OK</span>
                         ) : (
-                          <span style={{ color: "#ef4444", fontWeight: 600 }}>{log.status || 'ERR'}</span>
+                          <span style={{ color: "var(--color-error-main)", fontWeight: 600 }}>{log.status || 'ERR'}</span>
                         )}
                       </td>
 
@@ -324,8 +324,8 @@ export default function LogPixelPage() {
                             <button
                               onClick={() => togglePayload(log.id)}
                               style={{
-                                padding: "4px 8px", borderRadius: "6px", border: "1px solid #e2e8f0",
-                                background: "#f8fafc", color: "#475569", cursor: "pointer", fontSize: "0.75rem",
+                                padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--color-border)",
+                                background: "var(--color-bg-default)", color: "var(--color-text-secondary)", cursor: "pointer", fontSize: "0.75rem",
                                 fontWeight: 600
                               }}
                             >
@@ -333,7 +333,7 @@ export default function LogPixelPage() {
                             </button>
                             {expandedPayload === log.id && (
                               <div style={{
-                                marginTop: "8px", padding: "8px", background: "#1e293b",
+                                marginTop: "8px", padding: "8px", background: "var(--color-text-primary)",
                                 borderRadius: "8px", color: "#a5b4fc", fontSize: "0.75rem",
                                 textAlign: "left", whiteSpace: "pre-wrap", overflowX: "auto",
                                 maxWidth: "300px"
@@ -343,14 +343,14 @@ export default function LogPixelPage() {
                             )}
                           </>
                         ) : (
-                          <span style={{ color: "#cbd5e1" }}>-</span>
+                          <span style={{ color: "var(--color-grey-300)" }}>-</span>
                         )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
                       Tidak ada data log
                     </td>
                   </tr>
@@ -361,24 +361,21 @@ export default function LogPixelPage() {
 
           {/* PAGINATION */}
           {paginationInfo && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderTop: "1px solid #f1f5f9" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>Tampilkan:</span>
-                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
-                  style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #e2e8f0", outline: "none", cursor: "pointer" }}>
+            <div className="pagination-bar">
+              <div className="pagination-bar__pagesize">
+                <span>Tampilkan:</span>
+                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
                   {PER_PAGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt} Data</option>)}
                 </select>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <button onClick={() => setPage(p => p - 1)} disabled={page <= 1}
-                  style={{ padding: "6px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: page <= 1 ? "#f8fafc" : "white", color: page <= 1 ? "#cbd5e1" : "#374151", cursor: page <= 1 ? "not-allowed" : "pointer" }}>
+              <div className="pagination-bar__nav">
+                <button className="pagination-bar__btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>
                   ‹
                 </button>
-                <span style={{ fontSize: "0.875rem", color: "#64748b", fontWeight: 500 }}>
+                <span className="pagination-bar__info">
                   Halaman {page} dari {paginationInfo.last_page} ({paginationInfo.total} total)
                 </span>
-                <button onClick={() => setPage(p => p + 1)} disabled={page >= paginationInfo.last_page}
-                  style={{ padding: "6px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: page >= paginationInfo.last_page ? "#f8fafc" : "white", color: page >= paginationInfo.last_page ? "#cbd5e1" : "#374151", cursor: page >= paginationInfo.last_page ? "not-allowed" : "pointer" }}>
+                <button className="pagination-bar__btn" onClick={() => setPage(p => p + 1)} disabled={page >= paginationInfo.last_page}>
                   ›
                 </button>
               </div>
@@ -389,7 +386,7 @@ export default function LogPixelPage() {
 
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        .data-table tbody tr:hover td { background: #f8fafc; }
+        .data-table tbody tr:hover td { background: var(--color-bg-default); }
       `}</style>
     </Layout>
   );

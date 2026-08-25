@@ -48,7 +48,6 @@ export function useProducts() {
       await deleteProduct(id, true);
 
       // Debug
-      console.log(`🗑️ Produk ${id} berhasil dihapus permanen`);
 
       // Hapus dari local state
       setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -66,7 +65,6 @@ export function useProducts() {
       const newProduct = await duplicateProduct(id);
 
       // Debug
-      console.log("📄 Produk terduplikasi:", newProduct);
 
       if (!newProduct) return;
 

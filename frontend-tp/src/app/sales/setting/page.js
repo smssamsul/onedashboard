@@ -412,13 +412,13 @@ export default function SalesSettingPage() {
       <div className="sales-setting-page">
         {/* Card 1: Google Contacts Synchronization */}
         <div className="setting-card">
-          <h3 style={{ margin: "0 0 1.5rem 0", color: "#111827", fontSize: "1.25rem" }}>
+          <h3 style={{ margin: "0 0 1.5rem 0", color: "var(--color-text-primary)", fontSize: "1.25rem" }}>
             Sinkronisasi Google Contacts
           </h3>
 
           <div className="status-container">
             <div className="status-indicator">
-              <span style={{ fontWeight: "500", color: "#374151", marginRight: "1rem" }}>
+              <span style={{ fontWeight: "500", color: "var(--color-text-primary)", marginRight: "1rem" }}>
                 Status:
               </span>
               {isConnected ? (
@@ -463,7 +463,7 @@ export default function SalesSettingPage() {
 
         {/* Card 2: Pengaturan Analitik & Pixel */}
         <div className="setting-card" style={{ marginTop: "2rem" }}>
-          <h3 style={{ margin: "0 0 1.5rem 0", color: "#111827", fontSize: "1.25rem" }}>
+          <h3 style={{ margin: "0 0 1.5rem 0", color: "var(--color-text-primary)", fontSize: "1.25rem" }}>
             Pengaturan Akun Analitik (Pixel)
           </h3>
           <div className="status-container">
@@ -474,7 +474,7 @@ export default function SalesSettingPage() {
               <button
                 onClick={() => router.push('/sales/setting/pixel')}
                 className="btn btn-outline"
-                style={{ color: "#4f46e5", borderColor: "#4f46e5" }}
+                style={{ color: "var(--color-accent-dark)", borderColor: "var(--color-accent-dark)" }}
               >
                 <MonitorPlay size={18} />
                 Kelola Akun Analitik
@@ -484,12 +484,12 @@ export default function SalesSettingPage() {
         </div>
 
         {/* Card NEW: Engine WhatsApp */}
-        <div className="setting-card" style={{ marginTop: "2rem", border: "1px solid #e0e7ff" }}>
+        <div className="setting-card" style={{ marginTop: "2rem", border: "1px solid var(--color-accent-lighter)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
-            <div style={{ background: "#4f46e5", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
+            <div style={{ background: "var(--color-accent-dark)", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
               <Smartphone size={20} color="white" />
             </div>
-            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Engine WhatsApp</h3>
+            <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "1.25rem" }}>Engine WhatsApp</h3>
           </div>
 
           <div className="status-container">
@@ -502,40 +502,40 @@ export default function SalesSettingPage() {
               {/* Woowa Option */}
               <label style={{
                 flex: 1, minWidth: "200px", cursor: "pointer",
-                border: waEngine === "woowa" ? "2px solid #4f46e5" : "2px solid #e5e7eb",
+                border: waEngine === "woowa" ? "2px solid var(--color-accent-dark)" : "2px solid var(--color-divider)",
                 borderRadius: "12px", padding: "1rem 1.25rem",
-                background: waEngine === "woowa" ? "#eef2ff" : "white",
+                background: waEngine === "woowa" ? "var(--color-accent-lighter)" : "white",
                 transition: "all 0.2s", display: "flex", alignItems: "flex-start", gap: "0.75rem"
               }}>
                 <input
                   type="radio" name="wa_engine" value="woowa"
                   checked={waEngine === "woowa"}
                   onChange={() => setWaEngine("woowa")}
-                  style={{ marginTop: "3px", accentColor: "#4f46e5" }}
+                  style={{ marginTop: "3px", accentColor: "var(--color-accent-dark)" }}
                 />
                 <div>
-                  <div style={{ fontWeight: 700, color: "#1e1b4b", marginBottom: "0.25rem" }}>Woowa Gateway</div>
-                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>Kirim via notifapi.com menggunakan Woowa Key per-sales</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "0.25rem" }}>Woowa Gateway</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Kirim via notifapi.com menggunakan Woowa Key per-sales</div>
                 </div>
               </label>
 
               {/* Baileys Option */}
               <label style={{
                 flex: 1, minWidth: "200px", cursor: "pointer",
-                border: waEngine === "baileys" ? "2px solid #4f46e5" : "2px solid #e5e7eb",
+                border: waEngine === "baileys" ? "2px solid var(--color-accent-dark)" : "2px solid var(--color-divider)",
                 borderRadius: "12px", padding: "1rem 1.25rem",
-                background: waEngine === "baileys" ? "#eef2ff" : "white",
+                background: waEngine === "baileys" ? "var(--color-accent-lighter)" : "white",
                 transition: "all 0.2s", display: "flex", alignItems: "flex-start", gap: "0.75rem"
               }}>
                 <input
                   type="radio" name="wa_engine" value="baileys"
                   checked={waEngine === "baileys"}
                   onChange={() => setWaEngine("baileys")}
-                  style={{ marginTop: "3px", accentColor: "#4f46e5" }}
+                  style={{ marginTop: "3px", accentColor: "var(--color-accent-dark)" }}
                 />
                 <div>
-                  <div style={{ fontWeight: 700, color: "#1e1b4b", marginBottom: "0.25rem" }}>Baileys</div>
-                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>Kirim via server Baileys lokal. Setiap sales punya session WA sendiri.</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "0.25rem" }}>Baileys</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>Kirim via server Baileys lokal. Setiap sales punya session WA sendiri.</div>
                 </div>
               </label>
             </div>
@@ -555,23 +555,23 @@ export default function SalesSettingPage() {
             {waEngine === "baileys" && (
               <div style={{
                 marginTop: "0.5rem", padding: "1.25rem",
-                background: "#f8fafc", borderRadius: "10px",
-                border: "1px solid #e2e8f0"
+                background: "var(--color-bg-default)", borderRadius: "10px",
+                border: "1px solid var(--color-border)"
               }}>
-                <div style={{ fontWeight: 600, color: "#1e1b4b", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div style={{ fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <Wifi size={16} /> Status WA Global (Session: global)
                 </div>
 
                 {baileysStatusLoading ? (
-                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Memeriksa status...</p>
+                  <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>Memeriksa status...</p>
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: "0.5rem",
                       padding: "0.375rem 0.875rem", borderRadius: "9999px",
                       fontWeight: 600, fontSize: "0.875rem",
-                      background: (baileysGlobalStatus === "open" || baileysGlobalStatus === "connected") ? "#d1fae5" : "#fee2e2",
-                      color: (baileysGlobalStatus === "open" || baileysGlobalStatus === "connected") ? "#065f46" : "#991b1b",
+                      background: (baileysGlobalStatus === "open" || baileysGlobalStatus === "connected") ? "var(--color-success-lighter)" : "var(--color-error-lighter)",
+                      color: (baileysGlobalStatus === "open" || baileysGlobalStatus === "connected") ? "var(--color-success-dark)" : "var(--color-error-dark)",
                     }}>
                       {(baileysGlobalStatus === "open" || baileysGlobalStatus === "connected") ? (
                         <><Wifi size={14} /> Connected</>
@@ -584,7 +584,7 @@ export default function SalesSettingPage() {
                       <button
                         onClick={() => setShowGlobalQR(true)}
                         className="btn btn-outline"
-                        style={{ color: "#4f46e5", borderColor: "#4f46e5", padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+                        style={{ color: "var(--color-accent-dark)", borderColor: "var(--color-accent-dark)", padding: "0.5rem 1rem", fontSize: "0.85rem" }}
                         id="btn-generate-global-qr"
                       >
                         <QrCode size={16} /> Generate QR
@@ -594,7 +594,7 @@ export default function SalesSettingPage() {
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       <button
                         onClick={fetchBaileysGlobalStatus}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.8rem", textDecoration: "underline" }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", fontSize: "0.8rem", textDecoration: "underline" }}
                       >
                         Refresh
                       </button>
@@ -614,7 +614,7 @@ export default function SalesSettingPage() {
                               console.error(e);
                             }
                           }}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "0.8rem", textDecoration: "underline" }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-error-main)", fontSize: "0.8rem", textDecoration: "underline" }}
                         >
                           Logout
                         </button>
@@ -629,13 +629,13 @@ export default function SalesSettingPage() {
 
         {/* Card 3: Woowa Gateway Configuration */}
         <div className="setting-card" style={{ marginTop: "2rem" }}>
-          <h3 style={{ margin: "0 0 1.5rem 0", color: "#111827", fontSize: "1.25rem" }}>
+          <h3 style={{ margin: "0 0 1.5rem 0", color: "var(--color-text-primary)", fontSize: "1.25rem" }}>
             Konfigurasi Woowa Gateway
           </h3>
 
           <form onSubmit={handleSaveWoowa} className="status-container">
             <div className="form-group">
-              <label htmlFor="woowa_utama" style={{ fontWeight: "500", color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+              <label htmlFor="woowa_utama" style={{ fontWeight: "500", color: "var(--color-text-primary)", marginBottom: "0.5rem", display: "block" }}>
                 Woowa Key Utama (Global)
               </label>
               <input
@@ -646,7 +646,7 @@ export default function SalesSettingPage() {
                 placeholder="Masukkan Woowa Key Utama"
                 className="input-field"
               />
-              <p className="description" style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>
+              <p className="description" style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
                 Woowa Key Utama digunakan sebagai cadangan (fallback) global ketika Woowa Key pada masing-masing akun Sales tidak dikonfigurasi.
               </p>
             </div>
@@ -664,14 +664,14 @@ export default function SalesSettingPage() {
         </div>
 
         {/* Card NEW: Saklar Global Auto Follow-up */}
-        <div className="setting-card" style={{ marginTop: "2rem", border: autoFollowupEnabled ? "1px solid #e5e7eb" : "1px solid #fecaca" }}>
+        <div className="setting-card" style={{ marginTop: "2rem", border: autoFollowupEnabled ? "1px solid var(--color-divider)" : "1px solid var(--color-error-lighter)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <div style={{ background: autoFollowupEnabled ? "#059669" : "#dc2626", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
+              <div style={{ background: autoFollowupEnabled ? "var(--color-success-dark)" : "var(--color-error-main)", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
                 <Power size={20} color="white" />
               </div>
               <div>
-                <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Auto Follow-up</h3>
+                <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "1.25rem" }}>Auto Follow-up</h3>
                 <p className="description" style={{ marginTop: "0.25rem" }}>
                   Saklar utama untuk semua follow-up WhatsApp otomatis (order, invitation, upselling).
                   Kalau dimatikan, tidak ada pesan follow-up otomatis yang terkirim sama sekali sampai dinyalakan lagi.
@@ -692,7 +692,7 @@ export default function SalesSettingPage() {
                 borderRadius: "9999px",
                 border: "none",
                 cursor: autoFollowupSaveLoading ? "not-allowed" : "pointer",
-                background: autoFollowupEnabled ? "#059669" : "#d1d5db",
+                background: autoFollowupEnabled ? "var(--color-success-dark)" : "var(--color-grey-300)",
                 transition: "background 0.2s",
                 flexShrink: 0,
                 opacity: autoFollowupSaveLoading ? 0.7 : 1,
@@ -718,8 +718,8 @@ export default function SalesSettingPage() {
             <span
               className="badge"
               style={{
-                background: autoFollowupEnabled ? "#d1fae5" : "#fee2e2",
-                color: autoFollowupEnabled ? "#065f46" : "#991b1b",
+                background: autoFollowupEnabled ? "var(--color-success-lighter)" : "var(--color-error-lighter)",
+                color: autoFollowupEnabled ? "var(--color-success-dark)" : "var(--color-error-dark)",
               }}
             >
               {autoFollowupEnabled ? <><CheckCircle size={16} /> Aktif</> : <><XCircle size={16} /> Mati</>}
@@ -733,7 +733,7 @@ export default function SalesSettingPage() {
             <div style={{ background: "#0f766e", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
               <Timer size={20} color="white" />
             </div>
-            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Jeda Pengiriman Follow-up</h3>
+            <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "1.25rem" }}>Jeda Pengiriman Follow-up</h3>
           </div>
 
           <form onSubmit={handleSaveDelay} className="status-container">
@@ -746,7 +746,7 @@ export default function SalesSettingPage() {
 
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <div className="form-group" style={{ flex: "1 1 180px" }}>
-                <label htmlFor="delay_min" style={{ fontWeight: "500", color: "#374151" }}>
+                <label htmlFor="delay_min" style={{ fontWeight: "500", color: "var(--color-text-primary)" }}>
                   Jeda minimum (detik)
                 </label>
                 <input
@@ -760,7 +760,7 @@ export default function SalesSettingPage() {
                 />
               </div>
               <div className="form-group" style={{ flex: "1 1 180px" }}>
-                <label htmlFor="delay_max" style={{ fontWeight: "500", color: "#374151" }}>
+                <label htmlFor="delay_max" style={{ fontWeight: "500", color: "var(--color-text-primary)" }}>
                   Jeda maksimum (detik)
                 </label>
                 <input
@@ -775,7 +775,7 @@ export default function SalesSettingPage() {
               </div>
             </div>
 
-            <p className="description" style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+            <p className="description" style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
               Contoh: 5–25 detik berarti 100 pesan tersebar kira-kira 25 menit. Isi 0–0 kalau
               ingin semua dikirim tanpa jeda (tidak disarankan).
             </p>
@@ -794,7 +794,7 @@ export default function SalesSettingPage() {
             <div style={{ background: "#7c3aed", borderRadius: "10px", padding: "0.5rem", display: "flex" }}>
               <Gauge size={20} color="white" />
             </div>
-            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.25rem" }}>Kuota Kirim per Session Baileys</h3>
+            <h3 style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "1.25rem" }}>Kuota Kirim per Session Baileys</h3>
           </div>
 
           <form onSubmit={handleSaveQuota} className="status-container">
@@ -807,7 +807,7 @@ export default function SalesSettingPage() {
 
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <div className="form-group" style={{ flex: "1 1 180px" }}>
-                <label htmlFor="quota_max" style={{ fontWeight: "500", color: "#374151" }}>
+                <label htmlFor="quota_max" style={{ fontWeight: "500", color: "var(--color-text-primary)" }}>
                   Maksimal pesan
                 </label>
                 <input
@@ -821,7 +821,7 @@ export default function SalesSettingPage() {
                 />
               </div>
               <div className="form-group" style={{ flex: "1 1 180px" }}>
-                <label htmlFor="quota_window" style={{ fontWeight: "500", color: "#374151" }}>
+                <label htmlFor="quota_window" style={{ fontWeight: "500", color: "var(--color-text-primary)" }}>
                   Per berapa menit
                 </label>
                 <input
@@ -836,7 +836,7 @@ export default function SalesSettingPage() {
               </div>
             </div>
 
-            <p className="description" style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+            <p className="description" style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
               Default: 20 pesan / 30 menit per session.
             </p>
 
@@ -874,7 +874,7 @@ export default function SalesSettingPage() {
           border-radius: 12px;
           padding: 2rem;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--color-divider);
         }
 
         .status-container {
@@ -886,10 +886,10 @@ export default function SalesSettingPage() {
         .status-indicator {
           display: flex;
           align-items: center;
-          background: #f9fafb;
+          background: var(--color-grey-50);
           padding: 1rem;
           border-radius: 8px;
-          border: 1px solid #f3f4f6;
+          border: 1px solid var(--color-grey-100);
         }
 
         .badge {
@@ -903,17 +903,17 @@ export default function SalesSettingPage() {
         }
 
         .badge-success {
-          background-color: #d1fae5;
-          color: #065f46;
+          background-color: var(--color-success-lighter);
+          color: var(--color-success-dark);
         }
 
         .badge-error {
-          background-color: #fee2e2;
-          color: #991b1b;
+          background-color: var(--color-error-lighter);
+          color: var(--color-error-dark);
         }
 
         .description {
-          color: #4b5563;
+          color: var(--color-text-secondary);
           line-height: 1.6;
           font-size: 0.95rem;
           margin: 0;
@@ -933,14 +933,14 @@ export default function SalesSettingPage() {
           width: 100%;
           padding: 0.75rem;
           border-radius: 8px;
-          border: 1px solid #d1d5db;
+          border: 1px solid var(--color-grey-300);
           font-size: 0.95rem;
           outline: none;
           transition: all 0.2s;
         }
 
         .input-field:focus {
-          border-color: #4f46e5 !important;
+          border-color: var(--color-accent-dark) !important;
           box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
@@ -964,22 +964,22 @@ export default function SalesSettingPage() {
         }
 
         .btn-primary {
-          background-color: #4f46e5;
+          background-color: var(--color-accent-dark);
           color: white;
         }
 
         .btn-primary:hover:not(:disabled) {
-          background-color: #4338ca;
+          background-color: var(--color-accent-dark);
           transform: translateY(-1px);
         }
 
         .btn-danger {
-          background-color: #ef4444;
+          background-color: var(--color-error-main);
           color: white;
         }
 
         .btn-danger:hover:not(:disabled) {
-          background-color: #dc2626;
+          background-color: var(--color-error-main);
           transform: translateY(-1px);
         }
 
@@ -989,7 +989,7 @@ export default function SalesSettingPage() {
         }
 
         .btn-outline:hover:not(:disabled) {
-          background-color: #eef2ff;
+          background-color: var(--color-accent-lighter);
           transform: translateY(-1px);
         }
       `}</style>

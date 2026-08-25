@@ -1,6 +1,6 @@
 :root,
 body {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-base);
 }
 
 /* ===========================
@@ -9,18 +9,18 @@ ADMIN USERS PAGE (Scoped Styles)
 
 /* Root variables tetap global */
 :root {
-  --primary: #ff6c00;
-  --primary-hover: #c85400;
-  --success: #4ADE80;
-  --warning: #FACC15;
-  --danger: #F87171;
-  --gray-bg: #F9FAFB;
-  --gray-border: #E5E7EB;
-  --gray-text: #6B7280;
-  --dark-text: #111827;
-  --white: #ffffff;
-  --radius: 8px;
-  --shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  --primary: var(--color-primary-main);
+  --primary-hover: var(--color-primary-dark);
+  --success: var(--color-success-main);
+  --warning: var(--color-warning-main);
+  --danger: var(--color-error-main);
+  --gray-bg: var(--color-grey-50);
+  --gray-border: var(--color-border);
+  --gray-text: var(--color-text-secondary);
+  --dark-text: var(--color-text-primary);
+  --white: var(--color-bg-paper);
+  --radius: var(--radius-md);
+  --shadow: none;
 }
 
 /* === USERS LAYOUT (align with dashboard shell) === */
@@ -99,7 +99,7 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .users-button:focus-visible,
 .customers-button:focus-visible {
-  outline: 2px solid rgba(255, 108, 0, 0.45);
+  outline: 2px solid rgba(30, 58, 95, 0.45);
   outline-offset: 2px;
 }
 
@@ -122,19 +122,19 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .customers-button--primary:hover {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
 }
 
 .customers-button--primary:active,
 .customers-button--primary:focus,
 .customers-button--primary:focus-visible {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px !important;
   border-color: transparent !important;
-  box-shadow: 0 0 0 2px rgba(255, 108, 0, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2) !important;
 }
 
 .customers-button--primary:visited {
@@ -145,23 +145,23 @@ ADMIN USERS PAGE (Scoped Styles)
 .customers-button--secondary {
   background: var(--white);
   color: var(--primary);
-  border: 1px solid rgba(255, 108, 0, 0.35);
+  border: 1px solid rgba(30, 58, 95, 0.35);
   box-shadow: none;
   outline: none !important;
 }
 
 .customers-button--secondary:hover {
-  background: rgba(255, 108, 0, 0.06);
-  border-color: rgba(255, 108, 0, 0.55);
+  background: rgba(30, 58, 95, 0.06);
+  border-color: rgba(30, 58, 95, 0.55);
 }
 
 .customers-button--secondary:active,
 .customers-button--secondary:focus,
 .customers-button--secondary:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.65) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.65) !important;
   color: var(--primary) !important;
-  outline: 2px solid rgba(255, 108, 0, 0.2) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.2) !important;
   outline-offset: 2px;
 }
 
@@ -190,39 +190,39 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .customers-filter-btn:hover {
-  background: rgba(255, 108, 0, 0.06);
-  border-color: rgba(255, 108, 0, 0.3);
+  background: rgba(30, 58, 95, 0.06);
+  border-color: rgba(30, 58, 95, 0.3);
   color: var(--primary);
 }
 
 .customers-filter-btn:active,
 .customers-filter-btn:focus,
 .customers-filter-btn:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
   color: var(--primary) !important;
-  outline: 2px solid rgba(255, 108, 0, 0.2) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.2) !important;
   outline-offset: 2px;
 }
 
 .customers-filter-btn.is-active {
-  border-color: rgba(255, 108, 0, 0.5);
+  border-color: rgba(30, 58, 95, 0.5);
   color: var(--primary);
-  background: rgba(255, 108, 0, 0.08);
+  background: rgba(30, 58, 95, 0.08);
 }
 
 .customers-filter-btn.is-active:hover {
-  background: rgba(255, 108, 0, 0.12);
-  border-color: rgba(255, 108, 0, 0.6);
+  background: rgba(30, 58, 95, 0.12);
+  border-color: rgba(30, 58, 95, 0.6);
 }
 
 .customers-filter-btn.is-active:active,
 .customers-filter-btn.is-active:focus,
 .customers-filter-btn.is-active:focus-visible {
-  background: rgba(255, 108, 0, 0.15) !important;
-  border-color: rgba(255, 108, 0, 0.7) !important;
+  background: rgba(30, 58, 95, 0.15) !important;
+  border-color: rgba(30, 58, 95, 0.7) !important;
   color: var(--primary) !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
 }
 
 .customers-filter-icon-btn {
@@ -246,7 +246,7 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .customers-filter-btn:-moz-focusring,
 .customers-button:-moz-focusring {
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px;
 }
 
@@ -279,40 +279,40 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .orders-filter-btn:hover {
-  background: rgba(255, 108, 0, 0.06) !important;
-  border-color: rgba(255, 108, 0, 0.3) !important;
-  color: #c85400 !important;
+  background: rgba(30, 58, 95, 0.06) !important;
+  border-color: rgba(30, 58, 95, 0.3) !important;
+  color: var(--color-primary-dark) !important;
 }
 
 .orders-filter-btn:active,
 .orders-filter-btn:focus,
 .orders-filter-btn:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
-  outline: 2px solid rgba(255, 108, 0, 0.2) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.2) !important;
   outline-offset: 2px !important;
 }
 
 .orders-filter-btn.is-active {
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
-  background: rgba(255, 108, 0, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
 }
 
 .orders-filter-btn.is-active:hover {
-  background: rgba(255, 108, 0, 0.12) !important;
-  border-color: rgba(255, 108, 0, 0.6) !important;
-  color: #c85400 !important;
+  background: rgba(30, 58, 95, 0.12) !important;
+  border-color: rgba(30, 58, 95, 0.6) !important;
+  color: var(--color-primary-dark) !important;
 }
 
 .orders-filter-btn.is-active:active,
 .orders-filter-btn.is-active:focus,
 .orders-filter-btn.is-active:focus-visible {
-  background: rgba(255, 108, 0, 0.15) !important;
-  border-color: rgba(255, 108, 0, 0.7) !important;
-  color: #c85400 !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  background: rgba(30, 58, 95, 0.15) !important;
+  border-color: rgba(30, 58, 95, 0.7) !important;
+  color: var(--color-primary-dark) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
 }
 
 .orders-filter-icon-btn {
@@ -320,30 +320,30 @@ ADMIN USERS PAGE (Scoped Styles)
   height: 32px;
   padding: 0;
   justify-content: center;
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.35) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.35) !important;
   outline: none !important;
 }
 
 .orders-filter-icon-btn:hover {
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  background: rgba(255, 108, 0, 0.06) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  background: rgba(30, 58, 95, 0.06) !important;
 }
 
 .orders-filter-icon-btn:active,
 .orders-filter-icon-btn:focus,
 .orders-filter-icon-btn:focus-visible {
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.6) !important;
-  background: rgba(255, 108, 0, 0.08) !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.6) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px;
 }
 
 .orders-filter-icon-btn svg {
-  color: #c85400 !important;
-  stroke: #c85400 !important;
+  color: var(--color-primary-dark) !important;
+  stroke: var(--color-primary-dark) !important;
 }
 
 /* Remove any browser default blue outline/ring for orders buttons */
@@ -354,7 +354,7 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .orders-filter-btn:-moz-focusring,
 .orders-button:-moz-focusring {
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px;
 }
 
@@ -433,8 +433,9 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .users-tables__row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.14);
+  transform: none;
+  background: var(--color-grey-50);
+  box-shadow: none;
 }
 
 .users-tables__cell {
@@ -569,16 +570,22 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .users-table__head {
   padding: 0.85rem 1rem;
-  color: var(--dash-muted);
+  color: #ffffff;
+  background: var(--color-primary-main);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .customers-table__head {
   padding: 0.6rem 0.75rem;
-  color: var(--dash-muted);
+  color: #ffffff;
+  background: var(--color-primary-main);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -616,8 +623,9 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .users-table__row:hover,
 .customers-table__row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.14);
+  transform: none;
+  background: var(--color-grey-50);
+  box-shadow: none;
 }
 
 .users-table__cell {
@@ -685,8 +693,8 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .users-level-chip {
-  background: rgba(241, 161, 36, 0.15);
-  color: #b45309;
+  background: rgba(30, 58, 95, 0.15);
+  color: var(--color-warning-dark);
   border-radius: 999px;
   padding: 0.18rem 0.65rem;
   font-size: 0.75rem;
@@ -752,14 +760,14 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .users-pill--gold {
-  background: rgba(241, 161, 36, 0.15);
-  color: #b45309;
-  border-color: rgba(241, 161, 36, 0.35);
+  background: rgba(30, 58, 95, 0.15);
+  color: var(--color-warning-dark);
+  border-color: rgba(30, 58, 95, 0.35);
 }
 
 .users-pill--muted {
   background: rgba(148, 163, 184, 0.2);
-  color: #475569;
+  color: var(--color-text-secondary);
   border-color: rgba(148, 163, 184, 0.35);
 }
 
@@ -791,7 +799,7 @@ ADMIN USERS PAGE (Scoped Styles)
   min-height: 34px;
 }
 
-/* View Button - Neutral Gray #64748B */
+/* View Button - Neutral Gray var(--color-text-secondary) */
 .customers-action-btn {
   border: 1px solid rgba(100, 116, 139, 0.2);
   border-radius: 0.5rem;
@@ -805,7 +813,7 @@ ADMIN USERS PAGE (Scoped Styles)
   gap: 0.2rem;
   min-height: 28px;
   background: rgba(100, 116, 139, 0.1);
-  color: #64748B;
+  color: var(--color-text-secondary);
   outline: none !important;
 }
 
@@ -814,7 +822,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .customers-action-btn:focus-visible {
   background: rgba(100, 116, 139, 0.2) !important;
   border-color: rgba(100, 116, 139, 0.3) !important;
-  color: #475569 !important;
+  color: var(--color-text-secondary) !important;
   outline: 2px solid rgba(100, 116, 139, 0.3) !important;
   outline-offset: 2px;
 }
@@ -822,7 +830,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .customers-action-btn:hover {
   background: rgba(100, 116, 139, 0.15);
   border-color: rgba(100, 116, 139, 0.3);
-  color: #475569;
+  color: var(--color-text-secondary);
   transform: translateY(-1px);
 }
 
@@ -840,24 +848,24 @@ ADMIN USERS PAGE (Scoped Styles)
 /* Edit Button - Orange brand (soft) */
 .users-action-btn--ghost,
 .customers-action-btn--ghost {
-  background: rgba(241, 161, 36, 0.1);
-  color: #f1a124;
-  border-color: rgba(241, 161, 36, 0.2);
+  background: rgba(30, 58, 95, 0.1);
+  color: var(--color-primary-main);
+  border-color: rgba(30, 58, 95, 0.2);
 }
 
 .users-action-btn--ghost:hover,
 .customers-action-btn--ghost:hover {
-  background: rgba(241, 161, 36, 0.15);
-  border-color: rgba(241, 161, 36, 0.3);
-  color: #c85400;
+  background: rgba(30, 58, 95, 0.15);
+  border-color: rgba(30, 58, 95, 0.3);
+  color: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
-/* Delete Button - Red #DC2626 */
+/* Delete Button - Red var(--color-error-main) */
 .users-action-btn--danger,
 .customers-action-btn--danger {
   background: rgba(220, 38, 38, 0.1);
-  color: #DC2626;
+  color: var(--color-error-main);
   border-color: rgba(220, 38, 38, 0.2);
 }
 
@@ -865,7 +873,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .customers-action-btn--danger:hover {
   background: rgba(220, 38, 38, 0.15);
   border-color: rgba(220, 38, 38, 0.3);
-  color: #B91C1C;
+  color: var(--color-error-dark);
   transform: translateY(-1px);
 }
 
@@ -967,7 +975,7 @@ ADMIN USERS PAGE (Scoped Styles)
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #f8fafc;
+    background: var(--color-bg-default);
     padding: 0.75rem 0 !important;
     border-radius: 0.5rem;
     min-width: 900px;
@@ -1113,12 +1121,12 @@ ADMIN USERS PAGE (Scoped Styles)
 
 .customers-verif-tag.is-verified {
   background: rgba(16, 185, 129, 0.15);
-  color: #047857;
+  color: var(--color-success-dark);
 }
 
 .customers-verif-tag.is-unverified {
   background: rgba(248, 113, 113, 0.15);
-  color: #b91c1c;
+  color: var(--color-error-dark);
 }
 
 .customers-pagination {
@@ -1205,7 +1213,7 @@ ADMIN USERS PAGE (Scoped Styles)
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: #fb8500 !important;
+  background: var(--color-primary-main) !important;
   color: #ffffff !important;
   flex-shrink: 0 !important;
   box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25) !important;
@@ -1221,9 +1229,9 @@ ADMIN USERS PAGE (Scoped Styles)
 /* Global override untuk menghilangkan semua warna biru di orders page */
 .orders-shell * {
   /* Remove any blue link colors */
-  --p-primary-color: #ff6c00 !important;
+  --p-primary-color: var(--color-primary-main) !important;
   --p-primary-color-text: #ffffff !important;
-  --p-focus-ring: 0 0 0 0.2rem rgba(255, 108, 0, 0.2) !important;
+  --p-focus-ring: 0 0 0 0.2rem rgba(30, 58, 95, 0.2) !important;
 }
 
 /* Force remove blue from all buttons */
@@ -1232,7 +1240,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .orders-button,
 .orders-shell .orders-filter-btn {
   /* Remove browser default blue */
-  -webkit-tap-highlight-color: rgba(255, 108, 0, 0.2) !important;
+  -webkit-tap-highlight-color: rgba(30, 58, 95, 0.2) !important;
 }
 
 /* Remove blue from all active/focus states */
@@ -1242,9 +1250,9 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .customers-button:not(:disabled):focus,
 .orders-shell .orders-button:not(:disabled):active,
 .orders-shell .orders-button:not(:disabled):focus {
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  background-color: rgba(255, 108, 0, 0.1) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  background-color: rgba(30, 58, 95, 0.1) !important;
 }
 
 /* Remove all blue colors from clickable elements in orders page */
@@ -1264,12 +1272,12 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .orders-filter-icon-btn:focus,
 .orders-shell .orders-filter-icon-btn:active,
 .orders-shell .orders-filter-icon-btn:focus-visible {
-  outline-color: rgba(255, 108, 0, 0.3) !important;
+  outline-color: rgba(30, 58, 95, 0.3) !important;
   outline-style: solid !important;
   outline-width: 2px !important;
   outline-offset: 2px !important;
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
 }
 
 /* Force orange color for all text and icons in active filter buttons */
@@ -1277,15 +1285,15 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .orders-filter-btn.is-active *,
 .orders-shell .orders-filter-icon-btn,
 .orders-shell .orders-filter-icon-btn * {
-  color: #c85400 !important;
+  color: var(--color-primary-dark) !important;
 }
 
 /* Remove any blue from SVG icons */
 .orders-shell .orders-filter-icon-btn svg,
 .orders-shell .orders-filter-icon-btn svg * {
-  stroke: #c85400 !important;
-  fill: #c85400 !important;
-  color: #c85400 !important;
+  stroke: var(--color-primary-dark) !important;
+  fill: var(--color-primary-dark) !important;
+  color: var(--color-primary-dark) !important;
 }
 
 /* Remove blue from PrimeReact Calendar focus */
@@ -1293,7 +1301,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .p-calendar .p-inputtext:active,
 .orders-shell .p-calendar .p-inputtext:focus-visible {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 0.2rem rgba(255, 108, 0, 0.15) !important;
+  box-shadow: 0 0 0 0.2rem rgba(30, 58, 95, 0.15) !important;
   outline: none !important;
 }
 
@@ -1301,37 +1309,37 @@ ADMIN USERS PAGE (Scoped Styles)
 .orders-shell .p-calendar .p-datepicker-trigger:focus,
 .orders-shell .p-calendar .p-datepicker-trigger:active,
 .orders-shell .p-calendar .p-datepicker-trigger:focus-visible {
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px !important;
-  color: #c85400 !important;
-  background: rgba(255, 108, 0, 0.1) !important;
-  border-color: rgba(255, 108, 0, 0.3) !important;
+  color: var(--color-primary-dark) !important;
+  background: rgba(30, 58, 95, 0.1) !important;
+  border-color: rgba(30, 58, 95, 0.3) !important;
 }
 
 /* Override all PrimeReact blue colors to orange */
 .orders-shell .p-calendar .p-datepicker-trigger {
-  color: #c85400 !important;
-  background: rgba(255, 108, 0, 0.1) !important;
-  border-color: rgba(255, 108, 0, 0.3) !important;
+  color: var(--color-primary-dark) !important;
+  background: rgba(30, 58, 95, 0.1) !important;
+  border-color: rgba(30, 58, 95, 0.3) !important;
 }
 
 .orders-shell .p-calendar .p-datepicker-trigger:hover {
-  color: #c85400 !important;
-  background: rgba(255, 108, 0, 0.15) !important;
-  border-color: rgba(255, 108, 0, 0.4) !important;
+  color: var(--color-primary-dark) !important;
+  background: rgba(30, 58, 95, 0.15) !important;
+  border-color: rgba(30, 58, 95, 0.4) !important;
 }
 
 /* Override PrimeReact datepicker colors */
 .orders-shell .p-datepicker .p-datepicker-header,
 .orders-shell .p-datepicker .p-datepicker-calendar th,
 .orders-shell .p-datepicker .p-datepicker-calendar td>span.p-highlight {
-  background: rgba(255, 108, 0, 0.1) !important;
-  color: #c85400 !important;
-  border-color: rgba(255, 108, 0, 0.3) !important;
+  background: rgba(30, 58, 95, 0.1) !important;
+  color: var(--color-primary-dark) !important;
+  border-color: rgba(30, 58, 95, 0.3) !important;
 }
 
 .orders-shell .p-datepicker .p-datepicker-calendar td>span:focus {
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px !important;
 }
 
@@ -1394,55 +1402,55 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .orders-button:focus-visible {
-  outline: 2px solid rgba(255, 108, 0, 0.45);
+  outline: 2px solid rgba(30, 58, 95, 0.45);
   outline-offset: 2px;
 }
 
 .orders-button--primary {
-  background: #f1a124 !important;
+  background: var(--color-primary-main) !important;
   color: #fff !important;
-  box-shadow: 0 12px 25px rgba(241, 161, 36, 0.25) !important;
+  box-shadow: 0 12px 25px rgba(30, 58, 95, 0.25) !important;
 }
 
 .orders-button--primary:hover {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   transform: translateY(-1px);
 }
 
 .orders-button--primary:active,
 .orders-button--primary:focus,
 .orders-button--primary:focus-visible {
-  background: #c85400 !important;
+  background: var(--color-primary-dark) !important;
   color: #fff !important;
   outline: none;
   border-color: transparent !important;
 }
 
 .orders-button--primary:visited {
-  background: #f1a124 !important;
+  background: var(--color-primary-main) !important;
   color: #fff !important;
 }
 
 .orders-button--secondary {
   background: var(--white);
   color: var(--primary);
-  border: 1px solid rgba(255, 108, 0, 0.35);
+  border: 1px solid rgba(30, 58, 95, 0.35);
   box-shadow: none;
   outline: none !important;
 }
 
 .orders-button--secondary:hover {
-  background: rgba(255, 108, 0, 0.06);
-  border-color: rgba(255, 108, 0, 0.55);
+  background: rgba(30, 58, 95, 0.06);
+  border-color: rgba(30, 58, 95, 0.55);
 }
 
 .orders-button--secondary:active,
 .orders-button--secondary:focus,
 .orders-button--secondary:focus-visible {
-  background: rgba(255, 108, 0, 0.08) !important;
-  border-color: rgba(255, 108, 0, 0.65) !important;
+  background: rgba(30, 58, 95, 0.08) !important;
+  border-color: rgba(30, 58, 95, 0.65) !important;
   color: var(--primary) !important;
-  outline: 2px solid rgba(255, 108, 0, 0.2) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.2) !important;
   outline-offset: 2px;
 }
 
@@ -1532,8 +1540,9 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .orders-table__row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.14);
+  transform: none;
+  background: var(--color-grey-50);
+  box-shadow: none;
 }
 
 .orders-table__cell {
@@ -1564,59 +1573,59 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .orders-status-badge--unpaid {
-  background-color: #fef2f2;
-  color: #b91c1c;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--paid {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .orders-status-badge--sukses {
-  background-color: #e0f2fe;
-  color: #0369a1;
+  background-color: var(--color-info-lighter);
+  color: var(--color-info-dark);
 }
 
 .orders-status-badge--gagal {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 /* Status Order Badge Styles */
 .orders-status-badge--proses {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 .orders-status-badge--sukses {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: var(--color-success-lighter);
+  color: var(--color-success-dark);
 }
 
 .orders-status-badge--failed {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--upselling {
-  background-color: #e0e7ff;
-  color: #3730a3;
+  background-color: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
 }
 
 .orders-status-badge--dihapus {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
 }
 
 .orders-status-badge--default {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: var(--color-grey-100);
+  color: var(--color-text-secondary);
 }
 
 .orders-status-badge--processing {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -1634,29 +1643,29 @@ ADMIN USERS PAGE (Scoped Styles)
 
 /* Status Pembayaran Badge Styles */
 .orders-status-badge--pending {
-  background-color: rgba(255, 108, 0, 0.15);
-  color: #c85400;
+  background-color: rgba(30, 58, 95, 0.15);
+  color: var(--color-primary-dark);
 }
 
 .orders-status-badge--rejected {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--color-error-lighter);
+  color: var(--color-error-dark);
 }
 
 .orders-status-badge--dp {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--color-warning-lighter);
+  color: var(--color-warning-dark);
 }
 
 .orders-link {
-  color: #ff6c00;
+  color: var(--color-primary-main);
   text-decoration: underline;
   font-size: 0.75rem;
   transition: color 0.2s ease;
 }
 
 .orders-link:hover {
-  color: #c85400;
+  color: var(--color-primary-dark);
 }
 
 /* === BROADCAST TABLE (9 columns) === */
@@ -1734,7 +1743,7 @@ ADMIN USERS PAGE (Scoped Styles)
   text-transform: uppercase;
   font-weight: 600;
   border-bottom: 1px solid var(--dash-border);
-  background: #f8fafc;
+  background: var(--color-bg-default);
   border-radius: 0.75rem;
   position: sticky;
   top: 0;
@@ -1776,9 +1785,10 @@ ADMIN USERS PAGE (Scoped Styles)
 }
 
 .products-table__row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
-  border-color: #cbd5e1;
+  transform: none;
+  background: var(--color-grey-50);
+  box-shadow: none;
+  border-color: var(--color-grey-300);
 }
 
 .products-table__cell {
@@ -1824,47 +1834,47 @@ ADMIN USERS PAGE (Scoped Styles)
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, border 0.2s ease;
   gap: 0.2rem;
   min-height: 28px;
-  background: rgba(255, 108, 0, 0.1);
-  color: #c85400;
-  border-color: rgba(255, 108, 0, 0.3);
+  background: rgba(30, 58, 95, 0.1);
+  color: var(--color-primary-dark);
+  border-color: rgba(30, 58, 95, 0.3);
   outline: none !important;
 }
 
 .orders-action-btn:hover {
-  background: rgba(255, 108, 0, 0.15);
-  border-color: rgba(255, 108, 0, 0.4);
+  background: rgba(30, 58, 95, 0.15);
+  border-color: rgba(30, 58, 95, 0.4);
   transform: translateY(-1px);
 }
 
 .orders-action-btn:active,
 .orders-action-btn:focus,
 .orders-action-btn:focus-visible {
-  background: rgba(255, 108, 0, 0.2) !important;
-  border-color: rgba(255, 108, 0, 0.5) !important;
-  color: #c85400 !important;
-  outline: 2px solid rgba(255, 108, 0, 0.3) !important;
+  background: rgba(30, 58, 95, 0.2) !important;
+  border-color: rgba(30, 58, 95, 0.5) !important;
+  color: var(--color-primary-dark) !important;
+  outline: 2px solid rgba(30, 58, 95, 0.3) !important;
   outline-offset: 2px;
 }
 
 .orders-action-btn--ghost {
-  background: #eef2ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
+  background: var(--color-accent-lighter);
+  color: var(--color-accent-dark);
+  border-color: var(--color-accent-lighter);
 }
 
 .orders-action-btn--ghost:hover {
-  background: #c7d2fe;
+  background: var(--color-accent-lighter);
   transform: translateY(-1px);
 }
 
 .orders-action-btn--danger {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fecdd3;
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
+  border-color: var(--color-error-lighter);
 }
 
 .orders-action-btn--danger:hover {
-  background: #fecaca;
+  background: var(--color-error-lighter);
   transform: translateY(-1px);
 }
 
@@ -1955,7 +1965,7 @@ ADMIN USERS PAGE (Scoped Styles)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fb8500;
+  background: var(--color-primary-main);
   color: #ffffff;
   flex-shrink: 0;
   box-shadow: 0 4px 14px 0 rgba(251, 133, 0, 0.25);
@@ -1978,7 +1988,7 @@ ADMIN USERS PAGE (Scoped Styles)
 /* Label styling - persis customers */
 .dashboard-summary.orders-summary .summary-card__label {
   font-size: 0.75rem;
-  color: #a0aec0;
+  color: var(--color-text-secondary);
   margin: 0;
   font-weight: 500;
   text-transform: uppercase;
@@ -1990,7 +2000,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .dashboard-summary.orders-summary .summary-card__value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #252f40;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.25;
   letter-spacing: -0.03em;
@@ -2000,7 +2010,7 @@ ADMIN USERS PAGE (Scoped Styles)
 .dashboard-summary.orders-summary .summary-card__divider {
   width: 1px;
   height: 60%;
-  background: #e9ecef;
+  background: var(--color-border);
   align-self: center;
   flex-shrink: 0;
 }
@@ -2215,7 +2225,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   align-items: center;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--gray-border);
-  background: #f8fafc;
+  background: var(--color-bg-default);
 }
 
 .modal-header h2 {
@@ -2293,7 +2303,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   gap: 0.5rem;
   padding: 0.9rem 1.25rem;
   border-top: 1px solid var(--gray-border);
-  background: #f8fafc;
+  background: var(--color-bg-default);
 }
 
 .btn-cancel {
@@ -2308,7 +2318,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .btn-cancel:hover {
-  background: #d1d5db;
+  background: var(--color-grey-300);
 }
 
 .btn-save {
@@ -2341,7 +2351,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .btn-delete:hover {
-  background: #dc2626;
+  background: var(--color-error-main);
   transform: translateY(-1px);
 }
 
@@ -2389,7 +2399,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   top: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #22c55e;
+  background: var(--color-success-main);
   color: white;
   padding: 14px 22px;
   border-radius: 8px;
@@ -2401,12 +2411,12 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .toast-error {
-  background: #ef4444;
+  background: var(--color-error-main);
 }
 
 .toast-warning {
-  background: #facc15;
-  color: #473a00;
+  background: var(--color-warning-main);
+  color: var(--color-warning-dark);
 }
 
 @keyframes slideDown {
@@ -2508,13 +2518,13 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   width: 50px;
   height: 50px;
   border-radius: 0.5rem;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, var(--color-divider) 0%, var(--color-border) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 }
 
 .product-table__image img {
@@ -2529,7 +2539,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   font-size: 1.2rem;
 }
 
@@ -2543,7 +2553,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 .product-table__name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1e40af;
+  color: var(--color-info-dark);
   cursor: pointer;
   transition: color 0.15s ease;
   line-height: 1.3;
@@ -2555,7 +2565,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .product-table__name:hover {
-  color: #1d4ed8;
+  color: var(--color-info-dark);
   text-decoration: underline;
 }
 
@@ -2569,7 +2579,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 .product-table__action-link {
   background: none;
   border: none;
-  color: #3b82f6;
+  color: var(--color-info-main);
   font-size: 0.75rem;
   cursor: pointer;
   padding: 0;
@@ -2580,16 +2590,16 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .product-table__action-link:hover {
-  color: #1d4ed8;
+  color: var(--color-info-dark);
   text-decoration: underline;
 }
 
 .product-table__action-link--danger {
-  color: #ef4444;
+  color: var(--color-error-main);
 }
 
 .product-table__action-link--danger:hover {
-  color: #dc2626;
+  color: var(--color-error-main);
 }
 
 .products-empty {
@@ -2600,7 +2610,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   border-radius: 0.75rem;
   margin: 1rem 0;
   grid-column: 1 / -1;
-  background: #f8fafc;
+  background: var(--color-bg-default);
 }
 
 /* === CUSTOMERS TABLE (Same format as Products Table) === */
@@ -2652,7 +2662,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   text-transform: uppercase;
   font-weight: 600;
   border-bottom: 1px solid var(--dash-border);
-  background: #f8fafc;
+  background: var(--color-bg-default);
   border-radius: 0.75rem;
   position: sticky;
   top: 0;
@@ -2720,9 +2730,10 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .customers-table__row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
-  border-color: #cbd5e1;
+  transform: none;
+  background: var(--color-grey-50);
+  box-shadow: none;
+  border-color: var(--color-grey-300);
 }
 
 .customers-table__cell {
@@ -2784,7 +2795,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 .customer-table__name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1e40af;
+  color: var(--color-info-dark);
   cursor: pointer;
   transition: color 0.15s ease;
   line-height: 1.3;
@@ -2799,7 +2810,7 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
 }
 
 .customer-table__name:hover {
-  color: #1d4ed8;
+  color: var(--color-info-dark);
   text-decoration: underline;
 }
 
@@ -2811,5 +2822,5 @@ body:has(.modal-overlay) .dashboard-summary .summary-card__icon svg {
   border-radius: 0.75rem;
   margin: 1rem 0;
   grid-column: 1 / -1;
-  background: #f8fafc;
+  background: var(--color-bg-default);
 }
