@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import '@/styles/login.css';
 import { setToken } from '@/lib/storage';
 import { getDivisionHome } from '@/lib/divisionRoutes';
@@ -20,7 +20,6 @@ function LoginPageContent() {
   const [showError, setShowError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [checked, setChecked] = useState(false);
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
 
@@ -273,38 +272,46 @@ function LoginPageContent() {
   // === UI ===
   return (
     <div className="login-container">
-      {/* === LEFT PANEL === */}
-      <div className="login-left">
+      <div className="login-bg-shape login-bg-shape--1" />
+      <div className="login-bg-shape login-bg-shape--2" />
+      <div className="login-bg-shape login-bg-shape--3" />
+
+      <div className="login-wrapper">
         <div className="login-box">
           <div className="login-logo">
-            <img src="/assets/logo-boosterin.png" alt="Logo" className="login-logo__img" />
+            <div className="login-logo-badge">
+              <img src="/assets/logo-boosterin.png" alt="Logo" className="login-logo__img" />
+            </div>
+            <h3>One Dashboard</h3>
+            <p>Sign in to your account</p>
           </div>
-          <h3>Welcome to One Dashboard</h3>
-          <p>Sign in to your account</p>
 
           {showError && <div className="login-alert">{errorMsg}</div>}
 
           <form onSubmit={handleLogin} className="login-form" autoComplete="off" data-form-type="other">
             <div className="login-form-group">
               <label>Email</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (showError) setShowError(false);
-                }}
-                placeholder="admin@gmail.com"
-                required
-                autoComplete="email"
-              />
+              <div className="login-input-wrapper">
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (showError) setShowError(false);
+                  }}
+                  placeholder="admin@gmail.com"
+                  required
+                  autoComplete="email"
+                />
+                <Mail className="login-input-icon" size={18} />
+              </div>
             </div>
 
             <div className="login-form-group">
               <label>Password</label>
-              <div className="login-password-wrapper">
+              <div className="login-input-wrapper login-password-wrapper">
                 <input
                   id="password"
                   type={showPasswordField ? 'text' : 'password'}
@@ -321,28 +328,16 @@ function LoginPageContent() {
                   data-lpignore="true"
                   data-form-type="other"
                 />
+                <Lock className="login-input-icon" size={18} />
                 <button
                   type="button"
                   className="login-password-toggle"
                   onClick={() => setShowPasswordField((prev) => !prev)}
                   aria-label={showPasswordField ? 'Hide password' : 'Show password'}
                 >
-                  {showPasswordField ? 'Hide' : 'Show'}
+                  {showPasswordField ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </div>
-
-            <div className="login-remember-forgot">
-              <label>
-                <input
-                  id="remember"
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                />
-                Remember me
-              </label>
-              <a href="mailto:support@onedashboard.id">Forgot password?</a>
             </div>
 
             <button type="submit" className="login-btn-signin" disabled={isSubmitting}>
@@ -351,20 +346,6 @@ function LoginPageContent() {
           </form>
 
           <p className="login-footer">{helperMessage}</p>
-        </div>
-      </div>
-
-      {/* === RIGHT PANEL === */}
-      <div className="login-right">
-        <div className="login-overlay-content">
-          <Image
-            src="/assets/login.png"
-            alt="One Dashboard"
-            width={700}
-            height={500}
-            className="login-overlay-image"
-            priority
-          />
         </div>
       </div>
     </div>
