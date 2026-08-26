@@ -45,11 +45,13 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - order_customer isinya data order asli di
+     * lokal/produksi, bukan tabel kosong yang baru dibuat migration ini.
      */
     public function down(): void
     {
-        Schema::dropIfExists('order_customer');
+        //
     }
 };
 
