@@ -12,17 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('customer', function (Blueprint $table) {
-            $table->string('wa2')->nullable()->after('wa');
+            if (!Schema::hasColumn('customer', 'wa2')) {
+                $table->string('wa2')->nullable()->after('wa');
+            }
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: kolomnya kemungkinan sudah ada sebelum migration ini
+     * dijalankan (bukan dibuat olehnya), jadi down() tidak boleh drop kolom
+     * begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::table('customer', function (Blueprint $table) {
-            $table->dropColumn('wa2');
-        });
+        //
     }
 };

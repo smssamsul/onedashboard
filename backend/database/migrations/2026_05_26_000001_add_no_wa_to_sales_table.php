@@ -12,17 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->string('no_wa', 20)->nullable()->after('woowa_key');
+            if (!Schema::hasColumn('sales', 'no_wa')) {
+                $table->string('no_wa', 20)->nullable()->after('woowa_key');
+            }
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: kolomnya kemungkinan sudah ada sebelum migration ini
+     * dijalankan (bukan dibuat olehnya), jadi down() tidak boleh drop kolom
+     * begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
-            $table->dropColumn('no_wa');
-        });
+        //
     }
 };

@@ -6,8 +6,16 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * produk_jadwal dulunya dibuat dari SQL dump, bukan migration ini - guard
+     * hasTable() supaya aman dijalankan di database yang tabelnya sudah ada.
+     */
     public function up()
     {
+        if (Schema::hasTable('produk_jadwal')) {
+            return;
+        }
+
         Schema::create('produk_jadwal', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('produk_id');
@@ -22,8 +30,12 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
+     */
     public function down()
     {
-        Schema::dropIfExists('produk_jadwal');
+        //
     }
 };

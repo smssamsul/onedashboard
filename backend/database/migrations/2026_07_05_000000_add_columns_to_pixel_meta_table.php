@@ -14,21 +14,25 @@ class AddColumnsToPixelMetaTable extends Migration
     public function up()
     {
         Schema::table('pixel_meta', function (Blueprint $table) {
-            $table->string('nama')->nullable()->after('id');
-            $table->text('conversion_api_token')->nullable()->after('pixel');
-            $table->string('kode_testing')->nullable()->after('conversion_api_token');
+            if (!Schema::hasColumn('pixel_meta', 'nama')) {
+                $table->string('nama')->nullable()->after('id');
+            }
+            if (!Schema::hasColumn('pixel_meta', 'conversion_api_token')) {
+                $table->text('conversion_api_token')->nullable()->after('pixel');
+            }
+            if (!Schema::hasColumn('pixel_meta', 'kode_testing')) {
+                $table->string('kode_testing')->nullable()->after('conversion_api_token');
+            }
         });
     }
 
     /**
-     * Reverse the migrations.
-     *
-     * @return void
+     * Sengaja no-op: kolomnya kemungkinan sudah ada sebelum migration ini
+     * dijalankan (bukan dibuat olehnya), jadi down() tidak boleh drop kolom
+     * begitu saja - berisiko menghapus data produksi asli.
      */
     public function down()
     {
-        Schema::table('pixel_meta', function (Blueprint $table) {
-            $table->dropColumn(['nama', 'conversion_api_token', 'kode_testing']);
-        });
+        //
     }
 }

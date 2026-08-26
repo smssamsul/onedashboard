@@ -7,10 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * pixel_check_logs dulunya dibuat dari SQL dump, bukan migration ini - guard
+     * hasTable() supaya aman dijalankan di database yang tabelnya sudah ada.
      */
     public function up(): void
     {
+        if (Schema::hasTable('pixel_check_logs')) {
+            return;
+        }
+
         Schema::create('pixel_check_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->nullable()->constrained('order_customer')->onDelete('cascade');
@@ -28,10 +33,11 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::dropIfExists('pixel_check_logs');
+        //
     }
 };
