@@ -7,12 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * sales dulunya dibuat dari SQL dump, bukan migration ini - guard hasTable()
+     * supaya aman dijalankan di database yang tabelnya sudah ada.
      */
     public function up()
     {
+        if (Schema::hasTable('sales')) {
+            return;
+        }
+
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->integer('user_id')->nullable();
@@ -25,13 +28,12 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
-     *
-     * @return void
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down()
     {
-        Schema::dropIfExists('sales');
+        //
     }
 };
 

@@ -40,10 +40,12 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada (komentar aslinya
+     * sendiri sudah bilang "jika tabel sudah ada, dibuat manual"), jadi down()
+     * tidak boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::dropIfExists('hr_izin');
+        //
     }
 };

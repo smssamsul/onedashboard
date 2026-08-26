@@ -7,10 +7,16 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * order_resi dulunya dibuat dari SQL dump, bukan migration ini - guard
+     * hasTable() supaya aman dijalankan di database yang tabelnya sudah ada.
      * Menyimpan resi/waybill Biteship per order_customer (bisa banyak baris per order).
      */
     public function up(): void
     {
+        if (Schema::hasTable('order_resi')) {
+            return;
+        }
+
         Schema::create('order_resi', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('order_id');
@@ -34,10 +40,11 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::dropIfExists('order_resi');
+        //
     }
 };

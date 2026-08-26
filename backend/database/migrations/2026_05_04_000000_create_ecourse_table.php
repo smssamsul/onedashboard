@@ -7,12 +7,15 @@ use Illuminate\Support\Facades\Schema;
 class CreateEcourseTable extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * ecourse dulunya dibuat dari SQL dump, bukan migration ini - guard
+     * hasTable() supaya aman dijalankan di database yang tabelnya sudah ada.
      */
     public function up()
     {
+        if (Schema::hasTable('ecourse')) {
+            return;
+        }
+
         Schema::create('ecourse', function (Blueprint $table) {
             $table->id();
             $table->string('title');
@@ -24,12 +27,11 @@ class CreateEcourseTable extends Migration
     }
 
     /**
-     * Reverse the migrations.
-     *
-     * @return void
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down()
     {
-        Schema::dropIfExists('ecourse');
+        //
     }
 }

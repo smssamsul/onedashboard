@@ -12,18 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->string('baileys_session_id', 100)->nullable()->after('no_wa')
-                ->comment('Session ID untuk Baileys WA per-sales. Format: sales_{id}');
+            if (!Schema::hasColumn('sales', 'baileys_session_id')) {
+                $table->string('baileys_session_id', 100)->nullable()->after('no_wa')
+                    ->comment('Session ID untuk Baileys WA per-sales. Format: sales_{id}');
+            }
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: kolomnya kemungkinan sudah ada sebelum migration ini
+     * dijalankan (bukan dibuat olehnya), jadi down() tidak boleh drop kolom
+     * begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
-            $table->dropColumn('baileys_session_id');
-        });
+        //
     }
 };

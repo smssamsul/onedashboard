@@ -12,18 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('produk', function (Blueprint $table) {
-            $table->text('bundling')->nullable()->after('harga_asli');
-            $table->string('jenis_produk', 20)->nullable()->after('bundling');
+            if (!Schema::hasColumn('produk', 'bundling')) {
+                $table->text('bundling')->nullable()->after('harga_asli');
+            }
+            if (!Schema::hasColumn('produk', 'jenis_produk')) {
+                $table->string('jenis_produk', 20)->nullable()->after('bundling');
+            }
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: kolomnya kemungkinan sudah ada sebelum migration ini
+     * dijalankan (bukan dibuat olehnya), jadi down() tidak boleh drop kolom
+     * begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::table('produk', function (Blueprint $table) {
-            $table->dropColumn(['bundling', 'jenis_produk']);
-        });
+        //
     }
 };
