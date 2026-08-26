@@ -25,10 +25,11 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Sengaja no-op: up() cuma membuat tabel kalau belum ada, jadi down() tidak
+     * boleh drop tabel begitu saja - berisiko menghapus data produksi asli.
      */
     public function down(): void
     {
-        Schema::dropIfExists('kategori_produk');
+        //
     }
 };
