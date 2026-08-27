@@ -5,21 +5,13 @@ import Layout from "@/components/Layout";
 import GreetingBanner from "@/components/GreetingBanner";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
-  TrendingUp,
   ShoppingCart,
   CreditCard,
   Percent,
   Package,
-  DollarSign,
-  Truck,
-  Wallet,
-  PiggyBank,
   User,
 } from "lucide-react";
-import { getOrders } from "@/lib/sales/orders";
 import dynamic from "next/dynamic";
-import ProductPerformanceAll from "@/components/sales/ProductPerformanceAll";
-import axios from "axios";
 
 // Lazy load heavy components
 const LazyChart = dynamic(
@@ -38,12 +30,28 @@ const LazyXAxis = dynamic(
   () => import("recharts").then((mod) => mod.XAxis),
   { ssr: false }
 );
+const LazyYAxis = dynamic(
+  () => import("recharts").then((mod) => mod.YAxis),
+  { ssr: false }
+);
 const LazyTooltip = dynamic(
   () => import("recharts").then((mod) => mod.Tooltip),
   { ssr: false }
 );
+const LazyLegend = dynamic(
+  () => import("recharts").then((mod) => mod.Legend),
+  { ssr: false }
+);
 const LazyCartesianGrid = dynamic(
   () => import("recharts").then((mod) => mod.CartesianGrid),
+  { ssr: false }
+);
+const LazyComposedChart = dynamic(
+  () => import("recharts").then((mod) => mod.ComposedChart),
+  { ssr: false }
+);
+const LazyBar = dynamic(
+  () => import("recharts").then((mod) => mod.Bar),
   { ssr: false }
 );
 
@@ -52,11 +60,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activityRangeDays, setActivityRangeDays] = useState(30);
-  const [financeRangeDays, setFinanceRangeDays] = useState(30);
-
-  const requestDays = useMemo(() => Math.max(activityRangeDays, financeRangeDays), [activityRangeDays, financeRangeDays]);
-
-  const makeRangeLabel = (days) => `Last ${days} days`;
 
   const formatShortDay = (date) => {
     try {
@@ -104,7 +107,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/sales/dashboard?days=${encodeURIComponent(requestDays)}`, {
+      const response = await fetch(`/api/sales/dashboard?days=${encodeURIComponent(activityRangeDays)}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -124,14 +127,13 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [requestDays]);
+  }, [activityRangeDays]);
 
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
 
   const overview = data?.overview;
-  const financial = data?.financial;
   const statistik = data?.statistik;
 
   const summaryCards = useMemo(() => {
@@ -162,41 +164,6 @@ export default function Dashboard() {
       },
     ];
   }, [overview, loading]);
-
-  const revenueCards = useMemo(() => {
-    return [
-      {
-        title: "Gross Revenue",
-        value: financial?.gross_revenue_formatted ?? (loading ? "…" : "Rp0"),
-        icon: <DollarSign size={24} />,
-        color: "color-info",
-      },
-      {
-        title: "Shipping Cost",
-        value: financial?.shipping_cost_formatted ?? (loading ? "…" : "Rp0"),
-        icon: <Truck size={24} />,
-        color: "color-warning",
-      },
-      {
-        title: "Net Revenue",
-        value: financial?.net_revenue_formatted ?? (loading ? "…" : "Rp0"),
-        icon: <Wallet size={24} />,
-        color: "color-accent",
-      },
-      {
-        title: "Gross Profit",
-        value: financial?.gross_profit_formatted ?? (loading ? "…" : "Rp0"),
-        icon: <PiggyBank size={24} />,
-        color: "color-success",
-      },
-      {
-        title: "Net Profit",
-        value: financial?.net_profit_formatted ?? (loading ? "…" : "Rp0"),
-        icon: <TrendingUp size={24} />,
-        color: "color-primary",
-      },
-    ];
-  }, [financial, loading]);
 
   const activityTrend = useMemo(() => {
     const raw =
@@ -229,72 +196,9 @@ export default function Dashboard() {
   const [activeStaffId, setActiveStaffId] = useState(null);
   const [periodInfo, setPeriodInfo] = useState(null);
 
-  // State for Global Product Statistics (Statistics-All)
-  const [productStatsAll, setProductStatsAll] = useState([]);
-  const [productSummaryAll, setProductSummaryAll] = useState(null);
-  const [loadingProdAll, setLoadingProdAll] = useState(true);
-
-  // State for Recent Activity Lists
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [recentFollowups, setRecentFollowups] = useState([]);
-
-  // Helper formatter
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(Number(val) || 0);
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("id-ID", {
-      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
-    });
-  };
-
-  // Load Recent Activity (Orders & Followups)
-  const loadRecentActivity = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      // 1. Fetch Recent Orders
-      const ordersRes = await getOrders(1, 10);
-      if (ordersRes && Array.isArray(ordersRes.data)) {
-        setRecentOrders(ordersRes.data.slice(0, 10));
-      }
-
-      // 2. Fetch Recent Followups (Last 30 days to ensure data visibility)
-      const d = new Date();
-      d.setDate(d.getDate() - 30);
-      const dateFrom = d.toISOString().split("T")[0];
-      const dateTo = new Date().toISOString().split("T")[0];
-
-      const fpRes = await fetch(`/api/sales/logs-follup?date_from=${dateFrom}&date_to=${dateTo}`, {
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
-
-      if (fpRes.ok) {
-        const json = await fpRes.json();
-        if (json.success && Array.isArray(json.data)) {
-          // Sort by created_at desc
-          const sorted = json.data.sort((a, b) => new Date(b.created_at || b.create_at) - new Date(a.created_at || a.create_at));
-          setRecentFollowups(sorted.slice(0, 10));
-        }
-      }
-    } catch (e) {
-      console.error("Ordered/Followup fetch error:", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRecentActivity();
-  }, [loadRecentActivity]);
+  // State for Meta Ads daily performance
+  const [metaAdsDaily, setMetaAdsDaily] = useState([]);
+  const [loadingMetaAds, setLoadingMetaAds] = useState(true);
 
   // Load Sales Statistics
   const loadSalesStatistics = useCallback(async () => {
@@ -334,28 +238,50 @@ export default function Dashboard() {
     loadSalesStatistics();
   }, [loadSalesStatistics]);
 
-  // Load Global Product Statistics (All Staff)
-  const loadGlobalProductStats = useCallback(async () => {
-    setLoadingProdAll(true);
+  // Load Meta Ads daily performance (last 30 days)
+  const loadMetaAdsDaily = useCallback(async () => {
+    setLoadingMetaAds(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("/api/sales/dashboard/produk-statistics-all", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setProductStatsAll(response.data.data.produk_statistics || []);
-        setProductSummaryAll(response.data.data.summary || null);
-      }
+      const endDate = new Date().toISOString().slice(0, 10);
+      const startDate = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+      const response = await fetch(
+        `/api/sales/meta-ads/performance/overview?start_date=${startDate}&end_date=${endDate}&status=active`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (!response.ok) return;
+      const json = await response.json();
+      const list = json?.data?.daily || [];
+      setMetaAdsDaily(
+        list.map((d) => {
+          const dt = new Date(d.date);
+          const label = isNaN(dt)
+            ? d.date
+            : new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short" }).format(dt);
+          return {
+            label,
+            spend: Number(d.spend || 0),
+            leads: Number(d.leads || 0),
+            purchase: Number(d.conversions || 0),
+          };
+        })
+      );
     } catch (err) {
-      console.error("Error loading global product stats:", err);
+      console.error("Error loading meta ads daily performance:", err);
     } finally {
-      setLoadingProdAll(false);
+      setLoadingMetaAds(false);
     }
   }, []);
 
   useEffect(() => {
-    loadGlobalProductStats();
-  }, [loadGlobalProductStats]);
+    loadMetaAdsDaily();
+  }, [loadMetaAdsDaily]);
 
   // Scroll effect untuk staff cards
   useEffect(() => {
@@ -421,14 +347,8 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <ProductPerformanceAll
-          productStats={productStatsAll}
-          productSummary={productSummaryAll}
-          loading={loadingProdAll}
-        />
-
         <section className="dashboard-staff-section">
-          <div className="dashboard-staff-layout">
+          <div className="dashboard-staff-layout dashboard-staff-layout--single">
             <article className="panel panel--staff">
               <div className="panel__header">
                 <div>
@@ -676,38 +596,6 @@ export default function Dashboard() {
                 }
               `}</style>
             </article>
-
-            <article className="panel panel--revenue">
-              <div className="panel__header">
-                <div>
-                  <p className="panel__eyebrow">Revenue breakdown</p>
-                  <h3 className="panel__title">Financial Snapshot</h3>
-                </div>
-                <label className="panel__filter" aria-label="Filter range for Financial Snapshot">
-                  <select
-                    className="panel__select"
-                    value={financeRangeDays}
-                    onChange={(e) => setFinanceRangeDays(Number(e.target.value))}
-                  >
-                    <option value={7}>{makeRangeLabel(7)}</option>
-                    <option value={14}>{makeRangeLabel(14)}</option>
-                    <option value={30}>{makeRangeLabel(30)}</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="revenue-grid">
-                {revenueCards.map((card) => (
-                  <article className="revenue-card" key={card.title}>
-                    <div className={`revenue-card__icon ${card.color}`}>{card.icon}</div>
-                    <div>
-                      <p className="revenue-card__label">{card.title}</p>
-                      <p className="revenue-card__value">{card.value}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </article>
           </div>
         </section>
 
@@ -761,138 +649,40 @@ export default function Dashboard() {
           </article>
         </section>
 
-        {/* TWO TABLES: FOLLOW UP HISTORY & RECENT ORDERS */}
+        {/* META ADS: SPEND VS LEADS GROWTH */}
         <section className="dashboard-panels">
-          <div style={{ display: 'grid', gridTemplateColumns: '475px 1fr', gap: '1.5rem', width: '100%' }} className="recent-activity-grid">
-
-            <style jsx>{`
-                @media (max-width: 1024px) {
-                  .recent-activity-grid {
-                    grid-template-columns: 1fr !important;
-                  }
-                }
-              `}</style>
-
-            {/* TABLE 1: RECENT FOLLOW UP */}
-            <div style={{ background: 'var(--color-bg-paper)', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: 'var(--color-text-primary)' }}>
-                Riwayat Terakhir Follow Up
-              </h3>
-              <div className="table-wrapper" style={{ margin: 0 }}>
-                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>FOLLOW UP</th>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentFollowups.length > 0 ? (
-                      recentFollowups.map((log, idx) => {
-                        const typeId = log.follup || log.type;
-                        const typeMap = {
-                          1: "Follow Up 1",
-                          2: "Follow Up 2",
-                          3: "Follow Up 3",
-                          4: "Follow Up 4",
-                          5: "Register",
-                          6: "Proses",
-                          7: "Selesai",
-                          8: "Upselling",
-                          11: "Reminder Trainer",
-                        };
-
-                        let label = log.follup_rel?.nama || log.nama || typeMap[typeId] || log.type_label;
-
-                        // Fallback handling
-                        if (!label || label === "-") {
-                          label = typeId ? `Type ${typeId}` : "Unknown";
-                        }
-
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid var(--color-divider)' }}>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 500, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
-                              {log.customer_rel?.nama || log.customer_nama || log.customer?.nama || "-"}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
-                              {label}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                              {formatDateTime(log.create_at || log.created_at)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan="3" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Belum ada follow up terbaru.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+          <article className="panel panel--chart">
+            <div className="panel__header">
+              <div>
+                <p className="panel__eyebrow">Spend vs Leads (30 hari terakhir)</p>
+                <h3 className="panel__title">Meta Ads Performance</h3>
               </div>
             </div>
 
-            {/* TABLE 2: RECENT ORDERS */}
-            <div style={{ background: 'var(--color-bg-paper)', borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, padding: '1.5rem 1.5rem 1rem 1.5rem', color: 'var(--color-text-primary)' }}>
-                Pembelian Terakhir
-              </h3>
-              <div className="table-wrapper" style={{ margin: 0 }}>
-                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>CUSTOMER</th>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>PRODUK</th>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TOTAL</th>
-                      <th style={{ background: 'var(--color-primary-main)', padding: '0.6rem 0.75rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>TANGGAL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentOrders.length > 0 ? (
-                      recentOrders.map((order, idx) => {
-                        // Priority: produk_rel.nama -> existing logic
-                        const productName = order.produk_rel?.nama ||
-                          (Array.isArray(order.items) && order.items[0]
-                            ? order.items[0].nama_produk || order.items[0].nama
-                            : (order.produk_nama || "-"));
-
-                        // Priority: customer_rel.nama -> existing logic
-                        const customerName = order.customer_rel?.nama ||
-                          order.nama_customer ||
-                          order.customer?.nama ||
-                          order.nama ||
-                          "-";
-
-                        return (
-                          <tr key={idx}>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 500, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
-                              {customerName}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-text-primary)' }} title={productName}>
-                              {productName.length > 13 ? productName.substring(0, 13) + "..." : productName}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
-                              {formatCurrency(order.total_harga)}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--color-divider)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                              {formatDateTime(order.created_at || order.create_at || order.tanggal_dibuat)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan="4" className="table-empty" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Belum ada order terbaru.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            {LazyResponsiveContainer && LazyComposedChart && LazyBar && LazyLine && LazyXAxis && LazyYAxis && LazyTooltip && LazyLegend && LazyCartesianGrid ? (
+              <LazyResponsiveContainer width="100%" height={280}>
+                <LazyComposedChart data={metaAdsDaily.length > 0 ? metaAdsDaily : [{ label: "-", spend: 0, leads: 0, purchase: 0 }]}>
+                  <LazyCartesianGrid stroke="var(--color-divider)" vertical={false} />
+                  <LazyXAxis dataKey="label" stroke="var(--color-text-secondary)" fontSize={12} tickMargin={12} />
+                  <LazyYAxis yAxisId="left" stroke="var(--color-text-secondary)" fontSize={12} />
+                  <LazyYAxis yAxisId="right" orientation="right" stroke="var(--color-text-secondary)" fontSize={12} />
+                  <LazyTooltip
+                    contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)" }}
+                    formatter={(value, name) => [name === "spend" ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value) : value, name === "spend" ? "Biaya" : name === "leads" ? "Leads" : "Purchase"]}
+                  />
+                  <LazyLegend formatter={(name) => (name === "spend" ? "Biaya" : name === "leads" ? "Leads" : "Purchase")} />
+                  <LazyBar yAxisId="left" dataKey="spend" fill="var(--color-primary-main)" radius={[4, 4, 0, 0]} name="spend" />
+                  <LazyLine yAxisId="right" type="monotone" dataKey="leads" stroke="var(--color-accent-main)" strokeWidth={3} dot={false} name="leads" />
+                  <LazyLine yAxisId="right" type="monotone" dataKey="purchase" stroke="var(--color-success-dark)" strokeWidth={3} dot={false} name="purchase" />
+                </LazyComposedChart>
+              </LazyResponsiveContainer>
+            ) : (
+              <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
+                Loading chart...
               </div>
-            </div>
-          </div>
-
+            )}
+            {!loadingMetaAds && metaAdsDaily.length === 0 && <p className="panel__empty">Belum ada data Meta Ads untuk periode ini.</p>}
+          </article>
         </section>
       </div>
     </Layout>
