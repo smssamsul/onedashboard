@@ -21,7 +21,8 @@ class Sales extends Model
         'urutan',
         'last_update_lead',
         'create_at',
-        'update_at'
+        'update_at',
+        'business_unit_id',
     ];
 
     /**
@@ -30,6 +31,14 @@ class Sales extends Model
     public function user_rel()
     {
         return $this->belongsTo(\App\Models\User::class, 'user_id', 'id');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(\App\Models\UnitBisnis::class, 'business_unit_id', 'id');
     }
 
     /**

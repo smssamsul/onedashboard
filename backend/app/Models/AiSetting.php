@@ -19,9 +19,18 @@ class AiSetting extends Model
         'prompt_warm',
         'woowa_key',
         'is_on',
+        'business_unit_id',
     ];
 
     protected $casts = [
         'is_on' => 'boolean',
     ];
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
+    }
 }

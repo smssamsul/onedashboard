@@ -25,6 +25,7 @@ class MetaAdsAccount extends Model
         'last_synced_at',
         'create_at',
         'update_at',
+        'business_unit_id',
     ];
 
     protected $casts = [
@@ -51,6 +52,15 @@ class MetaAdsAccount extends Model
     public function insightsDaily()
     {
         return $this->hasMany(MetaAdInsightDaily::class, 'meta_ads_account_id');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant) - jangan tertukar dengan kolom "business_id"
+     * di tabel ini yang merupakan ID Business Manager Meta/Facebook.
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
     }
 
     public function getHasTokenAttribute(): bool

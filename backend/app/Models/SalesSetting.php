@@ -22,7 +22,16 @@ class SalesSetting extends Model
         'baileys_quota_max_messages',
         'baileys_quota_window_minutes',
         'auto_followup_enabled',
+        'business_unit_id',
     ];
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
+    }
 
     /**
      * Get the main Woowa Key from the database.
