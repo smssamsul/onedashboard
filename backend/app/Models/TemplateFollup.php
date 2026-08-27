@@ -21,6 +21,7 @@ class TemplateFollup extends Model
         'status',
         'produk_id',
         'type',
+        'business_unit_id',
     ];
 
     public $timestamps = false;
@@ -33,5 +34,13 @@ class TemplateFollup extends Model
     public function produk_rel()
     {
         return $this->belongsTo(Produk::class, 'produk_id', 'id');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
     }
 }

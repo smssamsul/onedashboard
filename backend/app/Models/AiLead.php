@@ -37,6 +37,7 @@ class AiLead extends Model
         'create_param',
         'create_at',
         'update_at',
+        'business_unit_id',
     ];
 
     protected $casts = [
@@ -69,5 +70,13 @@ class AiLead extends Model
     public function percakapan()
     {
         return $this->hasMany(Percakapan::class, 'ai_leads_id', 'id');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
     }
 }

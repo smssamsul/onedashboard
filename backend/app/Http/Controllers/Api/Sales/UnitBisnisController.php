@@ -54,12 +54,16 @@ class UnitBisnisController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama' => 'required|string|max:255'
+            'nama' => 'required|string|max:255',
+            'domain' => 'nullable|string|max:255|unique:unit_bisnis,domain',
+            'branding' => 'nullable|array',
         ]);
 
         $unitBisnis = UnitBisnis::create([
             'nama' => $request->nama,
             'slug' => $this->uniqueSlug($request->nama),
+            'domain' => $request->domain,
+            'branding' => $request->branding,
             'create_at' => now(),
             'status' => '1'
         ]);
@@ -101,11 +105,19 @@ class UnitBisnisController extends Controller
             ], 404);
         }
 
+        $request->validate([
+            'nama' => 'nullable|string|max:255',
+            'domain' => 'nullable|string|max:255|unique:unit_bisnis,domain,' . $unitBisnis->id,
+            'branding' => 'nullable|array',
+        ]);
+
         $namaBaru = $request->nama ?? $unitBisnis->nama;
 
         $unitBisnis->update([
             'nama' => $namaBaru,
             'slug' => $request->nama ? $this->uniqueSlug($namaBaru, $unitBisnis->id) : $unitBisnis->slug,
+            'domain' => $request->has('domain') ? $request->domain : $unitBisnis->domain,
+            'branding' => $request->has('branding') ? $request->branding : $unitBisnis->branding,
             'update_at' => now(),
             'status' => $request->status ?? $unitBisnis->status
         ]);

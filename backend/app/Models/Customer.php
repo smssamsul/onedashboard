@@ -60,6 +60,7 @@ class Customer extends Authenticatable implements JWTSubject
         'ai_recommended_action',
         'ai_sentiment',
         'score_updated_at',
+        'business_unit_id',
     ];
 
     protected $hidden = [
@@ -84,6 +85,14 @@ class Customer extends Authenticatable implements JWTSubject
         return $this->hasMany(OrderCustomer::class, 'customer', 'id')
             ->where('status', '!=', 'N')
             ->orderBy('create_at', 'desc');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
     }
 
     /**

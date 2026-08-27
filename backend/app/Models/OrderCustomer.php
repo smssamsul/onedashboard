@@ -43,6 +43,7 @@ class OrderCustomer extends Model
         'utm_campaign',
         'utm_term',
         'utm_content',
+        'business_unit_id',
     ];
 
     public $timestamps = false;
@@ -56,6 +57,14 @@ class OrderCustomer extends Model
      public function customer_rel()
     {
         return $this->belongsTo(Customer::class, 'customer', 'id');
+    }
+
+    /**
+     * Relasi ke UnitBisnis (tenant)
+     */
+    public function businessUnit()
+    {
+        return $this->belongsTo(UnitBisnis::class, 'business_unit_id', 'id');
     }
 
     /**
