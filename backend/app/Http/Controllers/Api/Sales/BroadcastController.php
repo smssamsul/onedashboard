@@ -126,10 +126,19 @@ class BroadcastController extends Controller
             'target.produk' => 'nullable',
             'target.status_pembayaran' => 'nullable|string',
             'target.status_order' => 'nullable|string',
+            'target.status_target' => 'nullable|string|in:semua,sudah_bayar,belum_bayar,gagal_ditolak',
+            'target.exclude_alumni' => 'nullable|boolean',
+            'target.tanggal_dari' => 'nullable|date',
+            'target.tanggal_sampai' => 'nullable|date',
             'target.excel_data' => 'nullable|array',
             'target.sender_sales_id' => 'nullable|integer',
             'status' => 'nullable|string|max:2',
             'langsung_kirim' => 'nullable|boolean',
+            'interval_detik' => 'nullable|integer|min:0|max:3600',
+            'jeda_setiap_n_pesan' => 'nullable|integer|min:0|max:10000',
+            'istirahat_detik' => 'nullable|integer|min:0|max:86400',
+            'max_penerima_per_sesi' => 'nullable|integer|min:0|max:100000',
+            'jeda_antar_sesi_menit' => 'nullable|integer|min:0|max:1440',
         ]);
 
         $tipeTarget = $validated['target']['tipe'] ?? 'filter';
@@ -209,13 +218,18 @@ class BroadcastController extends Controller
             'create_by' => $userId,
             'create_at' => now(),
             'update_at' => now(),
+            'interval_detik' => $validated['interval_detik'] ?? null,
+            'jeda_setiap_n_pesan' => $validated['jeda_setiap_n_pesan'] ?? null,
+            'istirahat_detik' => $validated['istirahat_detik'] ?? null,
+            'max_penerima_per_sesi' => $validated['max_penerima_per_sesi'] ?? null,
+            'jeda_antar_sesi_menit' => $validated['jeda_antar_sesi_menit'] ?? null,
         ]);
 
         // Jika langsung kirim, proses ke queue
         $sentCount = 0;
         $failedCount = 0;
         $totalOrders = 0;
-        
+
         if (!empty($validated['langsung_kirim']) && $validated['langsung_kirim']) {
             try {
                 // Update status broadcast ke 3 (Terkirim) karena langsung dikirim
@@ -304,11 +318,17 @@ class BroadcastController extends Controller
                         // Satu customer hanya dapat 1 pesan per broadcast, ambil order pertama saja
                         $uniqueOrdersByCustomer = $orders->unique('customer')->values();
 
-                        foreach ($uniqueOrdersByCustomer as $order) {
+                        // Jadwal jeda anti-banned - lihat BroadcastPacingService untuk rumusnya.
+                        $delays = \App\Services\BroadcastPacingService::computeDelays(
+                            $uniqueOrdersByCustomer->count(),
+                            \App\Services\BroadcastPacingService::settingsFromBroadcast($broadcast)
+                        );
+
+                        foreach ($uniqueOrdersByCustomer as $index => $order) {
                             try {
                                 // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
                                 $customer = $order->customer_rel ?? Customer::find($order->customer);
-                                
+
                                 $senderSalesId = $validated['target']['sender_sales_id'] ?? null;
                                 if ($senderSalesId) {
                                     $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
@@ -328,7 +348,7 @@ class BroadcastController extends Controller
                                     $order->id,
                                     $order->customer,
                                     $userId
-                                );
+                                )->delay(now()->addSeconds($delays[$index] ?? 0));
 
                                 $sentCount++;
                             } catch (\Exception $e) {
@@ -382,8 +402,17 @@ class BroadcastController extends Controller
             'target.produk' => 'nullable',
             'target.status_pembayaran' => 'nullable|string',
             'target.status_order' => 'nullable|string',
+            'target.status_target' => 'nullable|string|in:semua,sudah_bayar,belum_bayar,gagal_ditolak',
+            'target.exclude_alumni' => 'nullable|boolean',
+            'target.tanggal_dari' => 'nullable|date',
+            'target.tanggal_sampai' => 'nullable|date',
             'status' => 'nullable|string|max:2',
             'langsung_kirim' => 'nullable|boolean',
+            'interval_detik' => 'nullable|integer|min:0|max:3600',
+            'jeda_setiap_n_pesan' => 'nullable|integer|min:0|max:10000',
+            'istirahat_detik' => 'nullable|integer|min:0|max:86400',
+            'max_penerima_per_sesi' => 'nullable|integer|min:0|max:100000',
+            'jeda_antar_sesi_menit' => 'nullable|integer|min:0|max:1440',
         ]);
 
         // Ambil user yang sedang login
@@ -464,6 +493,11 @@ class BroadcastController extends Controller
             'create_by' => $userId,
             'create_at' => now(),
             'update_at' => now(),
+            'interval_detik' => $validated['interval_detik'] ?? null,
+            'jeda_setiap_n_pesan' => $validated['jeda_setiap_n_pesan'] ?? null,
+            'istirahat_detik' => $validated['istirahat_detik'] ?? null,
+            'max_penerima_per_sesi' => $validated['max_penerima_per_sesi'] ?? null,
+            'jeda_antar_sesi_menit' => $validated['jeda_antar_sesi_menit'] ?? null,
         ]);
 
         // Jika langsung kirim, proses ke queue RabbitMQ
@@ -486,11 +520,17 @@ class BroadcastController extends Controller
                     $uniqueOrdersByCustomer = $orders->unique('customer')->values();
                     $uniqueCustomersCount = $uniqueOrdersByCustomer->count();
 
-                    foreach ($uniqueOrdersByCustomer as $order) {
+                    // Jadwal jeda anti-banned - lihat BroadcastPacingService untuk rumusnya.
+                    $delays = \App\Services\BroadcastPacingService::computeDelays(
+                        $uniqueOrdersByCustomer->count(),
+                        \App\Services\BroadcastPacingService::settingsFromBroadcast($broadcast)
+                    );
+
+                    foreach ($uniqueOrdersByCustomer as $index => $order) {
                         try {
                             // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
                             $customer = $order->customer_rel ?? Customer::find($order->customer);
-                            
+
                             // Pastikan customer memiliki sales_id yang sama dengan user yang login
                             if (!$customer || $customer->sales_id != $user->id) {
                                 continue;
@@ -506,7 +546,7 @@ class BroadcastController extends Controller
                                 $order->id,
                                 $order->customer,
                                 $userId
-                            );
+                            )->delay(now()->addSeconds($delays[$index] ?? 0));
 
                             $sentCount++;
                         } catch (\Exception $e) {
@@ -548,6 +588,75 @@ class BroadcastController extends Controller
         }
 
         return response()->json($responseData, 201);
+    }
+
+    /**
+     * Hitung total penerima yang cocok dengan filter target saat ini, tanpa
+     * membuat broadcast - dipakai form "Target penerima" untuk menampilkan
+     * angka "Total penerima terfilter" secara live saat filter diubah.
+     */
+    public function countTargetPreview(Request $request)
+    {
+        $validated = $request->validate([
+            'target' => 'required|array',
+            'target.produk' => 'nullable',
+            'target.status_target' => 'nullable|string|in:semua,sudah_bayar,belum_bayar,gagal_ditolak',
+            'target.exclude_alumni' => 'nullable|boolean',
+            'target.tanggal_dari' => 'nullable|date',
+            'target.tanggal_sampai' => 'nullable|date',
+        ]);
+
+        if (isset($validated['target']['produk']) && !is_array($validated['target']['produk'])) {
+            $validated['target']['produk'] = is_numeric($validated['target']['produk'])
+                ? [(int) $validated['target']['produk']]
+                : [];
+        }
+
+        $total = $this->countTarget($validated['target']);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['total_target' => $total],
+        ]);
+    }
+
+    /**
+     * Sama seperti countTargetPreview(), tapi dibatasi ke customer milik sales
+     * yang sedang login - dipakai form broadcast di halaman Sales Staff.
+     */
+    public function countTargetPreviewForSales(Request $request)
+    {
+        $validated = $request->validate([
+            'target' => 'required|array',
+            'target.produk' => 'nullable',
+            'target.status_target' => 'nullable|string|in:semua,sudah_bayar,belum_bayar,gagal_ditolak',
+            'target.exclude_alumni' => 'nullable|boolean',
+            'target.tanggal_dari' => 'nullable|date',
+            'target.tanggal_sampai' => 'nullable|date',
+        ]);
+
+        $userLogin = auth('api')->user();
+        if (!$userLogin) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+        $userLogin->load('userData');
+        $user = $userLogin->userData;
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User data tidak ditemukan'], 404);
+        }
+
+        if (isset($validated['target']['produk']) && !is_array($validated['target']['produk'])) {
+            $validated['target']['produk'] = is_numeric($validated['target']['produk'])
+                ? [(int) $validated['target']['produk']]
+                : [];
+        }
+
+        $total = $this->countTargetForSales($validated['target'], $user->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['total_target' => $total],
+        ]);
     }
 
     /**
@@ -689,13 +798,19 @@ class BroadcastController extends Controller
         $failedCount = 0;
 
         // Group orders by ID untuk menghindari duplikasi
-        $uniqueOrders = $orders->unique('id');
+        $uniqueOrders = $orders->unique('id')->values();
 
-        foreach ($uniqueOrders as $order) {
+        // Jadwal jeda anti-banned - lihat BroadcastPacingService untuk rumusnya.
+        $delays = \App\Services\BroadcastPacingService::computeDelays(
+            $uniqueOrders->count(),
+            \App\Services\BroadcastPacingService::settingsFromBroadcast($broadcast)
+        );
+
+        foreach ($uniqueOrders as $index => $order) {
             try {
                 // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
                 $customer = $order->customer_rel ?? Customer::find($order->customer);
-                
+
                 $senderSalesId = $target['sender_sales_id'] ?? null;
                 if ($senderSalesId) {
                     $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
@@ -715,7 +830,7 @@ class BroadcastController extends Controller
                     $order->id,
                     $order->customer,
                     $userId
-                );
+                )->delay(now()->addSeconds($delays[$index] ?? 0));
 
                 $sentCount++;
             } catch (\Exception $e) {
@@ -788,7 +903,7 @@ class BroadcastController extends Controller
             }
         }
 
-        // Filter berdasarkan status_pembayaran
+        // Filter berdasarkan status_pembayaran (field lama, masih didukung untuk broadcast lama)
         if (isset($target['status_pembayaran'])) {
             if (is_array($target['status_pembayaran'])) {
                 $query->whereIn('status_pembayaran', $target['status_pembayaran']);
@@ -797,13 +912,48 @@ class BroadcastController extends Controller
             }
         }
 
-        // Filter berdasarkan status_order
+        // Filter berdasarkan status_order (field lama, masih didukung untuk broadcast lama)
         if (isset($target['status_order'])) {
             if (is_array($target['status_order'])) {
                 $query->whereIn('status_order', $target['status_order']);
             } else {
                 $query->where('status_order', $target['status_order']);
             }
+        }
+
+        // Target Status - dropdown gabungan pengganti Status Order + Status Pembayaran
+        // di form "Target penerima". Nilai null/status_pembayaran memakai konvensi
+        // yang sama dengan STATUS_PEMBAYARAN_MAP di frontend (null = Unpaid).
+        if (!empty($target['status_target']) && $target['status_target'] !== 'semua') {
+            switch ($target['status_target']) {
+                case 'sudah_bayar':
+                    $query->where('status_pembayaran', '2');
+                    break;
+                case 'belum_bayar':
+                    $query->where(function ($q) {
+                        $q->whereNull('status_pembayaran')
+                          ->orWhereIn('status_pembayaran', ['0', '1', '4']);
+                    });
+                    break;
+                case 'gagal_ditolak':
+                    $query->where(function ($q) {
+                        $q->where('status_pembayaran', '3')
+                          ->orWhere('status_order', '3');
+                    });
+                    break;
+            }
+        }
+
+        // Kecualikan alumni & customer yang sudah pernah bayar (customer_type = 'customer').
+        // Dipakai saat broadcast ditujukan untuk lead/prospek supaya tidak ikut
+        // memperlakukan orang yang sudah jadi customer sebagai calon peserta baru.
+        if (!empty($target['exclude_alumni'])) {
+            $query->whereHas('customer_rel', function ($c) {
+                $c->where(function ($sub) {
+                    $sub->whereNull('customer_type')
+                        ->orWhere('customer_type', '!=', 'customer');
+                });
+            });
         }
 
         // Filter berdasarkan customer
@@ -962,11 +1112,17 @@ class BroadcastController extends Controller
         // Group orders by customer untuk menghindari duplikasi kirim ke customer yang sama
         $uniqueOrdersByCustomer = $orders->unique('customer')->values();
 
-        foreach ($uniqueOrdersByCustomer as $order) {
+        // Jadwal jeda anti-banned - lihat BroadcastPacingService untuk rumusnya.
+        $delays = \App\Services\BroadcastPacingService::computeDelays(
+            $uniqueOrdersByCustomer->count(),
+            \App\Services\BroadcastPacingService::settingsFromBroadcast($broadcast)
+        );
+
+        foreach ($uniqueOrdersByCustomer as $index => $order) {
             try {
                 // Ambil customer dari relasi yang sudah dimuat atau query jika belum ada
                 $customer = $order->customer_rel ?? Customer::find($order->customer);
-                
+
                 // Pastikan customer memiliki sales_id yang sama dengan user yang login
                 if (!$customer || $customer->sales_id != $user->id) {
                     continue;
@@ -982,7 +1138,7 @@ class BroadcastController extends Controller
                     $order->id,
                     $order->customer,
                     $userId
-                );
+                )->delay(now()->addSeconds($delays[$index] ?? 0));
 
                 $sentCount++;
             } catch (\Exception $e) {

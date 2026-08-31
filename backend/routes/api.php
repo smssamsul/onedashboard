@@ -405,6 +405,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/broadcast', [BroadcastController::class, 'store']);
         Route::post('/broadcast/per-sales', [BroadcastController::class, 'storeForMySales']);
         Route::post('/broadcast/parse-excel', [BroadcastController::class, 'parseExcel']); // harus sebelum {id}
+        Route::post('/broadcast/count-target', [BroadcastController::class, 'countTargetPreview']); // harus sebelum {id}
+        Route::post('/broadcast/count-target-per-sales', [BroadcastController::class, 'countTargetPreviewForSales']); // harus sebelum {id}
         Route::get('/broadcast/{id}', [BroadcastController::class, 'show']);
         Route::get('/broadcast/{id}/penerima', [BroadcastController::class, 'penerima']);
         Route::put('/broadcast/{id}', [BroadcastController::class, 'update']);

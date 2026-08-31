@@ -28,6 +28,11 @@ class Broadcast extends Model
         'create_at',
         'update_at',
         'create_by',
+        'interval_detik',
+        'jeda_setiap_n_pesan',
+        'istirahat_detik',
+        'max_penerima_per_sesi',
+        'jeda_antar_sesi_menit',
     ];
 
     public $timestamps = false;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Calendar } from "primereact/calendar";
-import { normalizeBroadcastPayload } from "@/lib/sales/broadcast";
+import { normalizeBroadcastPayload, buildTargetCountPayload } from "@/lib/sales/broadcast";
 import dynamic from "next/dynamic";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import "primereact/resources/primereact.min.css";
@@ -13,24 +13,36 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
 });
 
-// Status Order Mapping
-const STATUS_ORDER_MAP = {
-  "1": "Proses",
-  "2": "Processing",
-  "3": "Failed",
-  "4": "Upselling",
-  "N": "Dihapus",
-};
+// Pilihan Target Status - dropdown gabungan pengganti Status Order + Status Pembayaran
+const TARGET_STATUS_OPTIONS = [
+  { value: "semua", label: "Semua" },
+  { value: "sudah_bayar", label: "Sudah Bayar (Paid)" },
+  { value: "belum_bayar", label: "Belum Bayar" },
+  { value: "gagal_ditolak", label: "Gagal / Ditolak" },
+];
 
-// Status Pembayaran Mapping
-const STATUS_PEMBAYARAN_MAP = {
-  0: { label: "Unpaid", class: "unpaid" },
-  null: { label: "Unpaid", class: "unpaid" },
-  1: { label: "Waiting Approval", class: "pending" }, 
-  2: { label: "Paid", class: "paid" },             
-  3: { label: "Rejected", class: "rejected" },
-  4: { label: "Partial Payment", class: "partial" },
-};
+/**
+ * Perkiraan kasar lama pengiriman berdasarkan pengaturan pacing - untuk
+ * teks bantuan saja, bukan angka pasti (rumus persisnya ada di
+ * BroadcastPacingService di backend).
+ */
+function estimasiWaktuKirim(count, formData) {
+  const interval = Number(formData.interval_detik) || 0;
+  const jedaN = Number(formData.jeda_setiap_n_pesan) || 0;
+  const istirahat = Number(formData.istirahat_detik) || 0;
+  const maxPerSesi = Number(formData.max_penerima_per_sesi) || 0;
+  const jedaAntarSesiDetik = (Number(formData.jeda_antar_sesi_menit) || 0) * 60;
+
+  let totalDetik = count * interval;
+  if (jedaN > 0) totalDetik += Math.floor(count / jedaN) * istirahat;
+  if (maxPerSesi > 0) totalDetik += Math.floor((count - 1) / maxPerSesi) * jedaAntarSesiDetik;
+
+  if (totalDetik < 60) return `${Math.round(totalDetik)} detik`;
+  if (totalDetik < 3600) return `${Math.round(totalDetik / 60)} menit`;
+  const jam = Math.floor(totalDetik / 3600);
+  const menit = Math.round((totalDetik % 3600) / 60);
+  return menit > 0 ? `${jam} jam ${menit} menit` : `${jam} jam`;
+}
 
 export default function AddBroadcast({ onClose, onAdd }) {
   const [formData, setFormData] = useState({
@@ -41,17 +53,26 @@ export default function AddBroadcast({ onClose, onAdd }) {
     target: {
       tipe: "filter",
       produk: [],
-      status_order: "",
-      status_pembayaran: "",
+      status_target: "semua",
+      exclude_alumni: false,
+      tanggal_dari: "",
+      tanggal_sampai: "",
       excel_data: null,
       sender_sales_id: "",
     },
+    // Pengaturan Pengiriman (anti-banned)
+    interval_detik: 8,
+    jeda_setiap_n_pesan: 40,
+    istirahat_detik: 90,
+    max_penerima_per_sesi: "",
+    jeda_antar_sesi_menit: "",
   });
+
+  const [targetCount, setTargetCount] = useState(null);
+  const [targetCountLoading, setTargetCountLoading] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [templates, setTemplates] = useState([]);
-  const [statusOrderOptions, setStatusOrderOptions] = useState([]);
-  const [statusPembayaranOptions, setStatusPembayaranOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -159,58 +180,6 @@ export default function AddBroadcast({ onClose, onAdd }) {
           }
         }
 
-        // Fetch orders for statuses
-        const ordersRes = await fetch("/api/sales/order?page=1&per_page=1000", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (ordersRes.ok) {
-          const ordersJson = await ordersRes.json();
-          if (ordersJson.success && ordersJson.data && Array.isArray(ordersJson.data)) {
-            const uniqueStatusOrder = new Set();
-            ordersJson.data.forEach((order) => {
-              if (order.status_order) {
-                const status = String(order.status_order);
-                if (status && status !== "null" && status !== "undefined") {
-                  uniqueStatusOrder.add(status);
-                }
-              }
-            });
-
-            const uniqueStatusPembayaran = new Set();
-            ordersJson.data.forEach((order) => {
-              let status = order.status_pembayaran;
-              if (status === undefined) status = null;
-              uniqueStatusPembayaran.add(status);
-            });
-
-            const statusOrderOpts = Array.from(uniqueStatusOrder)
-              .sort()
-              .map((value) => ({
-                value,
-                label: STATUS_ORDER_MAP[value] || value,
-              }));
-
-            const statusPembayaranOpts = Array.from(uniqueStatusPembayaran)
-              .sort((a, b) => {
-                if (a === null) return -1;
-                if (b === null) return 1;
-                return Number(a) - Number(b);
-              })
-              .map((value) => ({
-                value,
-                label: STATUS_PEMBAYARAN_MAP[value]?.label || value
-              }));
-
-            setStatusOrderOptions(statusOrderOpts);
-            setStatusPembayaranOptions(statusPembayaranOpts);
-          }
-        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Gagal memuat data");
@@ -220,6 +189,48 @@ export default function AddBroadcast({ onClose, onAdd }) {
     };
     fetchData();
   }, []);
+
+  // Hitung ulang "Total penerima terfilter" tiap kali filter target berubah,
+  // di-debounce supaya tidak spam request saat user masih mengetik/klik.
+  useEffect(() => {
+    if (formData.target.tipe !== "filter") {
+      setTargetCount(null);
+      return;
+    }
+
+    const handle = setTimeout(async () => {
+      try {
+        setTargetCountLoading(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/sales/broadcast/count-target", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(buildTargetCountPayload(formData)),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setTargetCount(json.data?.total_target ?? 0);
+        }
+      } catch (err) {
+        console.error("Gagal menghitung total penerima:", err);
+      } finally {
+        setTargetCountLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handle);
+  }, [
+    formData.target.tipe,
+    formData.target.produk,
+    formData.target.status_target,
+    formData.target.exclude_alumni,
+    formData.target.tanggal_dari,
+    formData.target.tanggal_sampai,
+  ]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -537,8 +548,8 @@ export default function AddBroadcast({ onClose, onAdd }) {
                 <div style={{ marginBottom: "1rem" }}>
                   <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Produk</label>
                   <div style={{ position: "relative" }}>
-                    <div 
-                      onClick={() => setShowProdukDropdown(!showProdukDropdown)} 
+                    <div
+                      onClick={() => setShowProdukDropdown(!showProdukDropdown)}
                       style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem", background: "white", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                     >
                       <span style={{ color: formData.target.produk.length === 0 ? "#9ca3af" : "inherit" }}>
@@ -566,40 +577,69 @@ export default function AddBroadcast({ onClose, onAdd }) {
                       </div>
                     )}
                   </div>
+                  <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
+                    Buka dropdown, centang satu atau lebih produk — atau &quot;Semua produk&quot;.
+                  </small>
                 </div>
 
-                <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem" }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Status Order</label>
-                    <select 
-                      value={formData.target.status_order || ""}
-                      onChange={(e) => setFormData(p => ({...p, target: {...p.target, status_order: e.target.value}}))}
-                      style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
-                    >
-                      <option value="">Semua Status Order</option>
-                      {statusOrderOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Target Status</label>
+                  <select
+                    value={formData.target.status_target || "semua"}
+                    onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, status_target: e.target.value } }))}
+                    style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                  >
+                    {TARGET_STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Status Pembayaran</label>
-                    <select 
-                      value={formData.target.status_pembayaran !== null ? formData.target.status_pembayaran : ""}
-                      onChange={(e) => {
-                        let val = e.target.value;
-                        if (val === "null") val = null;
-                        setFormData(p => ({...p, target: {...p.target, status_pembayaran: val}}));
-                      }}
-                      style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
-                    >
-                      <option value="">Semua Status Pembayaran</option>
-                      {statusPembayaranOptions.map((opt, idx) => (
-                        <option key={idx} value={opt.value === null ? "null" : opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!formData.target.exclude_alumni}
+                      onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, exclude_alumni: e.target.checked } }))}
+                      style={{ marginTop: "0.2rem" }}
+                    />
+                    <span style={{ fontSize: "0.875rem" }}>
+                      <span style={{ fontWeight: 600 }}>Kecualikan alumni &amp; customer sudah bayar</span>
+                      <small style={{ color: "#64748b", display: "block", marginTop: "0.15rem" }}>
+                        Centang bila broadcast ini untuk lead/prospek — biar alumni tak diperlakukan sebagai calon peserta.
+                      </small>
+                    </span>
+                  </label>
+                </div>
+
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Filter Tanggal Order (opsional)</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <input
+                      type="date"
+                      value={formData.target.tanggal_dari || ""}
+                      onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, tanggal_dari: e.target.value } }))}
+                      style={{ flex: 1, padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                    />
+                    <span style={{ color: "#64748b", fontSize: "0.875rem" }}>s/d</span>
+                    <input
+                      type="date"
+                      value={formData.target.tanggal_sampai || ""}
+                      onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, tanggal_sampai: e.target.value } }))}
+                      style={{ flex: 1, padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                    />
                   </div>
+                  <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
+                    Kosongkan untuk semua tanggal. Berdasarkan tanggal order dibuat.
+                  </small>
+                </div>
+
+                <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "0.5rem", padding: "0.75rem 1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <i className="pi pi-bullseye" style={{ color: "#059669" }}></i>
+                  <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#065f46" }}>
+                    Total penerima terfilter:{" "}
+                    {targetCountLoading ? "menghitung..." : `${targetCount ?? 0} penerima`}
+                  </span>
                 </div>
               </>
             )}
@@ -645,6 +685,88 @@ export default function AddBroadcast({ onClose, onAdd }) {
                 <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>Format: Kolom A (Nama), Kolom B (No WA)</small>
               </div>
             )}
+          </div>
+
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.5rem", padding: "1.25rem", marginTop: "1rem" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <i className="pi pi-shield" style={{ color: "#F1A124" }}></i>
+              Pengaturan Pengiriman (anti-banned)
+            </div>
+            <p style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: 0, marginBottom: "1rem" }}>
+              Kirim bertahap biar nomor WhatsApp aman. Semua angka bisa diubah.
+            </p>
+
+            <div style={{ display: "flex", gap: "1rem", marginBottom: "0.5rem" }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Interval antar pesan (detik)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.interval_detik}
+                  onChange={(e) => setFormData(p => ({ ...p, interval_detik: e.target.value }))}
+                  style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Jeda tiap ... pesan</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.jeda_setiap_n_pesan}
+                  onChange={(e) => setFormData(p => ({ ...p, jeda_setiap_n_pesan: e.target.value }))}
+                  style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Lama istirahat (detik)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.istirahat_detik}
+                  onChange={(e) => setFormData(p => ({ ...p, istirahat_detik: e.target.value }))}
+                  style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                />
+              </div>
+            </div>
+            <small style={{ color: "#64748b", display: "block", marginBottom: "1.25rem" }}>
+              Contoh: interval {formData.interval_detik || 0} dtk, tiap {formData.jeda_setiap_n_pesan || 0} pesan istirahat {formData.istirahat_detik || 0} dtk
+              {targetCount ? ` → ${targetCount} penerima ≈ ${estimasiWaktuKirim(targetCount, formData)}` : ""}.
+              Angka 0 pada &quot;jeda tiap&quot; = tanpa istirahat batch.
+            </small>
+
+            <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: "1rem" }}>
+              <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: 600, fontSize: "0.875rem" }}>Pecah per Sesi (database besar)</label>
+              <small style={{ color: "#64748b", display: "block", marginBottom: "0.75rem" }}>
+                Batasi jumlah kirim per sesi. Sisanya lanjut otomatis di sesi berikutnya (nomor yang sudah terkirim di-skip). Kosong/0 = kirim semua sekaligus.
+              </small>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Maksimal penerima / sesi</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="mis. 100 (0 = semua)"
+                    value={formData.max_penerima_per_sesi}
+                    onChange={(e) => setFormData(p => ({ ...p, max_penerima_per_sesi: e.target.value }))}
+                    style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Jeda antar sesi (menit)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="mis. 60"
+                    value={formData.jeda_antar_sesi_menit}
+                    onChange={(e) => setFormData(p => ({ ...p, jeda_antar_sesi_menit: e.target.value }))}
+                    style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+                  />
+                </div>
+              </div>
+              <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
+                Contoh: 300 unpaid, 100/sesi jeda 60 menit → dikirim 3 sesi (0-100, 100-200, 200-300) berjarak 1 jam. Jauh lebih aman.
+              </small>
+            </div>
           </div>
         </form>
         

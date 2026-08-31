@@ -153,10 +153,16 @@ class SendScheduledBroadcastCron extends Command
                             continue;
                         }
 
-                        foreach ($uniqueOrdersByCustomer as $order) {
+                        // Jadwal jeda anti-banned - sama seperti broadcast langsung.
+                        $delays = \App\Services\BroadcastPacingService::computeDelays(
+                            $uniqueOrdersByCustomer->count(),
+                            \App\Services\BroadcastPacingService::settingsFromBroadcast($broadcast)
+                        );
+
+                        foreach ($uniqueOrdersByCustomer as $index => $order) {
                             try {
                                 $customer = $order->customer_rel ?? Customer::find($order->customer);
-                                
+
                                 $senderSalesId = $target['sender_sales_id'] ?? null;
                                 if ($senderSalesId) {
                                     $woowaKey = env('WOOWA_KEY');
@@ -175,7 +181,7 @@ class SendScheduledBroadcastCron extends Command
                                     $order->id,
                                     $order->customer,
                                     $broadcast->create_by
-                                );
+                                )->delay(now()->addSeconds($delays[$index] ?? 0));
 
                                 $sentCount++;
                             } catch (\Exception $e) {
@@ -234,7 +240,13 @@ class SendScheduledBroadcastCron extends Command
     }
 
     /**
-     * Ambil orders berdasarkan target conditions
+     * Ambil orders berdasarkan target conditions.
+     *
+     * Sengaja disamakan dengan BroadcastController::applyTargetConditions() -
+     * broadcast terjadwal dan broadcast langsung harus memfilter penerima
+     * dengan cara yang identik, kalau tidak angka "Total penerima terfilter"
+     * yang dilihat user saat membuat broadcast bisa beda dengan yang benar-benar
+     * terkirim saat waktunya tiba.
      */
     private function getOrdersByTarget(array $target)
     {
@@ -249,14 +261,59 @@ class SendScheduledBroadcastCron extends Command
             $query->where('produk', $target['produk']);
         }
 
-        // Filter berdasarkan status_pembayaran
+        // Filter berdasarkan status_pembayaran (field lama, masih didukung)
         if (isset($target['status_pembayaran'])) {
             $query->where('status_pembayaran', $target['status_pembayaran']);
         }
 
-        // Filter berdasarkan status_order
+        // Filter berdasarkan status_order (field lama, masih didukung)
         if (isset($target['status_order']) && $target['status_order'] !== '') {
             $query->where('status_order', $target['status_order']);
+        }
+
+        // Target Status - dropdown gabungan, lihat BroadcastController::applyTargetConditions()
+        if (!empty($target['status_target']) && $target['status_target'] !== 'semua') {
+            switch ($target['status_target']) {
+                case 'sudah_bayar':
+                    $query->where('status_pembayaran', '2');
+                    break;
+                case 'belum_bayar':
+                    $query->where(function ($q) {
+                        $q->whereNull('status_pembayaran')
+                          ->orWhereIn('status_pembayaran', ['0', '1', '4']);
+                    });
+                    break;
+                case 'gagal_ditolak':
+                    $query->where(function ($q) {
+                        $q->where('status_pembayaran', '3')
+                          ->orWhere('status_order', '3');
+                    });
+                    break;
+            }
+        }
+
+        // Kecualikan alumni & customer yang sudah pernah bayar
+        if (!empty($target['exclude_alumni'])) {
+            $query->whereHas('customer_rel', function ($c) {
+                $c->where(function ($sub) {
+                    $sub->whereNull('customer_type')
+                        ->orWhere('customer_type', '!=', 'customer');
+                });
+            });
+        }
+
+        // Filter berdasarkan tanggal order dibuat (range)
+        if (isset($target['tanggal_dari']) || isset($target['tanggal_sampai'])) {
+            if (isset($target['tanggal_dari']) && isset($target['tanggal_sampai'])) {
+                $query->whereBetween('create_at', [
+                    Carbon::parse($target['tanggal_dari'])->startOfDay(),
+                    Carbon::parse($target['tanggal_sampai'])->endOfDay(),
+                ]);
+            } elseif (isset($target['tanggal_dari'])) {
+                $query->where('create_at', '>=', Carbon::parse($target['tanggal_dari'])->startOfDay());
+            } elseif (isset($target['tanggal_sampai'])) {
+                $query->where('create_at', '<=', Carbon::parse($target['tanggal_sampai'])->endOfDay());
+            }
         }
 
         return $query->get();
