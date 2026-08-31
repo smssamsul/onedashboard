@@ -150,5 +150,45 @@ export function normalizeBroadcastPayload(payload) {
     normalized.target.sender_sales_id = Number(payload.target.sender_sales_id);
   }
 
+  // Target Status: dropdown gabungan (Semua/Sudah Bayar/Belum Bayar/Gagal-Ditolak) - OPTIONAL
+  if (payload.target?.status_target && payload.target.status_target !== "semua") {
+    normalized.target.status_target = payload.target.status_target;
+  }
+
+  // Kecualikan alumni & customer sudah bayar - OPTIONAL, default false (tidak dikirim jika false)
+  if (payload.target?.exclude_alumni) {
+    normalized.target.exclude_alumni = true;
+  }
+
+  // Filter tanggal order (opsional)
+  if (payload.target?.tanggal_dari) {
+    normalized.target.tanggal_dari = payload.target.tanggal_dari;
+  }
+  if (payload.target?.tanggal_sampai) {
+    normalized.target.tanggal_sampai = payload.target.tanggal_sampai;
+  }
+
+  // Pengaturan pengiriman (anti-banned) - OPTIONAL, hanya dikirim kalau diisi
+  const pacingFields = ["interval_detik", "jeda_setiap_n_pesan", "istirahat_detik", "max_penerima_per_sesi", "jeda_antar_sesi_menit"];
+  pacingFields.forEach((field) => {
+    const val = payload[field];
+    if (val !== undefined && val !== null && val !== "") {
+      const num = Number(val);
+      if (!isNaN(num) && num >= 0) {
+        normalized[field] = num;
+      }
+    }
+  });
+
   return normalized;
+}
+
+/**
+ * Ambil bagian target (tanpa pesan/nama) yang relevan untuk endpoint
+ * hitung-total-penerima live - dipakai saat filter berubah, sebelum
+ * broadcast-nya benar-benar disimpan.
+ */
+export function buildTargetCountPayload(formData) {
+  const normalized = normalizeBroadcastPayload({ ...formData, nama: "x", pesan: "x", langsung_kirim: true });
+  return { target: normalized.target };
 }
