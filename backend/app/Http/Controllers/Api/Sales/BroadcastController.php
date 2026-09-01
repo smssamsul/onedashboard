@@ -894,10 +894,13 @@ class BroadcastController extends Controller
      */
     private function applyTargetConditions($query, array $target)
     {
-        // Filter berdasarkan produk
+        // Filter berdasarkan produk. Array kosong = "Semua produk" (tidak difilter) -
+        // whereIn([]) di Laravel/SQL selalu cocok 0 baris, jadi harus di-skip, bukan dijalankan.
         if (isset($target['produk'])) {
             if (is_array($target['produk'])) {
-                $query->whereIn('produk', $target['produk']);
+                if (!empty($target['produk'])) {
+                    $query->whereIn('produk', $target['produk']);
+                }
             } else {
                 $query->where('produk', $target['produk']);
             }
