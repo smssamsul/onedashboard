@@ -188,14 +188,14 @@ class SendFollowupCron extends Command
                     }
 
                     // Follow-up berbasis tanggal order (type 1/11/16/17) tidak terikat jadwal event
-                    // terdekat. Toleransi cuma 1 hari sejak target waktu: kalau step-nya H+1 dan
-                    // sekarang sudah masuk H+2, jangan kirim lagi yang H+1 walau belum sempat
-                    // terkirim (mis. cron sempat berhenti) - step berikutnya sudah lebih relevan
-                    // daripada follow-up basi yang mengacu kondisi yang sudah berlalu.
+                    // terdekat. Toleransi cuma 2 jam sejak target waktu - kalau cron sempat berhenti
+                    // atau baru jalan lebih dari 2 jam dari jam kirim yang seharusnya, anggap basi
+                    // dan jangan dikirim lagi, daripada nge-blast follow-up yang mengacu kondisi
+                    // yang sudah berlalu.
                     if ($eventDateCarbon === null) {
-                        $expiredTime = $targetTime->copy()->addDays(1);
+                        $expiredTime = $targetTime->copy()->addHours(2);
                         if (Carbon::now()->gte($expiredTime)) {
-                            continue; // Sudah lewat toleransi 1 hari, jangan kirim follow-up basi
+                            continue; // Sudah lewat toleransi 2 jam, jangan kirim follow-up basi
                         }
                     }
 
