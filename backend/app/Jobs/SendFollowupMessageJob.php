@@ -59,25 +59,37 @@ class SendFollowupMessageJob implements ShouldQueue
                 'status'     => $response->successful() ? '1' : '0',
             ]);
 
-            if ($response->successful()) {
-                Log::channel('followup')->info("Pesan berhasil dikirim", [
-                    'customer_id' => $this->customerId,
-                    'customer_nama' => $this->customerNama,
-                    'customer_wa' => $this->phone,
-                    'template_id' => $this->templateId,
-                    'template_type' => $this->templateType,
-                    'response_status' => $response->status(),
-                ]);
-            } else {
-                Log::channel('followup')->error("Pesan gagal dikirim", [
-                    'customer_id' => $this->customerId,
-                    'customer_nama' => $this->customerNama,
-                    'customer_wa' => $this->phone,
-                    'template_id' => $this->templateId,
-                    'template_type' => $this->templateType,
-                    'response_status' => $response->status(),
-                    'response_body' => $response->body(),
-                ]);
+            // Pesan WA sudah terkirim (atau sudah dicatat gagal) di titik ini - jangan
+            // sampai kegagalan LOGGING (mis. file log tidak writable) ikut membuat job
+            // ini dianggap gagal oleh queue dan di-retry, karena retry berarti kirim
+            // ulang pesan WA yang SAMA ke customer yang SAMA (pernah kejadian nyata:
+            // WA sudah sukses terkirim, tapi Log::channel() gagal nulis file lalu
+            // exception itu membuat job retry dan re-kirim WA-nya 2-3x). Logging di
+            // sini murni informational, jadi dibungkus try/catch sendiri.
+            try {
+                if ($response->successful()) {
+                    Log::channel('followup')->info("Pesan berhasil dikirim", [
+                        'customer_id' => $this->customerId,
+                        'customer_nama' => $this->customerNama,
+                        'customer_wa' => $this->phone,
+                        'template_id' => $this->templateId,
+                        'template_type' => $this->templateType,
+                        'response_status' => $response->status(),
+                    ]);
+                } else {
+                    Log::channel('followup')->error("Pesan gagal dikirim", [
+                        'customer_id' => $this->customerId,
+                        'customer_nama' => $this->customerNama,
+                        'customer_wa' => $this->phone,
+                        'template_id' => $this->templateId,
+                        'template_type' => $this->templateType,
+                        'response_status' => $response->status(),
+                        'response_body' => $response->body(),
+                    ]);
+                }
+            } catch (\Throwable $logError) {
+                // Sengaja ditelan - status pengiriman yang sebenarnya sudah aman
+                // tersimpan di LogsFollup di atas, terlepas dari file log ini.
             }
         } catch (\Exception $e) {
             LogsFollup::create([
