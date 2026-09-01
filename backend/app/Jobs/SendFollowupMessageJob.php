@@ -37,6 +37,35 @@ class SendFollowupMessageJob implements ShouldQueue
         $isInvitation = $this->invitationId !== null;
         $label = $isInvitation ? 'reminder invitation' : 'follow up';
 
+        // Jaga-jaga terakhir sebelum benar-benar kirim: kalau kombinasi template+customer+
+        // order/invitation ini sudah pernah tercatat (baik sukses maupun gagal), jangan kirim
+        // lagi. Job ini dijadwalkan dengan delay yang bisa berjarak puluhan menit dari saat
+        // cron jalan - kalau cron berikutnya (per jam) sempat jalan lagi SEBELUM delay ini
+        // habis, order yang sama bisa ke-dispatch dua kali sebelum baris LogsFollup yang
+        // pertama sempat tercatat. Cek ulang di sini (bukan cuma di cron sebelum dispatch)
+        // supaya benar-benar dijamin cuma terkirim sekali, apa pun penyebab dispatch gandanya.
+        $sudahDiproses = LogsFollup::where('follup', $this->templateId)
+            ->where('customer', $this->customerId)
+            ->where('type', $this->templateType)
+            ->when($this->orderId, fn ($q) => $q->where('order', $this->orderId))
+            ->when($this->invitationId, fn ($q) => $q->where('invitation', $this->invitationId))
+            ->exists();
+
+        if ($sudahDiproses) {
+            try {
+                Log::channel('followup')->info("Dilewati - sudah pernah diproses (cegah kirim ganda)", [
+                    'customer_id' => $this->customerId,
+                    'customer_nama' => $this->customerNama,
+                    'template_id' => $this->templateId,
+                    'order_id' => $this->orderId,
+                    'invitation_id' => $this->invitationId,
+                ]);
+            } catch (\Throwable $logError) {
+                // Sengaja ditelan - logging tidak boleh mengubah job "skip" ini jadi "gagal".
+            }
+            return;
+        }
+
         try {
             $waSender = app(\App\Services\WhatsAppSenderService::class);
             $response = $waSender->sendMessage($this->phone, $this->message, $this->salesId, $this->woowaKey);
