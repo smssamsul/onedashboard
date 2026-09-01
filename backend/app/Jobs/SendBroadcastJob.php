@@ -39,6 +39,23 @@ class SendBroadcastJob implements ShouldQueue
     }
 
     /**
+     * Log ke channel broadcast tanpa boleh melempar exception. Kegagalan logging
+     * (mis. file log tidak writable) tidak boleh membuat job ini dianggap gagal
+     * oleh queue - kalau itu terjadi setelah WA sudah sukses terkirim, job akan
+     * di-retry dan pesan yang SAMA terkirim ulang ke customer yang SAMA. Pernah
+     * terjadi persis begini di SendFollowupMessageJob, jadi dijaga di sini juga.
+     */
+    private function safeLog(string $level, string $message, array $context = []): void
+    {
+        try {
+            Log::channel('broadcast')->{$level}($message, $context);
+        } catch (\Throwable $e) {
+            // Sengaja ditelan - status pengiriman sebenarnya sudah aman
+            // tersimpan lewat saveBroadcastPenerima(), terlepas dari file log ini.
+        }
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(): void
@@ -53,7 +70,7 @@ class SendBroadcastJob implements ShouldQueue
             $customer = Customer::find($this->customerId);
 
             if (!$order || !$customer || !$customer->wa) {
-                Log::channel('broadcast')->warning('SendBroadcastJob: Data tidak lengkap', [
+                $this->safeLog('warning', 'SendBroadcastJob: Data tidak lengkap', [
                     'broadcast_id' => $this->broadcastId,
                     'order_id' => $this->orderId,
                     'customer_id' => $this->customerId
@@ -91,7 +108,7 @@ class SendBroadcastJob implements ShouldQueue
             try {
                 $renderedMessage = TemplateHelper::render($this->message, $templateData);
             } catch (\Exception $renderError) {
-                Log::channel('broadcast')->error('Error rendering broadcast message', [
+                $this->safeLog('error', 'Error rendering broadcast message', [
                     'broadcast_id' => $this->broadcastId,
                     'error' => $renderError->getMessage(),
                     'message' => substr($this->message, 0, 100)
@@ -100,7 +117,7 @@ class SendBroadcastJob implements ShouldQueue
                 $renderedMessage = $this->message;
             }
 
-            Log::channel('broadcast')->info('Mengirim Broadcast via Queue', [
+            $this->safeLog('info', 'Mengirim Broadcast via Queue', [
                 'broadcast_id' => $this->broadcastId,
                 'phone' => $customer->wa,
                 'customer_id' => $this->customerId,
@@ -116,7 +133,7 @@ class SendBroadcastJob implements ShouldQueue
             $response = $waSender->sendMessage($customer->wa, $renderedMessage, $salesId, $this->woowaKey);
 
             if ($response->successful()) {
-                Log::channel('broadcast')->info('Broadcast berhasil dikirim via Queue', [
+                $this->safeLog('info', 'Broadcast berhasil dikirim via Queue', [
                     'broadcast_id' => $this->broadcastId,
                     'phone' => $customer->wa,
                     'customer_id' => $this->customerId,
@@ -131,7 +148,7 @@ class SendBroadcastJob implements ShouldQueue
                     $renderedMessage
                 );
             } else {
-                Log::channel('broadcast')->error('Gagal kirim Broadcast via Queue', [
+                $this->safeLog('error', 'Gagal kirim Broadcast via Queue', [
                     'broadcast_id' => $this->broadcastId,
                     'phone' => $customer->wa,
                     'status_or_response' => $response->status(),
@@ -151,7 +168,7 @@ class SendBroadcastJob implements ShouldQueue
             }
 
         } catch (\Exception $e) {
-            Log::channel('broadcast')->error('Error di SendBroadcastJob', [
+            $this->safeLog('error', 'Error di SendBroadcastJob', [
                 'broadcast_id' => $this->broadcastId,
                 'order_id' => $this->orderId,
                 'customer_id' => $this->customerId,
@@ -205,7 +222,7 @@ class SendBroadcastJob implements ShouldQueue
                 'send_at' => now()->format('Y-m-d H:i:s'),
             ]);
         } catch (\Exception $e) {
-            Log::channel('broadcast')->error('Gagal menyimpan broadcast_penerima', [
+            $this->safeLog('error', 'Gagal menyimpan broadcast_penerima', [
                 'broadcast_id' => $this->broadcastId,
                 'customer_id' => $this->customerId,
                 'notelp' => $notelp,
@@ -219,7 +236,7 @@ class SendBroadcastJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::channel('broadcast')->error('SendBroadcastJob gagal setelah semua retry', [
+        $this->safeLog('error', 'SendBroadcastJob gagal setelah semua retry', [
             'broadcast_id' => $this->broadcastId,
             'order_id' => $this->orderId,
             'customer_id' => $this->customerId,
@@ -253,7 +270,7 @@ class SendBroadcastJob implements ShouldQueue
                             $renderedMsg = TemplateHelper::render($this->message, $templateData);
                         }
                     } catch (\Exception $renderError) {
-                        Log::channel('broadcast')->warning('Gagal render message di failed handler', [
+                        $this->safeLog('warning', 'Gagal render message di failed handler', [
                             'error' => $renderError->getMessage()
                         ]);
                     }
@@ -267,7 +284,7 @@ class SendBroadcastJob implements ShouldQueue
                 }
             }
         } catch (\Exception $e) {
-            Log::channel('broadcast')->error('Gagal menyimpan broadcast_penerima di failed handler', [
+            $this->safeLog('error', 'Gagal menyimpan broadcast_penerima di failed handler', [
                 'broadcast_id' => $this->broadcastId,
                 'error' => $e->getMessage()
             ]);

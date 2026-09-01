@@ -35,6 +35,20 @@ class SendUpsellingMessageJob implements ShouldQueue
 
     public function handle(): void
     {
+        // Jaga-jaga terakhir sebelum kirim - lihat penjelasan yang sama di
+        // SendFollowupMessageJob::handle(). Delay job ini bisa berjarak cukup lama
+        // dari saat cron jalan, jadi dicek ulang di sini supaya tidak terkirim ganda
+        // kalau cron sempat jalan lagi sebelum baris LogsFollup pertama tercatat.
+        $sudahDiproses = LogsFollup::where('follup', $this->templateId)
+            ->where('customer', $this->customerId)
+            ->where('kehadiran', $this->kehadiranId)
+            ->where('type', '8')
+            ->exists();
+
+        if ($sudahDiproses) {
+            return;
+        }
+
         try {
             $response = Http::asJson()
                 ->withHeaders([
