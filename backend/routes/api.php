@@ -336,6 +336,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Logs Followup
         Route::get('/logs-follup', [LogsFollupController::class, 'index']);
+        Route::post('/logs-follup/{id}/resend', [LogsFollupController::class, 'resend'])->where('id', '[0-9]+');
 
         // Log Pixel
         Route::get('/pixel-logs', [\App\Http\Controllers\Api\Sales\PixelLogController::class, 'index']);

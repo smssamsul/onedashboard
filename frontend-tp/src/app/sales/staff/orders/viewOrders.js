@@ -5,6 +5,7 @@ import "@/styles/sales/orders-page.css";
 import UpdateOrders from "./updateOrders";
 import { BACKEND_URL } from "@/config/env";
 import BiteshipOrderTrackingPanel from "@/components/BiteshipOrderTrackingPanel";
+import FollowupHistorySection from "@/app/sales/orders/followupHistorySection";
 
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", class: "unpaid" },
@@ -293,6 +294,12 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
             onClick={() => setActiveTab("followup")}
           >
             Follow Up
+          </button>
+          <button
+            className={`tab-item ${activeTab === "followup_wa" ? "active" : ""}`}
+            onClick={() => setActiveTab("followup_wa")}
+          >
+            Follow-up WA
           </button>
         </div>
         <div className="tabs-divider"></div>
@@ -619,6 +626,13 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* === FOLLOW-UP WA TAB (log kirim WhatsApp otomatis, beda dari catatan manual di tab Follow Up) === */}
+          {activeTab === "followup_wa" && (
+            <div className="detail-list fade-in">
+              <FollowupHistorySection orderId={order.id} />
             </div>
           )}
 

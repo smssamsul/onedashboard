@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
 import BiteshipOrderTrackingPanel from "@/components/BiteshipOrderTrackingPanel";
+import FollowupHistorySection from "./followupHistorySection";
 
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", class: "unpaid" },
@@ -321,6 +322,12 @@ export default function ViewOrders({ order, onClose }) {
 
                 <div className="detail-section">
                   <BiteshipOrderTrackingPanel order={order} />
+                </div>
+
+                <div className="detail-section-divider"></div>
+
+                <div className="detail-section">
+                  <FollowupHistorySection orderId={order.id} />
                 </div>
               </div>
             </div>
