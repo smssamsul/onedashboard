@@ -441,23 +441,86 @@ export default function Sidebar({
       return salesItems;
     }
 
-    // Marketing menu
+    // Marketing menu — disamakan persis dengan menu Sales Head (Leader) atas
+    // permintaan user (2026-09-02): Marketing pakai tools & halaman yang sama
+    // seperti Sales Head, belum ada halaman /marketing/* terpisah untuk ini.
+    // Link sengaja di-hardcode ke /sales/... (bukan basePath, yang untuk
+    // Marketing resolve ke /marketing) supaya benar-benar mengarah ke halaman
+    // yang sama dipakai Sales Head. Urutan section mengikuti persis susunan
+    // menu Sales Head level Leader di atas (OVERVIEW, CUSTOMERS, OPERATIONS,
+    // TEAM MANAGEMENT, AI, REPORTS, META ADS - tanpa ABSENSI & CUTI, karena
+    // Sales Head level Leader juga tidak menampilkan section itu).
     if (pathForMenu.startsWith("/marketing")) {
       return [
         {
           section: "OVERVIEW",
           items: [
-            { label: "Dashboard", href: basePath, icon: <Home size={18} /> },
+            { label: "Dashboard", href: "/sales", icon: <Home size={18} /> },
             { label: "Task", href: "/task", icon: <ListChecks size={18} /> },
           ],
         },
         {
-          section: "ABSENSI & CUTI",
+          section: "CUSTOMERS",
           items: [
-            { label: "Absensi Saya", href: "/marketing/absensi-saya", icon: <CheckSquare size={18} /> },
-            { label: "Cuti Saya", href: "/marketing/cuti-saya", icon: <CalendarDays size={18} /> },
-            { label: "Izin Saya", href: "/marketing/izin-saya", icon: <FileText size={18} /> },
-            { label: "Todo List Saya", href: `${basePath}/todo-list-saya`, icon: <ListTodo size={18} /> },
+            { label: "Customers", href: "/sales/customers", icon: <UserCheck size={18} /> },
+            { label: "Leads", href: "/sales/lead-lpwa", icon: <UserPlus size={18} /> },
+            { label: "Statistik Customer", href: "/sales/customers/statistik", icon: <BarChart3 size={18} /> },
+          ],
+        },
+        {
+          section: "OPERATIONS",
+          items: [
+            { label: "Orders", href: "/sales/orders", icon: <ClipboardList size={18} /> },
+            { label: "Order Cepat", href: "/sales/quick-order", icon: <Zap size={18} /> },
+            { label: "Invitation", href: "/sales/invitation", icon: <Mail size={18} /> },
+            { label: "Kehadiran", href: "/sales/kehadiran", icon: <QrCode size={18} /> },
+            { label: "Pengiriman & Resi", href: "/sales/pengiriman", icon: <Truck size={18} /> },
+            {
+              label: "Products",
+              icon: <ShoppingBag size={18} />,
+              submenu: [
+                { label: "Kategori Produk", href: "/sales/kategori" },
+                { label: "Unit Bisnis", href: "/sales/unit-bisnis" },
+                { label: "Produk", href: "/sales/products" },
+                { label: "Bonus Produk", href: "/sales/bonus" },
+                { label: "Ecourse", href: "/sales/ecourse" },
+              ],
+            },
+            { label: "Broadcast", href: "/sales/broadcast", icon: <Radio size={18} /> },
+            { label: "Template Broadcast", href: "/sales/template-broadcast", icon: <FileText size={18} /> },
+            { label: "Setting", href: "/sales/setting", icon: <Settings size={18} /> },
+          ],
+        },
+        {
+          section: "TEAM MANAGEMENT",
+          items: [
+            { label: "Sales List", href: "/sales/sales-list", icon: <Users size={18} /> },
+          ],
+        },
+        {
+          section: "AI",
+          items: [
+            { label: "Master Knowledge", href: "/sales/ai/master-knowledge", icon: <Brain size={18} /> },
+            { label: "AI Setting", href: "/sales/ai/setting", icon: <Code size={18} /> },
+            { label: "Simulasi AI", href: "/sales/ai/simulasi", icon: <MessageSquare size={18} /> },
+            { label: "Leads AI", href: "/sales/leads-ai", icon: <Users size={18} /> },
+            { label: "Percakapan", href: "/sales/percakapan", icon: <MessageSquare size={18} /> },
+          ],
+        },
+        {
+          section: "REPORTS",
+          items: [
+            { label: "Follow Up Logs", href: "/sales/followup/report", icon: <Activity size={18} /> },
+            { label: "Log Pixel", href: "/sales/log-pixel", icon: <Activity size={18} /> },
+          ],
+        },
+        {
+          section: "META ADS",
+          items: [
+            { label: "Overview", href: "/marketing/meta-ads", icon: <BarChart3 size={18} /> },
+            { label: "Kelola Campaign", href: "/marketing/meta-ads/campaigns", icon: <Megaphone size={18} /> },
+            { label: "Pixel Crosscheck", href: "/marketing/meta-ads/crosscheck", icon: <Activity size={18} /> },
+            { label: "Setting Akun", href: "/marketing/meta-ads/accounts", icon: <Settings size={18} /> },
           ],
         },
       ];
