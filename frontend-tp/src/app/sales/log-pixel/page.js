@@ -43,7 +43,9 @@ export default function LogPixelPage() {
   const [paginationInfo, setPaginationInfo] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const [eventFilter, setEventFilter] = useState("");
-  
+  const [produkFilter, setProdukFilter] = useState("");
+  const [products, setProducts] = useState([]);
+
   // State Filter Tanggal
   const [dateRange, setDateRange] = useState("all");
   const [startDate, setStartDate] = useState("");
@@ -64,6 +66,7 @@ export default function LogPixelPage() {
       params.append("per_page", perPage);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (eventFilter) params.append("event_name", eventFilter);
+      if (produkFilter) params.append("produk_id", produkFilter);
 
       // Hitung filter tanggal
       let sd = "";
@@ -106,12 +109,32 @@ export default function LogPixelPage() {
     } finally {
       setLoading(false);
     }
-  }, [perPage, debouncedSearch, eventFilter, dateRange, startDate, endDate]);
+  }, [perPage, debouncedSearch, eventFilter, produkFilter, dateRange, startDate, endDate]);
+
+  // Daftar produk untuk dropdown filter
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch("/api/sales/produk", {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setProducts(json.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat daftar produk:", err);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     setPage(1);
     fetchLogs(1);
-  }, [debouncedSearch, perPage, eventFilter, dateRange, startDate, endDate, fetchLogs]);
+  }, [debouncedSearch, perPage, eventFilter, produkFilter, dateRange, startDate, endDate, fetchLogs]);
 
   useEffect(() => {
     if (page > 1) {
@@ -217,6 +240,30 @@ export default function LogPixelPage() {
               <option value="Purchase">Purchase</option>
               <option value="Lead">Lead</option>
               <option value="AddPaymentInfo">AddPaymentInfo</option>
+            </select>
+          </div>
+
+          <div style={{ flex: "0 0 auto" }}>
+            <select
+              value={produkFilter}
+              onChange={(e) => setProdukFilter(e.target.value)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "1px solid var(--color-border)",
+                outline: "none",
+                fontSize: "0.9rem",
+                color: "var(--color-text-primary)",
+                background: "white",
+                cursor: "pointer",
+                minWidth: "180px",
+                maxWidth: "260px",
+              }}
+            >
+              <option value="">Semua Produk</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
             </select>
           </div>
 

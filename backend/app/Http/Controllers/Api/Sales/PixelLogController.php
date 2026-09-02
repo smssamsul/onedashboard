@@ -128,6 +128,10 @@ class PixelLogController extends Controller
             $query->where('event_name', $request->event_name);
         }
 
+        if ($request->has('produk_id') && $request->produk_id != '') {
+            $query->where('produk_id', $request->produk_id);
+        }
+
         if ($request->has('start_date') && $request->start_date != '') {
             $query->whereDate('create_at', '>=', $request->start_date);
         }
