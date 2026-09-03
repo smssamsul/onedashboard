@@ -440,8 +440,12 @@ export default function UpdateOrders({ order, onClose, onSave }) {
         ? "Pembayaran berhasil dikonfirmasi! Order sudah lunas."
         : `Pembayaran berhasil dikonfirmasi! Sisa yang harus dibayar: Rp ${newRemaining.toLocaleString("id-ID")}`;
 
-      // ✅ [PIXEL PURCHASE] Trigger Pixel Purchase di Sales setelah berhasil upload bukti pembayaran
-      if (isFullyPaid || konfirmasiOrder) {
+      // ✅ [PIXEL PURCHASE] Trigger Pixel Purchase di Sales setelah berhasil upload bukti pembayaran.
+      // Guard: hanya tembak sekali, tepat waktu order PERTAMA KALI jadi lunas - bukan setiap
+      // kali konfirmasi (order dengan DP/cicilan bisa dikonfirmasi berkali-kali sebelum lunas,
+      // dan tanpa guard ini tiap cicilan kehitung Purchase terpisah oleh Meta).
+      const sudahLunasSebelumnya = Number(statusPembayaran) === 2;
+      if (isFullyPaid && !sudahLunasSebelumnya) {
         let realProdukRel = order?.produk_rel;
         try {
           const detailRes = await fetch(`${BASE_URL}/sales/order/${order.id}`, {

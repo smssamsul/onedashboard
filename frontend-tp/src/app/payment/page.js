@@ -286,6 +286,10 @@ function BankTransferPageContent() {
           value: finalValue,
           currency: "IDR",
           order_id: orderData.kode_order || String(orderId),
+          // Deterministik per order (bukan random) supaya kalau halaman ini di-reload,
+          // Pixel browser & CAPI server tetap kirim event_id yang sama - baik untuk
+          // dedup Pixel<->CAPI pada Meta, maupun re-fire dari reload order yang sama.
+          _event_id: `purchase-order-${orderData.id}`,
           _order_db_id: orderData.id,
           _produk_id: produk.id,
         });
@@ -472,25 +476,29 @@ function BankTransferPageContent() {
               var eventParams = ${JSON.stringify(fbPurchaseParams)};
               var orderDbId = eventParams._order_db_id;
               var produkId = eventParams._produk_id;
+              var eventId = eventParams._event_id;
               delete eventParams._order_db_id;
               delete eventParams._produk_id;
+              delete eventParams._event_id;
 
               pixelIds.forEach(function(id) {
                 if (!id) return;
                 try {
                   fbq('init', id);
-                  fbq('track', 'Purchase', eventParams);
+                  // eventID sama dipakai di Pixel & CAPI (di bawah) supaya Meta bisa dedup -
+                  // tanpa ini, satu Purchase yang sama bisa kehitung 2x (browser + server).
+                  fbq('track', 'Purchase', eventParams, { eventID: eventId });
                   fetch('/api/pixel-log', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', source: 'payment_page', status: '1', payload: eventParams })
+                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', event_id: eventId, source: 'payment_page', status: '1', payload: eventParams })
                   }).catch(function () {});
                 } catch (err) {
                   console.error('[FB PIXEL] Failed to track Purchase on pixel', id, err);
                   fetch('/api/pixel-log', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', source: 'payment_page', status: '0', payload: { error: String(err), params: eventParams } })
+                    body: JSON.stringify({ order_id: orderDbId, produk_id: produkId, pixel_id: id, event_name: 'Purchase', event_id: eventId, source: 'payment_page', status: '0', payload: { error: String(err), params: eventParams } })
                   }).catch(function () {});
                 }
               });
