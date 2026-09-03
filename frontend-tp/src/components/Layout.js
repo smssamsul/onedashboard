@@ -47,7 +47,29 @@ function generateBreadcrumb(pathname) {
   if (!pathname) return [];
   const cleaned = String(pathname).split("?")[0].split("#")[0];
   const segments = cleaned.split("/").filter(Boolean);
-  
+
+  // Meta Ads fisiknya di bawah /marketing, tapi head sales juga boleh buka dari
+  // menu Sales-nya sendiri (lihat exemption di Sidebar.js & middleware.js).
+  // Breadcrumb generik berbasis path akan salah menampilkan crumb pertama
+  // "Marketing" yang link-nya ke /marketing - halaman itu ditolak middleware
+  // untuk head sales, jadi ini sengaja dibuat netral-divisi (tanpa crumb
+  // "Marketing"), bukan diarahkan ke section Sales atau Marketing manapun.
+  if (segments[0] === "marketing" && segments[1] === "meta-ads") {
+    const rest = segments.slice(2);
+    const breadcrumb = [
+      { label: "Meta Ads", href: "/marketing/meta-ads", isLast: rest.length === 0 },
+    ];
+    let currentPath = "/marketing/meta-ads";
+    rest.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      const label = segment
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      breadcrumb.push({ label, href: currentPath, isLast: index === rest.length - 1 });
+    });
+    return breadcrumb;
+  }
+
   // Map section names based on path
   const sectionMap = {
     customers: "CUSTOMERS",
