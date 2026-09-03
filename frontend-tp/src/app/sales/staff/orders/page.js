@@ -127,9 +127,24 @@ const WABubbleChat = ({ customerId, orderId, orderStatus, statusPembayaran, prod
     });
   };
 
+  /**
+   * Nomor urut follow-up (1-4) diambil dari nama template ("Follow Up 2", dst),
+   * BUKAN dari kolom `type` - semua template "Follow Up 1".."Follow Up 4" di semua
+   * produk selalu pakai type="1" yang sama, jadi type tidak bisa dipakai untuk
+   * membedakan urutannya.
+   */
+  const getFollupNumber = (log) => {
+    const nama = String(log.follup_rel?.nama || "");
+    const match = nama.match(/(\d+)\s*$/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
   // Status mapping logic
   const isWAActive = () => isLogSuccess(["order dibuat", "register", "5"]);
-  const isFollupActive = (num) => isLogSuccess(num);
+  const isFollupActive = (num) => {
+    if (loading || !orderLogs || orderLogs.length === 0) return false;
+    return orderLogs.some(log => String(log.status) === "1" && getFollupNumber(log) === num);
+  };
   const isPaymentActive = () => isLogSuccess(["upload pembayaran", "proses", "6"]) || Number(statusPembayaran) === 2;
   const isSelesaiActive = () => isLogSuccess(["7", "selesai"]) || Number(orderStatus) === 2;
   const isUpsellingActive = () => isLogSuccess(["8", "upselling"]) || Number(orderStatus) === 4;
