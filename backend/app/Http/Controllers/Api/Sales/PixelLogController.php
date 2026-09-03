@@ -15,6 +15,7 @@ class PixelLogController extends Controller
             'produk_id'  => 'nullable|integer|exists:produk,id',
             'pixel_id'   => 'nullable|string',
             'event_name' => 'nullable|string',
+            'event_id'   => 'nullable|string',
             'source'     => 'nullable|string',
             'status'     => 'nullable|string',
             'payload'    => 'nullable|array',
@@ -48,6 +49,12 @@ class PixelLogController extends Controller
                         'client_user_agent' => $request->userAgent(),
                     ]
                 ];
+
+                // event_id sama dengan yang dikirim ke Pixel browser (lihat payment/page.js) -
+                // supaya Meta bisa dedup, Purchase yang sama tidak kehitung 2x (browser + server).
+                if ($request->event_id) {
+                    $eventData['event_id'] = $request->event_id;
+                }
                 
                 // Ambil custom data dari payload (misal: value, currency, content_name)
                 if (is_array($request->payload) && !empty($request->payload)) {
