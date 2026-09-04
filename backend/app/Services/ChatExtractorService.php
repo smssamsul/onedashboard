@@ -33,6 +33,20 @@ class ChatExtractorService
             }
         }
         
+        // Pattern 1b: "Ikut [produk]" tanpa klausa "di ..." - produk yang tidak
+        // terikat lokasi/kota (mis. "Webinar Ternak Properti" tanpa kota),
+        // ambil sampai tanda titik/tanya pertama atau akhir kalimat
+        if (preg_match('/(?:Mau\s+)?Ikut\s+(.+?)(?:[.?]|$)/i', $message, $matches)) {
+            $matchedProduct = trim($matches[1]);
+            $matchedProduct = preg_replace('/\s+(Kak|Kak\.|Mas|Mas\.|Mbak|Mbak\.|Pak|Pak\.|Bu|Bu\.)$/i', '', $matchedProduct);
+            $matchedProduct = rtrim($matchedProduct, '.,!?;:');
+            $matchedProduct = ucwords(trim($matchedProduct));
+
+            if (!empty($matchedProduct)) {
+                return $matchedProduct;
+            }
+        }
+
         // Pattern 2: "tertarik dengan [produk] di" atau "mau [produk] di"
         if (preg_match('/(?:tertarik\s+dengan|mau)\s+(.+?)\s+di\s+/i', $message, $matches)) {
             $matchedProduct = trim($matches[1]);
@@ -93,16 +107,63 @@ class ChatExtractorService
     }
     
     /**
-     * Extract produk dan lokasi dari chat message
-     * 
+     * Cek apakah pesan mengikuti format lead yang valid: diawali "Halo" dan
+     * mengandung "saya mau ikut". Ini format baku dari tombol "Tanya di
+     * WhatsApp" di landing page - dipakai supaya obrolan bebas lain (yang
+     * kebetulan mengandung kata "ikut ... di") tidak ikut kebaca jadi lead.
+     *
      * @param string $message
-     * @return array ['product' => string|null, 'location' => string|null]
+     * @return bool
+     */
+    public function matchesLeadFormat(string $message): bool
+    {
+        return (bool) preg_match('/^\s*Halo\b/i', $message)
+            && (bool) preg_match('/\bsaya\s+mau\s+ikut\b/i', $message);
+    }
+
+    /**
+     * Extract kode sumber dari chat message.
+     * Pattern: kata pertama setelah tanda "?" di akhir pesan
+     * Contoh: "Bisa didetilkan? i19" -> "Meta Ads i19"
+     *
+     * @param string $message
+     * @return string|null
+     */
+    public function extractSumber(string $message): ?string
+    {
+        if (preg_match('/\?\s*(\S+)/', $message, $matches)) {
+            $kode = trim($matches[1]);
+            if ($kode !== '') {
+                return 'Meta Ads ' . $kode;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract produk, lokasi, dan sumber dari chat message.
+     * Kalau pesan tidak sesuai format baku (lihat matchesLeadFormat), semua
+     * dikembalikan null - supaya webhook tidak membuat lead dari obrolan
+     * yang tidak relevan.
+     *
+     * @param string $message
+     * @return array ['product' => string|null, 'location' => string|null, 'sumber' => string|null]
      */
     public function extract(string $message): array
     {
+        if (!$this->matchesLeadFormat($message)) {
+            return [
+                'product' => null,
+                'location' => null,
+                'sumber' => null,
+            ];
+        }
+
         return [
             'product' => $this->extractProduct($message),
             'location' => $this->extractLocation($message),
+            'sumber' => $this->extractSumber($message),
         ];
     }
 }

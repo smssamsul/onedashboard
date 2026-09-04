@@ -86,6 +86,7 @@ class LeadLpwaController extends Controller
             'no_wa' => 'required|string|max:255',
             'produk_text' => 'nullable|string|max:255',
             'lokasi' => 'nullable|string|max:255',
+            'sumber' => 'nullable|string|max:255',
             'sales_id' => 'nullable|exists:users,id'
         ]);
 
@@ -122,6 +123,7 @@ class LeadLpwaController extends Controller
             'no_wa' => 'sometimes|required|string|max:255',
             'produk_text' => 'nullable|string|max:255',
             'lokasi' => 'nullable|string|max:255',
+            'sumber' => 'nullable|string|max:255',
             'sales_id' => 'nullable|exists:users,id'
         ]);
 
