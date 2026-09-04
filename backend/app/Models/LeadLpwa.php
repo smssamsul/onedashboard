@@ -13,6 +13,7 @@ class LeadLpwa extends Model
         'no_wa',
         'produk_text',
         'lokasi',
+        'sumber',
         'sales_id',
     ];
 

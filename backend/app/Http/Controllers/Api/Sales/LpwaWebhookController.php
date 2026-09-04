@@ -97,6 +97,7 @@ class LpwaWebhookController extends Controller
         $extracted = app(ChatExtractorService::class)->extract($message);
         $produkText = $extracted['product'] ?? null;
         $lokasi = $extracted['location'] ?? null;
+        $sumber = $extracted['sumber'] ?? null;
 
         // Kalau pesan ini sama sekali tidak mengandung sinyal minat (tidak ada
         // produk maupun lokasi yang terdeteksi), jangan buat lead - supaya
@@ -118,6 +119,7 @@ class LpwaWebhookController extends Controller
                 'no_wa' => $phone,
                 'produk_text' => $produkText,
                 'lokasi' => $lokasi,
+                'sumber' => $sumber,
                 'sales_id' => $salesId,
             ]);
         } else {
@@ -125,6 +127,7 @@ class LpwaWebhookController extends Controller
                 'nama' => $name ?: $lead->nama,
                 'produk_text' => $produkText ?: $lead->produk_text,
                 'lokasi' => $lokasi ?: $lead->lokasi,
+                'sumber' => $sumber ?: $lead->sumber,
                 'sales_id' => $salesId ?: $lead->sales_id,
             ], fn ($v) => $v !== null));
         }

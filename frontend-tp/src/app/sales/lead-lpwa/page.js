@@ -82,7 +82,8 @@ export default function LeadLpwaPage() {
     nama: "",
     no_wa: "",
     produk_text: "",
-    lokasi: ""
+    lokasi: "",
+    sumber: ""
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -165,7 +166,7 @@ export default function LeadLpwaPage() {
       if (data.success) {
         toastSuccess("Leads berhasil ditambahkan");
         setShowAdd(false);
-        setFormData({ nama: "", no_wa: "", produk_text: "", lokasi: "" });
+        setFormData({ nama: "", no_wa: "", produk_text: "", lokasi: "", sumber: "" });
         fetchLeads(1);
       } else {
         toastError(data.message || "Gagal menambahkan data");
@@ -183,7 +184,8 @@ export default function LeadLpwaPage() {
       nama: lead.nama || "",
       no_wa: lead.no_wa || "",
       produk_text: lead.produk_text || "",
-      lokasi: lead.lokasi || ""
+      lokasi: lead.lokasi || "",
+      sumber: lead.sumber || ""
     });
     setShowEdit(true);
   };
@@ -371,6 +373,7 @@ export default function LeadLpwaPage() {
                   <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Waktu Chat Pertama</th>
                   <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Produk Diminati</th>
                   <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Lokasi</th>
+                  <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Sumber</th>
                   <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider">Sales</th>
                   <th className="py-3 px-6 text-xs font-bold text-white uppercase tracking-wider text-center">Action</th>
                 </tr>
@@ -378,14 +381,14 @@ export default function LeadLpwaPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading && leads.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-500">
+                    <td colSpan="8" className="py-12 text-center text-gray-500">
                       <Loader2 className="animate-spin mx-auto mb-2 text-indigo-500" size={24} />
                       Memuat data...
                     </td>
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-500">
+                    <td colSpan="8" className="py-12 text-center text-gray-500">
                       Belum ada data Leads
                     </td>
                   </tr>
@@ -399,6 +402,7 @@ export default function LeadLpwaPage() {
                         {lead.produk_text || "-"}
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-600">{lead.lokasi || "-"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600">{lead.sumber || "-"}</td>
                       <td className="py-4 px-6 text-sm text-gray-600">
                         {lead.sales ? lead.sales.nama : "-"}
                       </td>
@@ -527,6 +531,17 @@ export default function LeadLpwaPage() {
                     value={formData.lokasi}
                     onChange={handleInputChange}
                     placeholder="Mis. Lampung"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sumber</label>
+                  <input
+                    type="text"
+                    name="sumber"
+                    value={formData.sumber}
+                    onChange={handleInputChange}
+                    placeholder="Mis. Meta Ads i19"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
