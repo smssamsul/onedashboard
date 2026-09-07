@@ -44,6 +44,13 @@ class ResendRegisterBacklog extends Command
             ->where('create_at', '>=', now()->subMonths(3)->toDateTimeString())
             ->where('status', '!=', 'N')
             ->whereIn('status_order', ['1', '2', '4'])
+            // Order yang sudah Paid (2) atau Waiting Approval (1) sengaja dilewati -
+            // customer ini sudah lanjut di funnel pembayaran, kirim ulang pesan
+            // "terima kasih sudah order" ke mereka tidak relevan/bisa membingungkan.
+            ->where(function ($q) {
+                $q->whereNull('status_pembayaran')
+                    ->orWhereNotIn('status_pembayaran', ['1', '2']);
+            })
             ->whereNotIn('id', function ($q) {
                 $q->select('order')->from('logs_follup')
                     ->where('type', 'order dibuat')
