@@ -79,22 +79,24 @@ class OrderResiController extends Controller
     }
 
     /**
-     * Default payload origin dari env (sama konsep dengan Next.js /api/biteship/orders).
+     * Default payload origin dari config/services.php (sama konsep dengan
+     * Next.js /api/biteship/orders). Dibaca lewat config(), BUKAN env()
+     * langsung - env() di luar file config berhenti baca .env begitu
+     * `config:cache` dijalankan (bagian rutin deploy), dan akan selalu
+     * jatuh ke fallback hardcode di bawah walau .env sudah diisi benar.
      *
      * @return array<string, mixed>
      */
     private function biteshipOriginDefaults(): array
     {
-        $postal = (int) env('BITESHIP_ORIGIN_POSTAL_CODE', 12440);
-
         return [
-            'shipper_contact_name' => env('BITESHIP_SHIPPER_CONTACT_NAME', env('BITESHIP_ORIGIN_CONTACT_NAME', 'Shipper')),
-            'shipper_contact_phone' => env('BITESHIP_SHIPPER_CONTACT_PHONE', env('BITESHIP_ORIGIN_CONTACT_PHONE', '081234567890')),
-            'shipper_organization' => env('BITESHIP_SHIPPER_ORGANIZATION', ''),
-            'origin_contact_name' => env('BITESHIP_ORIGIN_CONTACT_NAME', 'Warehouse'),
-            'origin_contact_phone' => env('BITESHIP_ORIGIN_CONTACT_PHONE', '081234567890'),
-            'origin_address' => env('BITESHIP_ORIGIN_ADDRESS', 'Jakarta'),
-            'origin_postal_code' => $postal,
+            'shipper_contact_name' => config('services.biteship.shipper_contact_name', 'Shipper'),
+            'shipper_contact_phone' => config('services.biteship.shipper_contact_phone', '081234567890'),
+            'shipper_organization' => config('services.biteship.shipper_organization', ''),
+            'origin_contact_name' => config('services.biteship.origin_contact_name', 'Warehouse'),
+            'origin_contact_phone' => config('services.biteship.origin_contact_phone', '081234567890'),
+            'origin_address' => config('services.biteship.origin_address', 'Jakarta'),
+            'origin_postal_code' => (int) config('services.biteship.origin_postal_code', 12440),
         ];
     }
 
