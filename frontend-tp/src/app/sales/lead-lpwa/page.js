@@ -8,9 +8,20 @@ import dynamic from "next/dynamic";
 import "@/styles/sales/dashboard-premium.css";
 import "@/styles/sales/admin.css";
 import "@/styles/sales/leads.css";
+import "@/styles/sales/shared-table.css";
 import { toastSuccess, toastError, toastWarning } from "@/lib/toast";
 
 const BASE_URL = "/api";
+const PER_PAGE_OPTIONS = [15, 25, 50, 100];
+
+function useDebouncedValue(value, delay = 500) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 function cleanWaDigits(wa) {
   return String(wa || "").replace(/\D/g, "");
@@ -66,7 +77,18 @@ export default function LeadLpwaPage() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [paginationInfo, setPaginationInfo] = useState(null);
+
+  // Filter toolbar
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput, 500);
+  const [dateRange, setDateRange] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [kotaFilter, setKotaFilter] = useState("");
+  const [sumberFilter, setSumberFilter] = useState("");
+  const [filterOptions, setFilterOptions] = useState({ lokasi: [], sumber: [] });
 
   // Modals state
   const [showAdd, setShowAdd] = useState(false);
@@ -103,6 +125,25 @@ export default function LeadLpwaPage() {
     }
   };
 
+  // Fetch pilihan dropdown filter (lokasi & sumber unik dari data yang ada)
+  const fetchFilterOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE_URL}/sales/lead-lpwa/filter-options`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFilterOptions({
+          lokasi: data.data?.lokasi || [],
+          sumber: data.data?.sumber || [],
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Fetch Leads LPWA
   const fetchLeads = useCallback(async (pageNumber = 1) => {
     setLoading(true);
@@ -117,7 +158,34 @@ export default function LeadLpwaPage() {
         }
       }
 
-      const res = await fetch(`${BASE_URL}/sales/lead-lpwa?page=${pageNumber}${salesId}`, {
+      const params = new URLSearchParams();
+      params.append("page", pageNumber);
+      params.append("per_page", perPage);
+      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+      if (kotaFilter) params.append("lokasi", kotaFilter);
+      if (sumberFilter) params.append("sumber", sumberFilter);
+
+      // Hitung filter tanggal
+      let sd = "";
+      let ed = "";
+      if (dateRange === "7days") {
+        const d = new Date();
+        ed = d.toISOString().split("T")[0];
+        d.setDate(d.getDate() - 7);
+        sd = d.toISOString().split("T")[0];
+      } else if (dateRange === "30days") {
+        const d = new Date();
+        ed = d.toISOString().split("T")[0];
+        d.setDate(d.getDate() - 30);
+        sd = d.toISOString().split("T")[0];
+      } else if (dateRange === "custom") {
+        sd = startDate;
+        ed = endDate;
+      }
+      if (sd) params.append("start_date", sd);
+      if (ed) params.append("end_date", ed);
+
+      const res = await fetch(`${BASE_URL}/sales/lead-lpwa?${params}${salesId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -130,12 +198,23 @@ export default function LeadLpwaPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [perPage, debouncedSearch, kotaFilter, sumberFilter, dateRange, startDate, endDate]);
 
   useEffect(() => {
     fetchProducts();
+    fetchFilterOptions();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
     fetchLeads(1);
-  }, [fetchLeads]);
+  }, [debouncedSearch, perPage, kotaFilter, sumberFilter, dateRange, startDate, endDate, fetchLeads]);
+
+  useEffect(() => {
+    if (page > 1) {
+      fetchLeads(page);
+    }
+  }, [page, fetchLeads]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -362,6 +441,77 @@ export default function LeadLpwaPage() {
           </div>
         </div>
 
+        {/* Filter Toolbar */}
+        <div
+          className="bg-white rounded-2xl border border-gray-100 mb-4"
+          style={{ padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
+        >
+          <div style={{ flex: "1 1 260px", position: "relative" }}>
+            <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+            <input
+              type="text"
+              placeholder="Cari nama atau no. telepon..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-sm"
+            />
+          </div>
+
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none text-sm text-gray-700 bg-white cursor-pointer"
+            style={{ minWidth: "150px" }}
+          >
+            <option value="all">Semua Waktu</option>
+            <option value="7days">7 Hari Terakhir</option>
+            <option value="30days">30 Hari Terakhir</option>
+            <option value="custom">Pilih Tanggal...</option>
+          </select>
+
+          {dateRange === "custom" && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-gray-200 outline-none text-sm text-gray-600"
+              />
+              <span className="text-gray-400">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-gray-200 outline-none text-sm text-gray-600"
+              />
+            </div>
+          )}
+
+          <select
+            value={kotaFilter}
+            onChange={(e) => setKotaFilter(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none text-sm text-gray-700 bg-white cursor-pointer"
+            style={{ minWidth: "150px", maxWidth: "220px" }}
+          >
+            <option value="">Semua Kota</option>
+            {filterOptions.lokasi.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </select>
+
+          <select
+            value={sumberFilter}
+            onChange={(e) => setSumberFilter(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none text-sm text-gray-700 bg-white cursor-pointer"
+            style={{ minWidth: "150px", maxWidth: "220px" }}
+          >
+            <option value="">Semua Sumber</option>
+            {filterOptions.sumber.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Table */}
         <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -451,25 +601,31 @@ export default function LeadLpwaPage() {
           </div>
 
           {/* Pagination */}
-          {paginationInfo && paginationInfo.last_page > 1 && (
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                Menampilkan halaman {paginationInfo.current_page} dari {paginationInfo.last_page}
-              </span>
-              <div className="flex gap-2">
+          {paginationInfo && (
+            <div className="pagination-bar">
+              <div className="pagination-bar__pagesize">
+                <span>Tampilkan:</span>
+                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                  {PER_PAGE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt} Data</option>)}
+                </select>
+              </div>
+              <div className="pagination-bar__nav">
                 <button
-                  disabled={page === 1}
-                  onClick={() => { setPage(page - 1); fetchLeads(page - 1); }}
-                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm disabled:opacity-50"
+                  className="pagination-bar__btn"
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page <= 1}
                 >
-                  Prev
+                  ‹
                 </button>
+                <span className="pagination-bar__info">
+                  Halaman {page} dari {paginationInfo.last_page} ({paginationInfo.total} total)
+                </span>
                 <button
-                  disabled={page === paginationInfo.last_page}
-                  onClick={() => { setPage(page + 1); fetchLeads(page + 1); }}
-                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm disabled:opacity-50"
+                  className="pagination-bar__btn"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= paginationInfo.last_page}
                 >
-                  Next
+                  ›
                 </button>
               </div>
             </div>

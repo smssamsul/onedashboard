@@ -30,12 +30,28 @@ class LeadLpwaController extends Controller
             $query->where('sales_id', $request->sales_id);
         }
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
                   ->orWhere('no_wa', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('lokasi')) {
+            $query->where('lokasi', $request->lokasi);
+        }
+
+        if ($request->filled('sumber')) {
+            $query->where('sumber', $request->sumber);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
         }
 
         $query->orderBy('created_at', 'desc');
@@ -75,6 +91,38 @@ class LeadLpwaController extends Controller
                 'last_page' => $leads->lastPage(),
                 'per_page' => $leads->perPage(),
                 'total' => $leads->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Daftar nilai unik lokasi & sumber yang pernah tercatat - dipakai
+     * untuk isi dropdown filter di menu Leads (biar pilihannya sesuai
+     * data asli, bukan diketik bebas).
+     */
+    public function filterOptions(Request $request)
+    {
+        $query = LeadLpwa::query();
+
+        $user = Auth::user();
+        $realUser = $user ? $user->userData : null;
+        if ($realUser && $realUser->level == 2) {
+            $query->where('sales_id', $realUser->id);
+        }
+
+        $lokasi = (clone $query)
+            ->whereNotNull('lokasi')->where('lokasi', '!=', '')
+            ->distinct()->orderBy('lokasi')->pluck('lokasi');
+
+        $sumber = (clone $query)
+            ->whereNotNull('sumber')->where('sumber', '!=', '')
+            ->distinct()->orderBy('sumber')->pluck('sumber');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'lokasi' => $lokasi,
+                'sumber' => $sumber,
             ],
         ]);
     }

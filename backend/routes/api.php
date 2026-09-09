@@ -231,6 +231,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Lead LPWA
         Route::get('/lead-lpwa', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'index']);
+        Route::get('/lead-lpwa/filter-options', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'filterOptions']);
         Route::post('/lead-lpwa', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'store']);
         Route::put('/lead-lpwa/{id}', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'update']);
         Route::delete('/lead-lpwa/{id}', [\App\Http\Controllers\Api\Sales\LeadLpwaController::class, 'destroy']);
