@@ -86,9 +86,10 @@ export default function LeadLpwaPage() {
   const [dateRange, setDateRange] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [kotaFilter, setKotaFilter] = useState("");
+  const [kotaInput, setKotaInput] = useState("");
+  const debouncedKota = useDebouncedValue(kotaInput, 500);
   const [sumberFilter, setSumberFilter] = useState("");
-  const [filterOptions, setFilterOptions] = useState({ lokasi: [], sumber: [] });
+  const [filterOptions, setFilterOptions] = useState({ sumber: [] });
 
   // Modals state
   const [showAdd, setShowAdd] = useState(false);
@@ -135,7 +136,6 @@ export default function LeadLpwaPage() {
       const data = await res.json();
       if (data.success) {
         setFilterOptions({
-          lokasi: data.data?.lokasi || [],
           sumber: data.data?.sumber || [],
         });
       }
@@ -162,7 +162,7 @@ export default function LeadLpwaPage() {
       params.append("page", pageNumber);
       params.append("per_page", perPage);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
-      if (kotaFilter) params.append("lokasi", kotaFilter);
+      if (debouncedKota.trim()) params.append("lokasi", debouncedKota.trim());
       if (sumberFilter) params.append("sumber", sumberFilter);
 
       // Hitung filter tanggal
@@ -198,7 +198,7 @@ export default function LeadLpwaPage() {
     } finally {
       setLoading(false);
     }
-  }, [perPage, debouncedSearch, kotaFilter, sumberFilter, dateRange, startDate, endDate]);
+  }, [perPage, debouncedSearch, debouncedKota, sumberFilter, dateRange, startDate, endDate]);
 
   useEffect(() => {
     fetchProducts();
@@ -208,7 +208,7 @@ export default function LeadLpwaPage() {
   useEffect(() => {
     setPage(1);
     fetchLeads(1);
-  }, [debouncedSearch, perPage, kotaFilter, sumberFilter, dateRange, startDate, endDate, fetchLeads]);
+  }, [debouncedSearch, perPage, debouncedKota, sumberFilter, dateRange, startDate, endDate, fetchLeads]);
 
   useEffect(() => {
     if (page > 1) {
@@ -487,17 +487,14 @@ export default function LeadLpwaPage() {
             </div>
           )}
 
-          <select
-            value={kotaFilter}
-            onChange={(e) => setKotaFilter(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none text-sm text-gray-700 bg-white cursor-pointer"
+          <input
+            type="text"
+            placeholder="Cari kota..."
+            value={kotaInput}
+            onChange={(e) => setKotaInput(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none text-sm text-gray-700"
             style={{ minWidth: "150px", maxWidth: "220px" }}
-          >
-            <option value="">Semua Kota</option>
-            {filterOptions.lokasi.map((k) => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
+          />
 
           <select
             value={sumberFilter}
