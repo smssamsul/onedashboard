@@ -114,6 +114,7 @@ function orderRowToExportRecord(order) {
     "Total Dibayar": order.total_paid ?? "",
     Sisa: order.remaining ?? "",
     Sales: getOrderSalesNama(order) || "",
+    "Sumber Lead": order.sumber_lead || "",
   };
   UTM_FILTER_FIELDS.forEach(({ key, label }) => {
     row[label] = order[key] != null && String(order[key]).trim() !== "" ? String(order[key]) : "";
@@ -1595,6 +1596,7 @@ export default function DaftarPesanan() {
                     </div>
                   </th>
                   <th>SALES</th>
+                  <th>SUMBER LEAD</th>
 
                   {UTM_FILTER_FIELDS.map(({ key, label }) => (
                     <th key={key} style={{ whiteSpace: "nowrap", fontSize: "0.7rem", fontWeight: 600, color: "var(--color-text-secondary)" }}>
@@ -1744,6 +1746,13 @@ export default function DaftarPesanan() {
                         <td>
                           <span style={{ fontSize: "0.875rem", color: "var(--color-text-primary)" }}>
                             {getOrderSalesNama(order) || "-"}
+                          </span>
+                        </td>
+
+                        {/* Sumber Lead - dari chat WA (lead_lpwas) yang nomornya sama dengan customer */}
+                        <td>
+                          <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
+                            {order.sumber_lead || "-"}
                           </span>
                         </td>
 

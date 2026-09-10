@@ -185,6 +185,7 @@ class OrderCustomerController extends Controller
             'produk_rel:id,nama,fee_trainer',
             'customer_rel:id,nama,wa,sales_id',
             'customer_rel.sales_rel:id,nama',
+            'customer_rel.leadLpwa:id,no_wa,sumber',
             'sales_rel:id,nama',
             'order_payment_rel:id,order_id,amount,status,payment_method,payment_type,payment_ke,tanggal,bukti_pembayaran,nama_pengirim,no_rek_pengirim,create_at',
             'bundling_rel:id,produk,nama,harga,status',
@@ -255,6 +256,9 @@ class OrderCustomerController extends Controller
                 }
             }
 
+            // Sumber Lead - dicocokkan lewat nomor WA yang sama antara customer
+            // & lead_lpwas (lihat Customer::leadLpwa relation)
+            $order->sumber_lead = $order->customer_rel->leadLpwa->sumber ?? null;
         }
 
         return response()->json([
@@ -418,6 +422,7 @@ class OrderCustomerController extends Controller
             'produk_rel.kategori_rel:id,nama',
             'customer_rel:id,nama,wa,sales_id',
             'customer_rel.sales_rel:id,nama',
+            'customer_rel.leadLpwa:id,no_wa,sumber',
             'sales_rel:id,nama',
             'bundling_rel:id,produk,nama,harga,status',
             'order_resi:id,order_id,meta,waybill_id,courier_company,courier_type,status'
@@ -434,6 +439,10 @@ class OrderCustomerController extends Controller
             $landingpage = \App\Models\Produk::where('id', $query->produk_rel->id)->value('landingpage');
             $fbPixelFromLanding = FacebookPixelLandingpageHelper::extractPixelIdsFromLandingpage($landingpage);
             $query->produk_rel->fb_pixel = $fbPixelFromLanding;
+        }
+
+        if ($query) {
+            $query->sumber_lead = $query->customer_rel->leadLpwa->sumber ?? null;
         }
 
         return response()->json([
