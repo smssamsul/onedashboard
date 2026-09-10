@@ -39,7 +39,7 @@ class LeadLpwaController extends Controller
         }
 
         if ($request->filled('lokasi')) {
-            $query->where('lokasi', $request->lokasi);
+            $query->where('lokasi', 'like', "%{$request->lokasi}%");
         }
 
         if ($request->filled('sumber')) {
