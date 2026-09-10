@@ -33,13 +33,13 @@ class LeadLpwaController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('no_wa', 'like', "%{$search}%");
+                $q->where('nama', 'ilike', "%{$search}%")
+                  ->orWhere('no_wa', 'ilike', "%{$search}%");
             });
         }
 
         if ($request->filled('lokasi')) {
-            $query->where('lokasi', 'like', "%{$request->lokasi}%");
+            $query->where('lokasi', 'ilike', "%{$request->lokasi}%");
         }
 
         if ($request->filled('sumber')) {
