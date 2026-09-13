@@ -95,6 +95,14 @@ class CustomerDashboardController extends Controller
                 'status_pembayaran' => $order->status_pembayaran,
                 'status_order' => $order->status_order,
                 'metode_bayar' => $order->metode_bayar,
+                // Tiket QR kehadiran - cuma ada kalau produk punya jadwal fisik
+                // (event/seminar) DAN order-nya sudah Paid. Dipastikan/di-generate
+                // di sini (bukan cuma baca kolom) supaya order lama yang Paid dari
+                // sebelum fitur ini ada tetap otomatis dapat QR-nya begitu dibuka -
+                // tanpa perlu migrasi/backfill data manual (lihat AttendanceQrService).
+                'qr_token' => $order->status_pembayaran === '2'
+                    ? app(\App\Services\AttendanceQrService::class)->ensureToken($order)
+                    : null,
             ];
 
             // Jika seminar, tambahkan info webinar

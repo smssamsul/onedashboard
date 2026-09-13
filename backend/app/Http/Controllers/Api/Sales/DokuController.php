@@ -313,6 +313,16 @@ class DokuController extends Controller
             }
         }
 
+        // Auto-generate & kirim QR tiket kehadiran (produk yang punya jadwal fisik)
+        try {
+            app(\App\Services\AttendanceQrService::class)->handlePaymentApproved($order);
+        } catch (\Throwable $e) {
+            $this->dokuLog()->error('DOKU notification - Auto QR kehadiran gagal', [
+                'order_customer_id' => $order->id,
+                'error'             => $e->getMessage(),
+            ]);
+        }
+
         $paymentCount = OrderPayment::where('order_id', $order->id)->count();
         $paymentKe = $paymentCount + 1;
 

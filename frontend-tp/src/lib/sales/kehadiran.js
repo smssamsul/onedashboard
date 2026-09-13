@@ -32,6 +32,16 @@ export async function manualCheckin(jadwalId, customerId) {
   }
 }
 
+/** POST scan QR tiket kehadiran per-order (staff scan QR peserta) */
+export async function scanQrCheckin(jadwalId, qrToken) {
+  const res = await api("/sales/kehadiran/scan-qr", {
+    method: "POST",
+    body: JSON.stringify({ jadwal_id: jadwalId, qr_token: qrToken }),
+    disableToast: true,
+  });
+  return res;
+}
+
 /** DELETE (batalkan) kehadiran (admin) */
 export async function deleteKehadiran(id) {
   try {

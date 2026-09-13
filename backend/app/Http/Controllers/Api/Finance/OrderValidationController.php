@@ -278,6 +278,16 @@ class OrderValidationController extends Controller
                         ]);
                     }
                 }
+
+                // Auto-generate & kirim QR tiket kehadiran (produk yang punya jadwal fisik)
+                try {
+                    app(\App\Services\AttendanceQrService::class)->handlePaymentApproved($order);
+                } catch (\Throwable $e) {
+                    \Log::error('Finance approve - Auto QR kehadiran gagal', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 

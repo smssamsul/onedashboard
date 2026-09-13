@@ -262,6 +262,84 @@ class ProdukJadwalKehadiranController extends Controller
     }
 
     /**
+     * Staff: scan QR tiket kehadiran per-order (QR unik dibuat otomatis saat
+     * order Paid, lihat AttendanceQrService). Beda dari store() yang staff
+     * cari customer manual - di sini source_type/source_id langsung dari
+     * order yang cocok dengan qr_token hasil scan, tidak perlu
+     * findSourceForCustomer lagi.
+     */
+    public function scanQr(Request $request)
+    {
+        $validated = $request->validate([
+            'qr_token' => 'required|string',
+            'jadwal_id' => 'required|integer|exists:produk_jadwal,id',
+        ]);
+
+        $order = OrderCustomer::with(['customer_rel', 'produk_rel'])
+            ->where('qr_token', $validated['qr_token'])
+            ->where('status', '!=', 'N')
+            ->first();
+
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'QR tidak dikenali / tidak valid'], 404);
+        }
+
+        if ($order->status_pembayaran !== '2') {
+            return response()->json(['success' => false, 'message' => 'Order ini belum berstatus Lunas'], 422);
+        }
+
+        $jadwal = ProdukJadwal::find($validated['jadwal_id']);
+
+        if ((int) $jadwal->produk_id !== (int) $order->produk) {
+            $namaProduk = $order->produk_rel->nama ?? 'produk lain';
+            return response()->json([
+                'success' => false,
+                'message' => "QR ini untuk \"{$namaProduk}\", bukan untuk jadwal yang sedang dipilih",
+            ], 422);
+        }
+
+        $customer = $order->customer_rel;
+        if (!$customer) {
+            return response()->json(['success' => false, 'message' => 'Data customer pada order ini tidak ditemukan'], 422);
+        }
+
+        $sudahCheckin = ProdukJadwalKehadiran::where('jadwal_id', $jadwal->id)
+            ->where('source_type', 'order')
+            ->where('source_id', $order->id)
+            ->where('tanggal_jadwal', $jadwal->waktu_mulai)
+            ->where('status', '!=', 'N')
+            ->exists();
+
+        $kehadiran = ProdukJadwalKehadiran::updateOrCreate(
+            ['jadwal_id' => $jadwal->id, 'customer_id' => $customer->id, 'tanggal_jadwal' => $jadwal->waktu_mulai],
+            [
+                'produk_id' => $jadwal->produk_id,
+                'nama_jadwal_snapshot' => $jadwal->nama_jadwal,
+                'source_type' => 'order',
+                'source_id' => $order->id,
+                'status_hadir' => 'hadir',
+                'waktu_checkin' => now(),
+                'checked_by' => Auth::id(),
+                'update_at' => now(),
+                'create_at' => now(),
+                'status' => '1',
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'already_checked_in' => $sudahCheckin,
+            'data' => [
+                'nama' => $customer->nama,
+                'wa' => $customer->wa,
+                'produk' => $order->produk_rel->nama ?? null,
+                'kode_order' => $order->kode_order,
+                'waktu_checkin' => $kehadiran->waktu_checkin,
+            ],
+        ]);
+    }
+
+    /**
      * Admin: batalkan kehadiran (soft delete).
      */
     public function destroy($id)
