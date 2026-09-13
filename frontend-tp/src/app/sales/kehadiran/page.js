@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
-import { QRCodeCanvas } from "qrcode.react";
-import { Trash2, QrCode, Copy, Download, Monitor } from "lucide-react";
-import { getKehadiran, manualCheckin, deleteKehadiran } from "@/lib/sales/kehadiran";
+import { Trash2, QrCode, Monitor, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { getKehadiran, manualCheckin, deleteKehadiran, scanQrCheckin } from "@/lib/sales/kehadiran";
 import { getQuickOrderProducts, getProductById } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
 import { toastSuccess, toastError } from "@/lib/toast";
+import QrScanner from "./QrScanner";
 import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
 import "@/styles/sales/shared-table.css";
@@ -33,7 +33,10 @@ export default function KehadiranPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const [searchResults, setSearchResults] = useState([]);
-  const qrCanvasRef = useRef(null);
+
+  // Scan QR peserta state
+  const [scanResult, setScanResult] = useState(null); // { type: 'success'|'warning'|'error', message, data }
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     getQuickOrderProducts().then((list) => setProdukList(Array.isArray(list) ? list : [])).catch(() => setProdukList([]));
@@ -53,6 +56,12 @@ export default function KehadiranPage() {
       setJadwalId(latest ? String(latest.id) : "");
     });
   }, [produkId]);
+
+  // Reset feedback scan tiap ganti jadwal, supaya tidak ada hasil scan basi
+  // dari jadwal sebelumnya yang kebawa nempel di layar
+  useEffect(() => {
+    setScanResult(null);
+  }, [jadwalId]);
 
   const loadKehadiran = useCallback(async (id) => {
     if (!id) {
@@ -79,26 +88,25 @@ export default function KehadiranPage() {
       .catch(() => setSearchResults([]));
   }, [debouncedSearch]);
 
-  const selectedProduk = produkList.find((p) => String(p.id) === String(produkId));
-  const checkinLink = jadwalId
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/kehadiran/${jadwalId}`
-    : "";
-
-  const handleCopyLink = () => {
-    if (!checkinLink) return;
-    navigator.clipboard.writeText(checkinLink);
-    toastSuccess("Link check-in disalin ke clipboard");
-  };
-
-  const handleDownloadQr = () => {
-    const canvas = qrCanvasRef.current;
-    if (!canvas) return;
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `qr-kehadiran-${selectedProduk?.nama || produkId}.png`.replace(/\s+/g, "-").toLowerCase();
-    link.click();
-    toastSuccess("QR code diunduh");
+  const handleScan = async (qrToken) => {
+    if (!jadwalId) {
+      setScanResult({ type: "error", message: "Pilih jadwal aktif dulu sebelum scan QR peserta" });
+      return;
+    }
+    setScanning(true);
+    try {
+      const res = await scanQrCheckin(jadwalId, qrToken);
+      if (res.already_checked_in) {
+        setScanResult({ type: "warning", message: "Sudah check-in sebelumnya", data: res.data });
+      } else {
+        setScanResult({ type: "success", message: "Berhasil check-in", data: res.data });
+      }
+      loadKehadiran(produkId);
+    } catch (err) {
+      setScanResult({ type: "error", message: err.message || "QR tidak valid" });
+    } finally {
+      setScanning(false);
+    }
   };
 
   const handleManualCheckin = async (customer) => {
@@ -199,26 +207,53 @@ export default function KehadiranPage() {
                   )}
                 </div>
 
-                {/* Kolom QR: gambar QR di kiri, aksi di kanannya */}
+                {/* Kolom Scan QR: kamera di kiri, hasil scan di kanannya */}
                 {jadwalId && (
                   <div style={{ flex: "1 1 380px", minWidth: 300, display: "flex", flexDirection: "column", gap: 10 }}>
                     <label style={{ fontSize: 14, fontWeight: 600 }}>
-                      <QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />QR Check-in
+                      <QrCode size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />Scan QR Peserta
                     </label>
                     <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                      <div style={{ padding: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, flexShrink: 0 }}>
-                        <QRCodeCanvas ref={qrCanvasRef} value={checkinLink} size={180} level="M" includeMargin={false} />
+                      <div style={{ flexShrink: 0 }}>
+                        <QrScanner active={!!jadwalId} onScan={handleScan} />
+                        <p style={{ fontSize: 12, color: "#6b7280", textAlign: "center", marginTop: 6 }}>
+                          Arahkan kamera ke QR tiket kehadiran peserta
+                        </p>
                       </div>
                       <div style={{ flex: "1 1 200px", minWidth: 200, display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input type="text" readOnly value={checkinLink} style={{ flex: 1, minWidth: 0 }} />
-                          <button type="button" className="customers-button customers-button--primary" onClick={handleCopyLink}>
-                            <Copy size={16} />
-                          </button>
-                        </div>
-                        <button type="button" className="customers-button customers-button--primary" onClick={handleDownloadQr}>
-                          <Download size={16} /> Download QR
-                        </button>
+                        {scanning && (
+                          <div style={{ padding: "0.75rem 1rem", borderRadius: 10, background: "#f3f4f6", color: "#374151", fontSize: 13 }}>
+                            Memproses scan...
+                          </div>
+                        )}
+                        {scanResult && (
+                          <div
+                            style={{
+                              padding: "0.75rem 1rem",
+                              borderRadius: 10,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              background:
+                                scanResult.type === "success" ? "#ecfdf5" : scanResult.type === "warning" ? "#fffbeb" : "#fef2f2",
+                              border: `1px solid ${scanResult.type === "success" ? "#a7f3d0" : scanResult.type === "warning" ? "#fde68a" : "#fecaca"}`,
+                              color: scanResult.type === "success" ? "#065f46" : scanResult.type === "warning" ? "#92400e" : "#991b1b",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 14 }}>
+                              {scanResult.type === "success" && <CheckCircle2 size={18} />}
+                              {scanResult.type === "warning" && <AlertTriangle size={18} />}
+                              {scanResult.type === "error" && <XCircle size={18} />}
+                              {scanResult.message}
+                            </div>
+                            {scanResult.data && (
+                              <div style={{ fontSize: 13 }}>
+                                <div>{scanResult.data.nama}</div>
+                                <div style={{ opacity: 0.8 }}>{scanResult.data.produk} — {scanResult.data.kode_order}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <a
                           href={`/kehadiran/${jadwalId}/display`}
                           target="_blank"

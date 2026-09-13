@@ -370,6 +370,7 @@ Route::middleware('auth:api')->group(function () {
         // Kehadiran Produk (Seminar/Workshop Attendance)
         Route::get('/kehadiran', [ProdukJadwalKehadiranController::class, 'index']);
         Route::post('/kehadiran', [ProdukJadwalKehadiranController::class, 'store']);
+        Route::post('/kehadiran/scan-qr', [ProdukJadwalKehadiranController::class, 'scanQr']);
         Route::delete('/kehadiran/{id}', [ProdukJadwalKehadiranController::class, 'destroy'])->where('id', '[0-9]+');
 
         // Order Payment

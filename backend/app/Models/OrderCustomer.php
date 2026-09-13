@@ -35,6 +35,7 @@ class OrderCustomer extends Model
         'status',
         'status_pembayaran',
         'status_order',
+        'qr_token',
         'custom_value',
         'catatan',
         'bundling',

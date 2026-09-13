@@ -10,6 +10,7 @@ import "@/styles/customer/cstdashboard.css";
 const navLinks = [
   { label: "Home", href: "/customer/dashboard" },
   { label: "Kursus Saya", href: "/customer/ecourse" },
+  { label: "Tiket Kehadiran", href: "/customer/tiket-kehadiran" },
   { label: "Pembayaran", href: "/customer/dashboard/payment" },
   { label: "Profile", href: "/customer/profile" },
 ];
