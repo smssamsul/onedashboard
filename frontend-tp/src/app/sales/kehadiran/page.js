@@ -7,7 +7,7 @@ import { getKehadiran, manualCheckin, deleteKehadiran, scanQrCheckin } from "@/l
 import { getQuickOrderProducts, getProductById } from "@/lib/sales/products";
 import { getCustomers } from "@/lib/sales/customer";
 import { toastSuccess, toastError } from "@/lib/toast";
-import QrScanner from "./QrScanner";
+import QrScanner from "@/components/QrScanner";
 import "@/styles/sales/dashboard.css";
 import "@/styles/sales/admin.css";
 import "@/styles/sales/shared-table.css";
