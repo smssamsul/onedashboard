@@ -74,13 +74,20 @@ export default function StaffKehadiranPage() {
   // Cuma peserta sesi yang sedang dipilih - dicocokkan lewat tanggal_jadwal
   // (snapshot), sama seperti cara backend membedakan sesi kalau jadwal_id
   // yang sama dipakai ulang untuk tanggal event yang berbeda.
+  // Dibandingkan lewat Date (bukan string ===) karena format tanggal beda
+  // antar endpoint - /sales/produk/{id} balikin "2026-09-29 13:00:00" polos,
+  // sementara tanggal_jadwal di data kehadiran ISO "...T06:00:00.000000Z".
+  // String-nya beda walau instant-nya sama, jadi harus dibandingkan sebagai
+  // waktu asli lewat getTime(), bukan disamakan sebagai teks.
   const hadirSesiIni = useMemo(() => {
-    if (!jadwalTerpilih) return [];
+    if (!jadwalTerpilih?.waktu_mulai) return [];
+    const targetTime = new Date(jadwalTerpilih.waktu_mulai).getTime();
     return kehadiran
       .filter(
         (row) =>
           String(row.jadwal_id) === String(jadwalId) &&
-          row.tanggal_jadwal === jadwalTerpilih.waktu_mulai
+          row.tanggal_jadwal &&
+          new Date(row.tanggal_jadwal).getTime() === targetTime
       )
       .sort((a, b) => new Date(b.waktu_checkin) - new Date(a.waktu_checkin));
   }, [kehadiran, jadwalId, jadwalTerpilih]);
