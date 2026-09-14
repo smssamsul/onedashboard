@@ -35,8 +35,13 @@ function messageForError(err) {
  * Sekarang ditampilkan sebagai pesan + tombol "Coba Lagi" di dalam area
  * kamera itu sendiri, plus onError opsional buat parent yang mau reaksi
  * sendiri (mis. log tambahan).
+ *
+ * size="large" (dipakai di mode layar penuh) bikin area kamera jauh lebih
+ * besar khusus di layar sempit (mobile) - default tetap ukuran kompak
+ * seperti sebelumnya buat halaman yang kameranya berdampingan dengan
+ * panel lain.
  */
-export default function QrScanner({ onScan, onError, active = true, pauseMs = 2500 }) {
+export default function QrScanner({ onScan, onError, active = true, pauseMs = 2500, size = "default" }) {
   const scannerRef = useRef(null);
   const isPausedRef = useRef(false);
   const onScanRef = useRef(onScan);
@@ -77,7 +82,14 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
 
       html5QrCode
         .start(
-          { facingMode: "environment" },
+          // width/height "ideal" ditambahkan supaya browser cenderung pilih
+          // lensa kamera utama, bukan ultra-wide (0.5x) - beberapa HP
+          // (terutama iPhone) otomatis pakai lensa ultra-wide utk
+          // facingMode "environment" polos, hasilnya gambar kecil/fisheye.
+          // Best-effort - tidak ada constraint web yang bisa pilih lensa
+          // fisik secara pasti, tapi constraint resolusi ini membantu di
+          // banyak device karena ultra-wide biasanya sensor resolusi beda.
+          { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1920 } },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (isPausedRef.current) return;
@@ -122,15 +134,12 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
   }, [active, retryKey]);
 
   return (
-    <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+    <div className={`qr-scanner-wrap qr-scanner-wrap--${size}`}>
       <div
         id={ELEMENT_ID}
+        className="qr-scanner-region"
         style={{
-          width: "100%",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#000",
-          minHeight: error ? 0 : 200,
+          minHeight: error ? 0 : undefined,
         }}
       />
       {starting && !error && (
@@ -170,6 +179,42 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
           </button>
         </div>
       )}
+      <style jsx>{`
+        .qr-scanner-wrap {
+          width: 100%;
+          max-width: 360px;
+          margin: 0 auto;
+        }
+        .qr-scanner-region {
+          width: 100%;
+          min-height: 200px;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #000;
+          position: relative;
+        }
+        .qr-scanner-wrap--large {
+          max-width: 480px;
+        }
+        .qr-scanner-wrap--large .qr-scanner-region {
+          min-height: 360px;
+        }
+        @media (max-width: 640px) {
+          .qr-scanner-wrap--large {
+            max-width: 100%;
+          }
+          /* height (bukan min-height) - video di dalamnya di-object-fit:cover
+             ke 100% tinggi ini, butuh tinggi pasti (definite), bukan min-height. */
+          .qr-scanner-wrap--large .qr-scanner-region {
+            height: 75vh;
+          }
+          .qr-scanner-wrap--large .qr-scanner-region :global(video) {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -128,8 +128,8 @@ export default function StaffKehadiranDisplayPage() {
       : styles.feedbackError;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
+    <div style={styles.container} className="kd-container">
+      <div style={styles.header} className="kd-header">
         <h1 style={styles.title}>{jadwal.produk?.nama || jadwal.nama_jadwal}</h1>
         <p style={styles.subtitle}>{jadwal.nama_jadwal}</p>
         {jadwal.waktu_mulai && (
@@ -140,9 +140,9 @@ export default function StaffKehadiranDisplayPage() {
       </div>
 
       <div style={styles.mainGrid}>
-        <div style={styles.qrPanel}>
-          <div style={styles.qrFrame}>
-            <QrScanner active onScan={handleScan} />
+        <div style={styles.qrPanel} className="kd-qr-panel">
+          <div style={styles.qrFrame} className="kd-qr-frame">
+            <QrScanner active onScan={handleScan} size="large" />
           </div>
           <p style={styles.qrCaption}>
             {scanning ? "Memproses scan..." : "Arahkan kamera ke QR tiket peserta"}
@@ -197,6 +197,24 @@ export default function StaffKehadiranDisplayPage() {
           </div>
         </div>
       </div>
+      <style jsx>{`
+        @media (max-width: 640px) {
+          .kd-container {
+            padding: 16px !important;
+          }
+          .kd-header {
+            margin-bottom: 16px !important;
+          }
+          .kd-qr-panel {
+            width: 100% !important;
+          }
+          .kd-qr-frame {
+            padding: 8px !important;
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
     </div>
   );
 }
