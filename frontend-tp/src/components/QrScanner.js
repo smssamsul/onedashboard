@@ -117,7 +117,18 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
           setStarting(false);
           onErrorRef.current?.(err);
         });
-    });
+    })
+      .catch((err) => {
+        // import() dinamis gagal (chunk 404 dsb - misal browser masih pegang
+        // referensi build lama setelah deploy baru). Sebelumnya tidak
+        // ditangani sama sekali, jadi kamera diam macet tanpa pesan apa pun -
+        // beda dari kegagalan start() di atas yang sudah ditangani.
+        if (cancelled) return;
+        if (timeoutId) clearTimeout(timeoutId);
+        setError("Gagal memuat modul kamera. Muat ulang halaman (hard refresh) lalu coba lagi.");
+        setStarting(false);
+        onErrorRef.current?.(err);
+      });
 
     return () => {
       cancelled = true;
