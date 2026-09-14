@@ -257,6 +257,8 @@ export default function FollowUpRecapPage() {
             <p className={styles.footnote}>
               &quot;Dibalas&quot; &amp; &quot;Median respon&quot; dihitung dari pesan tim berikutnya setelah customer chat —
               termasuk balasan otomatis/broadcast (data belum memisah manual vs otomatis), jadi baca sebagai indikator, bukan angka mutlak.
+              Status &quot;Dibalas&quot; juga menghitung follow-up otomatis dari sistem template (di luar chat WA) yang sudah terkirim,
+              walau belum tentu tampil sebagai pesan di panel percakapan.
             </p>
 
             {/* ── Jam Aktivitas Chart ── */}
