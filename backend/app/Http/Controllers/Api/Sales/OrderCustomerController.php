@@ -2250,6 +2250,35 @@ class OrderCustomerController extends Controller
     }
 
     /**
+     * Kirim ulang tiket QR kehadiran secara manual (tombol di halaman order),
+     * gambar QR dikirim langsung sebagai gambar WA - bukan link ke member
+     * area seperti pengiriman otomatis saat order pertama kali jadi Paid.
+     */
+    public function resendQrKehadiran(Request $request, $orderId)
+    {
+        $order = OrderCustomer::with(['customer_rel', 'produk_rel'])->find($orderId);
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tidak ditemukan',
+            ], 404);
+        }
+
+        $salesId = $this->resolveOrderSalesId($order);
+
+        $result = app(\App\Services\AttendanceQrService::class)->sendQrImage($order, $salesId);
+
+        \Log::info('Resend QR Kehadiran', [
+            'order_id' => $orderId,
+            'user_id' => Auth::id(),
+            'result' => $result,
+        ]);
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    /**
      * Customer upload bukti pembayaran
      */
     public function customerUploadBuktiPembayaran(Request $request, $id)

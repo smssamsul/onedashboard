@@ -111,6 +111,8 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
   const [activeTab, setActiveTab] = useState("detail");
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+  const [qrResendLoading, setQrResendLoading] = useState(false);
+  const [qrResendFeedback, setQrResendFeedback] = useState(null);
 
   // Logs State
   const [logs, setLogs] = useState([]);
@@ -264,6 +266,36 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
     setSelectedImageUrl(null);
   };
 
+  const handleResendQr = async () => {
+    if (!order?.id) return;
+    setQrResendLoading(true);
+    setQrResendFeedback(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token tidak ditemukan");
+
+      const res = await fetch(`/api/sales/order/${order.id}/resend-qr-kehadiran`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Gagal mengirim QR kehadiran");
+      }
+
+      setQrResendFeedback({ type: "success", message: json.message || "QR berhasil dikirim ulang via WhatsApp" });
+    } catch (err) {
+      setQrResendFeedback({ type: "error", message: err.message || "Gagal mengirim QR kehadiran" });
+    } finally {
+      setQrResendLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-card modal-card--fullscreen">
@@ -374,6 +406,38 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
 
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>Alamat</h4>
                   <p style={{ fontSize: '0.95rem', color: '#1e293b', lineHeight: '1.5' }}>{order.alamat || "-"}</p>
+
+                  {statusPembayaranValue == 2 && (
+                    <div style={{ marginTop: "1.5rem" }}>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>QR Kehadiran</h4>
+                      <button
+                        type="button"
+                        onClick={handleResendQr}
+                        disabled={qrResendLoading}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 6,
+                          border: "1px solid #cbd5e1",
+                          background: qrResendLoading ? "#f1f5f9" : "#fff",
+                          cursor: qrResendLoading ? "not-allowed" : "pointer",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {qrResendLoading ? "Mengirim..." : "Kirim Ulang QR (WA)"}
+                      </button>
+                      {qrResendFeedback && (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontSize: "0.8rem",
+                            color: qrResendFeedback.type === "success" ? "#16a34a" : "#dc2626",
+                          }}
+                        >
+                          {qrResendFeedback.message}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div style={{ marginTop: "1.25rem" }}>
                     <BiteshipOrderTrackingPanel order={order} />

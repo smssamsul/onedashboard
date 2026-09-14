@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\OrderCustomer;
 use App\Models\ProdukJadwal;
 use App\Models\Sales;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -98,6 +100,80 @@ class AttendanceQrService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Kirim ulang tiket QR secara manual (dipicu tombol sales di halaman
+     * order), kali ini gambar QR-nya langsung dikirim sebagai gambar WA
+     * (bukan link ke member area). Beda dari handlePaymentApproved() yang
+     * hanya jalan otomatis sekali saat order baru jadi Paid.
+     *
+     * @return array{success: bool, message: string}
+     */
+    public function sendQrImage(OrderCustomer $order, ?int $salesId = null): array
+    {
+        if (!$this->isEligible($order)) {
+            return ['success' => false, 'message' => 'Produk order ini tidak memiliki jadwal kehadiran'];
+        }
+
+        if ($order->status_pembayaran !== '2') {
+            return ['success' => false, 'message' => 'Order belum berstatus Lunas'];
+        }
+
+        $customer = $order->customer_rel;
+        if (!$customer || !$customer->wa) {
+            return ['success' => false, 'message' => 'Customer tidak memiliki nomor WhatsApp'];
+        }
+
+        $token = $this->ensureToken($order);
+        if (!$token) {
+            return ['success' => false, 'message' => 'Gagal membuat QR token'];
+        }
+
+        $produkNama = $order->produk_rel->nama ?? 'produk Anda';
+        $caption = "Halo {$customer->nama},\n\nBerikut tiket QR kehadiran Anda untuk *{$produkNama}*.\n\nSilakan tunjukkan QR ini ke petugas kami saat check-in di lokasi acara. Sampai jumpa! 🙌";
+
+        try {
+            $imageDataUri = $this->generateQrImageDataUri($token);
+            $waSender = app(WhatsAppSenderService::class);
+            $response = $waSender->sendImage($customer->wa, $imageDataUri, $caption, $salesId);
+
+            $successful = $response->successful();
+
+            Log::info('AttendanceQrService: kirim ulang QR gambar manual', [
+                'order_id' => $order->id,
+                'customer_id' => $customer->id,
+                'successful' => $successful,
+            ]);
+
+            return [
+                'success' => $successful,
+                'message' => $successful ? 'QR berhasil dikirim ulang via WhatsApp' : 'Gagal mengirim QR via WhatsApp',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('AttendanceQrService: gagal kirim ulang QR gambar manual', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'Gagal mengirim QR: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Generate gambar QR (PNG) dari token, dikembalikan sebagai data URI
+     * base64 supaya bisa langsung dikirim ke Baileys tanpa nyimpan file.
+     */
+    private function generateQrImageDataUri(string $token): string
+    {
+        $result = (new Builder())->build(
+            writer: new PngWriter(),
+            data: $token,
+            size: 400,
+            margin: 10,
+        );
+
+        return $result->getDataUri();
     }
 
     private function generateUniqueToken(): string

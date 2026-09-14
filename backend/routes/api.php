@@ -353,6 +353,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/order/sales', [OrderCustomerController::class, 'ordersForSales']);
         Route::post('/order/broadcast', [OrderCustomerController::class, 'broadcastOrders']);
         Route::post('/order/{id}/send-whatsapp', [OrderCustomerController::class, 'sendWhatsApp'])->where('id', '[0-9]+');
+        Route::post('/order/{id}/resend-qr-kehadiran', [OrderCustomerController::class, 'resendQrKehadiran'])->where('id', '[0-9]+');
         Route::post('/order/{id}/reject', [OrderCustomerController::class, 'reject'])->where('id', '[0-9]+');
         Route::get('/order/{id}', [OrderCustomerController::class, 'show'])->where('id', '[0-9]+');
         Route::get('/order/{id}/logs-follup', [OrderCustomerController::class, 'showLogsFollup'])->where('id', '[0-9]+');

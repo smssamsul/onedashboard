@@ -115,6 +115,8 @@ export default function ViewOrders({ order, onClose }) {
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+  const [qrResendLoading, setQrResendLoading] = useState(false);
+  const [qrResendFeedback, setQrResendFeedback] = useState(null);
 
   // Ambil status pembayaran dari order
   const statusPembayaranValue = order.status_pembayaran ?? 0;
@@ -141,6 +143,36 @@ export default function ViewOrders({ order, onClose }) {
   const handleCloseImageModal = () => {
     setShowImageModal(false);
     setSelectedImageUrl(null);
+  };
+
+  const handleResendQr = async () => {
+    if (!order?.id) return;
+    setQrResendLoading(true);
+    setQrResendFeedback(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token tidak ditemukan");
+
+      const res = await fetch(`/api/sales/order/${order.id}/resend-qr-kehadiran`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Gagal mengirim QR kehadiran");
+      }
+
+      setQrResendFeedback({ type: "success", message: json.message || "QR berhasil dikirim ulang via WhatsApp" });
+    } catch (err) {
+      setQrResendFeedback({ type: "error", message: err.message || "Gagal mengirim QR kehadiran" });
+    } finally {
+      setQrResendLoading(false);
+    }
   };
 
   const statusOrderValue = String(order.status_order ?? order.status ?? "1");
@@ -316,6 +348,40 @@ export default function ViewOrders({ order, onClose }) {
                       )}
                     </span>
                   </div>
+                  {statusPembayaranValue == 2 && (
+                    <div className="detail-item" style={{ marginTop: 8 }}>
+                      <span className="detail-label">QR Kehadiran</span>
+                      <span className="detail-colon">:</span>
+                      <span className="detail-value">
+                        <button
+                          type="button"
+                          onClick={handleResendQr}
+                          disabled={qrResendLoading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #cbd5e1",
+                            background: qrResendLoading ? "#f1f5f9" : "#fff",
+                            cursor: qrResendLoading ? "not-allowed" : "pointer",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {qrResendLoading ? "Mengirim..." : "Kirim Ulang QR (WA)"}
+                        </button>
+                        {qrResendFeedback && (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontSize: "0.8rem",
+                              color: qrResendFeedback.type === "success" ? "#16a34a" : "#dc2626",
+                            }}
+                          >
+                            {qrResendFeedback.message}
+                          </div>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="detail-section-divider"></div>

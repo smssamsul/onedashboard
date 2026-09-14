@@ -46,6 +46,32 @@ class WhatsAppSenderService
     }
 
     /**
+     * Kirim gambar + caption via WhatsApp. Cuma didukung engine Baileys
+     * (Woowa/notifapi.com tidak punya endpoint kirim gambar di integrasi ini).
+     *
+     * @param string $to       Nomor tujuan
+     * @param string $image    URL gambar atau base64/data-URI
+     * @param string $caption  Caption gambar
+     * @param int|null $salesId ID Sales (opsional, untuk session Baileys per-sales)
+     * @return \Illuminate\Http\Client\Response|object
+     * @throws \Exception
+     */
+    public function sendImage(
+        string $to,
+        string $image,
+        string $caption = '',
+        ?int $salesId = null
+    ) {
+        $engine = SalesSetting::getWaEngine();
+
+        if ($engine !== 'baileys') {
+            throw new \Exception('Kirim gambar via Woowa belum didukung. Ganti WA engine ke Baileys untuk fitur ini.');
+        }
+
+        return $this->sendImageViaBaileys($to, $image, $caption, $salesId);
+    }
+
+    /**
      * Kirim menggunakan Woowa Gateway
      */
     protected function sendViaWoowa(string $to, string $message, ?string $woowaKey, bool $async = false)
@@ -79,6 +105,41 @@ class WhatsAppSenderService
      */
     protected function sendViaBaileys(string $to, string $message, ?int $salesId = null)
     {
+        $sessionId = $this->resolveBaileysSessionId($salesId);
+        $this->ensureBaileysSessionReady($sessionId);
+
+        $response = $this->baileysService->sendMessage($sessionId, $to, $message);
+
+        if (isset($response['success']) && $response['success']) {
+            return $this->createMockResponse(true, 200, $response);
+        }
+
+        throw new \Exception("Gagal mengirim via Baileys: " . json_encode($response));
+    }
+
+    /**
+     * Kirim gambar via Baileys (dipakai oleh sendImage()).
+     */
+    protected function sendImageViaBaileys(string $to, string $image, string $caption, ?int $salesId = null)
+    {
+        $sessionId = $this->resolveBaileysSessionId($salesId);
+        $this->ensureBaileysSessionReady($sessionId);
+
+        $response = $this->baileysService->sendImage($sessionId, $to, $image, $caption);
+
+        if (isset($response['success']) && $response['success']) {
+            return $this->createMockResponse(true, 200, $response);
+        }
+
+        throw new \Exception("Gagal mengirim gambar via Baileys: " . json_encode($response));
+    }
+
+    /**
+     * Tentukan session Baileys yang dipakai berdasarkan sales_id (sama untuk
+     * kirim teks maupun gambar).
+     */
+    protected function resolveBaileysSessionId(?int $salesId = null): string
+    {
         $sessionId = 'global';
 
         if ($salesId) {
@@ -92,9 +153,18 @@ class WhatsAppSenderService
             }
         }
 
+        return $sessionId;
+    }
+
+    /**
+     * Cek session terhubung + jaga kuota kirim per session (sama untuk kirim
+     * teks maupun gambar). Melempar Exception kalau tidak siap kirim.
+     */
+    protected function ensureBaileysSessionReady(string $sessionId): void
+    {
         // Cek status session
         $status = $this->baileysService->getStatus($sessionId);
-        
+
         if (!isset($status['status']) || !in_array($status['status'], ['open', 'connected'])) {
             Log::channel('woowa')->warning("Baileys session '{$sessionId}' tidak terhubung (status: " . ($status['status'] ?? 'unknown') . "). Fallback behavior: pesan gagal dikirim.");
             // Berdasarkan permintaan user: fallback behavior sementara pesan gagal dulu
@@ -113,14 +183,6 @@ class WhatsAppSenderService
         }
 
         RateLimiter::hit($quotaKey, $windowMinutes * 60);
-
-        $response = $this->baileysService->sendMessage($sessionId, $to, $message);
-
-        if (isset($response['success']) && $response['success']) {
-            return $this->createMockResponse(true, 200, $response);
-        }
-
-        throw new \Exception("Gagal mengirim via Baileys: " . json_encode($response));
     }
 
     /**

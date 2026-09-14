@@ -9,6 +9,7 @@
         "ext-pdo_pgsql": "*",
         "ext-pgsql": "*",
         "barryvdh/laravel-dompdf": "^3.1",
+        "endroid/qr-code": "^6.0",
         "firebase/php-jwt": "^6.11",
         "google/apiclient": "^2.19",
         "guzzlehttp/guzzle": "^7.8",
