@@ -8,7 +8,8 @@ const ELEMENT_ID = "qr-scanner-region";
  * Scanner QR pakai kamera (html5-qrcode). Dipisah jadi komponen sendiri
  * supaya start/stop kamera bersih waktu mount/unmount - React StrictMode
  * dan pindah halaman gampang bikin kamera "nyangkut" kalau logicnya
- * dicampur di komponen utama.
+ * dicampur di komponen utama. Dipakai bareng di halaman Kehadiran leader
+ * (/sales/kehadiran) dan staff (/sales/staff/kehadiran).
  *
  * onScan dipanggil sekali per hasil scan valid, lalu scanner dijeda
  * (bukan berhenti total) selama `pauseMs` supaya QR yang sama tidak
