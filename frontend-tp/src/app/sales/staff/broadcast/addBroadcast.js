@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Calendar } from "primereact/calendar";
 import { normalizeBroadcastPayload, buildTargetCountPayload } from "@/lib/sales/broadcast";
 import dynamic from "next/dynamic";
+import BroadcastExcelVariables, { BROADCAST_EXCEL_TEMPLATE_URL } from "@/components/sales/BroadcastExcelVariables";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
@@ -80,7 +81,8 @@ export default function AddBroadcast({ onClose, onAdd }) {
   const [showProdukDropdown, setShowProdukDropdown] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
-  
+  const [excelColumns, setExcelColumns] = useState([]);
+
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -237,6 +239,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
             excel_data: json.data
           }
         }));
+        setExcelColumns(json.columns || []);
         alert(`Berhasil membaca ${json.data.length} kontak dari Excel`);
       } else {
         alert(json.message || "Gagal memproses file Excel");
@@ -445,6 +448,14 @@ export default function AddBroadcast({ onClose, onAdd }) {
                   )}
                 </div>
               </div>
+
+              {formData.target.tipe === "excel" && formData.target.excel_data && (
+                <BroadcastExcelVariables
+                  columns={excelColumns}
+                  contohKontak={formData.target.excel_data[0]}
+                  onInsert={insertAutoText}
+                />
+              )}
             </div>
           </div>
 
@@ -620,6 +631,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
                       type="button" 
                       onClick={() => {
                         setFormData(prev => ({...prev, target: {...prev.target, excel_data: null}}));
+                        setExcelColumns([]);
                         if (fileInputRef.current) fileInputRef.current.value = null;
                       }}
                       style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.875rem" }}
@@ -628,7 +640,12 @@ export default function AddBroadcast({ onClose, onAdd }) {
                     </button>
                   )}
                 </div>
-                <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>Format: Kolom A (Nama), Kolom B (No WA)</small>
+                <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
+                  Pakai format template kontak (phone, greeting, nickName, fullName, ..., var1–var10).{" "}
+                  <a href={BROADCAST_EXCEL_TEMPLATE_URL} download style={{ color: "#b45309", fontWeight: 600 }}>Download template</a>
+                  <br />
+                  Kolom var1–var10 bebas diisi (lokasi, waktu, dll) lalu dipakai di pesan sebagai {"{{var1}}"}, {"{{var2}}"}, dst.
+                </small>
               </div>
             )}
           </div>

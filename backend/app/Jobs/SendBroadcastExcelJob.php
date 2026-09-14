@@ -21,6 +21,14 @@ class SendBroadcastExcelJob implements ShouldQueue
     public $timeout = 120;
 
     /**
+     * Kolom dari file Excel (header => nilai), dipakai sebagai variabel pesan
+     * {{greeting}}, {{nickName}}, {{var1}}, dst. Sengaja dideklarasikan di luar
+     * constructor dengan default [] supaya job lama yang sudah terlanjur
+     * masuk antrean (tanpa properti ini) tetap bisa di-unserialize.
+     */
+    public array $fields = [];
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -29,9 +37,33 @@ class SendBroadcastExcelJob implements ShouldQueue
         public string $woowaKey,
         public string $phone,
         public string $nama,
-        public ?int $userId = null
+        public ?int $userId = null,
+        array $fields = []
     ) {
+        $this->fields = $fields;
         $this->onQueue('broadcast');
+    }
+
+    /**
+     * Data variabel untuk TemplateHelper: kolom Excel apa adanya ({{nickName}}),
+     * versi lowercase-nya ({{nickname}}) supaya tidak sensitif huruf besar,
+     * plus {{customer_name}} yang sudah dipakai template lama.
+     */
+    private function templateData(): array
+    {
+        $data = [];
+        foreach ($this->fields as $key => $value) {
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+            $value = is_scalar($value) ? (string) $value : '';
+            $data[$key] = $value;
+            $data[strtolower($key)] ??= $value;
+        }
+
+        $data['customer_name'] = $this->nama;
+
+        return $data;
     }
 
     /**
@@ -43,13 +75,8 @@ class SendBroadcastExcelJob implements ShouldQueue
         $responseData = null;
 
         try {
-            // Prepare data for template rendering
-            $templateData = [
-                'customer_name' => $this->nama,
-            ];
-
             try {
-                $renderedMessage = TemplateHelper::render($this->message, $templateData);
+                $renderedMessage = TemplateHelper::render($this->message, $this->templateData());
             } catch (\Exception $renderError) {
                 Log::channel('broadcast')->error('Error rendering broadcast excel message', [
                     'broadcast_id' => $this->broadcastId,
@@ -132,10 +159,9 @@ class SendBroadcastExcelJob implements ShouldQueue
                 ->first();
 
             if (!$existing) {
-                $templateData = ['customer_name' => $this->nama];
                 $renderedMsg = $this->message;
                 try {
-                    $renderedMsg = TemplateHelper::render($this->message, $templateData);
+                    $renderedMsg = TemplateHelper::render($this->message, $this->templateData());
                 } catch (\Exception $e) {}
 
                 $this->saveBroadcastPenerima(
