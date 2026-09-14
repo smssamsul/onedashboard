@@ -280,14 +280,26 @@ class CustomerController extends Controller
                 ->toArray();
         } catch (\Throwable $e) {}
 
-        // 2. Customer Counts (Registered Cohort)
+        // 2. Customer Counts (Registered Cohort - berdasarkan create_at akun, dipakai
+        // buat "Total Data" & "Total Lead")
         $customerCountQuery = Customer::where('status', '!=', 'N');
         if ($tahun !== 'all') {
             $customerCountQuery->where('create_at', 'LIKE', $tahun . '%');
         }
         $totalData = $customerCountQuery->count();
         $totalLeads = (clone $customerCountQuery)->where('customer_type', 'lead')->count();
-        $totalRealCustomers = (clone $customerCountQuery)->where('customer_type', 'customer')->count();
+
+        // "Total Customer" (Sudah Pernah Beli) sebelumnya juga pakai cohort registrasi
+        // (customer_type=customer + create_at di tahun itu) - menyesatkan, karena
+        // customer lama yang beli lagi di tahun ini tidak kehitung, sementara customer
+        // baru yang belum sempat status-nya diupdate jadi 'customer' malah tidak
+        // kehitung juga. Diganti jadi hitung langsung dari customer unik yang punya
+        // order Lunas di periode ini - sesuai arti labelnya.
+        $totalRealCustomers = $this->combinedOrdersHistory($tahun !== 'all' ? $tahun : null)
+            ->where('status_pembayaran', '2')
+            ->pluck('customer_id')
+            ->unique()
+            ->count();
 
         // 3. Membership Breakdowns (from keanggotaan)
         $membershipQuery = Customer::where('status', '!=', 'N');
