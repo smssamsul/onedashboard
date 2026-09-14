@@ -1,5 +1,7 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Download } from "lucide-react";
 import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
 import UpdateOrders from "./updateOrders";
@@ -111,6 +113,17 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
   const [activeTab, setActiveTab] = useState("detail");
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+  const qrCanvasRef = useRef(null);
+
+  const handleDownloadQr = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tiket-kehadiran-${order.kode_order || order.id}.png`.replace(/\s+/g, "-").toLowerCase();
+    link.click();
+  };
 
   // Logs State
   const [logs, setLogs] = useState([]);
@@ -379,6 +392,37 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
                   <div style={{ marginTop: "1.25rem" }}>
                     <BiteshipOrderTrackingPanel order={order} />
                   </div>
+
+                  {order.qr_token && (
+                    <>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>QR Kehadiran</h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+                        <div
+                          ref={qrCanvasRef}
+                          style={{ padding: 10, background: "#fff", border: "1px solid #f1f5f9", borderRadius: 8 }}
+                        >
+                          <QRCodeCanvas value={order.qr_token} size={140} level="M" includeMargin />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDownloadQr}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #cbd5e1",
+                            background: "#fff",
+                            cursor: "pointer",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          <Download size={14} /> Download QR
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem', marginTop: '1.5rem' }}>Sisa Pembayaran</h4>
                   <p style={{ fontSize: "1rem", fontWeight: 600, color: sisaPembayaran > 0 ? "#dc2626" : "#059669" }}>
