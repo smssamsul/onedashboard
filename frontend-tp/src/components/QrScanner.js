@@ -82,14 +82,14 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
 
       html5QrCode
         .start(
-          // width/height "ideal" ditambahkan supaya browser cenderung pilih
-          // lensa kamera utama, bukan ultra-wide (0.5x) - beberapa HP
-          // (terutama iPhone) otomatis pakai lensa ultra-wide utk
-          // facingMode "environment" polos, hasilnya gambar kecil/fisheye.
-          // Best-effort - tidak ada constraint web yang bisa pilih lensa
-          // fisik secara pasti, tapi constraint resolusi ini membantu di
-          // banyak device karena ultra-wide biasanya sensor resolusi beda.
-          { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1920 } },
+          // Sempat dicoba tambah width/height "ideal" 1920x1920 buat
+          // menghindari lensa ultra-wide (0.5x) di HP - ternyata itu yang
+          // bikin kamera gagal terbuka total di Chrome Android (constraint
+          // resolusi persegi 1920x1920 tidak wajar, banyak device gagal
+          // negosiasi getUserMedia-nya). Dicabut - kamera yang jalan (walau
+          // kadang lensa ultra-wide) jauh lebih penting daripada kamera yang
+          // mati sama sekali demi lensa yang "benar".
+          { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (isPausedRef.current) return;
