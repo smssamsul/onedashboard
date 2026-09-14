@@ -251,7 +251,9 @@ class ProdukJadwalKehadiranController extends Controller
                 'source_id' => $sourceId,
                 'status_hadir' => 'hadir',
                 'waktu_checkin' => now(),
-                'checked_by' => Auth::id(),
+                // Auth::id() di guard 'api' itu id baris user_login, BUKAN id di tabel
+                // user - checked_by FK-nya ke tabel user, jadi harus lewat ->user.
+                'checked_by' => Auth::user()->user ?? null,
                 'update_at' => now(),
                 'create_at' => now(),
                 'status' => '1',
@@ -319,7 +321,9 @@ class ProdukJadwalKehadiranController extends Controller
                 'source_id' => $order->id,
                 'status_hadir' => 'hadir',
                 'waktu_checkin' => now(),
-                'checked_by' => Auth::id(),
+                // Sama seperti store() di atas - checked_by FK ke tabel user, jadi
+                // harus resolve lewat user_login->user, bukan Auth::id() langsung.
+                'checked_by' => Auth::user()->user ?? null,
                 'update_at' => now(),
                 'create_at' => now(),
                 'status' => '1',
