@@ -1,30 +1,70 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const ELEMENT_ID = "qr-scanner-region";
+const START_TIMEOUT_MS = 10000;
+
+function messageForError(err) {
+  const name = err?.name || "";
+  if (name === "NotAllowedError") {
+    return "Izin kamera ditolak. Aktifkan izin kamera untuk situs ini di pengaturan browser.";
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return "Kamera tidak ditemukan di perangkat ini.";
+  }
+  if (name === "NotReadableError") {
+    return "Kamera sedang dipakai tab/aplikasi lain. Tutup tab lain yang memakai kamera, lalu coba lagi.";
+  }
+  return "Kamera tidak merespons. Coba lagi atau muat ulang halaman.";
+}
 
 /**
  * Scanner QR pakai kamera (html5-qrcode). Dipisah jadi komponen sendiri
  * supaya start/stop kamera bersih waktu mount/unmount - React StrictMode
  * dan pindah halaman gampang bikin kamera "nyangkut" kalau logicnya
  * dicampur di komponen utama. Dipakai bareng di halaman Kehadiran leader
- * (/sales/kehadiran) dan staff (/sales/staff/kehadiran).
+ * (/sales/kehadiran) dan staff (/sales/staff/kehadiran + mode layar penuh).
  *
  * onScan dipanggil sekali per hasil scan valid, lalu scanner dijeda
  * (bukan berhenti total) selama `pauseMs` supaya QR yang sama tidak
  * ke-scan berkali-kali beruntun selagi masih di depan kamera.
+ *
+ * Kegagalan buka kamera (izin ditolak, tidak ada kamera, kamera dipakai
+ * tab lain, dsb) sebelumnya didiamkan total - macet tanpa pesan apa pun.
+ * Sekarang ditampilkan sebagai pesan + tombol "Coba Lagi" di dalam area
+ * kamera itu sendiri, plus onError opsional buat parent yang mau reaksi
+ * sendiri (mis. log tambahan).
+ *
+ * size="large" (dipakai di mode layar penuh) bikin area kamera jauh lebih
+ * besar khusus di layar sempit (mobile) - default tetap ukuran kompak
+ * seperti sebelumnya buat halaman yang kameranya berdampingan dengan
+ * panel lain.
  */
-export default function QrScanner({ onScan, active = true, pauseMs = 2500 }) {
+export default function QrScanner({ onScan, onError, active = true, pauseMs = 2500, size = "default" }) {
   const scannerRef = useRef(null);
   const isPausedRef = useRef(false);
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
+  const [error, setError] = useState(null);
+  const [starting, setStarting] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setRetryKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     if (!active) return;
 
     let cancelled = false;
+    let timeoutId = null;
+    setError(null);
+    setStarting(true);
 
     import("html5-qrcode").then(({ Html5Qrcode }) => {
       if (cancelled) return;
@@ -32,8 +72,23 @@ export default function QrScanner({ onScan, active = true, pauseMs = 2500 }) {
       const html5QrCode = new Html5Qrcode(ELEMENT_ID);
       scannerRef.current = html5QrCode;
 
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        const msg = "Kamera tidak merespons. Coba lagi atau muat ulang halaman.";
+        setError(msg);
+        setStarting(false);
+        onErrorRef.current?.(new Error(msg));
+      }, START_TIMEOUT_MS);
+
       html5QrCode
         .start(
+          // Sempat dicoba tambah width/height "ideal" 1920x1920 buat
+          // menghindari lensa ultra-wide (0.5x) di HP - ternyata itu yang
+          // bikin kamera gagal terbuka total di Chrome Android (constraint
+          // resolusi persegi 1920x1920 tidak wajar, banyak device gagal
+          // negosiasi getUserMedia-nya). Dicabut - kamera yang jalan (walau
+          // kadang lensa ultra-wide) jauh lebih penting daripada kamera yang
+          // mati sama sekali demi lensa yang "benar".
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
@@ -49,36 +104,143 @@ export default function QrScanner({ onScan, active = true, pauseMs = 2500 }) {
             // bukan error sungguhan.
           }
         )
-        .catch(() => {
-          // Gagal buka kamera (izin ditolak / tidak ada kamera) - biarkan area
-          // scanner kosong, pesan sudah ditangani lewat cek permission di parent.
+        .then(() => {
+          if (cancelled) return;
+          clearTimeout(timeoutId);
+          setStarting(false);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          clearTimeout(timeoutId);
+          const msg = messageForError(err);
+          setError(msg);
+          setStarting(false);
+          onErrorRef.current?.(err);
         });
-    });
+    })
+      .catch((err) => {
+        // import() dinamis gagal (chunk 404 dsb - misal browser masih pegang
+        // referensi build lama setelah deploy baru). Sebelumnya tidak
+        // ditangani sama sekali, jadi kamera diam macet tanpa pesan apa pun -
+        // beda dari kegagalan start() di atas yang sudah ditangani.
+        if (cancelled) return;
+        if (timeoutId) clearTimeout(timeoutId);
+        setError("Gagal memuat modul kamera. Muat ulang halaman (hard refresh) lalu coba lagi.");
+        setStarting(false);
+        onErrorRef.current?.(err);
+      });
 
     return () => {
       cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
       const instance = scannerRef.current;
       if (instance) {
-        instance
-          .stop()
-          .then(() => instance.clear())
-          .catch(() => {});
+        try {
+          // html5-qrcode: stop() melempar error secara SYNCHRONOUS (bukan
+          // Promise reject) kalau state bukan SCANNING(2)/PAUSED(3) - bisa
+          // kejadian kalau timeout kita duluan sebelum start() sungguhan
+          // selesai, atau retry terjadi di tengah proses buka kamera.
+          // .catch() saja tidak nangkep throw synchronous, jadi state
+          // dicek dulu + tetap dibungkus try/catch buat jaga-jaga race.
+          const state = instance.getState ? instance.getState() : null;
+          if (state === 2 || state === 3) {
+            instance
+              .stop()
+              .then(() => instance.clear())
+              .catch(() => {});
+          } else {
+            instance.clear();
+          }
+        } catch {
+          // Cuma cleanup - jangan sampai error di sini bocor ke user.
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, retryKey]);
 
   return (
-    <div
-      id={ELEMENT_ID}
-      style={{
-        width: "100%",
-        maxWidth: 360,
-        margin: "0 auto",
-        borderRadius: 12,
-        overflow: "hidden",
-        background: "#000",
-      }}
-    />
+    <div className={`qr-scanner-wrap qr-scanner-wrap--${size}`}>
+      <div
+        id={ELEMENT_ID}
+        className="qr-scanner-region"
+        style={{
+          minHeight: error ? 0 : undefined,
+        }}
+      />
+      {starting && !error && (
+        <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", marginTop: 8 }}>
+          Membuka kamera...
+        </p>
+      )}
+      {error && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "0.75rem 1rem",
+            borderRadius: 10,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            fontSize: 13,
+            textAlign: "center",
+          }}
+        >
+          <div style={{ marginBottom: 8 }}>{error}</div>
+          <button
+            type="button"
+            onClick={handleRetry}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "1px solid #fca5a5",
+              background: "#fff",
+              color: "#991b1b",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
+      <style jsx>{`
+        .qr-scanner-wrap {
+          width: 100%;
+          max-width: 360px;
+          margin: 0 auto;
+        }
+        .qr-scanner-region {
+          width: 100%;
+          min-height: 200px;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #000;
+          position: relative;
+        }
+        .qr-scanner-wrap--large {
+          max-width: 480px;
+        }
+        .qr-scanner-wrap--large .qr-scanner-region {
+          min-height: 360px;
+        }
+        @media (max-width: 640px) {
+          .qr-scanner-wrap--large {
+            max-width: 100%;
+          }
+          /* height (bukan min-height) - video di dalamnya di-object-fit:cover
+             ke 100% tinggi ini, butuh tinggi pasti (definite), bukan min-height. */
+          .qr-scanner-wrap--large .qr-scanner-region {
+            height: 75vh;
+          }
+          .qr-scanner-wrap--large .qr-scanner-region :global(video) {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+          }
+        }
+      `}</style>
+    </div>
   );
 }

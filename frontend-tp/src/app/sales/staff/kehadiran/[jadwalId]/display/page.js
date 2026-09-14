@@ -24,6 +24,7 @@ export default function StaffKehadiranDisplayPage() {
   const [kehadiran, setKehadiran] = useState([]);
   const [scanResult, setScanResult] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -57,6 +58,9 @@ export default function StaffKehadiranDisplayPage() {
     if (!jadwal?.produk_id) return;
     const data = await getKehadiran(jadwal.produk_id);
     setKehadiran(Array.isArray(data) ? data : []);
+    // Dicatat tiap kali polling jalan (bukan cuma pas berhasil) - biar kelihatan
+    // kalau loop-nya masih hidup walau misal 0 hasil (auth kadaluarsa dsb).
+    setLastUpdated(new Date());
   }, [jadwal]);
 
   useEffect(() => {
@@ -67,11 +71,19 @@ export default function StaffKehadiranDisplayPage() {
   }, [jadwal, fetchKehadiran]);
 
   // Cuma peserta sesi ini - dicocokkan lewat tanggal_jadwal (snapshot), sama
-  // seperti halaman kehadiran staff biasa.
+  // seperti halaman kehadiran staff biasa. Dibandingkan lewat Date (bukan
+  // string ===) karena beberapa endpoint balikin format tanggal berbeda
+  // (ISO vs "Y-m-d H:i:s" polos) walau instant-nya sama.
   const attendees = useMemo(() => {
-    if (!jadwal) return [];
+    if (!jadwal?.waktu_mulai) return [];
+    const targetTime = new Date(jadwal.waktu_mulai).getTime();
     return kehadiran
-      .filter((row) => String(row.jadwal_id) === String(jadwalId) && row.tanggal_jadwal === jadwal.waktu_mulai)
+      .filter(
+        (row) =>
+          String(row.jadwal_id) === String(jadwalId) &&
+          row.tanggal_jadwal &&
+          new Date(row.tanggal_jadwal).getTime() === targetTime
+      )
       .sort((a, b) => new Date(b.waktu_checkin) - new Date(a.waktu_checkin));
   }, [kehadiran, jadwalId, jadwal]);
 
@@ -116,8 +128,8 @@ export default function StaffKehadiranDisplayPage() {
       : styles.feedbackError;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
+    <div style={styles.container} className="kd-container">
+      <div style={styles.header} className="kd-header">
         <h1 style={styles.title}>{jadwal.produk?.nama || jadwal.nama_jadwal}</h1>
         <p style={styles.subtitle}>{jadwal.nama_jadwal}</p>
         {jadwal.waktu_mulai && (
@@ -128,9 +140,9 @@ export default function StaffKehadiranDisplayPage() {
       </div>
 
       <div style={styles.mainGrid}>
-        <div style={styles.qrPanel}>
-          <div style={styles.qrFrame}>
-            <QrScanner active onScan={handleScan} />
+        <div style={styles.qrPanel} className="kd-qr-panel">
+          <div style={styles.qrFrame} className="kd-qr-frame">
+            <QrScanner active onScan={handleScan} size="large" />
           </div>
           <p style={styles.qrCaption}>
             {scanning ? "Memproses scan..." : "Arahkan kamera ke QR tiket peserta"}
@@ -157,6 +169,16 @@ export default function StaffKehadiranDisplayPage() {
             <span>Sudah Hadir</span>
             <span style={styles.counter}>{attendees.length}</span>
           </div>
+          <div style={styles.refreshRow}>
+            <span>
+              {lastUpdated
+                ? `Update terakhir: ${lastUpdated.toLocaleTimeString("id-ID")}`
+                : "Memuat..."}
+            </span>
+            <button type="button" onClick={fetchKehadiran} style={styles.refreshButton}>
+              Muat Ulang
+            </button>
+          </div>
           <div style={styles.listBody}>
             {attendees.length === 0 ? (
               <p style={styles.emptyText}>Belum ada yang check-in</p>
@@ -175,6 +197,24 @@ export default function StaffKehadiranDisplayPage() {
           </div>
         </div>
       </div>
+      <style jsx>{`
+        @media (max-width: 640px) {
+          .kd-container {
+            padding: 16px !important;
+          }
+          .kd-header {
+            margin-bottom: 16px !important;
+          }
+          .kd-qr-panel {
+            width: 100% !important;
+          }
+          .kd-qr-frame {
+            padding: 8px !important;
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -293,9 +333,26 @@ const styles = {
     alignItems: "center",
     fontSize: "24px",
     fontWeight: "700",
-    marginBottom: "16px",
+    marginBottom: "8px",
     paddingBottom: "16px",
     borderBottom: "1px solid #334155",
+  },
+  refreshRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "12px",
+    color: "#64748b",
+    marginBottom: "16px",
+  },
+  refreshButton: {
+    padding: "4px 10px",
+    borderRadius: "6px",
+    border: "1px solid #334155",
+    background: "transparent",
+    color: "#cbd5e1",
+    cursor: "pointer",
+    fontSize: "12px",
   },
   counter: {
     fontSize: "32px",

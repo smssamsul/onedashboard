@@ -370,6 +370,7 @@ export default function Sidebar({
           section: "REPORTS",
           items: [
             { label: "Follow Up Logs", href: `${basePath}/followup/report`, icon: <Activity size={18} /> },
+            { label: "Rekap Follow-Up", href: `${basePath}/followup-recap`, icon: <BarChart3 size={18} /> },
             { label: "Log Pixel", href: `${basePath}/log-pixel`, icon: <Activity size={18} /> },
           ],
         },
