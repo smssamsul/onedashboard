@@ -1,0 +1,311 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Sales · Rekap Follow-Up — CSS Module
+   Warna mengikuti tema dashboard saat ini: navy #1e3a5f + teal #14b8a6
+───────────────────────────────────────────────────────────────────────── */
+
+.page {
+  padding: 0 0 4rem;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  margin: 0 0 0.2rem;
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Filters ── */
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 190px;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.dayTabs {
+  display: flex;
+  gap: 0.375rem;
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+
+.dayTabBtn {
+  padding: 0.375rem 0.875rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-radius: 7px;
+  transition: all 0.15s;
+}
+
+.dayTabBtn:hover {
+  background: var(--color-primary-lighter);
+}
+
+.dayTabBtnActive {
+  background: var(--color-primary-main) !important;
+  color: #fff !important;
+}
+
+/* ── Error / Loading ── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-error-lighter);
+  border: 1px solid #fca5a5;
+  color: var(--color-error-dark);
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.skeleton {
+  height: 96px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--color-grey-100) 25%, var(--color-grey-50) 37%, var(--color-grey-100) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Summary cards ── */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.card {
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem 1.125rem;
+}
+
+.cardLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.cardValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+}
+
+.cardValueGreen { color: var(--color-success-main); }
+.cardValueRed { color: var(--color-error-main); }
+.cardValueTeal { color: var(--color-accent-dark); }
+
+.cardDesc {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.footnote {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 1.75rem;
+  line-height: 1.5;
+}
+
+/* ── Chart card ── */
+.chartCard {
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chartTitle {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.chartHint {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 2rem;
+  font-size: 0.875rem;
+}
+
+/* ── Funnel ── */
+.funnelRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.875rem;
+}
+
+.funnelLabel {
+  width: 150px;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.funnelBarWrap {
+  flex: 1;
+  background: var(--color-grey-100);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 34px;
+  position: relative;
+}
+
+.funnelBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-main), var(--color-accent-main));
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  border-radius: 8px;
+  transition: width 0.4s ease;
+}
+
+.funnelPct {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* ── Table ── */
+.tableCard {
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  background: var(--color-primary-main);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.table th:first-child { border-top-left-radius: 8px; }
+.table th:last-child { border-top-right-radius: 8px; }
+
+.table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-text-primary);
+  vertical-align: top;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-default);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.badgeSuccess {
+  background: var(--color-success-lighter);
+  color: var(--color-success-dark);
+}
+
+.badgeDanger {
+  background: var(--color-error-lighter);
+  color: var(--color-error-dark);
+}
+
+.tdEmpty {
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--color-text-secondary);
+}
