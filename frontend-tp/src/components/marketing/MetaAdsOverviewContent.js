@@ -843,6 +843,114 @@ export default function MetaAdsOverviewContent({
               )}
             </div>
           </div>
+
+          {/* Produk table: performa dipecah per channel (Messaging vs Landing Page) */}
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20, marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
+                Performa per Produk {tampilkanNonAktif ? "(semua status)" : "(hanya campaign aktif)"}
+              </h3>
+            </div>
+            <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
+              <b>Messaging (Chat WA)</b>: campaign yang namanya mengandung &quot;CTWA&quot; (biaya, hasil dari Contact), digabung order
+              dengan sumber <b>sales_quick_order</b> (order, bayar, omzet) — biasanya order lanjutan chat WhatsApp.
+              <b> Landing Page</b>: campaign lainnya (biaya, hasil dari Leads), digabung order dengan sumber <b>website</b> — customer
+              checkout sendiri di halaman produk. Order dari sumber non-iklan tidak dihitung. ROAS memakai biaya termasuk PPN {ppnPersen}%.
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: "#374151" }}>
+                    <th rowSpan={2} style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb", verticalAlign: "bottom" }}>Produk</th>
+                    <th colSpan={6} style={{ padding: "6px 12px", textAlign: "center", background: "#eef2ff", color: "#3730a3", borderBottom: "1px solid #e0e7ff", borderLeft: "1px solid #e5e7eb" }}>
+                      Messaging (Chat WA)
+                    </th>
+                    <th colSpan={6} style={{ padding: "6px 12px", textAlign: "center", background: "#ecfdf5", color: "#065f46", borderBottom: "1px solid #d1fae5", borderLeft: "1px solid #e5e7eb" }}>
+                      Landing Page
+                    </th>
+                  </tr>
+                  <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "right", color: "#6b7280", fontSize: 11 }}>
+                    <th style={{ padding: "6px 12px", borderLeft: "1px solid #e5e7eb" }}>Biaya</th>
+                    <th style={{ padding: "6px 12px" }}>Hasil</th>
+                    <th style={{ padding: "6px 12px" }}>Order</th>
+                    <th style={{ padding: "6px 12px" }}>Bayar</th>
+                    <th style={{ padding: "6px 12px" }}>Omzet</th>
+                    <th style={{ padding: "6px 12px" }}>ROAS</th>
+                    <th style={{ padding: "6px 12px", borderLeft: "1px solid #e5e7eb" }}>Biaya</th>
+                    <th style={{ padding: "6px 12px" }}>Hasil</th>
+                    <th style={{ padding: "6px 12px" }}>Order</th>
+                    <th style={{ padding: "6px 12px" }}>Bayar</th>
+                    <th style={{ padding: "6px 12px" }}>Omzet</th>
+                    <th style={{ padding: "6px 12px" }}>ROAS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produkPerforma.length === 0 ? (
+                    <tr>
+                      <td colSpan={13} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                        {loading ? "Memuat..." : "Belum ada data performa produk untuk rentang tanggal ini."}
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {totalProduk && (
+                        <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb", fontWeight: 600 }}>
+                          <td style={{ padding: "10px 12px" }}>
+                            <div style={{ fontWeight: 700 }}>TOTAL</div>
+                            <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
+                              {totalProduk.jumlahProduk} produk &middot; {totalProduk.jumlahIklan} iklan
+                            </div>
+                          </td>
+                          <SelMetrik utama={fmtRp(totalProduk.messaging.spend)} />
+                          <SelMetrik utama={fmt(totalProduk.messaging.hasil)} bawah={fmtRpOpsional(totalProduk.messaging.cost_per_hasil)} />
+                          <SelMetrik utama={fmt(totalProduk.messaging.order)} />
+                          <SelMetrik utama={fmt(totalProduk.messaging.buyer)} />
+                          <SelMetrik utama={fmtRp(totalProduk.messaging.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(totalProduk.messaging.roas) }}>
+                            {fmtRoas(totalProduk.messaging.roas)}
+                          </td>
+                          <SelMetrik utama={fmtRp(totalProduk.landing_page.spend)} />
+                          <SelMetrik utama={fmt(totalProduk.landing_page.hasil)} bawah={fmtRpOpsional(totalProduk.landing_page.cost_per_hasil)} />
+                          <SelMetrik utama={fmt(totalProduk.landing_page.order)} />
+                          <SelMetrik utama={fmt(totalProduk.landing_page.buyer)} />
+                          <SelMetrik utama={fmtRp(totalProduk.landing_page.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(totalProduk.landing_page.roas) }}>
+                            {fmtRoas(totalProduk.landing_page.roas)}
+                          </td>
+                        </tr>
+                      )}
+                      {produkPerforma.map((p) => (
+                        <tr key={p.produk_id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                          <td style={{ padding: "8px 12px", minWidth: 200 }}>
+                            <div style={{ fontWeight: 500 }}>{p.produk_nama}</div>
+                            {p.jumlah_iklan > 0 && (
+                              <span style={{ fontSize: 10, color: "#6b7280" }}>{p.jumlah_iklan} iklan</span>
+                            )}
+                          </td>
+                          <SelMetrik utama={fmtRp(p.messaging.spend)} />
+                          <SelMetrik utama={fmt(p.messaging.hasil)} bawah={fmtRpOpsional(p.messaging.cost_per_hasil)} />
+                          <SelMetrik utama={fmt(p.messaging.order)} />
+                          <SelMetrik utama={fmt(p.messaging.buyer)} />
+                          <SelMetrik utama={fmtRp(p.messaging.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(p.messaging.roas) }}>
+                            {fmtRoas(p.messaging.roas)}
+                          </td>
+                          <SelMetrik utama={fmtRp(p.landing_page.spend)} />
+                          <SelMetrik utama={fmt(p.landing_page.hasil)} bawah={fmtRpOpsional(p.landing_page.cost_per_hasil)} />
+                          <SelMetrik utama={fmt(p.landing_page.order)} />
+                          <SelMetrik utama={fmt(p.landing_page.buyer)} />
+                          <SelMetrik utama={fmtRp(p.landing_page.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(p.landing_page.roas) }}>
+                            {fmtRoas(p.landing_page.roas)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
     </div>

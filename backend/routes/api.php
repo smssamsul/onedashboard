@@ -191,6 +191,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/meta-ads/performance/overview', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'overview']);
         Route::get('/meta-ads/performance/campaigns', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'campaigns']);
         Route::get('/meta-ads/performance/campaigns/{campaignId}', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'campaignDetail']);
+        Route::get('/meta-ads/performance/produk', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'produk']);
         Route::post('/meta-ads/performance/sync', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'sync']);
         Route::get('/meta-ads/performance/sync/status', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'syncStatus']);
         Route::post('/meta-ads/performance/analisa', [\App\Http\Controllers\Api\Sales\MetaAdsPerformanceController::class, 'analisa']);
