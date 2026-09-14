@@ -336,22 +336,21 @@ export default function FollowUpRecapPage() {
                   <tbody>
                     {perLead.length > 0 ? (
                       perLead.map((row) => (
-                        <tr key={row.id} onClick={() => openChat(row.id)} style={{ cursor: "pointer" }} title="Klik untuk lihat percakapan">
-                          <td><strong>{row.nama}</strong></td>
+                        <tr key={row.id}>
                           <td>
-                            {row.phone
-                              ? (
-                                <a
-                                  href={`https://wa.me/${row.phone}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {row.phone}
-                                </a>
-                              )
-                              : "-"}
+                            <span
+                              onClick={() => openChat(row.id)}
+                              style={{
+                                color: "var(--color-info-main)",
+                                cursor: "pointer",
+                                textDecoration: "underline",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {row.nama}
+                            </span>
                           </td>
+                          <td>{row.phone || "-"}</td>
                           <td>{row.sales_nama || "-"}</td>
                           <td>{fmt(row.pesan_masuk)}</td>
                           <td>{fmt(row.pesan_tim)}</td>
