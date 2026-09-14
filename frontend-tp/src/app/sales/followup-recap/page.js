@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { X, Send } from "lucide-react";
 import Layout from "@/components/Layout";
+import { getApiUrl } from "@/config/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
@@ -41,9 +43,69 @@ export default function FollowUpRecapPage() {
   const [days, setDays] = useState(7);
   const [salesId, setSalesId] = useState("all");
 
+  // Chat panel (pojok kanan bawah) - sama seperti di /sales/leads-ai
+  const [showChatPanel, setShowChatPanel] = useState(false);
+  const [chatConversation, setChatConversation] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newChatMessage, setNewChatMessage] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
+
   function getToken() {
     return localStorage.getItem("token") || "";
   }
+
+  const getHeaders = () => ({
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${getToken()}`,
+  });
+
+  // percakapan_id sudah ada langsung di tiap baris per_lead (row.id), jadi
+  // tidak perlu lewat get-or-create seperti di leads-ai - langsung GET detail.
+  const openChat = async (percakapanId) => {
+    setLoadingChat(true);
+    setShowChatPanel(true);
+    try {
+      const res = await fetch(getApiUrl(`sales/percakapan/${percakapanId}`), {
+        headers: getHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setChatConversation(json.data);
+        setChatMessages(json.data.detail_percakapan || []);
+      } else {
+        setError(json.message || "Gagal memuat percakapan");
+        setShowChatPanel(false);
+      }
+    } catch {
+      setError("Gagal memuat percakapan");
+      setShowChatPanel(false);
+    } finally {
+      setLoadingChat(false);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!newChatMessage.trim() || !chatConversation) return;
+    setSendingChat(true);
+    try {
+      const res = await fetch(getApiUrl(`sales/percakapan/${chatConversation.id}/message`), {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ sender_type: "sales", message_text: newChatMessage }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNewChatMessage("");
+        openChat(chatConversation.id);
+      }
+    } catch {
+      // diamkan - input tetap terisi, user bisa coba kirim ulang
+    } finally {
+      setSendingChat(false);
+    }
+  };
 
   const fetchRecap = useCallback(async (daysValue, salesValue) => {
     setLoading(true);
@@ -274,11 +336,20 @@ export default function FollowUpRecapPage() {
                   <tbody>
                     {perLead.length > 0 ? (
                       perLead.map((row) => (
-                        <tr key={row.id}>
+                        <tr key={row.id} onClick={() => openChat(row.id)} style={{ cursor: "pointer" }} title="Klik untuk lihat percakapan">
                           <td><strong>{row.nama}</strong></td>
                           <td>
                             {row.phone
-                              ? <a href={`https://wa.me/${row.phone}`} target="_blank" rel="noopener noreferrer">{row.phone}</a>
+                              ? (
+                                <a
+                                  href={`https://wa.me/${row.phone}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {row.phone}
+                                </a>
+                              )
                               : "-"}
                           </td>
                           <td>{row.sales_nama || "-"}</td>
@@ -307,6 +378,193 @@ export default function FollowUpRecapPage() {
           </>
         )}
       </div>
+
+      {/* Chat Panel - Bottom Right (sama seperti /sales/leads-ai) */}
+      {showChatPanel && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "400px",
+            maxWidth: "calc(100vw - 40px)",
+            height: "600px",
+            maxHeight: "calc(100vh - 40px)",
+            background: "white",
+            borderRadius: "12px",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 1000,
+            overflow: "hidden",
+          }}
+        >
+          {/* Chat Header */}
+          <div
+            style={{
+              padding: "1rem",
+              background: "#075E54",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: "#128C7E",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
+                {(chatConversation?.phone_number || "U").substring((chatConversation?.phone_number || "U").length - 2)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9375rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {chatConversation?.name || chatConversation?.phone_number || "-"}
+                </div>
+                {chatConversation?.name && (
+                  <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>{chatConversation.phone_number || "-"}</div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowChatPanel(false);
+                setChatConversation(null);
+                setChatMessages([]);
+              }}
+              style={{
+                background: "rgba(255, 255, 255, 0.2)",
+                border: "none",
+                color: "white",
+                padding: "0.5rem",
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Chat Messages */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "1rem",
+              background: "#ECE5DD",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+            }}
+          >
+            {loadingChat ? (
+              <div style={{ textAlign: "center", color: "#667781", padding: "2rem" }}>Memuat percakapan...</div>
+            ) : chatMessages.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#667781", padding: "2rem" }}>Belum ada pesan</div>
+            ) : (
+              chatMessages.map((msg) => {
+                const isSent = msg.sender_type === "AI" || msg.sender_type === "sales" || msg.sender_type === "system";
+                const senderLabel = msg.sender_type === "AI" ? "AI" : msg.sender_type === "sales" ? "Sales" : msg.sender_type === "system" ? "System" : "Customer";
+                const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
+
+                return (
+                  <div
+                    key={msg.id}
+                    style={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      maxWidth: "75%",
+                      alignSelf: isSent ? "flex-end" : "flex-start",
+                      flexDirection: isSent ? "row-reverse" : "row",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "7.5px",
+                        background: isSent ? "#DCF8C6" : "white",
+                        borderBottomRightRadius: isSent ? "2px" : "7.5px",
+                        borderBottomLeftRadius: isSent ? "7.5px" : "2px",
+                        boxShadow: isSent ? "none" : "0 1px 2px rgba(0, 0, 0, 0.1)",
+                        wordWrap: "break-word",
+                      }}
+                    >
+                      <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: isSent ? "right" : "left", color: "#667781" }}>
+                        {senderLabel}
+                      </div>
+                      <div style={{ fontSize: "0.875rem", lineHeight: 1.4, color: "#111b21", margin: 0 }}>{msg.message_text}</div>
+                      <div style={{ fontSize: "0.6875rem", color: "#667781", marginTop: "0.25rem", textAlign: isSent ? "right" : "left" }}>
+                        {time}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div style={{ padding: "0.75rem 1rem", background: "#f0f2f5", display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+            <textarea
+              value={newChatMessage}
+              onChange={(e) => setNewChatMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendChatMessage();
+                }
+              }}
+              placeholder="Ketik pesan..."
+              style={{
+                flex: 1,
+                padding: "0.625rem 1rem",
+                border: "1px solid #e5e7eb",
+                borderRadius: "21px",
+                fontSize: "0.875rem",
+                resize: "none",
+                maxHeight: "100px",
+                fontFamily: "inherit",
+              }}
+              rows={1}
+            />
+            <button
+              onClick={sendChatMessage}
+              disabled={!newChatMessage.trim() || sendingChat}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                background: "#25D366",
+                border: "none",
+                color: "white",
+                cursor: newChatMessage.trim() && !sendingChat ? "pointer" : "not-allowed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: newChatMessage.trim() && !sendingChat ? 1 : 0.5,
+                flexShrink: 0,
+              }}
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
