@@ -197,6 +197,11 @@ export default function ViewOrders({ order, onClose }) {
                     <span className="detail-value">{order.customer_rel?.wa || "-"}</span>
                   </div>
                   <div className="detail-item">
+                    <span className="detail-label">Sumber Lead</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value">{order.sumber_lead || "-"}</span>
+                  </div>
+                  <div className="detail-item">
                     <span className="detail-label">Alamat</span>
                     <span className="detail-colon">:</span>
                     <span className="detail-value">{order.alamat || "-"}</span>

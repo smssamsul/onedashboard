@@ -317,6 +317,7 @@ export default function ViewOrders({ order: initialOrder, onClose }) {
                 <div style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div>Email: {order.customer_rel?.email || "-"}</div>
                   <div>WhatsApp: {order.customer_rel?.wa || "-"}</div>
+                  <div>Sumber Lead: {order.sumber_lead || "-"}</div>
                 </div>
               </div>
 

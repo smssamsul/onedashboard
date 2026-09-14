@@ -88,6 +88,17 @@ class Customer extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Relasi ke LeadLpwa (chat WA masuk sebelum jadi order) - dicocokkan
+     * lewat nomor WA yang sama. Dipakai buat tampilkan "Sumber Lead" di
+     * Order tanpa perlu kolom tersendiri di order_customer - selalu ambil
+     * langsung dari data lead terkini, jadi tidak ada risiko data basi.
+     */
+    public function leadLpwa()
+    {
+        return $this->hasOne(LeadLpwa::class, 'no_wa', 'wa');
+    }
+
+    /**
      * Relasi ke UnitBisnis (tenant)
      */
     public function businessUnit()
