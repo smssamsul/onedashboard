@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use App\Models\LogsFollup;
+use App\Services\PercakapanService;
 
 class SendFollowupMessageJob implements ShouldQueue
 {
@@ -87,6 +88,29 @@ class SendFollowupMessageJob implements ShouldQueue
                 'create_at'  => now(),
                 'status'     => $response->successful() ? '1' : '0',
             ]);
+
+            // Follow-up otomatis ini sebelumnya CUMA tercatat di logs_follup, tidak
+            // pernah masuk ke percakapan/detail_percakapan sama sekali - jadi tidak
+            // pernah kelihatan sebagai pesan di menu Percakapan/panel chat, dan
+            // customer yang sebenarnya sudah di-follow-up tetap kelihatan "belum
+            // dibalas". Dicatat juga ke sana sekarang (kalau berhasil terkirim),
+            // pakai service yang sama dengan pesan keluar dari webhook Baileys.
+            if ($response->successful()) {
+                try {
+                    app(PercakapanService::class)->logOutgoingMessage(
+                        $this->phone,
+                        $this->salesId,
+                        $this->message,
+                        'followup'
+                    );
+                } catch (\Throwable $e) {
+                    Log::channel('followup')->error('Gagal mencatat follow-up ke Percakapan', [
+                        'customer_id' => $this->customerId,
+                        'phone' => $this->phone,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Pesan WA sudah terkirim (atau sudah dicatat gagal) di titik ini - jangan
             // sampai kegagalan LOGGING (mis. file log tidak writable) ikut membuat job

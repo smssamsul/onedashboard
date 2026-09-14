@@ -8,7 +8,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Models\LogsFollup;
+use App\Services\PercakapanService;
 
 class SendUpsellingMessageJob implements ShouldQueue
 {
@@ -75,6 +77,25 @@ class SendUpsellingMessageJob implements ShouldQueue
                 'create_at'  => now(),
                 'status'     => $response->successful() ? '1' : '0',
             ]);
+
+            // Sama seperti SendFollowupMessageJob - catat juga ke percakapan
+            // supaya kelihatan sebagai pesan beneran, bukan cuma di logs_follup.
+            if ($response->successful()) {
+                try {
+                    app(PercakapanService::class)->logOutgoingMessage(
+                        $this->phone,
+                        null,
+                        $this->message,
+                        'followup'
+                    );
+                } catch (\Throwable $e) {
+                    Log::channel('followup')->error('Gagal mencatat upselling ke Percakapan', [
+                        'customer_id' => $this->customerId,
+                        'phone' => $this->phone,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         } catch (\Exception $e) {
             LogsFollup::create([
                 'follup'     => $this->templateId,
