@@ -294,7 +294,8 @@ class BroadcastController extends Controller
                                 $woowaKey,
                                 $phone,
                                 $nama,
-                                $userId
+                                $userId,
+                                is_array($kontak['fields'] ?? null) ? $kontak['fields'] : []
                             );
 
                             $sentCount++;
@@ -1205,8 +1206,30 @@ class BroadcastController extends Controller
     }
 
     /**
-     * Parse file Excel untuk mendapatkan daftar kontak broadcast
-     * Format Excel: Kolom A = Nama, Kolom B = No WhatsApp
+     * Header yang dikenali sebagai kolom nomor WhatsApp / nama pada file Excel.
+     * Dibandingkan dalam bentuk lowercase tanpa spasi/titik/garis bawah.
+     */
+    private const EXCEL_HEADER_PHONE = ['phone', 'wa', 'nowa', 'whatsapp', 'nowhatsapp', 'nomor', 'nomorwa', 'notelp', 'nohp', 'hp'];
+    private const EXCEL_HEADER_FULLNAME = ['fullname', 'nama', 'name', 'namalengkap'];
+    private const EXCEL_HEADER_NICKNAME = ['nickname', 'namapanggilan', 'panggilan'];
+
+    private function normalisasiHeaderExcel(string $header): string
+    {
+        return preg_replace('/[\s._\-]+/', '', strtolower(trim($header)));
+    }
+
+    /**
+     * Parse file Excel untuk mendapatkan daftar kontak broadcast.
+     *
+     * Format utama (template kontak): baris pertama header, contoh
+     *   phone | greeting | nickName | fullName | dateBirt | email | religion |
+     *   profession | gender | var1 ... var10
+     * Setiap kolom bisa dipakai di pesan sebagai {{namaHeader}}, misal
+     * {{greeting}} {{nickName}}, lokasi di {{var1}}, waktu di {{var2}}.
+     * Nilai "-" dianggap kosong (penanda kolom tidak diisi di template).
+     *
+     * Format lama tetap didukung: tanpa header yang dikenali →
+     * Kolom A = Nama, Kolom B = No WhatsApp.
      */
     public function parseExcel(Request $request)
     {
@@ -1218,53 +1241,93 @@ class BroadcastController extends Controller
             $file = $request->file('file');
             $spreadsheet = IOFactory::load($file->getPathname());
             $sheet = $spreadsheet->getActiveSheet();
-            $rows = $sheet->toArray(null, true, true, true);
+            // formatData = true supaya tanggal (dateBirt) terbaca seperti tampil di Excel, bukan angka serial
+            $rows = array_values($sheet->toArray(null, true, true, true));
+
+            if (empty($rows)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File Excel kosong.',
+                ], 422);
+            }
+
+            // Petakan huruf kolom -> nama header dari baris pertama
+            $headerRow = $rows[0];
+            $headers = [];
+            foreach ($headerRow as $col => $value) {
+                $label = trim((string) ($value ?? ''));
+                if ($label !== '') {
+                    $headers[$col] = $label;
+                }
+            }
+
+            $kolomPhone = null;
+            $kolomFullName = null;
+            $kolomNickName = null;
+            foreach ($headers as $col => $label) {
+                $norm = $this->normalisasiHeaderExcel($label);
+                if ($kolomPhone === null && in_array($norm, self::EXCEL_HEADER_PHONE, true)) {
+                    $kolomPhone = $col;
+                } elseif ($kolomFullName === null && in_array($norm, self::EXCEL_HEADER_FULLNAME, true)) {
+                    $kolomFullName = $col;
+                } elseif ($kolomNickName === null && in_array($norm, self::EXCEL_HEADER_NICKNAME, true)) {
+                    $kolomNickName = $col;
+                }
+            }
+
+            $pakaiHeader = $kolomPhone !== null;
+            if (!$pakaiHeader) {
+                // Format lama: A = Nama, B = No WA. Baris pertama dilewati kalau berupa header.
+                $headers = [];
+                $kolomPhone = 'B';
+                $kolomFullName = 'A';
+                $cellA = strtolower(trim((string) ($headerRow['A'] ?? '')));
+                $cellB = strtolower(trim((string) ($headerRow['B'] ?? '')));
+                $barisPertamaHeader = in_array($cellA, ['nama', 'name', 'no', 'no.'])
+                    || in_array($cellB, ['wa', 'whatsapp', 'no wa', 'no. wa', 'phone', 'nomor']);
+                $dataRows = $barisPertamaHeader ? array_slice($rows, 1) : $rows;
+            } else {
+                $dataRows = array_slice($rows, 1);
+            }
 
             $excelData = [];
-            $firstRow = true;
+            foreach ($dataRows as $row) {
+                $bersihkan = function ($value) {
+                    $value = trim((string) ($value ?? ''));
+                    return $value === '-' ? '' : $value;
+                };
 
-            foreach ($rows as $row) {
-                // Skip header row
-                if ($firstRow) {
-                    $firstRow = false;
-                    // Cek apakah baris pertama adalah header (mengandung teks, bukan nomor)
-                    $cellA = strtolower(trim((string)($row['A'] ?? '')));
-                    $cellB = strtolower(trim((string)($row['B'] ?? '')));
-                    if (in_array($cellA, ['nama', 'name', 'no', 'no.']) || in_array($cellB, ['wa', 'whatsapp', 'no wa', 'no. wa', 'phone', 'nomor'])) {
-                        continue; // skip header
-                    }
+                $phone = preg_replace('/[^0-9]/', '', (string) ($row[$kolomPhone] ?? ''));
+                $fullName = $kolomFullName ? $bersihkan($row[$kolomFullName] ?? '') : '';
+                $nickName = $kolomNickName ? $bersihkan($row[$kolomNickName] ?? '') : '';
+
+                if ($phone === '') {
+                    continue; // baris kosong / tanpa nomor
                 }
 
-                $nama  = trim((string)($row['A'] ?? ''));
-                $phone = trim((string)($row['B'] ?? ''));
-
-                if (empty($nama) && empty($phone)) {
-                    continue; // skip baris kosong
-                }
-
-                // Bersihkan format nomor telepon
-                $phone = preg_replace('/[^0-9+]/', '', $phone);
-                if (empty($phone)) {
-                    continue;
-                }
-
-                // Normalisasi nomor: 08xx -> 628xx
-                if (str_starts_with($phone, '08')) {
+                // Normalisasi nomor: 08xx -> 628xx, 8xx -> 628xx (+62 sudah jadi 62 karena "+" dibuang)
+                if (str_starts_with($phone, '0')) {
                     $phone = '62' . substr($phone, 1);
-                } elseif (str_starts_with($phone, '8') && !str_starts_with($phone, '62')) {
+                } elseif (str_starts_with($phone, '8')) {
                     $phone = '62' . $phone;
                 }
 
+                $fields = [];
+                foreach ($headers as $col => $label) {
+                    $fields[$label] = $col === $kolomPhone ? $phone : $bersihkan($row[$col] ?? '');
+                }
+
                 $excelData[] = [
-                    'name'  => $nama ?: 'Customer',
+                    'name' => $fullName ?: ($nickName ?: 'Customer'),
                     'phone' => $phone,
+                    'fields' => $fields,
                 ];
             }
 
             if (empty($excelData)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada data kontak yang valid dalam file Excel. Pastikan format: Kolom A = Nama, Kolom B = No WhatsApp'
+                    'message' => 'Tidak ada data kontak yang valid dalam file Excel. Pastikan ada kolom "phone" berisi nomor WhatsApp (sesuai template).'
                 ], 422);
             }
 
@@ -1272,6 +1335,7 @@ class BroadcastController extends Controller
                 'success' => true,
                 'message' => count($excelData) . ' kontak berhasil dibaca dari Excel',
                 'data' => $excelData,
+                'columns' => array_values($headers),
             ]);
 
         } catch (\Exception $e) {

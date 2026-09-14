@@ -123,7 +123,8 @@ class SendScheduledBroadcastCron extends Command
                             $woowaKey,
                             $phone,
                             $nama,
-                            $broadcast->create_by
+                            $broadcast->create_by,
+                            is_array($kontak['fields'] ?? null) ? $kontak['fields'] : []
                         );
 
                         $sentCount++;
