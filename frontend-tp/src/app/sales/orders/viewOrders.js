@@ -1,5 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Download } from "lucide-react";
 import "@/styles/sales/orders.css";
 import "@/styles/sales/orders-page.css";
 import BiteshipOrderTrackingPanel from "@/components/BiteshipOrderTrackingPanel";
@@ -115,6 +117,17 @@ export default function ViewOrders({ order, onClose }) {
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+  const qrCanvasRef = useRef(null);
+
+  const handleDownloadQr = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tiket-kehadiran-${order.kode_order || order.id}.png`.replace(/\s+/g, "-").toLowerCase();
+    link.click();
+  };
 
   // Ambil status pembayaran dari order
   const statusPembayaranValue = order.status_pembayaran ?? 0;
@@ -321,6 +334,39 @@ export default function ViewOrders({ order, onClose }) {
                       )}
                     </span>
                   </div>
+                  {order.qr_token && (
+                    <div className="detail-item">
+                      <span className="detail-label">QR Kehadiran</span>
+                      <span className="detail-colon">:</span>
+                      <span className="detail-value">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+                          <div
+                            ref={qrCanvasRef}
+                            style={{ padding: 10, background: "#fff", border: "1px solid #f1f5f9", borderRadius: 8 }}
+                          >
+                            <QRCodeCanvas value={order.qr_token} size={140} level="M" includeMargin />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleDownloadQr}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "6px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              background: "#fff",
+                              cursor: "pointer",
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            <Download size={14} /> Download QR
+                          </button>
+                        </div>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="detail-section-divider"></div>
