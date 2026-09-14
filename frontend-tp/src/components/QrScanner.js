@@ -124,10 +124,25 @@ export default function QrScanner({ onScan, onError, active = true, pauseMs = 25
       if (timeoutId) clearTimeout(timeoutId);
       const instance = scannerRef.current;
       if (instance) {
-        instance
-          .stop()
-          .then(() => instance.clear())
-          .catch(() => {});
+        try {
+          // html5-qrcode: stop() melempar error secara SYNCHRONOUS (bukan
+          // Promise reject) kalau state bukan SCANNING(2)/PAUSED(3) - bisa
+          // kejadian kalau timeout kita duluan sebelum start() sungguhan
+          // selesai, atau retry terjadi di tengah proses buka kamera.
+          // .catch() saja tidak nangkep throw synchronous, jadi state
+          // dicek dulu + tetap dibungkus try/catch buat jaga-jaga race.
+          const state = instance.getState ? instance.getState() : null;
+          if (state === 2 || state === 3) {
+            instance
+              .stop()
+              .then(() => instance.clear())
+              .catch(() => {});
+          } else {
+            instance.clear();
+          }
+        } catch {
+          // Cuma cleanup - jangan sampai error di sini bocor ke user.
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
