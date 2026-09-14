@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Layout from "@/components/Layout";
-import { QrCode, CheckCircle2, XCircle, AlertTriangle, Users } from "lucide-react";
+import { Dropdown } from "primereact/dropdown";
+import { QrCode, CheckCircle2, XCircle, AlertTriangle, Users, Monitor } from "lucide-react";
 import { getKehadiran, scanQrCheckin } from "@/lib/sales/kehadiran";
 import { getQuickOrderProducts, getProductById } from "@/lib/sales/products";
 import QrScanner from "@/components/QrScanner";
@@ -119,14 +120,18 @@ export default function StaffKehadiranPage() {
 
             <div style={{ padding: "0 1rem 1rem", display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <div className="form-group" style={{ flex: "1 1 220px", minWidth: 200 }}>
+                <div className="form-group" style={{ flex: "1 1 260px", minWidth: 240 }}>
                   <label>Produk</label>
-                  <select value={produkId} onChange={(e) => setProdukId(e.target.value)}>
-                    <option value="">-- Pilih Produk --</option>
-                    {produkList.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nama}</option>
-                    ))}
-                  </select>
+                  <Dropdown
+                    value={produkId}
+                    options={produkList.map((p) => ({ label: p.nama, value: String(p.id) }))}
+                    onChange={(e) => setProdukId(e.value)}
+                    placeholder="-- Cari & Pilih Produk --"
+                    filter
+                    showClear
+                    className="w-full"
+                    style={{ width: "100%" }}
+                  />
                 </div>
 
                 {produkId && (
@@ -187,6 +192,15 @@ export default function StaffKehadiranPage() {
                         )}
                       </div>
                     )}
+                    <a
+                      href={`/sales/staff/kehadiran/${jadwalId}/display`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="customers-button"
+                      style={{ textAlign: "center", marginTop: 8 }}
+                    >
+                      <Monitor size={16} /> Buka Mode Scan Layar Penuh
+                    </a>
                   </div>
                 </div>
               )}
