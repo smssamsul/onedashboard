@@ -177,7 +177,7 @@ export default function SalesCustomerStatistikPage() {
           <div>
             <h1 className={styles.pageTitle}>Statistik Customer</h1>
             <p className={styles.pageSubtitle}>
-              Analisis data keanggotaan customer &amp; performa order dari database arsip
+              Analisis data keanggotaan customer &amp; performa order
             </p>
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function SalesCustomerStatistikPage() {
             </div>
 
             {/* ── Order Summary ── */}
-            <p className={styles.sectionLabel}>Ringkasan Status Pembayaran Order (Arsip)</p>
+            <p className={styles.sectionLabel}>Ringkasan Status Pembayaran Order</p>
             <div className={styles.grid2}>
               <div className={`${styles.card} ${styles.bl_green}`}>
                 <span className={`${styles.cardLabel} ${styles.c_green}`}>Order Lunas (Paid)</span>
