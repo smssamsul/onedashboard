@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Sales;
 use App\Http\Controllers\Controller;
 use App\Models\Percakapan;
 use App\Models\DetailPercakapan;
+use App\Models\Customer;
+use App\Models\LogsFollup;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,6 +20,15 @@ use Illuminate\Http\Request;
  * memisahkan balasan manual dari auto-reply/broadcast, jadi statistik
  * respons/dibalas menghitung keduanya sebagai "dibalas". Ini bukan bug,
  * memang keterbatasan data yang ada - makanya ditulis jelas di frontend.
+ *
+ * Status "dibalas" JUGA memperhitungkan logs_follup (sistem follow-up
+ * template terpisah, tidak nyambung ke percakapan/detail_percakapan sama
+ * sekali) - kalau customer belum dibalas lewat chat tapi sudah dapat
+ * follow-up otomatis (status=terkirim) dalam periode yang sama, tetap
+ * dihitung "dibalas". Tanpa ini banyak lead yang sebenarnya sudah
+ * di-follow-up salah kelihatan "belum dibalas". Tidak dipakai untuk
+ * median respon (logs_follup bukan balasan ke pesan spesifik, beda
+ * semantik dari respons chat).
  */
 class FollowUpRecapController extends Controller
 {
@@ -70,6 +81,19 @@ class FollowUpRecapController extends Controller
             ->with('sales:id,nama')
             ->whereIn('id', $messagesByThread->keys())
             ->get(['id', 'name', 'phone_number', 'assigned_sales_id']);
+
+        // Cocokkan nomor WA percakapan ke customer, lalu cek logs_follup
+        // (status=1/terkirim) dalam periode yang sama - lihat catatan di
+        // docblock class ini kenapa ini perlu.
+        $phoneToCustomerId = Customer::whereIn('wa', $percakapanList->pluck('phone_number'))
+            ->pluck('id', 'wa');
+
+        $customerIdsWithFollowUp = LogsFollup::whereIn('customer', $phoneToCustomerId->values())
+            ->where('status', '1')
+            ->whereBetween('create_at', [$start, $end])
+            ->distinct()
+            ->pluck('customer')
+            ->flip();
 
         $totalPercakapanAktif = 0;
         $dibalasTimCount = 0;
@@ -130,6 +154,15 @@ class FollowUpRecapController extends Controller
 
             if (!$hasCustomerMsg) {
                 continue;
+            }
+
+            // Belum dibalas lewat chat? Cek juga apakah sudah kena follow-up
+            // otomatis (logs_follup) - lihat catatan docblock class ini.
+            if (!$threadDibalas) {
+                $custId = $phoneToCustomerId->get($p->phone_number);
+                if ($custId !== null && isset($customerIdsWithFollowUp[$custId])) {
+                    $threadDibalas = true;
+                }
             }
 
             $totalPercakapanAktif++;
