@@ -321,6 +321,7 @@ export default function MetaAdsOverviewContent({
   const [daily, setDaily] = useState([]);
   const [totals, setTotals] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
+  const [produkPerforma, setProdukPerforma] = useState([]);
   const [startDate, setStartDate] = useState(todayMinus(29));
   const [endDate, setEndDate] = useState(todayMinus(0));
   const [tampilkanNonAktif, setTampilkanNonAktif] = useState(false);
@@ -342,17 +343,21 @@ export default function MetaAdsOverviewContent({
     try {
       const params = `start_date=${startDate}&end_date=${endDate}&status=${tampilkanNonAktif ? "all" : "active"}`;
 
-      const [overviewRes, campaignsRes] = await Promise.all([
+      const [overviewRes, campaignsRes, produkRes] = await Promise.all([
         fetch(`/api/sales/meta-ads/performance/overview?${params}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         }),
         fetch(`/api/sales/meta-ads/performance/campaigns?${params}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         }),
+        fetch(`/api/sales/meta-ads/performance/produk?${params}`, {
+          headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
+        }),
       ]);
 
       const overviewJson = await overviewRes.json();
       const campaignsJson = await campaignsRes.json();
+      const produkJson = await produkRes.json();
 
       setConnected(overviewJson.connected !== false);
       setDaily((overviewJson.data?.daily || []).map((d) => ({
@@ -364,6 +369,7 @@ export default function MetaAdsOverviewContent({
       })));
       setTotals(overviewJson.data?.totals || null);
       setCampaigns(campaignsJson.data || []);
+      setProdukPerforma(produkJson.data || []);
       setPpnPersen(campaignsJson.meta?.ppn_persen ?? overviewJson.data?.ppn_persen ?? 11);
     } catch (e) {
       console.error("[META ADS] Gagal memuat data:", e);
@@ -424,6 +430,44 @@ export default function MetaAdsOverviewContent({
       roas: bagi(revenue, spendPpn),
     };
   }, [campaigns]);
+
+  /**
+   * Total tabel "Performa per Produk", dihitung ulang per channel dari angka
+   * total (bukan rata-rata per baris) - alasan sama seperti totalTabel di atas.
+   */
+  const totalProduk = useMemo(() => {
+    if (!produkPerforma.length) return null;
+
+    const bagi = (a, b) => (b > 0 ? a / b : null);
+
+    const jumlahChannel = (channel) => {
+      const jml = (kunci) => produkPerforma.reduce((t, p) => t + Number(p[channel]?.[kunci] || 0), 0);
+      const spendPpn = jml("spend_ppn");
+      const hasil = jml("hasil");
+      const order = jml("order");
+      const buyer = jml("buyer");
+      const omzet = jml("omzet");
+
+      return {
+        spend: jml("spend"),
+        spend_ppn: spendPpn,
+        hasil,
+        cost_per_hasil: bagi(spendPpn, hasil),
+        order,
+        cpo: bagi(spendPpn, order),
+        buyer,
+        omzet,
+        roas: bagi(omzet, spendPpn),
+      };
+    };
+
+    return {
+      jumlahProduk: produkPerforma.length,
+      jumlahIklan: produkPerforma.reduce((t, p) => t + Number(p.jumlah_iklan || 0), 0),
+      messaging: jumlahChannel("messaging"),
+      landing_page: jumlahChannel("landing_page"),
+    };
+  }, [produkPerforma]);
 
   /**
    * Sync jalan di background (queue) di backend - request POST ini cuma
