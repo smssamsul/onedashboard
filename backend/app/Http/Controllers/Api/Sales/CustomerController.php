@@ -157,9 +157,68 @@ class CustomerController extends Controller
         ]);
     }
 
+    /**
+     * order_customer_arsip adalah snapshot lama, tidak ada job yang menyinkronkannya
+     * lagi - berhenti sekitar pertengahan April 2026. Sejak itu order baru cuma
+     * tercatat di order_customer (live). Jadi untuk tahun 2026 datanya kepecah dua
+     * tabel dan harus digabung supaya statistiknya lengkap (bukan cuma separuh
+     * tahun). Untuk tahun-tahun sebelumnya, order_customer memang kosong (live
+     * table belum ada waktu itu), jadi query ke sana di-skip - cuma arsip yang
+     * dipakai, sama seperti sebelumnya.
+     *
+     * Baris dikembalikan dalam bentuk objek seragam: customer_id, produk_nama,
+     * harga (float, sudah dibersihkan dari karakter non-angka - kedua tabel
+     * simpan harga sebagai string), status_pembayaran, tanggal.
+     */
+    private function combinedOrdersHistory(?string $year = null)
+    {
+        $arsipQuery = OrderCustomerArsip::query();
+        if ($year !== null) {
+            $arsipQuery->whereYear('tanggal', $year);
+        }
+        $fromArsip = $arsipQuery
+            ->get(['customer_id', 'produk_nama_manual', 'harga', 'status_pembayaran', 'tanggal'])
+            ->map(function ($r) {
+                return (object) [
+                    'customer_id' => $r->customer_id,
+                    'produk_nama' => $r->produk_nama_manual,
+                    'harga' => (float) preg_replace('/[^0-9.]/', '', (string) $r->harga),
+                    'status_pembayaran' => $r->status_pembayaran,
+                    'tanggal' => $r->tanggal,
+                ];
+            });
+
+        // order_customer (live) cuma punya data mulai ~15 April 2026 - tahun lain
+        // dipastikan kosong, jadi skip query kalau tahun yang diminta bukan 2026.
+        if ($year !== null && $year !== '2026') {
+            return $fromArsip;
+        }
+
+        $liveQuery = OrderCustomer::with('produk_rel:id,nama')->where('status', '!=', 'N');
+        if ($year !== null) {
+            $liveQuery->where('tanggal', 'LIKE', $year . '%');
+        }
+        $fromLive = $liveQuery
+            ->get(['id', 'customer', 'produk', 'harga', 'status_pembayaran', 'tanggal'])
+            ->map(function ($r) {
+                return (object) [
+                    'customer_id' => $r->customer,
+                    'produk_nama' => $r->produk_rel->nama ?? null,
+                    'harga' => (float) preg_replace('/[^0-9.]/', '', (string) $r->harga),
+                    'status_pembayaran' => $r->status_pembayaran,
+                    'tanggal' => $r->tanggal,
+                ];
+            });
+
+        return $fromArsip->concat($fromLive);
+    }
+
     public function statistics(Request $request)
     {
         $tahun = $request->get('tahun', 'all');
+        // Tahun berjalan (2026 saat ditulis) belum sepenuhnya masuk arsip - lihat
+        // combinedOrdersHistory() di atas untuk kenapa.
+        $useLiveTahun = ($tahun !== 'all' && $tahun === '2026');
 
         // 0. Auto-healing / Self-completeness check for Customer data (Max 100 rows per load to ensure high performance)
         try {
@@ -251,55 +310,91 @@ class CustomerController extends Controller
             'basic' => $rawMembership['basic'] ?? 0,
         ];
 
-        // 4. Order Status (Paid and Unpaid counts + amounts) from order_customer_arsip
-        $orderQuery = OrderCustomerArsip::query();
-        if ($tahun !== 'all') {
-            $orderQuery->whereYear('tanggal', $tahun);
+        // 4. Order Status (Paid and Unpaid counts + amounts)
+        if ($useLiveTahun) {
+            // 2026: gabung arsip (Jan-pertengahan April) + order live (setelahnya)
+            $combined2026 = $this->combinedOrdersHistory($tahun);
+            $paidRows = $combined2026->where('status_pembayaran', '2');
+            $unpaidRows = $combined2026->where('status_pembayaran', '!=', '2');
+
+            $paidOrdersCount = $paidRows->count();
+            $paidOrdersAmount = $paidRows->sum('harga');
+            $unpaidOrdersCount = $unpaidRows->count();
+            $unpaidOrdersAmount = $unpaidRows->sum('harga');
+        } else {
+            $orderQuery = OrderCustomerArsip::query();
+            if ($tahun !== 'all') {
+                $orderQuery->whereYear('tanggal', $tahun);
+            }
+
+            $paidOrderQuery = (clone $orderQuery)->where('status_pembayaran', '2');
+            $paidOrdersCount = $paidOrderQuery->count();
+            $paidOrdersAmount = (float) $paidOrderQuery->sum(\DB::raw("COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric"));
+
+            $unpaidOrderQuery = (clone $orderQuery)->where('status_pembayaran', '!=', '2');
+            $unpaidOrdersCount = $unpaidOrderQuery->count();
+            $unpaidOrdersAmount = (float) $unpaidOrderQuery->sum(\DB::raw("COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric"));
         }
-
-        $paidOrderQuery = (clone $orderQuery)->where('status_pembayaran', '2');
-        $paidOrdersCount = $paidOrderQuery->count();
-        $paidOrdersAmount = (float) $paidOrderQuery->sum(\DB::raw("COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric"));
-
-        $unpaidOrderQuery = (clone $orderQuery)->where('status_pembayaran', '!=', '2');
-        $unpaidOrdersCount = $unpaidOrderQuery->count();
-        $unpaidOrdersAmount = (float) $unpaidOrderQuery->sum(\DB::raw("COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric"));
 
         // 5. Diagram Data: Top 10 products with the most PAID orders
-        $productQuery = OrderCustomerArsip::where('status_pembayaran', '2')
-            ->whereNotNull('produk_nama_manual')
-            ->where('produk_nama_manual', '!=', '');
-        
-        if ($tahun !== 'all') {
-            $productQuery->whereYear('tanggal', $tahun);
-        }
+        if ($useLiveTahun) {
+            $combined2026 ??= $this->combinedOrdersHistory($tahun);
+            $topProducts = $combined2026
+                ->where('status_pembayaran', '2')
+                ->filter(fn($r) => !empty($r->produk_nama))
+                ->groupBy('produk_nama')
+                ->map(fn($group, $nama) => ['produk_nama' => $nama, 'paid_orders_count' => $group->count()])
+                ->sortByDesc('paid_orders_count')
+                ->take(10)
+                ->values()
+                ->toArray();
+        } else {
+            $productQuery = OrderCustomerArsip::where('status_pembayaran', '2')
+                ->whereNotNull('produk_nama_manual')
+                ->where('produk_nama_manual', '!=', '');
 
-        $topProducts = $productQuery
-            ->select('produk_nama_manual', \DB::raw('count(*) as total_paid_orders'))
-            ->groupBy('produk_nama_manual')
-            ->orderBy('total_paid_orders', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function($item) {
-                return [
-                    'produk_nama' => $item->produk_nama_manual,
-                    'paid_orders_count' => (int) $item->total_paid_orders
-                ];
-            })
-            ->toArray();
+            if ($tahun !== 'all') {
+                $productQuery->whereYear('tanggal', $tahun);
+            }
+
+            $topProducts = $productQuery
+                ->select('produk_nama_manual', \DB::raw('count(*) as total_paid_orders'))
+                ->groupBy('produk_nama_manual')
+                ->orderBy('total_paid_orders', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'produk_nama' => $item->produk_nama_manual,
+                        'paid_orders_count' => (int) $item->total_paid_orders
+                    ];
+                })
+                ->toArray();
+        }
 
         // 6. Customer Spending Leaderboard
-        $spendingQuery = OrderCustomerArsip::where('status_pembayaran', '2');
-        if ($tahun !== 'all') {
-            $spendingQuery->whereYear('tanggal', $tahun);
-        }
+        if ($useLiveTahun) {
+            $combined2026 ??= $this->combinedOrdersHistory($tahun);
+            $topSpending = $combined2026
+                ->where('status_pembayaran', '2')
+                ->groupBy('customer_id')
+                ->map(fn($group, $cid) => (object) ['customer_id' => $cid, 'total_spent' => $group->sum('harga')])
+                ->sortByDesc('total_spent')
+                ->take(10)
+                ->values();
+        } else {
+            $spendingQuery = OrderCustomerArsip::where('status_pembayaran', '2');
+            if ($tahun !== 'all') {
+                $spendingQuery->whereYear('tanggal', $tahun);
+            }
 
-        $topSpending = $spendingQuery
-            ->select('customer_id', \DB::raw("SUM(COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric) as total_spent"))
-            ->groupBy('customer_id')
-            ->orderBy('total_spent', 'desc')
-            ->limit(10)
-            ->get();
+            $topSpending = $spendingQuery
+                ->select('customer_id', \DB::raw("SUM(COALESCE(NULLIF(regexp_replace(harga, '[^0-9.]', '', 'g'), ''), '0')::numeric) as total_spent"))
+                ->groupBy('customer_id')
+                ->orderBy('total_spent', 'desc')
+                ->limit(10)
+                ->get();
+        }
 
         $topCustomersData = [];
         foreach ($topSpending as $tc) {
@@ -328,12 +423,20 @@ class CustomerController extends Controller
         }
 
         // 7. Customer Growth & Retention (MoM)
+        // Selalu gabung arsip + live (bukan cuma di tahun 2026) - order_customer
+        // (live) tidak berisi apa pun sebelum pertengahan April 2026, jadi ini
+        // tidak mengubah apa pun untuk tahun-tahun lama, cuma menambahkan order
+        // yang sebelumnya tidak kelihatan sama sekali (setelah cutover arsip).
+        $allHistoryPaid = $this->combinedOrdersHistory(null)
+            ->where('status_pembayaran', '2')
+            ->filter(fn($r) => !empty($r->tanggal))
+            ->sortBy('tanggal')
+            ->values();
+
         // Find very first paid order date for each customer in history to determine who is "New" vs "Repeat"
-        $firstOrderDates = OrderCustomerArsip::where('status_pembayaran', '2')
-            ->whereNotNull('tanggal')
-            ->select('customer_id', \DB::raw('MIN(tanggal) as first_date'))
+        $firstOrderDates = $allHistoryPaid
             ->groupBy('customer_id')
-            ->pluck('first_date', 'customer_id')
+            ->map(fn($rows) => $rows->min('tanggal'))
             ->toArray();
 
         // Convert the string timestamps to Carbon objects or dates
@@ -346,10 +449,7 @@ class CustomerController extends Controller
         }
 
         // Get all paid orders chronologically to group by month
-        $allPaidOrders = OrderCustomerArsip::where('status_pembayaran', '2')
-            ->whereNotNull('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get();
+        $allPaidOrders = $allHistoryPaid;
 
         $monthlyData = []; // format: ['YYYY-MM' => ['new' => [], 'repeat' => []]]
         foreach ($allPaidOrders as $order) {
@@ -440,31 +540,52 @@ class CustomerController extends Controller
             ->limit(10)
             ->get();
 
+        // Untuk 2026, hitung paid/unpaid per kota dari data gabungan (arsip+live)
+        // di PHP - customer_id di-map ke kota lewat query customer sekali saja,
+        // supaya tidak query per kota (N+1).
+        $cityByCustomerId = null;
+        if ($useLiveTahun) {
+            $combined2026 ??= $this->combinedOrdersHistory($tahun);
+            $cityByCustomerId = Customer::where('status', '!=', 'N')
+                ->whereNotNull('alamat')
+                ->pluck('alamat', 'id');
+        }
+
         $topCitiesData = [];
         foreach ($topCities as $city) {
             $cityName = $city->alamat;
             $count = $city->customer_count;
             $percentage = $totalCustomersCount > 0 ? round(($count / $totalCustomersCount) * 100, 1) : 0;
 
-            $cityOrders = \DB::table('order_customer_arsip')
-                ->join('customer', 'order_customer_arsip.customer_id', '=', 'customer.id')
-                ->where('customer.status', '!=', 'N')
-                ->where('customer.alamat', $cityName)
-                ->when($tahun !== 'all', function($q) use ($tahun) {
-                    $q->whereYear('order_customer_arsip.tanggal', $tahun);
-                })
-                ->selectRaw("
-                    COUNT(CASE WHEN order_customer_arsip.status_pembayaran = '2' THEN 1 END) as paid_count,
-                    COUNT(CASE WHEN order_customer_arsip.status_pembayaran != '2' THEN 1 END) as unpaid_count
-                ")
-                ->first();
+            if ($useLiveTahun) {
+                $rowsInCity = $combined2026->filter(
+                    fn($r) => ($cityByCustomerId[$r->customer_id] ?? null) === $cityName
+                );
+                $paidCount = $rowsInCity->where('status_pembayaran', '2')->count();
+                $unpaidCount = $rowsInCity->where('status_pembayaran', '!=', '2')->count();
+            } else {
+                $cityOrders = \DB::table('order_customer_arsip')
+                    ->join('customer', 'order_customer_arsip.customer_id', '=', 'customer.id')
+                    ->where('customer.status', '!=', 'N')
+                    ->where('customer.alamat', $cityName)
+                    ->when($tahun !== 'all', function($q) use ($tahun) {
+                        $q->whereYear('order_customer_arsip.tanggal', $tahun);
+                    })
+                    ->selectRaw("
+                        COUNT(CASE WHEN order_customer_arsip.status_pembayaran = '2' THEN 1 END) as paid_count,
+                        COUNT(CASE WHEN order_customer_arsip.status_pembayaran != '2' THEN 1 END) as unpaid_count
+                    ")
+                    ->first();
+                $paidCount = (int) ($cityOrders->paid_count ?? 0);
+                $unpaidCount = (int) ($cityOrders->unpaid_count ?? 0);
+            }
 
             $topCitiesData[] = [
                 'city' => $cityName,
                 'customer_count' => $count,
                 'percentage' => $percentage,
-                'paid_orders' => (int)($cityOrders->paid_count ?? 0),
-                'unpaid_orders' => (int)($cityOrders->unpaid_count ?? 0)
+                'paid_orders' => $paidCount,
+                'unpaid_orders' => $unpaidCount,
             ];
         }
 
