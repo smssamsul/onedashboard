@@ -388,7 +388,21 @@ class MetaAdsPerformanceController extends Controller
 
         $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
         $namaProduk = $produkList->pluck('nama', 'id')->all();
-        $produkPerCampaign = $this->produkPerCampaign($campaigns, $produkList);
+
+        // produkPerCampaign() mencocokkan SELURUH nama campaign (setelah
+        // normalisasi) sebagai substring nama produk. Campaign CTWA biasanya
+        // punya marker "CTWA" tambahan di nama (mis. "Jakarta - CTWA",
+        // "Tof_CTWA Seminar | Bandung") yang bikin whole-name-containment
+        // gagal padahal campaign itu untuk produk yang sama dengan versi
+        // non-CTWA-nya. Untuk pencocokan produk saja, marker itu dibuang
+        // dulu - channel (isCampaignCtwa()) tetap dicek dari nama ASLI lewat
+        // $campaignById di bawah, bukan dari salinan yang sudah dibersihkan ini.
+        $campaignsUntukPencocokanProduk = $campaigns->map(function ($c) {
+            $bersih = clone $c;
+            $bersih->name = preg_replace('/ctwa/i', '', (string) $c->name);
+            return $bersih;
+        });
+        $produkPerCampaign = $this->produkPerCampaign($campaignsUntukPencocokanProduk, $produkList);
 
         // Dibalik: produk id => daftar campaign (id lokal) yang mengiklankannya.
         // Satu produk bisa diiklankan campaign CTWA dan non-CTWA sekaligus.
