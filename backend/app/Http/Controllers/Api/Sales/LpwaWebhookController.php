@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\LeadLpwa;
 use App\Services\PercakapanService;
 use App\Services\ChatExtractorService;
+use App\Services\LeadAutoOrderService;
 use Illuminate\Support\Facades\Log;
 
 class LpwaWebhookController extends Controller
@@ -130,6 +131,18 @@ class LpwaWebhookController extends Controller
                 'sumber' => $sumber ?: $lead->sumber,
                 'sales_id' => $salesId ?: $lead->sales_id,
             ], fn ($v) => $v !== null));
+        }
+
+        // Coba konversi otomatis jadi order - lihat docblock LeadAutoOrderService
+        // untuk syarat presisinya. Gagal/tidak cocok = tidak melakukan apa-apa,
+        // TIDAK boleh menggagalkan response webhook ini.
+        try {
+            app(LeadAutoOrderService::class)->tryConvert($lead);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_baileys')->error('Auto-convert lead ke order gagal total', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json([
