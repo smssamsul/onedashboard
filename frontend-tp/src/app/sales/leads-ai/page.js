@@ -1101,10 +1101,10 @@ export default function LeadsAiPage() {
               gap: "0.5rem",
             }}
           >
-            {chatMessages.length === 0 ? (
+            {chatMessages.filter((msg) => msg.created_at).length === 0 ? (
               <div style={{ textAlign: "center", color: "var(--color-text-secondary)", padding: "2rem" }}>Belum ada pesan</div>
             ) : (
-              chatMessages.map((msg) => {
+              chatMessages.filter((msg) => msg.created_at).map((msg) => {
                 const isSent = msg.sender_type === "AI" || msg.sender_type === "bot" || msg.sender_type === "sales" || msg.sender_type === "system";
                 const senderLabel = msg.sender_type === "AI" ? "AI" : msg.sender_type === "bot" ? "Bot" : msg.sender_type === "sales" ? "Sales" : msg.sender_type === "system" ? "System" : "Customer";
                 const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
