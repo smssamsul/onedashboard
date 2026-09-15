@@ -11,11 +11,27 @@ import {
 import styles from "./followupRecap.module.css";
 
 const DAY_OPTIONS = [
+  { label: "Hari Ini", value: 1 },
   { label: "7 Hari", value: 7 },
   { label: "14 Hari", value: 14 },
   { label: "30 Hari", value: 30 },
   { label: "90 Hari", value: 90 },
 ];
+
+function formatLocalDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todayStr() {
+  return formatLocalDate(new Date());
+}
+
+/** Tanggal awal untuk preset "N hari" (N-1 hari ke belakang dari hari ini). */
+function dateFromForDays(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - (days - 1));
+  return formatLocalDate(d);
+}
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("id-ID");
@@ -40,7 +56,9 @@ export default function FollowUpRecapPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState(7); // aktif hanya untuk highlight tombol preset
+  const [dateFrom, setDateFrom] = useState(() => dateFromForDays(7));
+  const [dateTo, setDateTo] = useState(() => todayStr());
   const [salesId, setSalesId] = useState("all");
 
   // Chat panel (pojok kanan bawah) - sama seperti di /sales/leads-ai
@@ -107,11 +125,11 @@ export default function FollowUpRecapPage() {
     }
   };
 
-  const fetchRecap = useCallback(async (daysValue, salesValue) => {
+  const fetchRecap = useCallback(async (fromValue, toValue, salesValue) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ days: daysValue, sales_id: salesValue });
+      const params = new URLSearchParams({ date_from: fromValue, date_to: toValue, sales_id: salesValue });
       const res = await fetch(`/api/sales/followup-recap?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
       });
@@ -135,18 +153,28 @@ export default function FollowUpRecapPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchRecap(days, salesId);
+    fetchRecap(dateFrom, dateTo, salesId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleDaysChange(value) {
+    const from = dateFromForDays(value);
+    const to = todayStr();
     setDays(value);
-    fetchRecap(value, salesId);
+    setDateFrom(from);
+    setDateTo(to);
+    fetchRecap(from, to, salesId);
+  }
+
+  function handleCustomDateApply() {
+    if (!dateFrom || !dateTo) return;
+    setDays(null); // bukan preset N-hari lagi
+    fetchRecap(dateFrom, dateTo, salesId);
   }
 
   function handleSalesChange(value) {
     setSalesId(value);
-    fetchRecap(days, value);
+    fetchRecap(dateFrom, dateTo, value);
   }
 
   const hourlyChartData = (data?.hourly || []).map((h) => ({
@@ -196,6 +224,37 @@ export default function FollowUpRecapPage() {
                     {opt.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Custom</span>
+              <div className={styles.dayTabs}>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  max={dateTo}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className={styles.dateInput}
+                  aria-label="Dari tanggal"
+                />
+                <span style={{ color: "var(--color-text-secondary, #6b7280)" }}>s/d</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom}
+                  max={todayStr()}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className={styles.dateInput}
+                  aria-label="Sampai tanggal"
+                />
+                <button
+                  type="button"
+                  className={styles.dayTabBtn}
+                  onClick={handleCustomDateApply}
+                >
+                  Terapkan
+                </button>
               </div>
             </div>
           </div>
@@ -320,7 +379,9 @@ export default function FollowUpRecapPage() {
             {/* ── Rekap Percakapan per Lead ── */}
             <div className={styles.tableCard}>
               <h4 className={styles.chartTitle}>Rekap Percakapan per Lead</h4>
-              <p className={styles.chartHint}>{days} hari terakhir · maksimal 200 baris, diurutkan dari yang paling baru</p>
+              <p className={styles.chartHint}>
+                {data?.period ? `${data.period.start} s/d ${data.period.end}` : ""} · maksimal 200 baris, diurutkan dari yang paling baru
+              </p>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
@@ -475,10 +536,10 @@ export default function FollowUpRecapPage() {
           >
             {loadingChat ? (
               <div style={{ textAlign: "center", color: "#667781", padding: "2rem" }}>Memuat percakapan...</div>
-            ) : chatMessages.length === 0 ? (
+            ) : chatMessages.filter((msg) => msg.created_at).length === 0 ? (
               <div style={{ textAlign: "center", color: "#667781", padding: "2rem" }}>Belum ada pesan</div>
             ) : (
-              chatMessages.map((msg) => {
+              chatMessages.filter((msg) => msg.created_at).map((msg) => {
                 const isSent = msg.sender_type === "AI" || msg.sender_type === "sales" || msg.sender_type === "system";
                 const senderLabel = msg.sender_type === "AI" ? "AI" : msg.sender_type === "sales" ? "Sales" : msg.sender_type === "system" ? "System" : "Customer";
                 const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";

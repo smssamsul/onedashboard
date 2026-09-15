@@ -637,10 +637,10 @@ export default function PercakapanPage() {
                 </button>
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem", background: "#ECE5DD" }}>
-                {selectedConversation.detail_percakapan?.length === 0 ? (
+                {(selectedConversation.detail_percakapan?.filter((msg) => msg.created_at).length ?? 0) === 0 ? (
                   <div style={{ textAlign: "center", color: "var(--color-text-secondary)", padding: "2rem" }}>Belum ada pesan</div>
                 ) : (
-                  selectedConversation.detail_percakapan?.map((msg) => {
+                  selectedConversation.detail_percakapan?.filter((msg) => msg.created_at).map((msg) => {
                     const isSent = msg.sender_type === "AI" || msg.sender_type === "bot" || msg.sender_type === "sales" || msg.sender_type === "system";
                     const senderLabel = msg.sender_type === "AI" ? "AI" : msg.sender_type === "bot" ? "Bot" : msg.sender_type === "sales" ? "Sales" : msg.sender_type === "system" ? "System" : "Customer";
                     const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";

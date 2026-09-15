@@ -42,6 +42,9 @@ export function buildAdminOrdersQueryParams(pageNumber, perPageNum, filters) {
     const vals = filters.utmByColumn?.[key] || [];
     vals.forEach((v) => params.append(`${key}[]`, v));
   });
+  if (filters.sumberLead?.length) {
+    filters.sumberLead.forEach((v) => params.append("sumber_lead[]", v));
+  }
   return params;
 }
 
@@ -77,6 +80,9 @@ export function buildStaffOrdersQueryParams(pageNumber, perPageNum, filters) {
     const vals = filters.utmByColumn?.[key] || [];
     vals.forEach((v) => params.append(`${key}[]`, v));
   });
+  if (filters.sumberLead?.length) {
+    filters.sumberLead.forEach((v) => params.append("sumber_lead[]", v));
+  }
   return params;
 }
 
