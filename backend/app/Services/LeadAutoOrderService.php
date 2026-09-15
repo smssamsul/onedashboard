@@ -87,9 +87,15 @@ class LeadAutoOrderService
             'harga' => $totalHarga,
             'ongkir' => '0',
             'total_harga' => $totalHarga,
-            // Sengaja beda dari "sales_quick_order" (yang dipakai flow manual)
-            // supaya order hasil auto-convert ini tetap bisa dibedakan/diaudit.
-            'sumber' => 'lead_auto_masuk',
+            // Samakan dengan flow manual "+ Order" (bukan marker custom) -
+            // supaya ikut perilaku standar order cepat (mis. randomisasi
+            // rupiah terakhir di applyPriceTailRandomizationForQuickOrder,
+            // yang cuma jalan kalau sumber persis "sales_quick_order").
+            // Sumber sebenarnya (mis. "Meta Ads v16") tetap kebaca dari lead
+            // lewat kolom "Sumber Lead" (customer -> leadLpwa.sumber) - bukan
+            // dari sini - dan itu sudah wajib terisi (dicek di atas, $sumber
+            // === '' ditolak) sebelum order ini sempat dibuat.
+            'sumber' => 'sales_quick_order',
             'notif' => 1,
         ]);
         $syntheticRequest->headers->set('Accept', 'application/json');
