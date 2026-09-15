@@ -12,19 +12,26 @@ use Illuminate\Support\Facades\Log;
 /**
  * Konversi otomatis lead LPWA jadi order - HANYA kalau semua syarat presisi
  * terpenuhi: nama, sumber, produk yang diminati, dan lokasi terisi lengkap;
- * format nama wajar (bukan cuma "Kak"/emoji/simbol aneh); dan gabungan
- * "{produk_text} {lokasi}" cocok PERSIS (exact match, case-insensitive, abai
- * spasi berlebih) ke satu nama produk AKTIF di katalog.
+ * format nama wajar (bukan cuma "Kak"/emoji/simbol aneh); sumber-nya PERSIS
+ * salah satu kode di SUMBER_DIIZINKAN (pilot dimulai dari "Meta Ads v16"
+ * saja - kode lain sengaja belum diikutkan sampai terbukti aman); dan
+ * gabungan "{produk_text} {lokasi}" cocok PERSIS (exact match,
+ * case-insensitive, abai spasi berlebih) ke satu nama produk AKTIF di
+ * katalog.
  *
- * Kalau ragu sedikit pun (tidak ketemu, ketemu lebih dari satu produk, atau
- * data belum lengkap), lead dibiarkan apa adanya - sales tetap proses manual
- * lewat tombol "+ Order" yang sudah ada. Lihat juga catatan di
- * LpwaWebhookController soal kenapa auto-matching produk sebelumnya sengaja
- * dilepas (lead yang tidak match dulu malah dibuang) - service ini tidak
- * mengulang itu: gagal cocok = tidak melakukan apa-apa, lead tetap tersimpan.
+ * Kalau ragu sedikit pun (sumber bukan yang diizinkan, produk tidak
+ * ketemu/ambigu, atau data belum lengkap), lead dibiarkan apa adanya - sales
+ * tetap proses manual lewat tombol "+ Order" yang sudah ada. Lihat juga
+ * catatan di LpwaWebhookController soal kenapa auto-matching produk
+ * sebelumnya sengaja dilepas (lead yang tidak match dulu malah dibuang) -
+ * service ini tidak mengulang itu: gagal cocok = tidak melakukan apa-apa,
+ * lead tetap tersimpan.
  */
 class LeadAutoOrderService
 {
+    /** Kode sumber yang boleh dikonversi otomatis - lihat docblock class. */
+    private const SUMBER_DIIZINKAN = ['Meta Ads v16'];
+
     public function tryConvert(LeadLpwa $lead): ?OrderCustomer
     {
         try {
@@ -47,6 +54,10 @@ class LeadAutoOrderService
         $sumber = trim((string) $lead->sumber);
 
         if ($nama === '' || $noWa === '' || $produkText === '' || $lokasi === '' || $sumber === '') {
+            return null;
+        }
+
+        if (!$this->isSumberDiizinkan($sumber)) {
             return null;
         }
 
@@ -129,5 +140,16 @@ class LeadAutoOrderService
         }
 
         return (bool) preg_match('/^[\p{L}\s.,\'-]+$/u', $nama);
+    }
+
+    /** Cocok persis (case-insensitive) ke salah satu SUMBER_DIIZINKAN. */
+    private function isSumberDiizinkan(string $sumber): bool
+    {
+        foreach (self::SUMBER_DIIZINKAN as $izin) {
+            if (strcasecmp($sumber, $izin) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
