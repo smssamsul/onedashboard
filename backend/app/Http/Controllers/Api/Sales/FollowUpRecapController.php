@@ -43,8 +43,35 @@ class FollowUpRecapController extends Controller
         $days = (int) $request->get('days', 7);
         $days = max(1, min($days, 90));
 
-        $end = Carbon::now();
-        $start = Carbon::now()->subDays($days - 1)->startOfDay();
+        // Tanggal eksplisit (dari date picker "Hari Ini" / custom di frontend)
+        // menang atas `days` kalau dikirim dua-duanya - `days` tetap didukung
+        // supaya kompatibel dengan pemanggil lama yang cuma kirim jumlah hari.
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        if ($dateFrom && $dateTo) {
+            try {
+                $start = Carbon::parse($dateFrom)->startOfDay();
+                $end = Carbon::parse($dateTo)->endOfDay();
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format tanggal tidak valid.',
+                ], 422);
+            }
+
+            if ($start->gt($end)) {
+                [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+            }
+
+            // Batasi maksimal 90 hari supaya query tetap ringan, sama seperti batas `days`.
+            if ($start->diffInDays($end) > 90) {
+                $start = $end->copy()->subDays(90)->startOfDay();
+            }
+        } else {
+            $end = Carbon::now();
+            $start = Carbon::now()->subDays($days - 1)->startOfDay();
+        }
 
         // Dropdown "per sales" - hanya sales yang pernah ditugaskan percakapan,
         // biar tidak nampilin sales yang tidak relevan di menu ini.
