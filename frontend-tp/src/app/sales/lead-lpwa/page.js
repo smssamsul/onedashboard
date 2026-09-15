@@ -382,8 +382,11 @@ export default function LeadLpwaPage() {
           harga: String(harga),
           ongkir: "0",
           total_harga: String(harga),
+          // utm_source sengaja tidak diisi - sumber sebenarnya order dari lead
+          // ini sudah tercatat benar di lead_lpwa.sumber (tampil sebagai
+          // "Sumber Lead"), jadi tidak perlu label utm_source yang bisa salah
+          // (dulu di-hardcode "lpwa" walau lead-nya dari Meta Ads, dll).
           sumber: "sales_quick_order",
-          utm_source: "lpwa",
           bundling: confirmState.bundleId || "",
           notif: 1,
         })
