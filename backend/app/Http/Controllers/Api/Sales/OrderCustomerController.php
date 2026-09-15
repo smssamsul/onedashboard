@@ -1978,6 +1978,33 @@ class OrderCustomerController extends Controller
                 ->all();
         }
 
+        // Sumber Lead diambil dari LeadLpwa (bukan kolom order_customer), jadi
+        // dicari terpisah: kumpulkan no WA customer yang punya order (scope
+        // sama seperti kolom lain), baru ambil nilai sumber unik dari sana.
+        $sumberLeadQuery = OrderCustomer::query()->where('status', '!=', 'N');
+        if ($isStaffSales) {
+            $sumberLeadQuery->ownedBySales($user->id);
+        }
+        $waNumbers = $sumberLeadQuery
+            ->with('customer_rel:id,wa')
+            ->get(['customer'])
+            ->pluck('customer_rel.wa')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $out['sumber_lead'] = $waNumbers->isEmpty() ? [] : \App\Models\LeadLpwa::query()
+            ->whereIn('no_wa', $waNumbers)
+            ->whereNotNull('sumber')
+            ->where('sumber', '!=', '')
+            ->select('sumber')
+            ->distinct()
+            ->orderBy('sumber')
+            ->limit(150)
+            ->pluck('sumber')
+            ->values()
+            ->all();
+
         return response()->json([
             'success' => true,
             'data' => $out,
@@ -2005,6 +2032,25 @@ class OrderCustomerController extends Controller
             })));
             if (count($values) > 0) {
                 $query->whereIn($col, $values);
+            }
+        }
+
+        // Sumber Lead bukan kolom order_customer - diambil dari LeadLpwa lewat
+        // relasi customer (matching by no WA), jadi difilter lewat whereHas.
+        $sumberLeadValues = $request->input('sumber_lead');
+        if ($sumberLeadValues !== null && $sumberLeadValues !== '') {
+            if (! is_array($sumberLeadValues)) {
+                $sumberLeadValues = [$sumberLeadValues];
+            }
+            $sumberLeadValues = array_values(array_unique(array_filter(array_map(function ($v) {
+                return is_string($v) ? trim($v) : (string) $v;
+            }, $sumberLeadValues), function ($s) {
+                return $s !== '';
+            })));
+            if (count($sumberLeadValues) > 0) {
+                $query->whereHas('customer_rel.leadLpwa', function ($q) use ($sumberLeadValues) {
+                    $q->whereIn('sumber', $sumberLeadValues);
+                });
             }
         }
     }

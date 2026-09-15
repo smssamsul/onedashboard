@@ -489,6 +489,12 @@ export default function DaftarPesanan() {
   const [utmSearch, setUtmSearch] = useState(() =>
     Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, ""]))
   );
+  // Filter "Sumber Lead" - terpisah dari UTM_FILTER_FIELDS karena nilainya
+  // datang dari LeadLpwa (bukan kolom order_customer) dan kolom "SUMBER LEAD"
+  // di tabel sudah tampil sendiri di luar mekanisme UTM ini.
+  const [selectedSumberLead, setSelectedSumberLead] = useState([]);
+  const [sumberLeadOptions, setSumberLeadOptions] = useState([]);
+  const [sumberLeadSearch, setSumberLeadSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productResults, setProductResults] = useState([]);
 
@@ -522,7 +528,8 @@ export default function DaftarPesanan() {
     statusPembayaran: selectedStatusPembayaran,
     products: selectedProducts,
     utmByColumn: selectedUtmByColumn,
-  }), [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn]);
+    sumberLead: selectedSumberLead,
+  }), [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn, selectedSumberLead]);
 
   // 🔹 Search produk untuk filter
   const handleSearchProduct = useCallback(async (keyword) => {
@@ -615,6 +622,13 @@ export default function DaftarPesanan() {
     });
   }, []);
 
+  // 🔹 Handle sumber lead toggle (multiple)
+  const handleToggleSumberLead = useCallback((value) => {
+    setSelectedSumberLead((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  }, []);
+
   // 🔹 Reset all filters
   const handleResetFilters = useCallback(() => {
     setDateRange(null);
@@ -624,6 +638,8 @@ export default function DaftarPesanan() {
     setSelectedStatusPembayaran([]);
     setSelectedUtmByColumn(emptyUtmColumnSelections());
     setUtmSearch(Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, ""])));
+    setSelectedSumberLead([]);
+    setSumberLeadSearch("");
     setProductSearch("");
     setProductResults([]);
   }, []);
@@ -663,6 +679,7 @@ export default function DaftarPesanan() {
         const vals = activeFilters.utmByColumn[key] || [];
         vals.forEach((v) => params.append(`${key}[]`, v));
       });
+      (activeFilters.sumberLead || []).forEach((v) => params.append("sumber_lead[]", v));
 
       const res = await fetch(`/api/sales/order/statistic?${params.toString()}`, {
         headers: {
@@ -839,7 +856,7 @@ export default function DaftarPesanan() {
     setOrders([]);
     setHasMore(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn]); // Reset when search or filter changes
+  }, [debouncedSearch, dateRange, selectedStatusOrder, selectedStatusPembayaran, selectedProducts, selectedUtmByColumn, selectedSumberLead]); // Reset when search or filter changes
 
   // Fetch data saat page, perPage, atau filters berubah
   useEffect(() => {
@@ -899,6 +916,9 @@ export default function DaftarPesanan() {
           });
           return next;
         });
+        if (Array.isArray(j.data.sumber_lead)) {
+          setSumberLeadOptions(j.data.sumber_lead);
+        }
       })
       .catch(() => { })
       .finally(() => {
@@ -2907,6 +2927,104 @@ export default function DaftarPesanan() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Sumber Lead — dari LeadLpwa, mis. "Meta Ads v9" */}
+              <div style={{ marginBottom: "2rem" }}>
+                <label className="field-label" style={{
+                  marginBottom: "0.875rem",
+                  display: "block",
+                  fontSize: "0.9375rem",
+                  fontWeight: "600",
+                  color: "var(--color-text-primary)",
+                  letterSpacing: "-0.01em"
+                }}>
+                  Filter Sumber Lead
+                </label>
+                {sumberLeadOptions.length === 0 && !loadingUtmOptions ? (
+                  <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", margin: 0 }}>Belum ada nilai untuk kolom ini.</p>
+                ) : (
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.375rem",
+                    background: "var(--color-grey-50)",
+                    padding: "0.5rem",
+                    borderRadius: "0.5rem",
+                    border: "1.5px solid var(--color-divider)",
+                  }}>
+                    <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+                      <input
+                        type="text"
+                        placeholder="Cari Sumber Lead..."
+                        value={sumberLeadSearch}
+                        onChange={(e) => setSumberLeadSearch(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem 2rem 0.5rem 0.75rem",
+                          border: "1px solid var(--color-grey-300)",
+                          borderRadius: "0.375rem",
+                          fontSize: "0.8125rem",
+                          outline: "none"
+                        }}
+                      />
+                      <span className="pi pi-search" style={{
+                        position: "absolute",
+                        right: "0.75rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "var(--color-text-secondary)",
+                        fontSize: "0.8125rem",
+                        pointerEvents: "none",
+                      }} />
+                    </div>
+                    <div style={{
+                      maxHeight: "160px",
+                      overflowY: "auto",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.375rem",
+                    }}>
+                      {sumberLeadOptions.filter(val => String(val || "").toLowerCase().includes(sumberLeadSearch.toLowerCase())).map((val) => {
+                        const isChecked = selectedSumberLead.includes(val);
+                        return (
+                          <label
+                            key={`sumber_lead-${val}`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              padding: "0.5rem 0.625rem",
+                              borderRadius: "0.375rem",
+                              background: isChecked ? "var(--color-primary-lighter)" : "transparent",
+                              border: isChecked ? "1px solid var(--color-primary-main)" : "1px solid transparent",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleSumberLead(val)}
+                              style={{
+                                marginRight: "0.5rem",
+                                width: "16px",
+                                height: "16px",
+                                cursor: "pointer",
+                                accentColor: "var(--color-primary-main)",
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span style={{
+                              fontSize: "0.8125rem",
+                              color: isChecked ? "var(--color-primary-dark)" : "var(--color-text-primary)",
+                              fontWeight: isChecked ? "600" : "400",
+                              wordBreak: "break-word",
+                            }}>{val}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer" style={{
