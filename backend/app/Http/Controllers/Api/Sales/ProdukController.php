@@ -771,6 +771,7 @@ class ProdukController extends Controller
             'kota' => $request->kota ?? $produk->kota,
             'tempat' => $request->tempat ?? $produk->tempat,
             'alamat' => $request->alamat ?? $produk->alamat,
+            'status' => $request->status ?? $produk->status,
             'landingpage' => $landingpageData,
             'post' => json_encode($request->post ?? json_decode($produk->post, true) ?? []),
             'update_at' => now(),

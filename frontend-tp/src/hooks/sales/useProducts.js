@@ -58,6 +58,22 @@ export function useProducts() {
   };
 
   // =====================================================
+  // 🗄️ Arsipkan / aktifkan produk (toggle status)
+  // =====================================================
+  const handleToggleStatus = async (id, newStatus) => {
+    try {
+      const updated = await updateProductStatus(id, newStatus);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: updated?.status ?? newStatus } : p))
+      );
+    } catch (err) {
+      console.error("❌ Error updating product status:", err);
+      setError(err?.message || "Gagal mengubah status produk");
+      throw err;
+    }
+  };
+
+  // =====================================================
   // 📑 Duplikasi produk
   // =====================================================
   const handleDuplicate = async (id) => {
@@ -81,6 +97,7 @@ export function useProducts() {
     error,
     handleDelete,
     handleDuplicate,
+    handleToggleStatus,
     setProducts,
   };
 }
