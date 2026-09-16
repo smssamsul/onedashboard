@@ -159,7 +159,7 @@ export async function createProduct(payload) {
 export async function updateProductStatus(id, status) {
   try {
     const res = await api(`/sales/produk/${id}`, {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({ status: String(status) }),
     });
 

@@ -11,7 +11,13 @@ import {
   updateProductStatus
 } from "@/lib/sales/products";
 
-export function useProducts() {
+/**
+ * @param {boolean} includeArchived - true = tampilkan juga produk berstatus
+ *   "N" (diarsipkan), bukan cuma yang aktif. Dipakai halaman admin Products
+ *   supaya tombol "Aktifkan" ada sesuatu untuk ditampilkan - halaman lain
+ *   (staff, customer dashboard) tetap default false (cuma produk aktif).
+ */
+export function useProducts(includeArchived = false) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +31,7 @@ export function useProducts() {
       setError(null);
 
       try {
-        const data = await getProducts(false, { disableToast: true });
+        const data = await getProducts(includeArchived, { disableToast: true });
         setProducts(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
@@ -37,7 +43,7 @@ export function useProducts() {
     }
 
     fetchData();
-  }, []);
+  }, [includeArchived]);
 
   // =====================================================
   // 🧹 Hapus produk (hard delete - benar-benar hapus dari database)
@@ -54,6 +60,22 @@ export function useProducts() {
     } catch (err) {
       console.error("❌ Error deleting product:", err);
       setError(err?.message || "Gagal menghapus produk");
+    }
+  };
+
+  // =====================================================
+  // 🗄️ Arsipkan / aktifkan produk (toggle status)
+  // =====================================================
+  const handleToggleStatus = async (id, newStatus) => {
+    try {
+      const updated = await updateProductStatus(id, newStatus);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: updated?.status ?? newStatus } : p))
+      );
+    } catch (err) {
+      console.error("❌ Error updating product status:", err);
+      setError(err?.message || "Gagal mengubah status produk");
+      throw err;
     }
   };
 
@@ -81,6 +103,7 @@ export function useProducts() {
     error,
     handleDelete,
     handleDuplicate,
+    handleToggleStatus,
     setProducts,
   };
 }
