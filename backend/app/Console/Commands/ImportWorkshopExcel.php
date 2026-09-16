@@ -345,6 +345,20 @@ class ImportWorkshopExcel extends Command
                 ->value('id');
         }
 
+        // Samakan dengan konvensi approval order workshop biasa (lihat
+        // OrderValidationController::approve() & DokuController) - keanggotaan
+        // customer di-update sesuai tier yang dibeli, tapi cuma naik level
+        // (tidak menimpa tier yang lebih tinggi punya customer).
+        if ($row['tier'] !== 'RESEAT') {
+            $rank = ['basic' => 0, 'bronze' => 1, 'silver' => 2, 'gold' => 3, 'platinum' => 4];
+            $tierBaru = strtolower($row['tier']);
+            $rankBaru = $rank[$tierBaru] ?? 0;
+            $rankSekarang = $rank[strtolower((string) $customer->keanggotaan)] ?? 0;
+            if ($rankBaru > $rankSekarang) {
+                $customer->update(['keanggotaan' => $tierBaru]);
+            }
+        }
+
         $kodeOrder = $this->buatKodeOrder($row['tanggal']);
 
         $order = OrderCustomer::create([

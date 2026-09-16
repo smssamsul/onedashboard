@@ -17,6 +17,13 @@ const TIER_LIST = [
   { key: "reseat", label: "Reseat" },
 ];
 
+const TIER_LABEL = {
+  platinum: "Platinum",
+  gold: "Gold",
+  silver: "Silver",
+  reseat: "Reseat",
+};
+
 function formatRp(n) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(n) || 0);
 }
@@ -25,23 +32,34 @@ function formatAngka(n) {
   return Number(n || 0).toLocaleString("id-ID");
 }
 
+function formatTanggal(s) {
+  if (!s) return "-";
+  const d = new Date(s + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 export default function WorkshopReportPage() {
   const router = useRouter();
+  const now = new Date();
+  const [tahunTersedia, setTahunTersedia] = useState([now.getFullYear()]);
+  const [tahun, setTahun] = useState(now.getFullYear());
+  const [bulan, setBulan] = useState(now.getMonth() + 1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTahun, setLoadingTahun] = useState(true);
   const [error, setError] = useState(null);
-  const [tahun, setTahun] = useState(new Date().getFullYear());
 
   function getToken() {
     return typeof window !== "undefined" ? localStorage.getItem("token") : "";
   }
 
-  const fetchData = useCallback(
-    async (tahunValue) => {
+  const fetchPeserta = useCallback(
+    async (tahunValue, bulanValue) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/sales/workshop-report?tahun=${tahunValue}`, {
+        const res = await fetch(`/api/sales/workshop-report/peserta?tahun=${tahunValue}&bulan=${bulanValue}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         });
         if (res.status === 401) {
@@ -64,19 +82,51 @@ export default function WorkshopReportPage() {
   );
 
   useEffect(() => {
-    fetchData(tahun);
+    async function fetchTahun() {
+      setLoadingTahun(true);
+      try {
+        const res = await fetch(`/api/sales/workshop-report/tahun-tersedia`, {
+          headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
+        });
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        const json = await res.json();
+        if (json.success && json.data?.length) {
+          setTahunTersedia(json.data);
+          if (!json.data.includes(tahun)) {
+            setTahun(json.data[0]);
+            fetchPeserta(json.data[0], bulan);
+            setLoadingTahun(false);
+            return;
+          }
+        }
+      } catch {
+        // biarkan default tahun sekarang kalau gagal
+      } finally {
+        setLoadingTahun(false);
+      }
+      fetchPeserta(tahun, bulan);
+    }
+    fetchTahun();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleTahunChange(value) {
     const t = Number(value);
     setTahun(t);
-    fetchData(t);
+    fetchPeserta(t, bulan);
   }
 
-  const bulanan = data?.bulanan || [];
-  const total = data?.total_tahun;
-  const tahunTersedia = data?.tahun_tersedia?.length ? data.tahun_tersedia : [String(tahun)];
+  function handleBulanChange(value) {
+    const b = Number(value);
+    setBulan(b);
+    fetchPeserta(tahun, b);
+  }
+
+  const ringkasan = data?.ringkasan;
+  const peserta = data?.peserta || [];
 
   return (
     <Layout title="Rekap Workshop">
@@ -84,14 +134,22 @@ export default function WorkshopReportPage() {
         <div className={styles.pageHeader}>
           <div>
             <h1 className={styles.pageTitle}>Rekap Workshop</h1>
-            <p className={styles.pageSubtitle}>Omzet Workshop per bulan, dipecah per tier Platinum/Gold/Silver/Reseat</p>
+            <p className={styles.pageSubtitle}>Pilih tahun & bulan untuk melihat daftar peserta Workshop dan detailnya</p>
           </div>
           <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>Tahun</span>
-            <select className={styles.yearSelect} value={tahun} onChange={(e) => handleTahunChange(e.target.value)}>
+            <select className={styles.yearSelect} value={tahun} onChange={(e) => handleTahunChange(e.target.value)} disabled={loadingTahun}>
               {tahunTersedia.map((t) => (
                 <option key={t} value={t}>
                   {t}
+                </option>
+              ))}
+            </select>
+            <span className={styles.filterLabel}>Bulan</span>
+            <select className={styles.yearSelect} value={bulan} onChange={(e) => handleBulanChange(e.target.value)}>
+              {NAMA_BULAN.map((nama, idx) => (
+                <option key={idx + 1} value={idx + 1}>
+                  {nama}
                 </option>
               ))}
             </select>
@@ -106,17 +164,19 @@ export default function WorkshopReportPage() {
           <>
             <div className={styles.summaryRow}>
               <div className={styles.summaryCard}>
-                <div className={styles.summaryLabel}>Total Omzet {tahun}</div>
-                <div className={styles.summaryValue}>{formatRp(total?.omzet)}</div>
-                <div className={styles.summarySub}>{formatAngka(total?.peserta)} peserta</div>
+                <div className={styles.summaryLabel}>
+                  Total {NAMA_BULAN[bulan - 1]} {tahun}
+                </div>
+                <div className={styles.summaryValue}>{formatRp(ringkasan?.total_omzet)}</div>
+                <div className={styles.summarySub}>{formatAngka(ringkasan?.total_peserta)} peserta</div>
               </div>
               {TIER_LIST.map((t) => (
                 <div key={t.key} className={styles.summaryCard}>
                   <div className={styles.summaryLabel}>{t.label}</div>
                   <div className={styles.summaryValue} data-tier={t.key}>
-                    {formatAngka(total?.tier?.[t.key]?.count)}
+                    {formatAngka(ringkasan?.tier?.[t.key]?.count)}
                   </div>
-                  <div className={styles.summarySub}>{formatRp(total?.tier?.[t.key]?.omzet)}</div>
+                  <div className={styles.summarySub}>{formatRp(ringkasan?.tier?.[t.key]?.omzet)}</div>
                 </div>
               ))}
             </div>
@@ -125,38 +185,55 @@ export default function WorkshopReportPage() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Bulan</th>
-                    <th>Peserta</th>
-                    <th>Omzet</th>
-                    {TIER_LIST.map((t) => (
-                      <th key={t.key}>{t.label}</th>
-                    ))}
+                    <th>Tanggal</th>
+                    <th>Nama</th>
+                    <th>WA</th>
+                    <th>Tier</th>
+                    <th>Produk</th>
+                    <th>Harga</th>
+                    <th>Sumber</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bulanan.map((b) => (
-                    <tr key={b.bulan} className={b.total_peserta === 0 ? styles.emptyRow : ""}>
-                      <td className={styles.bulanCell}>{NAMA_BULAN[b.bulan - 1]}</td>
-                      <td>{formatAngka(b.total_peserta)}</td>
-                      <td>{formatRp(b.total_omzet)}</td>
-                      {TIER_LIST.map((t) => (
-                        <td key={t.key}>
-                          {b.tier[t.key].count > 0 ? `${b.tier[t.key].count} · ${formatRp(b.tier[t.key].omzet)}` : "-"}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                  <tr className={styles.totalRow}>
-                    <td>Total {tahun}</td>
-                    <td>{formatAngka(total?.peserta)}</td>
-                    <td>{formatRp(total?.omzet)}</td>
-                    {TIER_LIST.map((t) => (
-                      <td key={t.key}>
-                        {formatAngka(total?.tier?.[t.key]?.count)} · {formatRp(total?.tier?.[t.key]?.omzet)}
+                  {peserta.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className={styles.emptyState}>
+                        Tidak ada peserta Workshop di {NAMA_BULAN[bulan - 1]} {tahun}
                       </td>
-                    ))}
-                  </tr>
+                    </tr>
+                  ) : (
+                    peserta.map((p) => (
+                      <tr key={p.order_id}>
+                        <td className={styles.leftCell}>{formatTanggal(p.tanggal)}</td>
+                        <td className={styles.leftCell}>{p.nama}</td>
+                        <td className={styles.leftCell}>{p.wa || "-"}</td>
+                        <td className={styles.leftCell}>
+                          {p.tier ? (
+                            <span className={styles.tierBadge} data-tier={p.tier}>
+                              {TIER_LABEL[p.tier]}
+                            </span>
+                          ) : (
+                            <span className={styles.tierBadge}>Lainnya</span>
+                          )}
+                        </td>
+                        <td className={styles.leftCell}>{p.produk_nama || "-"}</td>
+                        <td>{formatRp(p.harga)}</td>
+                        <td className={styles.leftCell}>{p.sumber || "-"}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
+                {peserta.length > 0 && (
+                  <tfoot>
+                    <tr className={styles.totalRow}>
+                      <td colSpan={5} className={styles.leftCell}>
+                        Total {formatAngka(ringkasan?.total_peserta)} peserta
+                      </td>
+                      <td>{formatRp(ringkasan?.total_omzet)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </>

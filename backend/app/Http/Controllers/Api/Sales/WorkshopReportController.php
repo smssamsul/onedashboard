@@ -4,21 +4,24 @@ namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrderCustomer;
+use App\Models\OrderCustomerArsip;
+use App\Models\Produk;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 /**
- * Rekap omzet Workshop per bulan (per tahun), dipecah per tier
- * (Platinum/Gold/Silver/Reseat) - dihitung dari OrderCustomer produk
- * kategori Workshop (kategori=6) yang status_pembayaran-nya Paid.
+ * Rekap peserta Workshop per tahun+bulan (pilih satu bulan, tampilkan daftar
+ * peserta & detailnya) - dihitung dari OrderCustomer (tahun berjalan) DAN
+ * OrderCustomerArsip (tahun-tahun sebelumnya, sebelum ~April 2026 data cuma
+ * ada di arsip - lihat CustomerController::combinedOrdersHistory()).
  *
- * Tier ditentukan dari nama bundling order (platinum/gold/silver), atau
- * dari produk id=16 (TP - Reseat Workshop Ternak Properti) untuk Reseat -
- * lihat ImportWorkshopExcel yang jadi sumber data historis awal fitur ini.
+ * Tier ditentukan dari nama bundling order (platinum/gold/silver) untuk data
+ * live, atau dari produk id=16 (TP - Reseat Workshop Ternak Properti) untuk
+ * Reseat. Data arsip tidak punya kolom bundling - tier cuma bisa ditebak dari
+ * kata "reseat" di nama produk arsipnya, sisanya masuk "lainnya".
  */
 class WorkshopReportController extends Controller
 {
-    private const KATEGORI_WORKSHOP_ID = 6;
     private const PRODUK_RESEAT_ID = 16;
     private const TIER_KEYS = ['platinum', 'gold', 'silver', 'reseat'];
 
@@ -27,86 +30,122 @@ class WorkshopReportController extends Controller
         $this->middleware('auth:api');
     }
 
-    public function summary(Request $request)
+    /** Semua id produk (live + arsip) yang termasuk program Workshop. */
+    private function produkIdsWorkshop()
     {
-        $tahun = (string) $request->get('tahun', now()->year);
+        return Produk::whereRaw('LOWER(nama) LIKE ?', ['%workshop%'])->pluck('id');
+    }
 
-        $orders = OrderCustomer::where('status', '!=', 'N')
+    public function tahunTersedia(Request $request)
+    {
+        $produkIds = $this->produkIdsWorkshop();
+
+        $dariArsip = OrderCustomerArsip::whereIn('produk_id', $produkIds)
             ->where('status_pembayaran', '2')
-            ->whereHas('produk_rel', function ($q) {
-                $q->where('kategori', self::KATEGORI_WORKSHOP_ID);
-            })
-            ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun])
-            ->with(['bundling_rel:id,nama', 'produk_rel:id,nama'])
-            ->get(['id', 'produk', 'bundling', 'total_harga', 'tanggal']);
+            ->selectRaw('DISTINCT EXTRACT(YEAR FROM tanggal) as tahun')
+            ->pluck('tahun')
+            ->map(fn ($t) => (int) $t);
 
-        $bulanan = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $bulanan[$m] = $this->barisBulanKosong($m);
-        }
-
-        foreach ($orders as $o) {
-            try {
-                $bulan = (int) Carbon::parse($o->tanggal)->format('n');
-            } catch (\Throwable $e) {
-                continue;
-            }
-            if (!isset($bulanan[$bulan])) {
-                continue;
-            }
-
-            $harga = (float) preg_replace('/[^\d.]/', '', (string) $o->total_harga);
-            $tier = $this->resolveTier($o);
-
-            $bulanan[$bulan]['total_omzet'] += $harga;
-            $bulanan[$bulan]['total_peserta']++;
-            if ($tier !== null) {
-                $bulanan[$bulan]['tier'][$tier]['count']++;
-                $bulanan[$bulan]['tier'][$tier]['omzet'] += $harga;
-            } else {
-                $bulanan[$bulan]['tier_lainnya']['count']++;
-                $bulanan[$bulan]['tier_lainnya']['omzet'] += $harga;
-            }
-        }
-
-        $tahunTersedia = OrderCustomer::where('status', '!=', 'N')
+        $dariLive = OrderCustomer::where('status', '!=', 'N')
             ->where('status_pembayaran', '2')
-            ->whereHas('produk_rel', function ($q) {
-                $q->where('kategori', self::KATEGORI_WORKSHOP_ID);
-            })
+            ->whereIn('produk', $produkIds)
             ->selectRaw("DISTINCT SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) as tahun")
             ->pluck('tahun')
             ->filter(fn ($t) => is_string($t) && strlen($t) === 4)
-            ->sortDesc()
-            ->values();
+            ->map(fn ($t) => (int) $t);
 
-        if ($tahunTersedia->isEmpty()) {
-            $tahunTersedia = collect([$tahun]);
+        $tahun = $dariArsip->concat($dariLive)->unique()->sortDesc()->values();
+        if ($tahun->isEmpty()) {
+            $tahun = collect([(int) now()->year]);
         }
 
-        $totalTahun = [
-            'omzet' => array_sum(array_column($bulanan, 'total_omzet')),
-            'peserta' => array_sum(array_column($bulanan, 'total_peserta')),
+        return response()->json(['success' => true, 'data' => $tahun]);
+    }
+
+    public function peserta(Request $request)
+    {
+        $tahun = (string) $request->get('tahun', now()->year);
+        $bulan = (int) $request->get('bulan', now()->month);
+        $produkIds = $this->produkIdsWorkshop();
+
+        $peserta = collect();
+
+        // Arsip (tahun sebelum data live tersedia, atau bagian awal 2026).
+        $arsipQuery = OrderCustomerArsip::whereIn('produk_id', $produkIds)
+            ->where('status_pembayaran', '2')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bulan)
+            ->with('customer:id,nama,wa');
+        foreach ($arsipQuery->get() as $o) {
+            $peserta->push([
+                'order_id' => 'arsip-' . $o->id,
+                'customer_id' => $o->customer_id,
+                'nama' => $o->customer->nama ?? '(customer tidak ditemukan)',
+                'wa' => $o->customer->wa ?? null,
+                'tier' => stripos((string) $o->produk_nama_manual, 'reseat') !== false ? 'reseat' : null,
+                'produk_nama' => $o->produk_nama_manual,
+                'harga' => (float) preg_replace('/[^\d.]/', '', (string) $o->harga),
+                'tanggal' => optional($o->tanggal ? Carbon::parse($o->tanggal) : null)->toDateString(),
+                'sumber' => $o->sumber,
+                'sumber_data' => 'arsip',
+            ]);
+        }
+
+        // Live (data berjalan - saat ini cuma relevan mulai 2026).
+        $liveQuery = OrderCustomer::where('status', '!=', 'N')
+            ->where('status_pembayaran', '2')
+            ->whereIn('produk', $produkIds)
+            ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun])
+            ->with(['customer_rel:id,nama,wa', 'bundling_rel:id,nama', 'produk_rel:id,nama']);
+        foreach ($liveQuery->get() as $o) {
+            try {
+                if ((int) Carbon::parse($o->tanggal)->format('n') !== $bulan) {
+                    continue;
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            $peserta->push([
+                'order_id' => $o->id,
+                'customer_id' => $o->customer,
+                'nama' => $o->customer_rel->nama ?? '(customer tidak ditemukan)',
+                'wa' => $o->customer_rel->wa ?? null,
+                'tier' => $this->resolveTierLive($o),
+                'produk_nama' => $o->produk_rel->nama ?? null,
+                'harga' => (float) preg_replace('/[^\d.]/', '', (string) $o->total_harga),
+                'tanggal' => optional(Carbon::parse($o->tanggal))->toDateString(),
+                'sumber' => $o->sumber,
+                'sumber_data' => 'live',
+            ]);
+        }
+
+        $peserta = $peserta->sortBy('tanggal')->values();
+
+        $ringkasan = [
+            'total_peserta' => $peserta->count(),
+            'total_omzet' => $peserta->sum('harga'),
+            'tier' => [],
         ];
         foreach (self::TIER_KEYS as $t) {
-            $totalTahun['tier'][$t] = [
-                'count' => array_sum(array_map(fn ($b) => $b['tier'][$t]['count'], $bulanan)),
-                'omzet' => array_sum(array_map(fn ($b) => $b['tier'][$t]['omzet'], $bulanan)),
-            ];
+            $grup = $peserta->where('tier', $t);
+            $ringkasan['tier'][$t] = ['count' => $grup->count(), 'omzet' => $grup->sum('harga')];
         }
+        $lainnya = $peserta->whereNotIn('tier', self::TIER_KEYS);
+        $ringkasan['tier_lainnya'] = ['count' => $lainnya->count(), 'omzet' => $lainnya->sum('harga')];
 
         return response()->json([
             'success' => true,
             'data' => [
-                'tahun' => $tahun,
-                'tahun_tersedia' => $tahunTersedia,
-                'bulanan' => array_values($bulanan),
-                'total_tahun' => $totalTahun,
+                'tahun' => (int) $tahun,
+                'bulan' => $bulan,
+                'ringkasan' => $ringkasan,
+                'peserta' => $peserta,
             ],
         ]);
     }
 
-    private function resolveTier(OrderCustomer $order): ?string
+    private function resolveTierLive(OrderCustomer $order): ?string
     {
         if ((int) $order->produk === self::PRODUK_RESEAT_ID) {
             return 'reseat';
@@ -114,21 +153,5 @@ class WorkshopReportController extends Controller
 
         $namaBundling = strtolower(trim($order->bundling_rel->nama ?? ''));
         return in_array($namaBundling, ['platinum', 'gold', 'silver'], true) ? $namaBundling : null;
-    }
-
-    private function barisBulanKosong(int $bulan): array
-    {
-        $tier = [];
-        foreach (self::TIER_KEYS as $t) {
-            $tier[$t] = ['count' => 0, 'omzet' => 0];
-        }
-
-        return [
-            'bulan' => $bulan,
-            'total_omzet' => 0,
-            'total_peserta' => 0,
-            'tier' => $tier,
-            'tier_lainnya' => ['count' => 0, 'omzet' => 0],
-        ];
     }
 }
