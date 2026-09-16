@@ -349,6 +349,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Order
         Route::get('/order', [OrderCustomerController::class, 'index']);
+        Route::get('/order/unpaid-leads-tahun-ini', [OrderCustomerController::class, 'unpaidLeadsTahunIni']);
         Route::get('/order/utm-filter-options', [OrderCustomerController::class, 'utmFilterOptions']);
         Route::get('/order/utm', [OrderUtmController::class, 'index']);
         Route::get('/order/statistic', [OrderCustomerController::class, 'statistiOrder']);

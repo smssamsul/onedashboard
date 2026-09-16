@@ -337,6 +337,7 @@ export default function Sidebar({
               submenu: [
                 { label: "Analisa Leads", href: `${basePath}/leads-analisa` },
                 { label: "Leads", href: `${basePath}/lead-lpwa` },
+                { label: `Lead Unpaid ${new Date().getFullYear()}`, href: `${basePath}/lead-unpaid` },
                 { label: "Rekap Follow-Up", href: `${basePath}/followup-recap` },
               ],
             },
