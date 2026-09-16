@@ -451,10 +451,12 @@ Route::middleware('auth:api')->group(function () {
 
         // Percakapan
         Route::get('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'index']);
+        Route::get('/percakapan/stats', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'stats']);
         Route::get('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'show']);
         Route::post('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'store']);
         Route::put('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'update']);
         Route::post('/percakapan/{id}/message', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'addMessage']);
+        Route::post('/percakapan/{id}/rescore', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'rescore']);
         Route::post('/percakapan/get-or-create', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'getOrCreateByPhone']);
 
         // Follow Up Leads

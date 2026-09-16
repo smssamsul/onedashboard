@@ -36,9 +36,13 @@ class PercakapanController extends Controller
             $query->where('assigned_sales_id', $request->assigned_sales_id);
         }
 
-        // Search by phone number
+        // Search by nama atau nomor telepon
         if ($request->has('search') && $request->search) {
-            $query->where('phone_number', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('phone_number', 'like', '%' . $search . '%')
+                  ->orWhere('name', 'like', '%' . $search . '%');
+            });
         }
 
         $perPage = $request->get('per_page', 20);
@@ -53,6 +57,66 @@ class PercakapanController extends Controller
                 'per_page' => $conversations->perPage(),
                 'total' => $conversations->total(),
             ]
+        ]);
+    }
+
+    /**
+     * Hitung ulang skor intent (hot/warm/cold/low_quality) satu percakapan
+     * on-demand - tombol "Analisa Ulang" di menu Analisa Leads. Dilewati
+     * (tidak berubah) kalau status-nya sudah ditandai manual "trash".
+     */
+    public function rescore($id)
+    {
+        $percakapan = Percakapan::find($id);
+        if (!$percakapan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Percakapan tidak ditemukan'
+            ], 404);
+        }
+
+        $label = app(\App\Services\LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+
+        return response()->json([
+            'success' => true,
+            'message' => $label ? "Berhasil dianalisa ulang: {$label}" : 'Dilewati (status ditandai manual sebagai trash)',
+            'data' => $percakapan->fresh(),
+        ]);
+    }
+
+    /**
+     * Jumlah percakapan per status (untuk badge tab di menu Analisa Leads),
+     * dengan scope pencarian yang sama seperti index().
+     */
+    public function stats(Request $request)
+    {
+        $query = Percakapan::query();
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('phone_number', 'like', '%' . $search . '%')
+                  ->orWhere('name', 'like', '%' . $search . '%');
+            });
+        }
+
+        $counts = (clone $query)
+            ->selectRaw('status, COUNT(*) as jumlah')
+            ->groupBy('status')
+            ->pluck('jumlah', 'status');
+
+        $labels = ['low_quality', 'cold', 'warm', 'hot'];
+        $perLabel = [];
+        foreach ($labels as $label) {
+            $perLabel[$label] = (int) ($counts[$label] ?? 0);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'per_status' => $perLabel,
+                'total' => (clone $query)->count(),
+            ],
         ]);
     }
 
@@ -88,7 +152,7 @@ class PercakapanController extends Controller
             'phone_number' => 'required|string|max:20',
             'ai_leads_id' => 'nullable|integer|exists:ai_leads,id',
             'assigned_sales_id' => 'nullable|integer|exists:user,id',
-            'status' => 'required|string|in:new,lead,hot,warm,cold,trash',
+            'status' => 'required|string|in:new,lead,hot,warm,cold,low_quality,trash',
             'source' => 'nullable|string|max:50',
         ]);
 
@@ -131,7 +195,7 @@ class PercakapanController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'sometimes|string|in:new,lead,hot,warm,cold,trash',
+            'status' => 'sometimes|string|in:new,lead,hot,warm,cold,low_quality,trash',
             'assigned_sales_id' => 'nullable|integer|exists:user,id',
             'lead_score' => 'nullable|integer',
         ]);
@@ -285,6 +349,19 @@ class PercakapanController extends Controller
                             'new_status' => 'lead'
                         ]);
                     }
+                }
+            }
+
+            // Skor intent (hot/warm/cold/low_quality) untuk Analisa Leads -
+            // cuma perlu dihitung ulang kalau yang baru masuk pesan customer.
+            if ($request->sender_type === 'customer') {
+                try {
+                    app(\App\Services\LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+                } catch (\Throwable $e) {
+                    Log::warning('Percakapan: gagal rescore intent', [
+                        'percakapan_id' => $id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
