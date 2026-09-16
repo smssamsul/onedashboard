@@ -21,7 +21,7 @@ function useDebouncedValue(value, delay = 250) {
 }
 
 export default function AdminProductsPage() {
-  const { products, loading, error, handleDelete, handleDuplicate, handleToggleStatus, setProducts } = useProducts();
+  const { products, loading, error, handleDelete, handleDuplicate, handleToggleStatus, setProducts } = useProducts(true);
   const [togglingId, setTogglingId] = useState(null);
 
   const onToggleStatus = async (product) => {
