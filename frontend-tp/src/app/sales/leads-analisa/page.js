@@ -7,23 +7,28 @@ import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
 import styles from "./leadsAnalisa.module.css";
 
-const TAB_ORDER = ["hot", "warm", "cold", "low_quality"];
+const TAB_ORDER = ["closing", "hot", "warm", "cold", "low_quality"];
 
 const LABELS = {
+  closing: {
+    title: "Closing",
+    color: "#16a34a",
+    explain: "Sudah punya order dengan status Waiting Approval atau Paid - tinggal ditutup.",
+  },
   hot: {
     title: "Hot",
     color: "#ef4444",
-    explain: "Sudah menanyakan nomor rekening atau biaya - siap didorong closing.",
+    explain: "Skor tinggi (≥ 50) - sinyal kuat siap beli/daftar, belum ada order.",
   },
   warm: {
     title: "Warm",
     color: "#f59e0b",
-    explain: "Sudah menanyakan jadwal, materi, atau benefit - tertarik tapi belum siap bayar.",
+    explain: "Skor menengah (20-49) - tertarik, sudah nanya-nanya, belum sekuat Hot.",
   },
   cold: {
     title: "Cold",
     color: "#38bdf8",
-    explain: "Sudah membalas, tapi belum menanyakan jadwal maupun benefit.",
+    explain: "Skor rendah (< 20) - sudah membalas, tapi sinyal minatnya masih tipis.",
   },
   low_quality: {
     title: "Low Quality",
@@ -221,10 +226,11 @@ export default function LeadsAnalisaPage() {
         </div>
 
         <div className={styles.banner}>
-          <h2 className={styles.bannerTitle}>🎯 Analisa Leads — Skoring Intent</h2>
+          <h2 className={styles.bannerTitle}>🎯 Analisa Leads — Skoring Poin</h2>
           <p className={styles.bannerText}>
-            Tiap percakapan customer diberi skor otomatis (Hot/Warm/Cold/Low Quality) berdasarkan intent pesan yang
-            sudah terdeteksi AI — tanpa perlu dicek satu-satu secara manual.
+            Tiap aktivitas customer (nanya jadwal, harga, kirim rekening, dll) dikonversi jadi poin oleh AI, dikurangi
+            penalti kalau tidak aktif — totalnya menentukan Closing/Hot/Warm/Cold/Low Quality, tanpa perlu dicek
+            satu-satu secara manual.
           </p>
         </div>
 
@@ -279,6 +285,7 @@ export default function LeadsAnalisaPage() {
                       >
                         {LABELS[lead.status]?.title || lead.status || "-"}
                       </span>
+                      <span className={styles.leadItemScore}>{lead.lead_score ?? 0}</span>
                     </div>
                     <div className={styles.leadName}>{lead.name || "Tanpa nama"}</div>
                     <div className={styles.leadMeta}>{lead.phone_number}</div>
@@ -309,7 +316,21 @@ export default function LeadsAnalisaPage() {
                   <div className={styles.chatHeaderInfo}>
                     <div>
                       <div className={styles.chatHeaderName}>{selectedConversation.name || "Tanpa nama"}</div>
-                      <div className={styles.chatHeaderMeta}>{selectedConversation.phone_number}</div>
+                      <div className={styles.chatHeaderMeta}>
+                        {selectedConversation.phone_number}
+                        {selectedConversation.lead_lokasi ? ` · ${selectedConversation.lead_lokasi}` : ""}
+                      </div>
+                      <div className={styles.leadDataRow}>
+                        <span>
+                          <strong>Sumber:</strong> {selectedConversation.lead_sumber || "-"}
+                        </span>
+                        <span>
+                          <strong>Minat:</strong> {selectedConversation.lead_produk_text || "-"}
+                        </span>
+                        <span>
+                          <strong>Sales:</strong> {selectedConversation.sales?.nama || "Belum ditugaskan"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className={styles.chatHeaderActions}>
@@ -370,6 +391,7 @@ export default function LeadsAnalisaPage() {
                         {selectedLabel.title}
                       </span>
                     )}
+                    <span className={styles.scoreValue}>Skor: {selectedConversation.lead_score ?? 0}</span>
                   </div>
                   <p className={styles.analisaExplain}>
                     {selectedLabel?.explain || "Status belum dianalisa - klik \"Analisa Ulang\"."}

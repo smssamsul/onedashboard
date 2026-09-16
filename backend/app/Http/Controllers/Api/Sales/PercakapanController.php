@@ -61,9 +61,9 @@ class PercakapanController extends Controller
     }
 
     /**
-     * Hitung ulang skor intent (hot/warm/cold/low_quality) satu percakapan
-     * on-demand - tombol "Analisa Ulang" di menu Analisa Leads. Dilewati
-     * (tidak berubah) kalau status-nya sudah ditandai manual "trash".
+     * Hitung ulang skor poin (hot/warm/cold/closing/low_quality) satu
+     * percakapan on-demand - tombol "Analisa Ulang" di menu Analisa Leads.
+     * Dilewati (tidak berubah) kalau status-nya sudah ditandai manual "trash".
      */
     public function rescore($id)
     {
@@ -75,11 +75,11 @@ class PercakapanController extends Controller
             ], 404);
         }
 
-        $label = app(\App\Services\LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+        $hasil = app(\App\Services\LeadPointScoringService::class)->rescoreAndSave($percakapan);
 
         return response()->json([
             'success' => true,
-            'message' => $label ? "Berhasil dianalisa ulang: {$label}" : 'Dilewati (status ditandai manual sebagai trash)',
+            'message' => $hasil ? "Berhasil dianalisa ulang: {$hasil['label']} (skor {$hasil['score']})" : 'Dilewati (status ditandai manual sebagai trash)',
             'data' => $percakapan->fresh(),
         ]);
     }
@@ -105,7 +105,7 @@ class PercakapanController extends Controller
             ->groupBy('status')
             ->pluck('jumlah', 'status');
 
-        $labels = ['low_quality', 'cold', 'warm', 'hot'];
+        $labels = ['low_quality', 'cold', 'warm', 'hot', 'closing'];
         $perLabel = [];
         foreach ($labels as $label) {
             $perLabel[$label] = (int) ($counts[$label] ?? 0);
@@ -125,9 +125,12 @@ class PercakapanController extends Controller
      */
     public function show($id)
     {
-        $percakapan = Percakapan::with(['detailPercakapan' => function($q) {
-            $q->orderBy('created_at', 'asc');
-        }])
+        $percakapan = Percakapan::with([
+            'detailPercakapan' => function($q) {
+                $q->orderBy('created_at', 'asc');
+            },
+            'sales:id,nama',
+        ])
         ->find($id);
 
         if (!$percakapan) {
@@ -136,6 +139,13 @@ class PercakapanController extends Controller
                 'message' => 'Percakapan tidak ditemukan'
             ], 404);
         }
+
+        // Lengkapi data lead (lokasi, sumber, produk diminati) dari LeadLpwa -
+        // dicocokkan by no WA, sama seperti "Sumber Lead" di halaman Orders.
+        $lead = \App\Models\LeadLpwa::where('no_wa', $percakapan->phone_number)->first(['lokasi', 'sumber', 'produk_text']);
+        $percakapan->lead_lokasi = $lead->lokasi ?? null;
+        $percakapan->lead_sumber = $lead->sumber ?? null;
+        $percakapan->lead_produk_text = $lead->produk_text ?? null;
 
         return response()->json([
             'success' => true,
@@ -152,7 +162,7 @@ class PercakapanController extends Controller
             'phone_number' => 'required|string|max:20',
             'ai_leads_id' => 'nullable|integer|exists:ai_leads,id',
             'assigned_sales_id' => 'nullable|integer|exists:user,id',
-            'status' => 'required|string|in:new,lead,hot,warm,cold,low_quality,trash',
+            'status' => 'required|string|in:new,lead,hot,warm,cold,closing,low_quality,trash',
             'source' => 'nullable|string|max:50',
         ]);
 
@@ -195,7 +205,7 @@ class PercakapanController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'sometimes|string|in:new,lead,hot,warm,cold,low_quality,trash',
+            'status' => 'sometimes|string|in:new,lead,hot,warm,cold,closing,low_quality,trash',
             'assigned_sales_id' => 'nullable|integer|exists:user,id',
             'lead_score' => 'nullable|integer',
         ]);
@@ -309,8 +319,8 @@ class PercakapanController extends Controller
 
             $intent = null;
             if ($request->sender_type === 'customer') {
-                $sentimentClassifier = app(\App\Services\ClaudeChatSentimentService::class);
-                $intent = $sentimentClassifier->classify($request->message_text);
+                $activityClassifier = app(\App\Services\LeadActivityClassifierService::class);
+                $intent = $activityClassifier->classify($request->message_text);
             }
 
             $detail = DetailPercakapan::create([
@@ -352,13 +362,13 @@ class PercakapanController extends Controller
                 }
             }
 
-            // Skor intent (hot/warm/cold/low_quality) untuk Analisa Leads -
-            // cuma perlu dihitung ulang kalau yang baru masuk pesan customer.
+            // Skor poin (hot/warm/cold/closing/low_quality) untuk Analisa
+            // Leads - cuma perlu dihitung ulang kalau yang baru masuk pesan customer.
             if ($request->sender_type === 'customer') {
                 try {
-                    app(\App\Services\LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+                    app(\App\Services\LeadPointScoringService::class)->rescoreAndSave($percakapan);
                 } catch (\Throwable $e) {
-                    Log::warning('Percakapan: gagal rescore intent', [
+                    Log::warning('Percakapan: gagal rescore skor lead', [
                         'percakapan_id' => $id,
                         'error' => $e->getMessage(),
                     ]);
