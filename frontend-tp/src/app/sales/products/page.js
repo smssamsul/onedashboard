@@ -37,6 +37,7 @@ export default function AdminProductsPage() {
   };
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput);
+  const [statusTab, setStatusTab] = useState("active"); // "active" | "archived"
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const router = useRouter();
@@ -59,9 +60,13 @@ export default function AdminProductsPage() {
     setProducts((prev) => prev.filter((p) => p.id !== deletedId));
   };
 
+  const activeProducts = useMemo(() => products.filter((p) => p.status !== "N"), [products]);
+  const archivedProducts = useMemo(() => products.filter((p) => p.status === "N"), [products]);
+
   const filtered = useMemo(() => {
     const term = debouncedSearch.trim().toLowerCase();
-    return products.filter((p) => {
+    const scoped = statusTab === "archived" ? archivedProducts : activeProducts;
+    return scoped.filter((p) => {
       if (!term) return true;
       return (
         p.nama?.toLowerCase().includes(term) ||
@@ -69,7 +74,13 @@ export default function AdminProductsPage() {
         p.user_rel?.nama?.toLowerCase().includes(term)
       );
     });
-  }, [products, debouncedSearch]);
+  }, [activeProducts, archivedProducts, statusTab, debouncedSearch]);
+
+  // Reset ke halaman 1 tiap ganti tab/pencarian - biar tidak nyangkut di
+  // halaman kosong kalau daftar hasil jadi lebih pendek dari sebelumnya.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusTab, debouncedSearch]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -225,7 +236,41 @@ export default function AdminProductsPage() {
         </section>
 
         <section className="dashboard-hero customers-hero">
-          <div className="customers-toolbar">
+          <div className="customers-toolbar" style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "stretch" }}>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={() => setStatusTab("active")}
+                style={{
+                  padding: "0.5rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: statusTab === "active" ? "1.5px solid var(--color-primary-main)" : "1px solid var(--color-divider)",
+                  background: statusTab === "active" ? "var(--color-primary-lighter)" : "transparent",
+                  color: statusTab === "active" ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                }}
+              >
+                Aktif ({activeProducts.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusTab("archived")}
+                style={{
+                  padding: "0.5rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: statusTab === "archived" ? "1.5px solid var(--color-primary-main)" : "1px solid var(--color-divider)",
+                  background: statusTab === "archived" ? "var(--color-primary-lighter)" : "transparent",
+                  color: statusTab === "archived" ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                }}
+              >
+                Diarsipkan ({archivedProducts.length})
+              </button>
+            </div>
             <div className="customers-search">
               <input
                 type="search"
