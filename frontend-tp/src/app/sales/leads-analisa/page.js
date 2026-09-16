@@ -18,17 +18,17 @@ const LABELS = {
   hot: {
     title: "Hot",
     color: "#ef4444",
-    explain: "Skor tinggi (≥ 50) - sinyal kuat siap beli/daftar, belum ada order.",
+    explain: "Sudah mengarah ke pendaftaran - nanya harga, cara bayar, rekening, minta daftar, atau sudah menentukan jadwal.",
   },
   warm: {
     title: "Warm",
     color: "#f59e0b",
-    explain: "Skor menengah (20-49) - tertarik, sudah nanya-nanya, belum sekuat Hot.",
+    explain: "Sudah mulai tertarik - nanya jadwal, materi, atau benefit/fasilitas, sedang evaluasi kecocokan.",
   },
   cold: {
     title: "Cold",
     color: "#38bdf8",
-    explain: "Skor rendah (< 20) - sudah membalas, tapi sinyal minatnya masih tipis.",
+    explain: "Masih sekadar cari informasi umum - belum nanya jadwal, materi, benefit, harga, atau pembayaran.",
   },
   low_quality: {
     title: "Low Quality",
