@@ -17,8 +17,12 @@ use Illuminate\Http\Request;
  *
  * Tier ditentukan dari nama bundling order (platinum/gold/silver) untuk data
  * live, atau dari produk id=16 (TP - Reseat Workshop Ternak Properti) untuk
- * Reseat. Data arsip tidak punya kolom bundling - tier cuma bisa ditebak dari
- * kata "reseat" di nama produk arsipnya, sisanya masuk "lainnya".
+ * Reseat. Data arsip tidak punya kolom bundling, jadi tier-nya diambil dari
+ * keanggotaan customer saat ini (platinum/gold/silver di-update tiap kali
+ * customer beli Workshop tier tsb - lihat ImportWorkshopExcel &
+ * OrderValidationController::approve()); Reseat tetap ditebak dari kata
+ * "reseat" di nama produk arsipnya karena keanggotaan tidak berubah utk
+ * order Reseat.
  */
 class WorkshopReportController extends Controller
 {
@@ -75,14 +79,14 @@ class WorkshopReportController extends Controller
             ->where('status_pembayaran', '2')
             ->whereYear('tanggal', $tahun)
             ->whereMonth('tanggal', $bulan)
-            ->with('customer:id,nama,wa');
+            ->with('customer:id,nama,wa,keanggotaan');
         foreach ($arsipQuery->get() as $o) {
             $peserta->push([
                 'order_id' => 'arsip-' . $o->id,
                 'customer_id' => $o->customer_id,
                 'nama' => $o->customer->nama ?? '(customer tidak ditemukan)',
                 'wa' => $o->customer->wa ?? null,
-                'tier' => stripos((string) $o->produk_nama_manual, 'reseat') !== false ? 'reseat' : null,
+                'tier' => $this->resolveTierArsip($o),
                 'produk_nama' => $o->produk_nama_manual,
                 'harga' => (float) preg_replace('/[^\d.]/', '', (string) $o->harga),
                 'tanggal' => optional($o->tanggal ? Carbon::parse($o->tanggal) : null)->toDateString(),
@@ -153,5 +157,15 @@ class WorkshopReportController extends Controller
 
         $namaBundling = strtolower(trim($order->bundling_rel->nama ?? ''));
         return in_array($namaBundling, ['platinum', 'gold', 'silver'], true) ? $namaBundling : null;
+    }
+
+    private function resolveTierArsip(OrderCustomerArsip $order): ?string
+    {
+        if (stripos((string) $order->produk_nama_manual, 'reseat') !== false) {
+            return 'reseat';
+        }
+
+        $keanggotaan = strtolower((string) ($order->customer->keanggotaan ?? ''));
+        return in_array($keanggotaan, ['platinum', 'gold', 'silver'], true) ? $keanggotaan : null;
     }
 }
