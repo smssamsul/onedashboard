@@ -50,11 +50,15 @@ class LeadPointScoringService
     public const CLOSING = 'closing';
 
     /**
-     * Ambang batas label dari skor poin. Angka ini keputusan awal - gampang
-     * disesuaikan kalau ternyata terlalu longgar/ketat setelah dipakai.
+     * Label ditentukan dari KATEGORI TERTINGGI yang pernah disentuh - BUKAN
+     * dari skor kumulatif. Satu kali nanya jadwal/materi/benefit = Warm,
+     * satu kali nanya harga/pembayaran/rekening/minta daftar/sudah
+     * menentukan jadwal/siap beli = Hot - tidak perlu akumulasi beberapa
+     * sinyal dulu. Skor poin (computeScore) tetap dihitung terpisah untuk
+     * gauge/perbandingan sesama lead di tier yang sama, bukan penentu tier.
      */
-    private const AMBANG_HOT = 50;
-    private const AMBANG_WARM = 20;
+    private const KATEGORI_HOT = ['tanya_harga', 'tanya_pembayaran', 'kirim_rekening', 'minta_daftar', 'tentukan_jadwal', 'siap_beli'];
+    private const KATEGORI_WARM = ['tanya_materi', 'tanya_jadwal', 'tanya_benefit'];
 
     public function computeScore(int $percakapanId): int
     {
@@ -115,10 +119,16 @@ class LeadPointScoringService
             return self::CLOSING;
         }
 
-        if ($skor >= self::AMBANG_HOT) {
+        $kategoriUnik = DetailPercakapan::where('id_percakapan', $percakapanId)
+            ->where('sender_type', 'customer')
+            ->whereNotNull('intent')
+            ->distinct()
+            ->pluck('intent');
+
+        if ($kategoriUnik->intersect(self::KATEGORI_HOT)->isNotEmpty()) {
             return self::HOT;
         }
-        if ($skor >= self::AMBANG_WARM) {
+        if ($kategoriUnik->intersect(self::KATEGORI_WARM)->isNotEmpty()) {
             return self::WARM;
         }
         return self::COLD;
