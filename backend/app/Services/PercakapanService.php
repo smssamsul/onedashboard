@@ -54,9 +54,9 @@ class PercakapanService
 
             $intent = null;
             try {
-                $intent = app(ClaudeChatSentimentService::class)->classify($messageText);
+                $intent = app(LeadActivityClassifierService::class)->classify($messageText);
             } catch (\Throwable $e) {
-                Log::warning('PercakapanService: gagal klasifikasi sentiment', [
+                Log::warning('PercakapanService: gagal klasifikasi aktivitas lead', [
                     'phone_number' => $phoneNumber,
                     'error' => $e->getMessage(),
                 ]);
@@ -86,13 +86,13 @@ class PercakapanService
                 }
             }
 
-            // Skor intent (hot/warm/cold/low_quality) untuk menu Analisa
-            // Leads - dihitung ulang tiap ada pesan customer baru, murni
-            // dari intent yang barusan diklasifikasi, tidak panggil AI lagi.
+            // Skor poin (hot/warm/cold/closing/low_quality) untuk menu
+            // Analisa Leads - dihitung ulang tiap ada pesan customer baru,
+            // dari kategori-kategori yang sudah diklasifikasi di thread ini.
             try {
-                app(LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+                app(LeadPointScoringService::class)->rescoreAndSave($percakapan);
             } catch (\Throwable $e) {
-                Log::warning('PercakapanService: gagal rescore intent', [
+                Log::warning('PercakapanService: gagal rescore skor lead', [
                     'percakapan_id' => $percakapan->id,
                     'error' => $e->getMessage(),
                 ]);
