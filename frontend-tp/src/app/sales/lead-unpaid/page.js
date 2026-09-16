@@ -10,7 +10,7 @@ import "@/styles/sales/shared-table.css";
 import { toastSuccess, toastError } from "@/lib/toast";
 
 const BASE_URL = "/api";
-const PER_PAGE = 20;
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
 const STATUS_PEMBAYARAN_MAP = {
   0: { label: "Unpaid", className: "bg-gray-100 text-gray-600" },
@@ -75,6 +75,7 @@ export default function LeadUnpaidPage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(PER_PAGE_OPTIONS[1]);
   const [paginationInfo, setPaginationInfo] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, 500);
@@ -101,7 +102,7 @@ export default function LeadUnpaidPage() {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const params = new URLSearchParams({ tahun: String(tahunIni), page: String(pageNumber), per_page: String(PER_PAGE) });
+        const params = new URLSearchParams({ tahun: String(tahunIni), page: String(pageNumber), per_page: String(perPage) });
         if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
 
         const res = await fetch(`${BASE_URL}/sales/order/unpaid-leads-tahun-ini?${params}`, {
@@ -118,7 +119,7 @@ export default function LeadUnpaidPage() {
         setLoading(false);
       }
     },
-    [debouncedSearch, tahunIni]
+    [debouncedSearch, tahunIni, perPage]
   );
 
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function LeadUnpaidPage() {
   useEffect(() => {
     setPage(1);
     fetchCustomers(1);
-  }, [debouncedSearch, fetchCustomers]);
+  }, [debouncedSearch, perPage, fetchCustomers]);
 
   useEffect(() => {
     if (page > 1) fetchCustomers(page);
@@ -196,8 +197,8 @@ export default function LeadUnpaidPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 mb-4 p-3">
-          <div className="relative max-w-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 mb-4 p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -207,6 +208,21 @@ export default function LeadUnpaidPage() {
               className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-sm"
             />
           </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Tampilkan</span>
+            <select
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              className="px-2.5 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            >
+              {PER_PAGE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <span>data</span>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -215,57 +231,48 @@ export default function LeadUnpaidPage() {
           ) : customers.length === 0 ? (
             <div className="p-8 text-center text-gray-500 text-sm">Tidak ada lead unpaid untuk tahun {tahunIni}.</div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {customers.map((customer) => (
-                <div key={customer.id} className="p-4">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div>
-                      <div className="font-semibold text-gray-900">{customer.nama || "Tanpa nama"}</div>
-                      <div className="text-sm text-gray-500">
-                        {customer.wa || "-"}
-                        {customer.sales_nama ? ` · Sales: ${customer.sales_nama}` : ""}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => openOrderConfirm(customer)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors"
-                    >
-                      <Plus size={14} /> Order
-                    </button>
-                  </div>
-
-                  {/* Histori pembelian - tampil di depan, tidak perlu diklik */}
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-gray-400 text-xs uppercase tracking-wide">
-                          <th className="py-1.5 pr-3 font-medium">Kode</th>
-                          <th className="py-1.5 pr-3 font-medium">Produk</th>
-                          <th className="py-1.5 pr-3 font-medium">Tanggal</th>
-                          <th className="py-1.5 pr-3 font-medium">Total</th>
-                          <th className="py-1.5 pr-3 font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(customer.orders_history || []).map((o) => {
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-400 text-xs uppercase tracking-wide border-b border-gray-100">
+                    <th className="py-2.5 px-4 font-medium">Customer</th>
+                    <th className="py-2.5 px-4 font-medium">Sales</th>
+                    <th className="py-2.5 px-4 font-medium">Histori Pembelian</th>
+                    <th className="py-2.5 px-4 font-medium text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customers.map((customer) => (
+                    <tr key={customer.id} className="border-b border-gray-50 align-top">
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-gray-900">{customer.nama || "Tanpa nama"}</div>
+                        <div className="text-xs text-gray-500">{customer.wa || "-"}</div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 whitespace-nowrap">{customer.sales_nama || "-"}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {(customer.orders_history || []).map((o, idx) => {
                           const badge = paymentBadge(o.status_pembayaran);
                           return (
-                            <tr key={o.id} className="border-t border-gray-50">
-                              <td className="py-1.5 pr-3 text-gray-700">{o.kode_order || o.id}</td>
-                              <td className="py-1.5 pr-3 text-gray-700">{o.produk_nama}</td>
-                              <td className="py-1.5 pr-3 text-gray-500">{formatDate(o.tanggal)}</td>
-                              <td className="py-1.5 pr-3 text-gray-700">{formatRp(o.total_harga)}</td>
-                              <td className="py-1.5 pr-3">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>{badge.label}</span>
-                              </td>
-                            </tr>
+                            <span key={o.id} className="inline-block whitespace-nowrap mr-2">
+                              {idx > 0 && <span className="text-gray-300 mr-2">|</span>}
+                              {o.produk_nama} · {formatRp(o.total_harga)} · {formatDate(o.tanggal)}{" "}
+                              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>{badge.label}</span>
+                            </span>
                           );
                         })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => openOrderConfirm(customer)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors"
+                        >
+                          <Plus size={14} /> Order
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
