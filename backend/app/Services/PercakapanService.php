@@ -86,6 +86,18 @@ class PercakapanService
                 }
             }
 
+            // Skor intent (hot/warm/cold/low_quality) untuk menu Analisa
+            // Leads - dihitung ulang tiap ada pesan customer baru, murni
+            // dari intent yang barusan diklasifikasi, tidak panggil AI lagi.
+            try {
+                app(LeadIntentScoringService::class)->rescoreAndSave($percakapan);
+            } catch (\Throwable $e) {
+                Log::warning('PercakapanService: gagal rescore intent', [
+                    'percakapan_id' => $percakapan->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return $detail;
         });
     }
