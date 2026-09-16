@@ -301,12 +301,12 @@ class CustomerController extends Controller
             ->unique()
             ->count();
 
-        // 3. Membership Breakdowns (from keanggotaan)
-        $membershipQuery = Customer::where('status', '!=', 'N');
-        if ($tahun !== 'all') {
-            $membershipQuery->where('create_at', 'LIKE', $tahun . '%');
-        }
-        $rawMembership = $membershipQuery
+        // 3. Membership Breakdowns (from keanggotaan) - selalu total keanggotaan
+        // saat ini, TIDAK difilter tahun akun dibuat. Customer lama yang baru
+        // upgrade tier tahun ini (misal ikut Workshop) tetap harus kehitung -
+        // kalau difilter per tahun create_at, mereka hilang dari breakdown
+        // meski keanggotaan-nya sudah benar.
+        $rawMembership = Customer::where('status', '!=', 'N')
             ->select('keanggotaan', \DB::raw('count(*) as total'))
             ->groupBy('keanggotaan')
             ->pluck('total', 'keanggotaan')

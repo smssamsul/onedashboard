@@ -121,8 +121,9 @@ export default function SalesCustomerStatistikPage() {
     setPremiumLoading(true);
     setModalSearch("");
     try {
-      const yearParam = selectedYear !== "all" ? `&tahun=${selectedYear}` : "";
-      const res = await fetch(`/api/sales/customer?all=true&keanggotaan=platinum,gold,silver${yearParam}`, {
+      // Tidak difilter tahun - kartu Membership sekarang selalu total
+      // keanggotaan saat ini, jadi daftar detail-nya harus konsisten.
+      const res = await fetch(`/api/sales/customer?all=true&keanggotaan=platinum,gold,silver`, {
         headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
       });
       const json = await res.json();
