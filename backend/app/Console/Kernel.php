@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('orders:cancel-unpaid')->daily()->withoutOverlapping();
         $schedule->command('broadcast:send-scheduled')->everyMinute()->withoutOverlapping();
         $schedule->command('meta-ads:sync-insights')->hourly()->withoutOverlapping();
+        $schedule->command('leads:daily-ai-analysis')->dailyAt('02:00')->withoutOverlapping();
         // $schedule->command('inspire')->hourly();
     }
 

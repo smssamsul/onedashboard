@@ -18,6 +18,8 @@ class Percakapan extends Model
         'tags',
         'source',
         'last_message_at',
+        'ai_analysis',
+        'ai_analysis_at',
     ];
 
     protected $casts = [
@@ -25,6 +27,7 @@ class Percakapan extends Model
         'last_message_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'ai_analysis_at' => 'datetime',
     ];
 
     public function detailPercakapan()

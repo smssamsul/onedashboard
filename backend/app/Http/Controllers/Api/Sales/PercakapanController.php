@@ -61,9 +61,10 @@ class PercakapanController extends Controller
     }
 
     /**
-     * Hitung ulang skor poin (hot/warm/cold/closing/low_quality) satu
-     * percakapan on-demand - tombol "Analisa Ulang" di menu Analisa Leads.
-     * Dilewati (tidak berubah) kalau status-nya sudah ditandai manual "trash".
+     * Hitung ulang skor poin + analisa naratif AI (ringkasan/potensi/
+     * keberatan/rekomendasi) satu percakapan on-demand - tombol "Analisa
+     * Ulang" di menu Analisa Leads. Skor dilewati kalau status manual
+     * "trash"; analisa naratif tetap jalan selama ada pesan.
      */
     public function rescore($id)
     {
@@ -76,10 +77,11 @@ class PercakapanController extends Controller
         }
 
         $hasil = app(\App\Services\LeadPointScoringService::class)->rescoreAndSave($percakapan);
+        app(\App\Services\LeadConversationAnalysisService::class)->analyzeAndSave($percakapan);
 
         return response()->json([
             'success' => true,
-            'message' => $hasil ? "Berhasil dianalisa ulang: {$hasil['label']} (skor {$hasil['score']})" : 'Dilewati (status ditandai manual sebagai trash)',
+            'message' => $hasil ? "Berhasil dianalisa ulang: {$hasil['label']} (skor {$hasil['score']})" : 'Skor dilewati (status ditandai manual sebagai trash), analisa naratif tetap diperbarui',
             'data' => $percakapan->fresh(),
         ]);
     }
