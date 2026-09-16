@@ -283,7 +283,78 @@ class OrderCustomerController extends Controller
                 'per_page' => $orders->perPage(),
                 'total' => $orders->total(),
             ],
-            
+
+        ]);
+    }
+
+    /**
+     * "Lead Unpaid Tahun Ini" - customer yang punya order tahun ini tapi
+     * status pembayarannya BUKAN Waiting Approval (1) atau Paid (2), jadi
+     * masih perlu di-follow-up untuk bayar. Satu baris per customer,
+     * lengkap dengan SELURUH histori order-nya (bukan cuma yang unpaid) -
+     * biar sales lihat konteks pembelian sebelumnya sebelum follow-up.
+     */
+    public function unpaidLeadsTahunIni(Request $request)
+    {
+        $tahun = (string) $request->get('tahun', now()->year);
+        $perPage = (int) $request->get('per_page', 20);
+        $search = $request->get('search');
+
+        $customerIdsQuery = OrderCustomer::where('status', '!=', 'N')
+            ->whereNotIn('status_pembayaran', ['1', '2'])
+            ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun]);
+
+        if ($search) {
+            $customerIdsQuery->whereHas('customer_rel', function ($q) use ($search) {
+                $q->where('nama', 'ilike', "%{$search}%")->orWhere('wa', 'ilike', "%{$search}%");
+            });
+        }
+
+        $customerIds = $customerIdsQuery->distinct()->pluck('customer')->filter()->values();
+
+        $customers = Customer::whereIn('id', $customerIds)
+            ->where('status', '!=', 'N')
+            ->with('sales_rel:id,nama')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $customerList = $customers->items();
+        $idsDiHalamanIni = collect($customerList)->pluck('id');
+
+        // Histori SEMUA order tiap customer di halaman ini - satu query, dikelompokkan per customer.
+        $semuaOrder = OrderCustomer::whereIn('customer', $idsDiHalamanIni)
+            ->where('status', '!=', 'N')
+            ->with('produk_rel:id,nama')
+            ->orderByDesc('create_at')
+            ->get(['id', 'customer', 'kode_order', 'produk', 'status_pembayaran', 'status_order', 'total_harga', 'tanggal', 'create_at']);
+
+        $orderPerCustomer = $semuaOrder->groupBy('customer');
+
+        foreach ($customerList as $customer) {
+            $orders = $orderPerCustomer->get($customer->id, collect());
+            $customer->orders_history = $orders->map(function ($o) {
+                return [
+                    'id' => $o->id,
+                    'kode_order' => $o->kode_order,
+                    'produk_nama' => $o->produk_rel->nama ?? '-',
+                    'status_pembayaran' => $o->status_pembayaran,
+                    'status_order' => $o->status_order,
+                    'total_harga' => $o->total_harga,
+                    'tanggal' => $o->tanggal,
+                ];
+            })->values();
+            $customer->sales_nama = $customer->sales_rel->nama ?? null;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $customerList,
+            'pagination' => [
+                'current_page' => $customers->currentPage(),
+                'last_page' => $customers->lastPage(),
+                'per_page' => $customers->perPage(),
+                'total' => $customers->total(),
+            ],
         ]);
     }
 
