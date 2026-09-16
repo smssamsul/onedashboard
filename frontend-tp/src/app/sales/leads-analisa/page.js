@@ -61,6 +61,56 @@ function formatRelative(dateString) {
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
+// ai_analysis tersimpan sebagai teks "Ringkasan: ...\nPotensi: ...\n..." -
+// parse balik jadi bagian-bagian supaya bisa ditampilkan terpisah.
+function parseAiAnalysis(text) {
+  if (!text) return null;
+  const cari = (label) => {
+    const re = new RegExp(`${label}:\\s*(.+?)(?=\\n(?:Ringkasan|Potensi|Keberatan|Rekomendasi):|$)`, "s");
+    const m = text.match(re);
+    return m ? m[1].trim() : "";
+  };
+  return {
+    ringkasan: cari("Ringkasan"),
+    potensi: cari("Potensi"),
+    keberatan: cari("Keberatan"),
+    rekomendasi: cari("Rekomendasi"),
+  };
+}
+
+function ScoreGauge({ score, color, closing }) {
+  const persen = closing ? 100 : Math.max(0, Math.min(100, score));
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - persen / 100);
+
+  return (
+    <div className={styles.gaugeWrap}>
+      <svg width="112" height="112" viewBox="0 0 112 112">
+        <circle cx="56" cy="56" r={radius} fill="none" stroke="var(--color-divider, #e5e7eb)" strokeWidth="10" />
+        <circle
+          cx="56"
+          cy="56"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 56 56)"
+        />
+      </svg>
+      <div className={styles.gaugeCenter}>
+        <span className={styles.gaugeScore} style={{ color }}>
+          {score}
+        </span>
+        <span className={styles.gaugePercent}>{persen}%</span>
+      </div>
+    </div>
+  );
+}
+
 export default function LeadsAnalisaPage() {
   const router = useRouter();
 
@@ -216,6 +266,7 @@ export default function LeadsAnalisaPage() {
   const label = LABELS[activeTab];
   const selectedLabel = selectedConversation ? LABELS[selectedConversation.status] : null;
   const messages = selectedConversation?.detail_percakapan || selectedConversation?.detailPercakapan || [];
+  const aiAnalysis = selectedConversation ? parseAiAnalysis(selectedConversation.ai_analysis) : null;
 
   return (
     <Layout title="Analisa Leads">
@@ -391,11 +442,50 @@ export default function LeadsAnalisaPage() {
                         {selectedLabel.title}
                       </span>
                     )}
-                    <span className={styles.scoreValue}>Skor: {selectedConversation.lead_score ?? 0}</span>
+                    {selectedConversation.ai_analysis_at && (
+                      <span className={styles.analysisTimestamp}>
+                        Dianalisa AI {formatRelative(selectedConversation.ai_analysis_at)}
+                      </span>
+                    )}
                   </div>
-                  <p className={styles.analisaExplain}>
-                    {selectedLabel?.explain || "Status belum dianalisa - klik \"Analisa Ulang\"."}
-                  </p>
+
+                  <div className={styles.analisaBody}>
+                    <div className={styles.analisaTextCol}>
+                      <p className={styles.analisaExplain}>
+                        {selectedLabel?.explain || "Status belum dianalisa - klik \"Analisa Ulang\"."}
+                      </p>
+                      {aiAnalysis ? (
+                        <div className={styles.aiSections}>
+                          <div className={styles.aiSection}>
+                            <span className={styles.aiSectionLabel}>Ringkasan</span>
+                            <p>{aiAnalysis.ringkasan || "-"}</p>
+                          </div>
+                          <div className={styles.aiSection}>
+                            <span className={styles.aiSectionLabel}>Potensi</span>
+                            <p>{aiAnalysis.potensi || "-"}</p>
+                          </div>
+                          <div className={styles.aiSection}>
+                            <span className={styles.aiSectionLabel}>Keberatan</span>
+                            <p>{aiAnalysis.keberatan || "-"}</p>
+                          </div>
+                          <div className={styles.aiSection}>
+                            <span className={styles.aiSectionLabel}>Rekomendasi</span>
+                            <p>{aiAnalysis.rekomendasi || "-"}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className={styles.analisaExplain}>
+                          Belum ada analisa AI rinci untuk lead ini - klik &quot;Analisa Ulang&quot;.
+                        </p>
+                      )}
+                    </div>
+
+                    <ScoreGauge
+                      score={selectedConversation.lead_score ?? 0}
+                      color={selectedLabel?.color || "#94a3b8"}
+                      closing={selectedConversation.status === "closing"}
+                    />
+                  </div>
                 </div>
               </>
             )}

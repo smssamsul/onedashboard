@@ -58,6 +58,11 @@
   .layout {
     grid-template-columns: 1fr;
   }
+
+  .analisaBody {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .panel {
@@ -364,6 +369,9 @@
   border-top: 1px solid var(--color-border);
   padding: 0.875rem 1rem 1rem;
   background: var(--color-bg-paper, #fff);
+  max-height: 46%;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .analisaTitleRow {
@@ -393,19 +401,81 @@
   font-weight: 700;
 }
 
-.scoreValue {
+.analysisTimestamp {
   margin-left: auto;
-  font-size: 0.8125rem;
-  font-weight: 800;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
 }
 
 .analisaExplain {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
   line-height: 1.5;
-  margin: 0;
+  margin: 0 0 0.625rem;
+}
+
+/* ── Body: teks di kiri, gauge besar di kanan ── */
+.analisaBody {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.analisaTextCol {
+  flex: 1;
+  min-width: 0;
+}
+
+.aiSections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.aiSection p {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+.aiSectionLabel {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ── Gauge lingkaran skor ── */
+.gaugeWrap {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+}
+
+.gaugeCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gaugeScore {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gaugePercent {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin-top: 0.15rem;
 }
 
 @keyframes spin {
