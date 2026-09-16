@@ -309,7 +309,8 @@ Route::middleware('auth:api')->group(function () {
 
         // Rekap Follow-Up (respons tim terhadap percakapan WA)
         Route::get('/followup-recap', [\App\Http\Controllers\Api\Sales\FollowUpRecapController::class, 'summary']);
-        Route::get('/workshop-report', [\App\Http\Controllers\Api\Sales\WorkshopReportController::class, 'summary']);
+        Route::get('/workshop-report/tahun-tersedia', [\App\Http\Controllers\Api\Sales\WorkshopReportController::class, 'tahunTersedia']);
+        Route::get('/workshop-report/peserta', [\App\Http\Controllers\Api\Sales\WorkshopReportController::class, 'peserta']);
 
         // Baileys WA Session Management
         Route::prefix('baileys')->group(function () {

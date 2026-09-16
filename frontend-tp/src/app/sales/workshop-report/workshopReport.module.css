@@ -139,10 +139,36 @@
   color: var(--color-text-primary);
 }
 
+.leftCell {
+  text-align: left;
+}
+
 .emptyRow td {
   color: var(--color-text-secondary);
   opacity: 0.5;
 }
+
+.emptyState {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-secondary);
+  white-space: normal;
+}
+
+.tierBadge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-grey-100, #f1f5f9);
+  color: var(--color-text-secondary);
+}
+
+.tierBadge[data-tier="platinum"] { background: #ede9fe; color: #7c3aed; }
+.tierBadge[data-tier="gold"] { background: #fef3c7; color: #b45309; }
+.tierBadge[data-tier="silver"] { background: #e2e8f0; color: #475569; }
+.tierBadge[data-tier="reseat"] { background: #ccfbf1; color: #0d9488; }
 
 .totalRow td {
   font-weight: 800;
