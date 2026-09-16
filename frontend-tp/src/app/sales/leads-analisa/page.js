@@ -51,6 +51,13 @@ function formatTime(dateString) {
   return new Date(dateString).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
+const ANALISA_TTL_MS = 24 * 60 * 60 * 1000; // 1 hari - biar tidak boncos biaya AI
+
+function isAnalysisStale(aiAnalysisAt) {
+  if (!aiAnalysisAt) return true;
+  return Date.now() - new Date(aiAnalysisAt).getTime() > ANALISA_TTL_MS;
+}
+
 function formatRelative(dateString) {
   if (!dateString) return "-";
   const date = new Date(dateString);
@@ -201,25 +208,6 @@ export default function LeadsAnalisaPage() {
     [getHeaders, router]
   );
 
-  const loadDetail = useCallback(
-    async (id) => {
-      setLoadingDetail(true);
-      try {
-        const res = await fetch(getApiUrl(`sales/percakapan/${id}`), { headers: getHeaders() });
-        const json = await res.json();
-        if (json.success) {
-          setSelectedConversation(json.data);
-          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-        }
-      } catch {
-        // diamkan
-      } finally {
-        setLoadingDetail(false);
-      }
-    },
-    [getHeaders]
-  );
-
   const rescoreOne = useCallback(
     async (id) => {
       setRescoring(true);
@@ -241,6 +229,34 @@ export default function LeadsAnalisaPage() {
       }
     },
     [getHeaders, loadStats, loadList, activeTab, debouncedSearch]
+  );
+
+  const loadDetail = useCallback(
+    async (id) => {
+      setLoadingDetail(true);
+      try {
+        const res = await fetch(getApiUrl(`sales/percakapan/${id}`), { headers: getHeaders() });
+        const json = await res.json();
+        if (json.success) {
+          setSelectedConversation(json.data);
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+          // Analisa AI (poin + naratif) otomatis dipicu saat lead dibuka,
+          // TAPI cuma kalau analisa terakhir sudah lebih dari 1 hari (atau
+          // belum pernah) - supaya buka-tutup lead yang sama berkali-kali
+          // sehari tidak berulang kali manggil AI (boncos biaya). Tombol
+          // "Analisa Ulang" tetap selalu memaksa analisa baru kapan saja.
+          if (isAnalysisStale(json.data.ai_analysis_at)) {
+            rescoreOne(id);
+          }
+        }
+      } catch {
+        // diamkan
+      } finally {
+        setLoadingDetail(false);
+      }
+    },
+    [getHeaders, rescoreOne]
   );
 
   // Muat ulang tab + statistik saat tab/pencarian berubah
@@ -475,7 +491,7 @@ export default function LeadsAnalisaPage() {
                         </div>
                       ) : (
                         <p className={styles.analisaExplain}>
-                          Belum ada analisa AI rinci untuk lead ini - klik &quot;Analisa Ulang&quot;.
+                          {rescoring ? "Menganalisa dengan AI..." : "Belum ada analisa AI rinci untuk lead ini - klik \"Analisa Ulang\"."}
                         </p>
                       )}
                     </div>
