@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Sales;
 use App\Http\Controllers\Controller;
 use App\Models\OrderCustomer;
 use App\Models\OrderCustomerArsip;
-use App\Models\Produk;
+use App\Services\WorkshopTierResolver;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -15,34 +15,22 @@ use Illuminate\Http\Request;
  * OrderCustomerArsip (tahun-tahun sebelumnya, sebelum ~April 2026 data cuma
  * ada di arsip - lihat CustomerController::combinedOrdersHistory()).
  *
- * Tier ditentukan dari nama bundling order (platinum/gold/silver) untuk data
- * live, atau dari produk id=16 (TP - Reseat Workshop Ternak Properti) untuk
- * Reseat. Data arsip tidak punya kolom bundling, jadi tier-nya diambil dari
- * keanggotaan customer saat ini (platinum/gold/silver di-update tiap kali
- * customer beli Workshop tier tsb - lihat ImportWorkshopExcel &
- * OrderValidationController::approve()); Reseat tetap ditebak dari kata
- * "reseat" di nama produk arsipnya karena keanggotaan tidak berubah utk
- * order Reseat.
+ * Resolusi tier lihat WorkshopTierResolver (dipakai bareng dgn
+ * CustomerController utk breakdown keanggotaan per tahun).
  */
 class WorkshopReportController extends Controller
 {
-    private const PRODUK_RESEAT_ID = 16;
-    private const TIER_KEYS = ['platinum', 'gold', 'silver', 'reseat'];
+    private WorkshopTierResolver $tierResolver;
 
-    public function __construct()
+    public function __construct(WorkshopTierResolver $tierResolver)
     {
         $this->middleware('auth:api');
-    }
-
-    /** Semua id produk (live + arsip) yang termasuk program Workshop. */
-    private function produkIdsWorkshop()
-    {
-        return Produk::whereRaw('LOWER(nama) LIKE ?', ['%workshop%'])->pluck('id');
+        $this->tierResolver = $tierResolver;
     }
 
     public function tahunTersedia(Request $request)
     {
-        $produkIds = $this->produkIdsWorkshop();
+        $produkIds = $this->tierResolver->produkIds();
 
         $dariArsip = OrderCustomerArsip::whereIn('produk_id', $produkIds)
             ->where('status_pembayaran', '2')
@@ -70,7 +58,7 @@ class WorkshopReportController extends Controller
     {
         $tahun = (string) $request->get('tahun', now()->year);
         $bulan = (int) $request->get('bulan', now()->month);
-        $produkIds = $this->produkIdsWorkshop();
+        $produkIds = $this->tierResolver->produkIds();
 
         $peserta = collect();
 
@@ -86,7 +74,7 @@ class WorkshopReportController extends Controller
                 'customer_id' => $o->customer_id,
                 'nama' => $o->customer->nama ?? '(customer tidak ditemukan)',
                 'wa' => $o->customer->wa ?? null,
-                'tier' => $this->resolveTierArsip($o),
+                'tier' => $this->tierResolver->resolveTierArsip($o),
                 'produk_nama' => $o->produk_nama_manual,
                 'harga' => (float) preg_replace('/[^\d.]/', '', (string) $o->harga),
                 'tanggal' => optional($o->tanggal ? Carbon::parse($o->tanggal) : null)->toDateString(),
@@ -115,7 +103,7 @@ class WorkshopReportController extends Controller
                 'customer_id' => $o->customer,
                 'nama' => $o->customer_rel->nama ?? '(customer tidak ditemukan)',
                 'wa' => $o->customer_rel->wa ?? null,
-                'tier' => $this->resolveTierLive($o),
+                'tier' => $this->tierResolver->resolveTierLive($o),
                 'produk_nama' => $o->produk_rel->nama ?? null,
                 'harga' => (float) preg_replace('/[^\d.]/', '', (string) $o->total_harga),
                 'tanggal' => optional(Carbon::parse($o->tanggal))->toDateString(),
@@ -131,11 +119,11 @@ class WorkshopReportController extends Controller
             'total_omzet' => $peserta->sum('harga'),
             'tier' => [],
         ];
-        foreach (self::TIER_KEYS as $t) {
+        foreach (WorkshopTierResolver::TIER_KEYS as $t) {
             $grup = $peserta->where('tier', $t);
             $ringkasan['tier'][$t] = ['count' => $grup->count(), 'omzet' => $grup->sum('harga')];
         }
-        $lainnya = $peserta->whereNotIn('tier', self::TIER_KEYS);
+        $lainnya = $peserta->whereNotIn('tier', WorkshopTierResolver::TIER_KEYS);
         $ringkasan['tier_lainnya'] = ['count' => $lainnya->count(), 'omzet' => $lainnya->sum('harga')];
 
         return response()->json([
@@ -147,25 +135,5 @@ class WorkshopReportController extends Controller
                 'peserta' => $peserta,
             ],
         ]);
-    }
-
-    private function resolveTierLive(OrderCustomer $order): ?string
-    {
-        if ((int) $order->produk === self::PRODUK_RESEAT_ID) {
-            return 'reseat';
-        }
-
-        $namaBundling = strtolower(trim($order->bundling_rel->nama ?? ''));
-        return in_array($namaBundling, ['platinum', 'gold', 'silver'], true) ? $namaBundling : null;
-    }
-
-    private function resolveTierArsip(OrderCustomerArsip $order): ?string
-    {
-        if (stripos((string) $order->produk_nama_manual, 'reseat') !== false) {
-            return 'reseat';
-        }
-
-        $keanggotaan = strtolower((string) ($order->customer->keanggotaan ?? ''));
-        return in_array($keanggotaan, ['platinum', 'gold', 'silver'], true) ? $keanggotaan : null;
     }
 }
