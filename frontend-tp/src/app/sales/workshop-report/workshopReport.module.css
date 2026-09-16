@@ -1,0 +1,168 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Sales · Rekap Workshop — CSS Module
+   Warna mengikuti tema dashboard saat ini: navy #1e3a5f + teal #14b8a6
+───────────────────────────────────────────────────────────────────────── */
+
+.page {
+  padding: 0 0 4rem;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pageTitle {
+  margin: 0 0 0.2rem;
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pageSubtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.yearSelect {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: var(--color-bg-paper, #fff);
+}
+
+/* ── Kartu ringkasan tahun ── */
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.summaryCard {
+  background: var(--color-bg-paper, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem 1.125rem;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.375rem;
+}
+
+.summaryValue {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryValue[data-tier="platinum"] { color: #7c3aed; }
+.summaryValue[data-tier="gold"] { color: #b45309; }
+.summaryValue[data-tier="silver"] { color: #475569; }
+.summaryValue[data-tier="reseat"] { color: #0d9488; }
+
+.summarySub {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* ── Tabel bulanan ── */
+.tableWrap {
+  background: var(--color-bg-paper, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table th {
+  text-align: right;
+  padding: 0.75rem 0.875rem;
+  background: var(--color-grey-50, #f8fafc);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.table td {
+  padding: 0.6875rem 0.875rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bulanCell {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.emptyRow td {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.totalRow td {
+  font-weight: 800;
+  background: var(--color-grey-50, #f8fafc);
+  border-top: 2px solid var(--color-border);
+  border-bottom: none;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.loadingState,
+.errorBanner {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.errorBanner {
+  color: var(--color-error-dark);
+}
