@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Percakapan;
 use App\Models\DetailPercakapan;
 use App\Models\AiLead;
+use App\Models\Customer;
+use App\Models\LeadLpwa;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +46,8 @@ class PercakapanController extends Controller
                   ->orWhere('name', 'like', '%' . $search . '%');
             });
         }
+
+        $this->scopeHanyaLeadValid($query, $request);
 
         $perPage = $request->get('per_page', 20);
         $conversations = $query->orderBy('last_message_at', 'desc')->orderBy('id', 'desc')->paginate($perPage);
@@ -102,6 +106,8 @@ class PercakapanController extends Controller
             });
         }
 
+        $this->scopeHanyaLeadValid($query, $request);
+
         $counts = (clone $query)
             ->selectRaw('status, COUNT(*) as jumlah')
             ->groupBy('status')
@@ -120,6 +126,27 @@ class PercakapanController extends Controller
                 'total' => (clone $query)->count(),
             ],
         ]);
+    }
+
+    /**
+     * Filter opt-in (?hanya_lead_valid=1) khusus dipakai halaman Analisa
+     * Leads - buang nomor yang tidak punya nama di lead_lpwas (data lead
+     * Meta Ads) ATAU belum pernah punya order sama sekali. Endpoint ini
+     * dipakai bareng oleh beberapa halaman lain (Percakapan, Leads AI,
+     * Rekap Follow-Up) yang tidak boleh kena filter ini, makanya opt-in
+     * lewat parameter, bukan default.
+     */
+    private function scopeHanyaLeadValid($query, Request $request): void
+    {
+        if (!$request->boolean('hanya_lead_valid')) {
+            return;
+        }
+
+        $waLeadLpwa = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '')->pluck('no_wa');
+        $waPunyaOrder = Customer::whereHas('orders')->whereNotNull('wa')->where('wa', '!=', '')->pluck('wa');
+
+        $query->whereIn('phone_number', $waLeadLpwa)
+              ->whereIn('phone_number', $waPunyaOrder);
     }
 
     /**

@@ -155,7 +155,7 @@ export default function LeadsAnalisaPage() {
   const loadStats = useCallback(
     async (search) => {
       try {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams({ hanya_lead_valid: "1" });
         if (search) params.append("search", search);
         const res = await fetch(getApiUrl(`sales/percakapan/stats?${params.toString()}`), {
           headers: getHeaders(),
@@ -184,6 +184,7 @@ export default function LeadsAnalisaPage() {
           status,
           page: String(pageNumber),
           per_page: "20",
+          hanya_lead_valid: "1",
         });
         if (search) params.append("search", search);
         const res = await fetch(getApiUrl(`sales/percakapan?${params.toString()}`), {
