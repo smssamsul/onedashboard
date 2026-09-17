@@ -7,9 +7,14 @@ use App\Models\Percakapan;
 use App\Services\LeadActivityClassifierService;
 use App\Services\LeadPointScoringService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 
 /**
- * Dua tahap:
+ * Tiga tahap:
+ * 0. Refresh percakapan.kategori_lead ('lead'/'bukan_lead' - lihat
+ *    RefreshKategoriLead) supaya tahap 1 bisa skip nomor nyasar (tidak ada
+ *    di lead_lpwas / belum pernah order) - biar biaya AI backfill tidak
+ *    kebuang percuma ke percakapan yang bukan lead beneran.
  * 1. Reklasifikasi pesan customer yang intent-nya masih taksonomi LAMA
  *    (hot/warm/neutral/negatif dari ClaudeChatSentimentService) atau
  *    kosong - dipanggil ulang lewat LeadActivityClassifierService (17
@@ -50,18 +55,27 @@ class RescoreLeadIntent extends Command
         $lewatiReklasifikasi = (bool) $this->option('lewati-reklasifikasi');
         $kategoriLama = $this->kategoriPerluReklasifikasi();
 
+        if ($eksekusi) {
+            $this->info('Refresh kategori_lead (skip nomor nyasar dari reklasifikasi AI)...');
+            Artisan::call('leads:refresh-kategori', ['--eksekusi' => true], $this->getOutput());
+            $this->newLine();
+        }
+
+        $scopeLeadSaja = fn ($q) => $q->whereHas('percakapan', fn ($qp) => $qp->where('kategori_lead', 'lead'));
+
         $pesanPerluReklasifikasiQuery = DetailPercakapan::where('sender_type', 'customer')
             ->where(function ($q) use ($kategoriLama) {
                 $q->whereNull('intent')->orWhereIn('intent', $kategoriLama);
-            });
+            })
+            ->tap($scopeLeadSaja);
         $jumlahPerluReklasifikasi = $lewatiReklasifikasi ? 0 : $pesanPerluReklasifikasiQuery->count();
 
         $percakapanList = Percakapan::whereRaw('LOWER(TRIM(COALESCE(status, \'\'))) != ?', ['trash'])
             ->get(['id', 'phone_number', 'name', 'status', 'lead_score']);
 
         $this->info('=== Reklasifikasi & skor ulang lead ===');
-        $this->line("Pesan customer perlu diklasifikasi ulang (taksonomi baru): {$jumlahPerluReklasifikasi}");
-        $this->line('Percakapan diskor ulang (skip status "trash"): ' . $percakapanList->count());
+        $this->line("Pesan customer perlu diklasifikasi ulang (taksonomi baru, khusus kategori_lead='lead'): {$jumlahPerluReklasifikasi}");
+        $this->line('Percakapan diskor ulang (skip status "trash", semua kategori_lead): ' . $percakapanList->count());
 
         if (!$eksekusi) {
             $this->newLine();
@@ -118,6 +132,7 @@ class RescoreLeadIntent extends Command
                 ->where(function ($q) use ($kategoriLama) {
                     $q->whereNull('intent')->orWhereIn('intent', $kategoriLama);
                 })
+                ->whereHas('percakapan', fn ($qp) => $qp->where('kategori_lead', 'lead'))
                 ->orderBy('id')
                 ->limit(self::UKURAN_BATCH)
                 ->get(['id', 'message_text']);

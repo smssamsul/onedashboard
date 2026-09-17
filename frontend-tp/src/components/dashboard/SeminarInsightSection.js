@@ -20,6 +20,28 @@ const DISTRIBUSI_LABEL = [
   { key: "low_quality", label: "Low Quality", warna: "#94a3b8" },
 ];
 
+const OPSI_RENTANG = [
+  { value: "today", label: "Hari Ini" },
+  { value: "7", label: "7 Hari Terakhir" },
+  { value: "14", label: "14 Hari Terakhir" },
+  { value: "30", label: "30 Hari Terakhir" },
+  { value: "custom", label: "Custom" },
+];
+
+function hariIniStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function hitungRentang(opsi, customDari, customSampai) {
+  const hariIni = hariIniStr();
+  if (opsi === "custom") return { dari: customDari || hariIni, sampai: customSampai || hariIni };
+  if (opsi === "today") return { dari: hariIni, sampai: hariIni };
+  const n = Number(opsi);
+  const d = new Date();
+  d.setDate(d.getDate() - (n - 1));
+  return { dari: d.toISOString().slice(0, 10), sampai: hariIni };
+}
+
 function fmtRp(n) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(n) || 0);
 }
@@ -33,21 +55,50 @@ function headers() {
   return { Accept: "application/json", Authorization: `Bearer ${getToken()}` };
 }
 
+function RentangTanggalFilter({ opsi, setOpsi, customDari, setCustomDari, customSampai, setCustomSampai }) {
+  return (
+    <div className={styles.dateNav}>
+      <select className={styles.dateSelect} value={opsi} onChange={(e) => setOpsi(e.target.value)}>
+        {OPSI_RENTANG.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      {opsi === "custom" && (
+        <>
+          <input type="date" className={styles.dateInput} value={customDari} onChange={(e) => setCustomDari(e.target.value)} />
+          <span className={styles.dateSep}>–</span>
+          <input type="date" className={styles.dateInput} value={customSampai} onChange={(e) => setCustomSampai(e.target.value)} />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function SeminarInsightSection() {
-  const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [opsiHarian, setOpsiHarian] = useState("today");
+  const [customDariHarian, setCustomDariHarian] = useState(hariIniStr());
+  const [customSampaiHarian, setCustomSampaiHarian] = useState(hariIniStr());
   const [harian, setHarian] = useState([]);
   const [loadingHarian, setLoadingHarian] = useState(true);
+
+  const [opsiLvp, setOpsiLvp] = useState("30");
+  const [customDariLvp, setCustomDariLvp] = useState(hariIniStr());
+  const [customSampaiLvp, setCustomSampaiLvp] = useState(hariIniStr());
   const [leadsVsPeserta, setLeadsVsPeserta] = useState([]);
   const [loadingLvp, setLoadingLvp] = useState(true);
+
   const [kendala, setKendala] = useState([]);
   const [loadingKendala, setLoadingKendala] = useState(true);
   const [distribusi, setDistribusi] = useState(null);
   const [loadingDistribusi, setLoadingDistribusi] = useState(true);
 
-  const loadHarian = useCallback(async (tgl) => {
+  const rentangHarian = hitungRentang(opsiHarian, customDariHarian, customSampaiHarian);
+  const rentangLvp = hitungRentang(opsiLvp, customDariLvp, customSampaiLvp);
+
+  const loadHarian = useCallback(async (dari, sampai) => {
     setLoadingHarian(true);
     try {
-      const res = await fetch(`/api/sales/seminar-insight/harian?tanggal=${tgl}`, { headers: headers() });
+      const res = await fetch(`/api/sales/seminar-insight/harian?dari=${dari}&sampai=${sampai}`, { headers: headers() });
       const json = await res.json();
       if (json.success) setHarian(json.data.kelompok || []);
     } catch {
@@ -57,23 +108,30 @@ export default function SeminarInsightSection() {
     }
   }, []);
 
-  useEffect(() => {
-    loadHarian(tanggal);
-  }, [tanggal, loadHarian]);
+  const loadLvp = useCallback(async (dari, sampai) => {
+    setLoadingLvp(true);
+    try {
+      const res = await fetch(`/api/sales/seminar-insight/leads-vs-peserta?dari=${dari}&sampai=${sampai}`, { headers: headers() });
+      const json = await res.json();
+      if (json.success) setLeadsVsPeserta(json.data || []);
+    } catch {
+      // diamkan
+    } finally {
+      setLoadingLvp(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/sales/seminar-insight/leads-vs-peserta`, { headers: headers() });
-        const json = await res.json();
-        if (json.success) setLeadsVsPeserta(json.data || []);
-      } catch {
-        // diamkan
-      } finally {
-        setLoadingLvp(false);
-      }
-    })();
+    loadHarian(rentangHarian.dari, rentangHarian.sampai);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opsiHarian, customDariHarian, customSampaiHarian]);
 
+  useEffect(() => {
+    loadLvp(rentangLvp.dari, rentangLvp.sampai);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opsiLvp, customDariLvp, customSampaiLvp]);
+
+  useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`/api/sales/percakapan/stats?hanya_lead_valid=1`, { headers: headers() });
@@ -98,12 +156,6 @@ export default function SeminarInsightSection() {
       }
     })();
   }, []);
-
-  function hariGeser(delta) {
-    const d = new Date(tanggal + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setTanggal(d.toISOString().slice(0, 10));
-  }
 
   return (
     <section className={styles.wrap}>
@@ -138,11 +190,14 @@ export default function SeminarInsightSection() {
             <p className="panel__eyebrow">Biaya, CTWA, Buyer, Omzet per kota/kategori</p>
             <h3 className="panel__title">Ringkasan Seminar Harian</h3>
           </div>
-          <div className={styles.dateNav}>
-            <button type="button" className={styles.dateBtn} onClick={() => hariGeser(-1)}>‹</button>
-            <input type="date" className={styles.dateInput} value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
-            <button type="button" className={styles.dateBtn} onClick={() => hariGeser(1)}>›</button>
-          </div>
+          <RentangTanggalFilter
+            opsi={opsiHarian}
+            setOpsi={setOpsiHarian}
+            customDari={customDariHarian}
+            setCustomDari={setCustomDariHarian}
+            customSampai={customSampaiHarian}
+            setCustomSampai={setCustomSampaiHarian}
+          />
         </div>
 
         <div className={styles.tableWrap}>
@@ -164,7 +219,7 @@ export default function SeminarInsightSection() {
               {loadingHarian ? (
                 <tr><td colSpan={9} className={styles.tdEmpty}>Memuat...</td></tr>
               ) : harian.length === 0 ? (
-                <tr><td colSpan={9} className={styles.tdEmpty}>Tidak ada aktivitas iklan/order di tanggal ini.</td></tr>
+                <tr><td colSpan={9} className={styles.tdEmpty}>Tidak ada aktivitas iklan/order di rentang ini.</td></tr>
               ) : (
                 harian.map((r) => (
                   <tr key={r.kelompok}>
@@ -186,16 +241,24 @@ export default function SeminarInsightSection() {
           </table>
         </div>
         <p className={styles.catatan}>
-          Biaya &amp; Contact dari Meta Ads (dikelompokkan by kota dari nama campaign). Buyer &amp; Omzet dari order berstatus Paid/Waiting Approval di tanggal yang sama.
+          Biaya &amp; Contact dari Meta Ads (dikelompokkan by kota dari nama campaign). Buyer &amp; Omzet dari order berstatus Paid/Waiting Approval di rentang tanggal yang sama.
         </p>
       </article>
 
       <article className="panel panel--chart">
         <div className="panel__header">
           <div>
-            <p className="panel__eyebrow">Leads masuk vs yang jadi peserta (Paid/Waiting Approval), all-time</p>
+            <p className="panel__eyebrow">Leads masuk vs yang jadi peserta (Paid/Waiting Approval), rentang yang sama</p>
             <h3 className="panel__title">Leads vs Peserta per Produk</h3>
           </div>
+          <RentangTanggalFilter
+            opsi={opsiLvp}
+            setOpsi={setOpsiLvp}
+            customDari={customDariLvp}
+            setCustomDari={setCustomDariLvp}
+            customSampai={customSampaiLvp}
+            setCustomSampai={setCustomSampaiLvp}
+          />
         </div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -206,7 +269,7 @@ export default function SeminarInsightSection() {
               {loadingLvp ? (
                 <tr><td colSpan={4} className={styles.tdEmpty}>Memuat...</td></tr>
               ) : leadsVsPeserta.length === 0 ? (
-                <tr><td colSpan={4} className={styles.tdEmpty}>Belum ada data.</td></tr>
+                <tr><td colSpan={4} className={styles.tdEmpty}>Belum ada data di rentang ini.</td></tr>
               ) : (
                 leadsVsPeserta.map((r) => (
                   <tr key={r.kelompok}>
@@ -217,7 +280,7 @@ export default function SeminarInsightSection() {
                       {r.rasio_persen != null ? (
                         `${r.rasio_persen}%`
                       ) : r.data_leads_tidak_lengkap ? (
-                        <span className={styles.badgeWarn} title="Peserta lebih banyak dari leads yang tercatat - data lead_lpwas kemungkinan tidak menangkap semua lead masuk">
+                        <span className={styles.badgeWarn} title="Peserta lebih banyak dari leads yang tercatat di rentang ini - data lead_lpwas kemungkinan tidak menangkap semua lead masuk">
                           data lead tidak lengkap
                         </span>
                       ) : (

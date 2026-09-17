@@ -74,17 +74,18 @@ class SeminarInsightService
     }
 
     /**
-     * Ringkasan 1 hari: biaya + contact(CTWA) dari Meta Ads, buyer + omzet
-     * dari order (paid/waiting approval) hari itu, plus formula turunan
-     * (cost per contact, cost per buyer, conversion rate, ROAS, AOV).
+     * Ringkasan rentang tanggal (bisa 1 hari atau beberapa hari): biaya +
+     * contact(CTWA) dari Meta Ads, buyer + omzet dari order (paid/waiting
+     * approval) di rentang itu, plus formula turunan (cost per contact,
+     * cost per buyer, conversion rate, ROAS, AOV).
      */
-    public function ringkasanHarian(string $tanggal): array
+    public function ringkasanRentang(string $dari, string $sampai): array
     {
         $petaProduk = $this->produkPerKelompok();
 
         $insight = MetaAdInsightDaily::query()
             ->join('meta_ad_campaigns', 'meta_ad_campaigns.campaign_id', '=', 'meta_ad_insights_daily.campaign_id')
-            ->whereDate('meta_ad_insights_daily.date', $tanggal)
+            ->whereBetween('meta_ad_insights_daily.date', [$dari, $sampai])
             ->get(['meta_ad_campaigns.name as campaign_nama', 'meta_ad_insights_daily.spend', 'meta_ad_insights_daily.contact']);
 
         $biaya = [];
@@ -104,7 +105,7 @@ class SeminarInsightService
             $orders = OrderCustomer::where('status', '!=', 'N')
                 ->whereIn('produk', $produkIds)
                 ->whereIn('status_pembayaran', ['1', '2'])
-                ->whereRaw('SUBSTRING(CAST(tanggal AS VARCHAR), 1, 10) = ?', [$tanggal])
+                ->whereRaw('SUBSTRING(CAST(tanggal AS VARCHAR), 1, 10) BETWEEN ? AND ?', [$dari, $sampai])
                 ->get(['total_harga', 'customer']);
             $buyer[$kelompok] = $orders->pluck('customer')->unique()->count();
             $omzet[$kelompok] = $orders->sum(fn ($o) => (float) preg_replace('/[^\d.]/', '', (string) $o->total_harga));
@@ -147,14 +148,18 @@ class SeminarInsightService
 
     /**
      * Leads masuk (dari lead_lpwas, dedup per kelompok+no_wa) vs peserta
-     * (customer unik dgn order paid/waiting approval), plus rasio konversi.
-     * All-time (tidak dibatasi tanggal) - beda dari ringkasanHarian().
+     * (customer unik dgn order paid/waiting approval), plus rasio konversi -
+     * dibatasi rentang tanggal yang SAMA buat dua-duanya (lead_lpwas pakai
+     * created_at, order pakai tanggal) supaya rasionya apple-to-apple,
+     * bukan bandingin leads periode X dengan peserta all-time.
      */
-    public function leadsVsPeserta(): array
+    public function leadsVsPeserta(string $dari, string $sampai): array
     {
         $petaProduk = $this->produkPerKelompok();
 
-        $leads = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '')->get(['no_wa', 'produk_text', 'lokasi']);
+        $leads = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '')
+            ->whereBetween('created_at', [$dari . ' 00:00:00', $sampai . ' 23:59:59'])
+            ->get(['no_wa', 'produk_text', 'lokasi']);
 
         $leadsPerKelompok = [];
         $sudahDihitung = [];
@@ -176,6 +181,7 @@ class SeminarInsightService
             $pesertaPerKelompok[$kelompok] = OrderCustomer::where('status', '!=', 'N')
                 ->whereIn('produk', $produkIds)
                 ->whereIn('status_pembayaran', ['1', '2'])
+                ->whereRaw('SUBSTRING(CAST(tanggal AS VARCHAR), 1, 10) BETWEEN ? AND ?', [$dari, $sampai])
                 ->distinct('customer')
                 ->count('customer');
         }
@@ -200,6 +206,8 @@ class SeminarInsightService
                 'data_leads_tidak_lengkap' => $l > 0 && $p > $l,
             ];
         }
+
+        $hasil = array_values(array_filter($hasil, fn ($r) => $r['leads_masuk'] > 0 || $r['peserta'] > 0));
 
         usort($hasil, fn ($a, $b) => $b['peserta'] <=> $a['peserta']);
 
