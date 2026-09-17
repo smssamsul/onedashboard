@@ -84,6 +84,22 @@
 }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+.highlightCard {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.highlightLabel { font-size: 0.75rem; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
+.highlightBody { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6rem 1rem; }
+.highlightFitur { font-size: 1.15rem; font-weight: 700; color: #312e81; }
+.highlightBiaya { font-size: 1.6rem; font-weight: 800; color: #4338ca; letter-spacing: -0.02em; }
+.highlightSub { font-size: 0.78rem; color: #6366f1; font-weight: 500; }
+
 .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
 
 .card {
