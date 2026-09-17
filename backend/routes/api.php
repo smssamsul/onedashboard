@@ -455,6 +455,7 @@ Route::middleware('auth:api')->group(function () {
         // Percakapan
         Route::get('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'index']);
         Route::get('/percakapan/stats', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'stats']);
+        Route::get('/percakapan/filter-options', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'filterOptions']);
         Route::get('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'show']);
         Route::post('/percakapan', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'store']);
         Route::put('/percakapan/{id}', [\App\Http\Controllers\Api\Sales\PercakapanController::class, 'update']);

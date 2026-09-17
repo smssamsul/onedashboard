@@ -135,6 +135,10 @@ class PercakapanController extends Controller
      * dipakai bareng oleh beberapa halaman lain (Percakapan, Leads AI,
      * Rekap Follow-Up) yang tidak boleh kena filter ini, makanya opt-in
      * lewat parameter, bukan default.
+     *
+     * ?sumber=... dan ?produk=... (opsional, cuma berlaku kalau
+     * hanya_lead_valid aktif) mempersempit lagi berdasarkan kolom sumber
+     * dan produk_text di lead_lpwas.
      */
     private function scopeHanyaLeadValid($query, Request $request): void
     {
@@ -142,11 +146,57 @@ class PercakapanController extends Controller
             return;
         }
 
-        $waLeadLpwa = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '')->pluck('no_wa');
+        $leadLpwaQuery = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '');
+        if ($request->filled('sumber')) {
+            $leadLpwaQuery->where('sumber', $request->sumber);
+        }
+        if ($request->filled('produk')) {
+            $leadLpwaQuery->where('produk_text', $request->produk);
+        }
+        $waLeadLpwa = $leadLpwaQuery->pluck('no_wa');
+
         $waPunyaOrder = Customer::whereHas('orders')->whereNotNull('wa')->where('wa', '!=', '')->pluck('wa');
 
         $query->whereIn('phone_number', $waLeadLpwa)
               ->whereIn('phone_number', $waPunyaOrder);
+    }
+
+    /**
+     * Daftar pilihan Sumber & Produk (dari lead_lpwas) utk dropdown filter
+     * di halaman Analisa Leads - dibatasi ke nomor yang beneran lolos
+     * filter "lead valid" (ada di lead_lpwas + punya order), sorted by
+     * jumlah terbanyak.
+     */
+    public function filterOptions(Request $request)
+    {
+        $waPunyaOrder = Customer::whereHas('orders')->whereNotNull('wa')->where('wa', '!=', '')->pluck('wa');
+        $waPercakapan = Percakapan::pluck('phone_number');
+
+        $base = LeadLpwa::whereNotNull('no_wa')->where('no_wa', '!=', '')
+            ->whereIn('no_wa', $waPunyaOrder)
+            ->whereIn('no_wa', $waPercakapan);
+
+        $sumber = (clone $base)
+            ->whereNotNull('sumber')->where('sumber', '!=', '')
+            ->selectRaw('sumber, COUNT(*) as jumlah')
+            ->groupBy('sumber')
+            ->orderByDesc('jumlah')
+            ->get();
+
+        $produk = (clone $base)
+            ->whereNotNull('produk_text')->where('produk_text', '!=', '')
+            ->selectRaw('produk_text, COUNT(*) as jumlah')
+            ->groupBy('produk_text')
+            ->orderByDesc('jumlah')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'sumber' => $sumber,
+                'produk' => $produk,
+            ],
+        ]);
     }
 
     /**
