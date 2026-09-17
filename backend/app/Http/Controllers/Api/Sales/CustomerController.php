@@ -14,6 +14,7 @@ use App\Models\OrderCustomer;
 use App\Models\OrderCustomerArsip;
 use App\Models\LogsFollup;
 use App\Services\SalesRoundRobinService;
+use App\Services\WorkshopTierResolver;
 use App\Models\CustomerFollowup;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
@@ -213,6 +214,54 @@ class CustomerController extends Controller
         return $fromArsip->concat($fromLive);
     }
 
+    /**
+     * Breakdown keanggotaan (platinum/gold/silver/bronze/basic) berdasarkan
+     * order Workshop yang paid di tahun tsb (arsip + live), bukan create_at
+     * akun customer - customer lama yang baru ikut Workshop tahun ini tetap
+     * harus kehitung. Tier per order pakai WorkshopTierResolver (sama
+     * dgn WorkshopReportController). Reseat tidak dihitung krn tidak
+     * mengubah keanggotaan.
+     */
+    private function membershipPerTahun(string $tahun): array
+    {
+        $resolver = app(WorkshopTierResolver::class);
+        $produkIds = $resolver->produkIds();
+
+        $tierCustomer = [];
+
+        $arsipRows = OrderCustomerArsip::whereIn('produk_id', $produkIds)
+            ->where('status_pembayaran', '2')
+            ->whereYear('tanggal', $tahun)
+            ->with('customer:id,keanggotaan')
+            ->get();
+        foreach ($arsipRows as $o) {
+            $tier = $resolver->resolveTierArsip($o);
+            if ($tier && $tier !== 'reseat') {
+                $tierCustomer[$o->customer_id] = $tier;
+            }
+        }
+
+        $liveRows = OrderCustomer::where('status', '!=', 'N')
+            ->where('status_pembayaran', '2')
+            ->whereIn('produk', $produkIds)
+            ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun])
+            ->with('bundling_rel:id,nama')
+            ->get();
+        foreach ($liveRows as $o) {
+            $tier = $resolver->resolveTierLive($o);
+            if ($tier && $tier !== 'reseat') {
+                $tierCustomer[$o->customer] = $tier;
+            }
+        }
+
+        $membership = ['platinum' => 0, 'gold' => 0, 'silver' => 0, 'bronze' => 0, 'basic' => 0];
+        foreach ($tierCustomer as $tier) {
+            $membership[$tier]++;
+        }
+
+        return $membership;
+    }
+
     public function statistics(Request $request)
     {
         $tahun = $request->get('tahun', 'all');
@@ -301,26 +350,27 @@ class CustomerController extends Controller
             ->unique()
             ->count();
 
-        // 3. Membership Breakdowns (from keanggotaan) - selalu total keanggotaan
-        // saat ini, TIDAK difilter tahun akun dibuat. Customer lama yang baru
-        // upgrade tier tahun ini (misal ikut Workshop) tetap harus kehitung -
-        // kalau difilter per tahun create_at, mereka hilang dari breakdown
-        // meski keanggotaan-nya sudah benar.
-        $rawMembership = Customer::where('status', '!=', 'N')
-            ->select('keanggotaan', \DB::raw('count(*) as total'))
-            ->groupBy('keanggotaan')
-            ->pluck('total', 'keanggotaan')
-            ->toArray();
-
-        // Normalize keys to lowercase and fill missing
-        $rawMembership = array_change_key_case($rawMembership, CASE_LOWER);
-        $membership = [
-            'platinum' => $rawMembership['platinum'] ?? 0,
-            'gold' => $rawMembership['gold'] ?? 0,
-            'silver' => $rawMembership['silver'] ?? 0,
-            'bronze' => $rawMembership['bronze'] ?? 0,
-            'basic' => $rawMembership['basic'] ?? 0,
-        ];
+        // 3. Membership Breakdowns (dari keanggotaan). Kalau tahun='all', total
+        // keanggotaan customer saat ini. Kalau pilih tahun tertentu, dihitung
+        // dari order Workshop yang mengubah keanggotaan di tahun itu (bukan
+        // dari create_at akun customer) - lihat membershipPerTahun().
+        if ($tahun === 'all') {
+            $rawMembership = Customer::where('status', '!=', 'N')
+                ->select('keanggotaan', \DB::raw('count(*) as total'))
+                ->groupBy('keanggotaan')
+                ->pluck('total', 'keanggotaan')
+                ->toArray();
+            $rawMembership = array_change_key_case($rawMembership, CASE_LOWER);
+            $membership = [
+                'platinum' => $rawMembership['platinum'] ?? 0,
+                'gold' => $rawMembership['gold'] ?? 0,
+                'silver' => $rawMembership['silver'] ?? 0,
+                'bronze' => $rawMembership['bronze'] ?? 0,
+                'basic' => $rawMembership['basic'] ?? 0,
+            ];
+        } else {
+            $membership = $this->membershipPerTahun($tahun);
+        }
 
         // 4. Order Status (Paid and Unpaid counts + amounts)
         if ($useLiveTahun) {
