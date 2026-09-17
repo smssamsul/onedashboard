@@ -26,21 +26,33 @@ class RescoreLeadIntent extends Command
     protected $signature = 'leads:rescore-intent
                             {--eksekusi : Terapkan perubahan. Tanpa opsi ini hanya menampilkan pratinjau}
                             {--lewati-reklasifikasi : Jangan panggil AI ulang, langsung skor dari kategori yang sudah ada}
+                            {--kategori-kendala-baru : Reklasifikasi juga pesan yang sudah dikategorikan menolak/nanti_dulu/belum_tertarik - dipakai sekali setelah kategori "jadwal_tidak_cocok" ditambahkan, supaya kendala jadwal yang sebelumnya numpuk di kategori umum kepisah}
                             {--backup-dir=storage/app/backup-lead-score : Folder tujuan file CSV cadangan}';
 
     protected $description = 'Reklasifikasi pesan customer (kategori baru) & skor ulang (poin) semua Percakapan';
 
     private const TAKSONOMI_LAMA = ['hot', 'warm', 'neutral', 'negatif'];
+    private const KATEGORI_KENDALA_UMUM = ['menolak', 'nanti_dulu', 'belum_tertarik'];
     private const UKURAN_BATCH = 20;
+
+    private function kategoriPerluReklasifikasi(): array
+    {
+        $kategori = self::TAKSONOMI_LAMA;
+        if ($this->option('kategori-kendala-baru')) {
+            $kategori = array_merge($kategori, self::KATEGORI_KENDALA_UMUM);
+        }
+        return $kategori;
+    }
 
     public function handle(): int
     {
         $eksekusi = (bool) $this->option('eksekusi');
         $lewatiReklasifikasi = (bool) $this->option('lewati-reklasifikasi');
+        $kategoriLama = $this->kategoriPerluReklasifikasi();
 
         $pesanPerluReklasifikasiQuery = DetailPercakapan::where('sender_type', 'customer')
-            ->where(function ($q) {
-                $q->whereNull('intent')->orWhereIn('intent', self::TAKSONOMI_LAMA);
+            ->where(function ($q) use ($kategoriLama) {
+                $q->whereNull('intent')->orWhereIn('intent', $kategoriLama);
             });
         $jumlahPerluReklasifikasi = $lewatiReklasifikasi ? 0 : $pesanPerluReklasifikasiQuery->count();
 
@@ -67,7 +79,7 @@ class RescoreLeadIntent extends Command
         $this->info('Cadangan tersimpan: ' . $fileCadangan);
 
         if (!$lewatiReklasifikasi && $jumlahPerluReklasifikasi > 0) {
-            $this->reklasifikasiPesan($jumlahPerluReklasifikasi);
+            $this->reklasifikasiPesan($jumlahPerluReklasifikasi, $kategoriLama);
         }
 
         $this->newLine();
@@ -94,7 +106,7 @@ class RescoreLeadIntent extends Command
         return self::SUCCESS;
     }
 
-    private function reklasifikasiPesan(int $total): void
+    private function reklasifikasiPesan(int $total, array $kategoriLama): void
     {
         $this->info("Reklasifikasi {$total} pesan (paralel, batch " . self::UKURAN_BATCH . ")...");
         $classifier = app(LeadActivityClassifierService::class);
@@ -103,8 +115,8 @@ class RescoreLeadIntent extends Command
 
         while (true) {
             $batch = DetailPercakapan::where('sender_type', 'customer')
-                ->where(function ($q) {
-                    $q->whereNull('intent')->orWhereIn('intent', self::TAKSONOMI_LAMA);
+                ->where(function ($q) use ($kategoriLama) {
+                    $q->whereNull('intent')->orWhereIn('intent', $kategoriLama);
                 })
                 ->orderBy('id')
                 ->limit(self::UKURAN_BATCH)

@@ -312,6 +312,12 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/workshop-report/tahun-tersedia', [\App\Http\Controllers\Api\Sales\WorkshopReportController::class, 'tahunTersedia']);
         Route::get('/workshop-report/peserta', [\App\Http\Controllers\Api\Sales\WorkshopReportController::class, 'peserta']);
 
+        // Ringkasan performa seminar (Dashboard) - biaya/CTWA/buyer/omzet
+        // harian, leads vs peserta, dan kendala lead per kota/kelompok.
+        Route::get('/seminar-insight/harian', [\App\Http\Controllers\Api\Sales\SeminarInsightController::class, 'harian']);
+        Route::get('/seminar-insight/leads-vs-peserta', [\App\Http\Controllers\Api\Sales\SeminarInsightController::class, 'leadsVsPeserta']);
+        Route::get('/seminar-insight/kendala', [\App\Http\Controllers\Api\Sales\SeminarInsightController::class, 'kendala']);
+
         // Baileys WA Session Management
         Route::prefix('baileys')->group(function () {
             Route::get('/engine', [BaileysController::class, 'getEngine']);

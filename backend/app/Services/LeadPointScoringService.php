@@ -38,6 +38,7 @@ class LeadPointScoringService
         'belum_tertarik' => -15,
         'nanti_dulu' => -5,
         'tidak_ada_budget' => -10,
+        'jadwal_tidak_cocok' => -5,
         'batal_daftar' => -20,
         // Tidak ada sinyal
         'netral' => 0,
