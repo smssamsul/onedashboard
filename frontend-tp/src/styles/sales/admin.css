@@ -44,7 +44,6 @@ ADMIN USERS PAGE (Scoped Styles)
 .users-search,
 .customers-search {
   position: relative;
-  flex: 1 1 320px;
   max-width: 460px;
 }
 

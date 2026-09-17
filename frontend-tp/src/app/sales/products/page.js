@@ -271,11 +271,7 @@ export default function AdminProductsPage() {
                 Diarsipkan ({archivedProducts.length})
               </button>
             </div>
-            {/* .customers-search punya "flex: 1 1 320px" utk toolbar row -
-                di sini toolbar-nya column, jadi flex-basis kepakai ke
-                tinggi bukan lebar (bikin box-nya jadi tinggi 320px+ kosong).
-                Override flex-nya di sini saja. */}
-            <div className="customers-search" style={{ flex: "0 0 auto" }}>
+            <div className="customers-search">
               <input
                 type="search"
                 placeholder="Cari produk, kategori, atau pembuat"
