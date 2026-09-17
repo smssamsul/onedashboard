@@ -12,14 +12,6 @@ const LABEL_KENDALA = {
   batal_daftar: "Batal Daftar",
 };
 
-const DISTRIBUSI_LABEL = [
-  { key: "closing", label: "Closing", warna: "#16a34a" },
-  { key: "hot", label: "Hot", warna: "#ef4444" },
-  { key: "warm", label: "Warm", warna: "#f59e0b" },
-  { key: "cold", label: "Cold", warna: "#38bdf8" },
-  { key: "low_quality", label: "Low Quality", warna: "#94a3b8" },
-];
-
 const OPSI_RENTANG = [
   { value: "today", label: "Hari Ini" },
   { value: "7", label: "7 Hari Terakhir" },
@@ -89,8 +81,6 @@ export default function SeminarInsightSection() {
 
   const [kendala, setKendala] = useState([]);
   const [loadingKendala, setLoadingKendala] = useState(true);
-  const [distribusi, setDistribusi] = useState(null);
-  const [loadingDistribusi, setLoadingDistribusi] = useState(true);
 
   const rentangHarian = hitungRentang(opsiHarian, customDariHarian, customSampaiHarian);
   const rentangLvp = hitungRentang(opsiLvp, customDariLvp, customSampaiLvp);
@@ -134,18 +124,6 @@ export default function SeminarInsightSection() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/sales/percakapan/stats?hanya_lead_valid=1`, { headers: headers() });
-        const json = await res.json();
-        if (json.success) setDistribusi(json.data);
-      } catch {
-        // diamkan
-      } finally {
-        setLoadingDistribusi(false);
-      }
-    })();
-
-    (async () => {
-      try {
         const res = await fetch(`/api/sales/seminar-insight/kendala`, { headers: headers() });
         const json = await res.json();
         if (json.success) setKendala(json.data || []);
@@ -159,31 +137,6 @@ export default function SeminarInsightSection() {
 
   return (
     <section className={styles.wrap}>
-      <article className="panel panel--chart">
-        <div className="panel__header">
-          <div>
-            <p className="panel__eyebrow">Lead yang ada di lead_lpwas &amp; punya order (sama seperti Analisa Leads)</p>
-            <h3 className="panel__title">Distribusi Lead Tervalidasi</h3>
-          </div>
-        </div>
-        {loadingDistribusi ? (
-          <p className={styles.tdEmpty}>Memuat...</p>
-        ) : (
-          <div className={styles.distribusiRow}>
-            {DISTRIBUSI_LABEL.map((d) => (
-              <div key={d.key} className={styles.distribusiCard} style={{ "--warna": d.warna }}>
-                <span className={styles.distribusiValue}>{fmtN(distribusi?.per_status?.[d.key])}</span>
-                <span className={styles.distribusiLabel}>{d.label}</span>
-              </div>
-            ))}
-            <div className={styles.distribusiCard} style={{ "--warna": "#6366f1" }}>
-              <span className={styles.distribusiValue}>{fmtN(distribusi?.total)}</span>
-              <span className={styles.distribusiLabel}>Total Valid</span>
-            </div>
-          </div>
-        )}
-      </article>
-
       <article className="panel panel--chart">
         <div className="panel__header">
           <div>
