@@ -19,22 +19,28 @@ class SeminarInsightController extends Controller
 
     public function harian(Request $request)
     {
-        $tanggal = $request->get('tanggal', now()->toDateString());
+        $hariIni = now()->toDateString();
+        $dari = $request->get('dari', $hariIni);
+        $sampai = $request->get('sampai', $hariIni);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'tanggal' => $tanggal,
-                'kelompok' => $this->service->ringkasanHarian($tanggal),
+                'dari' => $dari,
+                'sampai' => $sampai,
+                'kelompok' => $this->service->ringkasanRentang($dari, $sampai),
             ],
         ]);
     }
 
     public function leadsVsPeserta(Request $request)
     {
+        $sampai = $request->get('sampai', now()->toDateString());
+        $dari = $request->get('dari', now()->subDays(29)->toDateString());
+
         return response()->json([
             'success' => true,
-            'data' => $this->service->leadsVsPeserta(),
+            'data' => $this->service->leadsVsPeserta($dari, $sampai),
         ]);
     }
 
