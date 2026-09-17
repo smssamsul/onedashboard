@@ -138,6 +138,25 @@
   box-sizing: border-box;
 }
 
+.filterRow {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.filterSelect {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-paper, #fff);
+  outline: none;
+}
+
 .leadList {
   flex: 1;
   overflow-y: auto;

@@ -126,6 +126,10 @@ export default function LeadsAnalisaPage() {
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, 400);
 
+  const [filterOptions, setFilterOptions] = useState({ sumber: [], produk: [] });
+  const [sumberFilter, setSumberFilter] = useState("");
+  const [produkFilter, setProdukFilter] = useState("");
+
   const [leads, setLeads] = useState([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -152,11 +156,29 @@ export default function LeadsAnalisaPage() {
     []
   );
 
+  const loadFilterOptions = useCallback(async () => {
+    try {
+      const res = await fetch(getApiUrl(`sales/percakapan/filter-options`), { headers: getHeaders() });
+      if (res.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      const json = await res.json();
+      if (json.success) {
+        setFilterOptions({ sumber: json.data.sumber || [], produk: json.data.produk || [] });
+      }
+    } catch {
+      // diamkan - dropdown filter cukup kosong kalau gagal
+    }
+  }, [getHeaders, router]);
+
   const loadStats = useCallback(
-    async (search) => {
+    async (search, sumber, produk) => {
       try {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams({ hanya_lead_valid: "1" });
         if (search) params.append("search", search);
+        if (sumber) params.append("sumber", sumber);
+        if (produk) params.append("produk", produk);
         const res = await fetch(getApiUrl(`sales/percakapan/stats?${params.toString()}`), {
           headers: getHeaders(),
         });
@@ -176,7 +198,7 @@ export default function LeadsAnalisaPage() {
   );
 
   const loadList = useCallback(
-    async (status, search, pageNumber, append = false) => {
+    async (status, search, pageNumber, sumber, produk, append = false) => {
       if (append) setLoadingMore(true);
       else setLoadingList(true);
       try {
@@ -184,8 +206,11 @@ export default function LeadsAnalisaPage() {
           status,
           page: String(pageNumber),
           per_page: "20",
+          hanya_lead_valid: "1",
         });
         if (search) params.append("search", search);
+        if (sumber) params.append("sumber", sumber);
+        if (produk) params.append("produk", produk);
         const res = await fetch(getApiUrl(`sales/percakapan?${params.toString()}`), {
           headers: getHeaders(),
         });
@@ -219,8 +244,8 @@ export default function LeadsAnalisaPage() {
         const json = await res.json();
         if (json.success) {
           setSelectedConversation((prev) => (prev ? { ...prev, ...json.data } : json.data));
-          loadStats(debouncedSearch);
-          loadList(activeTab, debouncedSearch, 1);
+          loadStats(debouncedSearch, sumberFilter, produkFilter);
+          loadList(activeTab, debouncedSearch, 1, sumberFilter, produkFilter);
         }
       } catch {
         // diamkan
@@ -228,7 +253,7 @@ export default function LeadsAnalisaPage() {
         setRescoring(false);
       }
     },
-    [getHeaders, loadStats, loadList, activeTab, debouncedSearch]
+    [getHeaders, loadStats, loadList, activeTab, debouncedSearch, sumberFilter, produkFilter]
   );
 
   const loadDetail = useCallback(
@@ -259,15 +284,19 @@ export default function LeadsAnalisaPage() {
     [getHeaders, rescoreOne]
   );
 
-  // Muat ulang tab + statistik saat tab/pencarian berubah
+  useEffect(() => {
+    loadFilterOptions();
+  }, [loadFilterOptions]);
+
+  // Muat ulang tab + statistik saat tab/pencarian/filter sumber-produk berubah
   useEffect(() => {
     setPage(1);
     setSelectedId(null);
     setSelectedConversation(null);
-    loadList(activeTab, debouncedSearch, 1);
-    loadStats(debouncedSearch);
+    loadList(activeTab, debouncedSearch, 1, sumberFilter, produkFilter);
+    loadStats(debouncedSearch, sumberFilter, produkFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, debouncedSearch]);
+  }, [activeTab, debouncedSearch, sumberFilter, produkFilter]);
 
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
@@ -276,7 +305,7 @@ export default function LeadsAnalisaPage() {
   const handleLoadMore = () => {
     const next = page + 1;
     setPage(next);
-    loadList(activeTab, debouncedSearch, next, true);
+    loadList(activeTab, debouncedSearch, next, sumberFilter, produkFilter, true);
   };
 
   const label = LABELS[activeTab];
@@ -330,6 +359,33 @@ export default function LeadsAnalisaPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
+            </div>
+
+            <div className={styles.filterRow}>
+              <select
+                className={styles.filterSelect}
+                value={sumberFilter}
+                onChange={(e) => setSumberFilter(e.target.value)}
+              >
+                <option value="">Semua Sumber</option>
+                {filterOptions.sumber.map((s) => (
+                  <option key={s.sumber} value={s.sumber}>
+                    {s.sumber} ({s.jumlah})
+                  </option>
+                ))}
+              </select>
+              <select
+                className={styles.filterSelect}
+                value={produkFilter}
+                onChange={(e) => setProdukFilter(e.target.value)}
+              >
+                <option value="">Semua Produk</option>
+                {filterOptions.produk.map((p) => (
+                  <option key={p.produk_text} value={p.produk_text}>
+                    {p.produk_text} ({p.jumlah})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className={styles.leadList}>
