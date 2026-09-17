@@ -3,6 +3,7 @@
 import "@/styles/sales/dashboard-premium.css";
 import Layout from "@/components/Layout";
 import GreetingBanner from "@/components/GreetingBanner";
+import SeminarInsightSection from "@/components/dashboard/SeminarInsightSection";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   ShoppingCart,
@@ -684,6 +685,8 @@ export default function Dashboard() {
             {!loadingMetaAds && metaAdsDaily.length === 0 && <p className="panel__empty">Belum ada data Meta Ads untuk periode ini.</p>}
           </article>
         </section>
+
+        <SeminarInsightSection />
       </div>
     </Layout>
   );

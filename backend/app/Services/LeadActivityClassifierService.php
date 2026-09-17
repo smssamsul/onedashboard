@@ -38,22 +38,23 @@ Kategori POSITIF (menunjukkan minat/progres ke arah closing):
 - siap_beli        : menyatakan sudah siap/mau membeli atau daftar sekarang
 
 Kategori NEGATIF (menjauh dari closing):
-- menolak          : menolak tawaran secara eksplisit
-- belum_tertarik   : bilang belum tertarik / tidak berminat
-- nanti_dulu       : minta ditunda, mau pikir-pikir dulu
-- tidak_ada_budget : bilang tidak ada dana/budget
-- batal_daftar     : membatalkan pendaftaran yang sudah dibuat
+- menolak            : menolak tawaran secara eksplisit
+- belum_tertarik     : bilang belum tertarik / tidak berminat
+- nanti_dulu         : minta ditunda, mau pikir-pikir dulu (alasan tidak disebutkan/umum)
+- tidak_ada_budget   : bilang tidak ada dana/budget/harga kemahalan
+- jadwal_tidak_cocok : jadwal/tanggal acara yang ditawarkan bentrok atau tidak cocok buatnya
+- batal_daftar       : membatalkan pendaftaran yang sudah dibuat
 
 Kalau tidak cocok satupun (basa-basi, di luar topik, tidak jelas maksudnya):
 - netral
 
-Balas HANYA dengan salah satu dari 17 kode di atas.
+Balas HANYA dengan salah satu dari 18 kode di atas.
 PROMPT;
 
     public const KATEGORI_VALID = [
         'sapaan_singkat', 'minat_produk', 'tanya_materi', 'tanya_jadwal', 'tanya_benefit',
         'tanya_harga', 'tanya_pembayaran', 'kirim_rekening', 'minta_daftar', 'tentukan_jadwal', 'siap_beli',
-        'menolak', 'belum_tertarik', 'nanti_dulu', 'tidak_ada_budget', 'batal_daftar',
+        'menolak', 'belum_tertarik', 'nanti_dulu', 'tidak_ada_budget', 'jadwal_tidak_cocok', 'batal_daftar',
         'netral',
     ];
 
