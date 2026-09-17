@@ -32,23 +32,6 @@
   font-size: 0.8125rem;
 }
 
-.distribusiRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 0.75rem;
-}
-.distribusiCard {
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--warna, var(--color-primary-main));
-  border-radius: 10px;
-  padding: 0.75rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-.distribusiValue { font-size: 1.375rem; font-weight: 800; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
-.distribusiLabel { font-size: 0.7rem; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
-
 .tableWrap { overflow-x: auto; }
 
 .table {
