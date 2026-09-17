@@ -23,6 +23,8 @@ function labelFitur(fitur) {
     sentiment_chat: "Sentiment Chat",
     intent_classifier: "Intent Classifier",
     woowa_off_topic_check: "Cek Relevansi WA (Woowa)",
+    lead_activity_classifier: "Klasifikasi Aktivitas Lead (Analisa Leads)",
+    lead_conversation_analysis: "Analisa Percakapan Lead - AI (Analisa Leads)",
   };
   return map[fitur] || fitur;
 }
@@ -107,6 +109,13 @@ export default function AiUsageDashboardPage() {
     biaya: Number(r.biaya_usd),
   }));
 
+  // per_fitur sudah sorted DESC by biaya dari backend - baris pertama = terbesar.
+  const fiturTerbesar = data?.per_fitur?.[0] || null;
+  const totalBiaya = Number(data?.total?.total_biaya_usd || 0);
+  const persenFiturTerbesar = fiturTerbesar && totalBiaya > 0
+    ? (Number(fiturTerbesar.biaya_usd) / totalBiaya) * 100
+    : 0;
+
   return (
     <Layout title="Penggunaan AI">
       <div className={styles.page}>
@@ -141,6 +150,19 @@ export default function AiUsageDashboardPage() {
 
         {!loading && data && (
           <>
+            {fiturTerbesar && (
+              <div className={styles.highlightCard}>
+                <span className={styles.highlightLabel}>Pengeluaran AI Terbesar</span>
+                <div className={styles.highlightBody}>
+                  <span className={styles.highlightFitur}>{labelFitur(fiturTerbesar.fitur)}</span>
+                  <span className={styles.highlightBiaya}>{fmtUsd(fiturTerbesar.biaya_usd)}</span>
+                </div>
+                <span className={styles.highlightSub}>
+                  {persenFiturTerbesar.toFixed(1)}% dari total biaya · {fmt(fiturTerbesar.jumlah_panggilan)} panggilan · {fmt(fiturTerbesar.total_tokens)} token
+                </span>
+              </div>
+            )}
+
             <div className={styles.grid4}>
               <div className={styles.card}>
                 <span className={styles.cardLabel}>Estimasi Biaya</span>
