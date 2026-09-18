@@ -9,6 +9,7 @@ use App\Models\DetailPercakapan;
 use App\Models\AiLead;
 use App\Models\Customer;
 use App\Models\LeadLpwa;
+use App\Models\OrderCustomer;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -225,6 +226,25 @@ class PercakapanController extends Controller
         $percakapan->lead_lokasi = $lead->lokasi ?? null;
         $percakapan->lead_sumber = $lead->sumber ?? null;
         $percakapan->lead_produk_text = $lead->produk_text ?? null;
+
+        // Riwayat order customer ini (kalau nomor WA-nya sudah pernah jadi
+        // customer & order) - dipakai buat keterangan "Pernah Order" +
+        // tombol Tambah Order di Analisa Leads (produk yang diminati
+        // sekarang bisa beda dari order lama, keduanya tetap ditampilkan).
+        $customer = Customer::where('wa', $percakapan->phone_number)->first(['id', 'nama']);
+        $percakapan->customer_id = $customer->id ?? null;
+        $percakapan->order_history = $customer
+            ? OrderCustomer::where('customer', $customer->id)
+                ->where('status', '!=', 'N')
+                ->with('produk_rel:id,nama')
+                ->orderByDesc('tanggal')
+                ->get(['id', 'produk', 'tanggal', 'status_pembayaran', 'total_harga'])
+                ->map(fn ($o) => [
+                    'produk_nama' => $o->produk_rel->nama ?? null,
+                    'tanggal' => $o->tanggal,
+                    'status_pembayaran' => $o->status_pembayaran,
+                ])
+            : [];
 
         return response()->json([
             'success' => true,

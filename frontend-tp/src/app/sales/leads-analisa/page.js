@@ -2,10 +2,45 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, MessageCircle } from "lucide-react";
+import { RefreshCw, MessageCircle, Plus, Search, X, Package, Loader2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import { getApiUrl } from "@/config/api";
+import { toastSuccess, toastError } from "@/lib/toast";
 import styles from "./leadsAnalisa.module.css";
+
+const STATUS_PEMBAYARAN_LABEL = {
+  0: "Unpaid", 1: "Waiting Approval", 2: "Paid", 3: "Rejected", 4: "Partial Payment",
+};
+
+function productBasePrice(prod) {
+  return Number(prod?.harga_asli ?? prod?.harga ?? 0) || 0;
+}
+function isBundleActive(b) {
+  const s = b?.status;
+  if (s === undefined || s === null || s === "") return true;
+  if (s === "N" || s === "0" || s === 0) return false;
+  return s === "1" || s === 1 || s === "A" || s === "a";
+}
+function getBundles(prod) {
+  if (!Array.isArray(prod?.bundling_rel)) return [];
+  return prod.bundling_rel.filter(isBundleActive);
+}
+function priceForProduct(prod, bundleId) {
+  const base = productBasePrice(prod);
+  if (!bundleId) return base;
+  const b = getBundles(prod).find((x) => String(x.id) === String(bundleId));
+  if (!b) return base;
+  return Number(b.harga) || base;
+}
+function formatRp(n) {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(n) || 0);
+}
+function formatDateShort(dateString) {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return String(dateString).slice(0, 10);
+  return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 const TAB_ORDER = ["closing", "hot", "warm", "cold", "low_quality"];
 
@@ -140,6 +175,12 @@ export default function LeadsAnalisaPage() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [rescoring, setRescoring] = useState(false);
+
+  const [products, setProducts] = useState([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState({ product: null, bundleId: "", harga: 0 });
+  const [confirmSubmitting, setConfirmSubmitting] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -284,9 +325,74 @@ export default function LeadsAnalisaPage() {
     [getHeaders, rescoreOne]
   );
 
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch(getApiUrl(`sales/produk`), { headers: getHeaders() });
+      const json = await res.json();
+      if (json.success) setProducts(json.data || []);
+    } catch {
+      // diamkan - dropdown produk cukup kosong kalau gagal
+    }
+  }, [getHeaders]);
+
+  function openOrderModal() {
+    setProductSearch("");
+    setConfirmState({ product: null, bundleId: "", harga: 0 });
+    setOrderModalOpen(true);
+  }
+
+  function selectOrderProduct(prod) {
+    setConfirmState({ product: prod, bundleId: "", harga: productBasePrice(prod) });
+  }
+
+  function handleBundleChange(e) {
+    const bId = e.target.value;
+    setConfirmState((prev) => ({ ...prev, bundleId: bId, harga: priceForProduct(prev.product, bId) }));
+  }
+
+  const handleOrderConfirm = useCallback(async () => {
+    if (!selectedConversation || !confirmState.product) return;
+    setConfirmSubmitting(true);
+    try {
+      const body = {
+        produk: confirmState.product.id,
+        harga: String(confirmState.harga),
+        ongkir: "0",
+        total_harga: String(confirmState.harga),
+        sumber: "analisa_leads",
+        bundling: confirmState.bundleId || "",
+        notif: 1,
+      };
+      if (selectedConversation.customer_id) {
+        body.customer = selectedConversation.customer_id;
+      } else {
+        body.nama = selectedConversation.name || selectedConversation.phone_number;
+        body.wa = selectedConversation.phone_number;
+      }
+      const res = await fetch(getApiUrl(`sales/order-admin`), {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toastSuccess(json.message || "Order berhasil dibuat");
+        setOrderModalOpen(false);
+        loadDetail(selectedConversation.id);
+      } else {
+        toastError(json.message || "Gagal membuat order");
+      }
+    } catch {
+      toastError("Terjadi kesalahan saat membuat order");
+    } finally {
+      setConfirmSubmitting(false);
+    }
+  }, [selectedConversation, confirmState, getHeaders, loadDetail]);
+
   useEffect(() => {
     loadFilterOptions();
-  }, [loadFilterOptions]);
+    fetchProducts();
+  }, [loadFilterOptions, fetchProducts]);
 
   // Muat ulang tab + statistik saat tab/pencarian/filter sumber-produk berubah
   useEffect(() => {
@@ -454,6 +560,14 @@ export default function LeadsAnalisaPage() {
                           <strong>Sales:</strong> {selectedConversation.sales?.nama || "Belum ditugaskan"}
                         </span>
                       </div>
+                      {selectedConversation.order_history?.length > 0 && (
+                        <div className={styles.orderHistoryRow} title={selectedConversation.order_history.map((o) => `${o.produk_nama || "-"} (${STATUS_PEMBAYARAN_LABEL[o.status_pembayaran] || "Unpaid"}, ${formatDateShort(o.tanggal)})`).join(" | ")}>
+                          <Package size={13} />
+                          <span>
+                            Pernah Order ({selectedConversation.order_history.length}x) - terakhir: {selectedConversation.order_history[0].produk_nama || "-"}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={styles.chatHeaderActions}>
@@ -472,6 +586,13 @@ export default function LeadsAnalisaPage() {
                       disabled={rescoring}
                     >
                       <RefreshCw size={15} className={rescoring ? styles.spin : ""} /> {rescoring ? "Menganalisa..." : "Analisa Ulang"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.actionBtn} ${styles.actionBtnOrder}`}
+                      onClick={openOrderModal}
+                    >
+                      <Plus size={15} /> Tambah Order
                     </button>
                   </div>
                 </div>
@@ -564,6 +685,112 @@ export default function LeadsAnalisaPage() {
           </div>
         </div>
       </div>
+
+      {orderModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBackdrop} onClick={() => !confirmSubmitting && setOrderModalOpen(false)}></div>
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <h2>Tambah Order</h2>
+              <button type="button" onClick={() => !confirmSubmitting && setOrderModalOpen(false)} className={styles.modalClose}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.modalSection}>
+                <div className={styles.modalSectionLabel}>Pembeli</div>
+                <div className={styles.modalFieldRow}>
+                  <span className={styles.modalFieldLabel}>Nama</span>
+                  <span className={styles.modalFieldValue}>{selectedConversation?.name || "-"}</span>
+                </div>
+                <div className={styles.modalFieldRow}>
+                  <span className={styles.modalFieldLabel}>WhatsApp</span>
+                  <span className={styles.modalFieldValue}>{selectedConversation?.phone_number || "-"}</span>
+                </div>
+                {selectedConversation?.lead_produk_text && (
+                  <div className={styles.modalFieldRow}>
+                    <span className={styles.modalFieldLabel}>Minat</span>
+                    <span className={styles.modalFieldValue}>{selectedConversation.lead_produk_text}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalSection}>
+                <div className={styles.modalSectionLabel}>Produk &amp; Pembayaran</div>
+
+                {!confirmState.product ? (
+                  <>
+                    <div className={styles.modalSearchWrap}>
+                      <Search size={15} className={styles.modalSearchIcon} />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Ketik nama produk..."
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className={styles.modalSearchInput}
+                      />
+                    </div>
+                    <div className={styles.modalProductList}>
+                      {products
+                        .filter((p) => !productSearch.trim() || p.nama.toLowerCase().includes(productSearch.trim().toLowerCase()))
+                        .slice(0, 50)
+                        .map((p) => (
+                          <button type="button" key={p.id} onClick={() => selectOrderProduct(p)} className={styles.modalProductItem}>
+                            <span>{p.nama}</span>
+                            <span className={styles.modalProductPrice}>{formatRp(productBasePrice(p))}</span>
+                          </button>
+                        ))}
+                      {products.filter((p) => !productSearch.trim() || p.nama.toLowerCase().includes(productSearch.trim().toLowerCase())).length === 0 && (
+                        <div className={styles.modalProductEmpty}>Produk tidak ditemukan</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.modalFieldRow}>
+                      <div>
+                        <span className={styles.modalFieldLabel}>Produk</span>
+                        <div className={styles.modalFieldValue}>{confirmState.product.nama}</div>
+                      </div>
+                      <button type="button" onClick={() => setConfirmState({ product: null, bundleId: "", harga: 0 })} className={styles.modalChangeBtn}>
+                        Ganti produk
+                      </button>
+                    </div>
+
+                    {getBundles(confirmState.product).length > 0 && (
+                      <select value={confirmState.bundleId} onChange={handleBundleChange} className={styles.modalSelect}>
+                        <option value="">Harga dasar produk</option>
+                        {getBundles(confirmState.product).map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.nama} - {formatRp(b.harga)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <div className={styles.modalTotalRow}>
+                      <span>Total</span>
+                      <span className={styles.modalTotalValue}>{formatRp(confirmState.harga)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button type="button" disabled={confirmSubmitting} onClick={() => setOrderModalOpen(false)} className={styles.modalBtnCancel}>
+                Batal
+              </button>
+              <button type="button" disabled={confirmSubmitting || !confirmState.product} onClick={handleOrderConfirm} className={styles.modalBtnConfirm}>
+                {confirmSubmitting && <Loader2 size={16} className={styles.spin} />}
+                Ya, buat order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

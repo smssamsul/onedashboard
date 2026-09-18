@@ -330,6 +330,265 @@
   cursor: default;
 }
 
+.actionBtnOrder {
+  background: var(--color-primary-main, #1e3a5f);
+  color: #fff;
+}
+
+.orderHistoryRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+/* ── Modal Tambah Order ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.modalCard {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 30rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-divider, #e5e7eb);
+}
+
+.modalHeader h2 {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.modalClose {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0.25rem;
+}
+
+.modalBody {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.modalSection {
+  border: 1px solid var(--color-divider, #e5e7eb);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.modalSectionLabel {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+}
+
+.modalFieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.modalFieldLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.modalFieldValue {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.modalSearchWrap {
+  position: relative;
+}
+
+.modalSearchIcon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-secondary);
+}
+
+.modalSearchInput {
+  width: 100%;
+  padding: 0.55rem 0.75rem 0.55rem 2.1rem;
+  border: 1px solid var(--color-divider, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+
+.modalProductList {
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-divider, #e5e7eb);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalProductItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid var(--color-divider, #e5e7eb);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.modalProductItem:last-child {
+  border-bottom: none;
+}
+
+.modalProductItem:hover {
+  background: #f0f4ff;
+}
+
+.modalProductPrice {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.modalProductEmpty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.modalChangeBtn {
+  border: none;
+  background: none;
+  color: var(--color-primary-main, #1e3a5f);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.modalSelect {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-divider, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+
+.modalTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--color-divider, #e5e7eb);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.modalTotalValue {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-primary-main, #1e3a5f);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-divider, #e5e7eb);
+  background: #f8fafc;
+}
+
+.modalBtnCancel {
+  padding: 0.6rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  background: #e5e7eb;
+  color: #374151;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.modalBtnConfirm {
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-primary-main, #1e3a5f);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modalBtnConfirm:disabled,
+.modalBtnCancel:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .chatBody {
   flex: 1;
   overflow-y: auto;
