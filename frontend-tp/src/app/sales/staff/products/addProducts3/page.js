@@ -3152,7 +3152,7 @@ export default function AddProducts3Page() {
       return;
     }
 
-    if (!pengaturanForm.harga) {
+    if (pengaturanForm.harga === "" || pengaturanForm.harga === null || pengaturanForm.harga === undefined) {
       toast.error("Harga wajib diisi");
       return;
     }
