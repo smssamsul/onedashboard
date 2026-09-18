@@ -21,7 +21,8 @@ function useDebouncedValue(value, delay = 250) {
 }
 
 export default function AdminProductsPage() {
-  const { products, loading, error, handleDelete, handleDuplicate, setProducts } = useProducts();
+  const { products, loading, error, handleDelete, handleDuplicate, handleToggleStatus, setProducts } = useProducts(true);
+  const [togglingId, setTogglingId] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput);
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,6 +59,18 @@ export default function AdminProductsPage() {
       Array.isArray(p.assign_users) && p.assign_users.some((u) => Number(u.id) === Number(currentUserId))
     );
   }, [products, currentUserId]);
+
+  const onToggleStatus = async (product) => {
+    const newStatus = product.status === "N" ? "1" : "N";
+    setTogglingId(product.id);
+    try {
+      await handleToggleStatus(product.id, newStatus);
+    } catch (err) {
+      alert(err?.message || "Gagal mengubah status produk");
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   // Handler untuk buka modal hapus
   const openDeleteModal = (product) => {
@@ -276,6 +289,14 @@ export default function AdminProductsPage() {
                               onClick={() => router.push(`/sales/staff/products/editProducts/${p.id}`)}
                             >
                               Edit
+                            </button>
+                            <button
+                              className="action-btn"
+                              style={{ fontSize: '0.7rem' }}
+                              disabled={togglingId === p.id}
+                              onClick={() => onToggleStatus(p)}
+                            >
+                              {togglingId === p.id ? "..." : p.status === "N" ? "Aktifkan" : "Arsipkan"}
                             </button>
                             <button
                               className="action-btn action-btn--danger"
