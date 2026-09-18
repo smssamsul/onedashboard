@@ -1,8 +1,13 @@
 "use client";
 
 export default function QuotaInfoPreview({ data = {} }) {
-  const totalKuota = data.totalKuota ?? 60;
-  const sisaKuota = data.sisaKuota ?? 47;
+  // Preview di editor (sebelum simpan) mengirim data.totalKuota/sisaKuota,
+  // tapi yang benar-benar tersimpan ke block.content pakai nama field
+  // totalQuota/currentQuota (lihat handleSave di editProducts & addProducts3) -
+  // baca dua-duanya biar landing page publik (yang menerima content mentah
+  // dari database) tidak selalu jatuh ke default 60/47.
+  const totalKuota = data.totalKuota ?? data.totalQuota ?? 60;
+  const sisaKuota = data.sisaKuota ?? data.currentQuota ?? 47;
   const headline = data.headline ?? "Sisa kuota terbatas!";
   const subtext =
     data.subtext ??
