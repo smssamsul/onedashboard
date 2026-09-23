@@ -38,6 +38,11 @@ class ClaudeChatService
             Log::channel('ai')->info('ClaudeChatService: Using config prompt', ['lead_status' => $leadStatus]);
         }
 
+        if (!AiSetting::isReplyEnabled()) {
+            Log::channel('ai')->info('ClaudeChatService: dilewati, Balasan AI dimatikan');
+            return '';
+        }
+
         $response = Http::withHeaders([
             'x-api-key' => config('services.anthropic.key'),
             'anthropic-version' => '2023-06-01',

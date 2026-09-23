@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use OpenAI\Laravel\Facades\OpenAI;
+use App\Models\AiSetting;
 use App\Models\KnowledgeChunk;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,11 @@ class EmbeddingService
 {
     public function embed(string $text): array
     {
+        if (!AiSetting::isReplyEnabled()) {
+            Log::channel('ai')->info('EmbeddingService: dilewati, Balasan AI dimatikan');
+            throw new \Exception('Balasan AI sedang dinonaktifkan (menu AI Setting > Balasan AI).');
+        }
+
         $response = OpenAI::embeddings()->create([
             'model' => 'text-embedding-3-small',
             'input' => $text,

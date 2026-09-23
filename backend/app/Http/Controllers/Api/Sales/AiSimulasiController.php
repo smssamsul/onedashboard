@@ -40,6 +40,13 @@ class AiSimulasiController extends Controller
             ], 422);
         }
 
+        if (!AiSetting::isReplyEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Balasan AI sedang dinonaktifkan (menu AI Setting > Balasan AI). Aktifkan dulu untuk memakai simulasi ini.',
+            ]);
+        }
+
         $message      = $request->message;
         $leadStatus   = $request->lead_status ?? 'new';
         $productId    = $request->product_id;

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use App\Models\AiSetting;
 use App\Models\KnowledgeChunk;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,11 @@ class VoyageEmbeddingService
 {
     public function embed(string $text): array
     {
+        if (!AiSetting::isReplyEnabled()) {
+            Log::channel('ai')->info('VoyageEmbeddingService: dilewati, Balasan AI dimatikan');
+            throw new \Exception('Balasan AI sedang dinonaktifkan (menu AI Setting > Balasan AI).');
+        }
+
         $response = Http::withHeaders([
             'Authorization' => "Bearer " . env('VOYAGE_API_KEY'),
             'Content-Type' => 'application/json'

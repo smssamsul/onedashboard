@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use App\Models\DetailPercakapan;
 use App\Models\LeadLpwa;
 use App\Models\Percakapan;
@@ -83,6 +84,11 @@ PROMPT;
             return 0;
         }
 
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('LeadConversationAnalysisService: dilewati (batch), Servis Intent AI dimatikan');
+            return 0;
+        }
+
         $responses = Http::pool(function ($pool) use ($payload) {
             foreach ($payload as $id => $konteks) {
                 $pool->as($id)
@@ -132,6 +138,13 @@ PROMPT;
     {
         $konteks = $this->buildKonteks($percakapan);
         if ($konteks === null) {
+            return null;
+        }
+
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('LeadConversationAnalysisService: dilewati, Servis Intent AI dimatikan', [
+                'percakapan_id' => $percakapan->id,
+            ]);
             return null;
         }
 

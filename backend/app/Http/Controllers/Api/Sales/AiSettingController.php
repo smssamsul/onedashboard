@@ -40,6 +40,7 @@ class AiSettingController extends Controller
             'prompt_warm' => 'nullable|string',
             'woowa_key' => 'nullable|string',
             'is_on' => 'nullable|boolean',
+            'intent_on' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -68,6 +69,9 @@ class AiSettingController extends Controller
             if ($request->has('is_on')) {
                 $setting->is_on = $request->is_on;
             }
+            if ($request->has('intent_on')) {
+                $setting->intent_on = $request->intent_on;
+            }
             $setting->save();
         } else {
             $setting = AiSetting::create([
@@ -76,6 +80,7 @@ class AiSettingController extends Controller
                 'prompt_warm' => $request->prompt_warm ?? null,
                 'woowa_key' => $request->woowa_key ?? null,
                 'is_on' => $request->is_on ?? true,
+                'intent_on' => $request->intent_on ?? true,
             ]);
         }
 
@@ -103,6 +108,7 @@ class AiSettingController extends Controller
             'prompt_warm' => 'nullable|string',
             'woowa_key' => 'nullable|string',
             'is_on' => 'nullable|boolean',
+            'intent_on' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -127,6 +133,9 @@ class AiSettingController extends Controller
         }
         if ($request->has('is_on')) {
             $setting->is_on = $request->is_on;
+        }
+        if ($request->has('intent_on')) {
+            $setting->intent_on = $request->intent_on;
         }
         $setting->save();
 

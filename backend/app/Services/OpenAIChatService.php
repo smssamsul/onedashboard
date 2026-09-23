@@ -49,6 +49,11 @@ class OpenAIChatService
             ]);
         }
 
+        if (!AiSetting::isReplyEnabled()) {
+            Log::info('OpenAIChatService: dilewati, Balasan AI dimatikan');
+            return '';
+        }
+
         $response = OpenAI::chat()->create([
             'model' => 'gpt-4o-mini',
             'messages' => [

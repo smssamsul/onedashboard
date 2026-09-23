@@ -17,6 +17,7 @@ export default function AiSettingPage() {
   const [promptWarm, setPromptWarm] = useState("");
   const [woowaKey, setWoowaKey] = useState("");
   const [isOn, setIsOn] = useState(true);
+  const [intentOn, setIntentOn] = useState(true);
   const [currentSetting, setCurrentSetting] = useState(null);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function AiSettingPage() {
         setPromptWarm(result.data.prompt_warm || "");
         setWoowaKey(result.data.woowa_key || "");
         setIsOn(result.data.is_on !== undefined ? result.data.is_on : true);
+        setIntentOn(result.data.intent_on !== undefined ? result.data.intent_on : true);
       }
     } catch (error) {
       console.error("Error fetching AI setting:", error);
@@ -51,6 +53,7 @@ export default function AiSettingPage() {
       const settingData = {
         woowa_key: woowaKey,
         is_on: isOn,
+        intent_on: intentOn,
       };
 
       if (prompt.trim()) {
@@ -120,7 +123,7 @@ export default function AiSettingPage() {
             <p className="dashboard-hero__eyebrow">Configuration</p>
             <h2 className="dashboard-hero__title">AI Prompt Setting</h2>
             <span className="dashboard-hero__meta">
-              Kelola prompt yang digunakan untuk AI chatbot WhatsApp
+              Kelola prompt AI chatbot WhatsApp, dan nyalakan/matikan AI secara global
             </span>
           </div>
         </section>
@@ -168,84 +171,130 @@ export default function AiSettingPage() {
               />
             </div>
 
-            <div style={{ marginBottom: "2rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.75rem",
-                  fontWeight: "600",
-                  fontSize: "16px",
-                  color: "var(--text-primary)",
-                }}
-              >
-                Status AI
-              </label>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                }}
-              >
-                <span
+            <div style={{ marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              <div>
+                <label
                   style={{
-                    fontSize: "14px",
-                    color: "var(--text-muted)",
-                    fontWeight: "500",
+                    display: "block",
+                    marginBottom: "0.75rem",
+                    fontWeight: "600",
+                    fontSize: "16px",
+                    color: "var(--text-primary)",
                   }}
                 >
-                  {isOn ? "Aktif" : "Nonaktif"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsOn(!isOn)}
-                  style={{
-                    position: "relative",
-                    width: "56px",
-                    height: "32px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: isOn ? "#10b981" : "#d1d5db",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    outline: "none",
-                    boxShadow: isOn
-                      ? "0 2px 8px rgba(16, 185, 129, 0.3)"
-                      : "0 2px 4px rgba(0, 0, 0, 0.1)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.05)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)";
-                  }}
-                >
-                  <div
+                  Balasan AI
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <span style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: "500" }}>
+                    {isOn ? "Aktif" : "Nonaktif"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsOn(!isOn)}
                     style={{
-                      position: "absolute",
-                      top: "4px",
-                      left: isOn ? "28px" : "4px",
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      background: "white",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                      position: "relative",
+                      width: "56px",
+                      height: "32px",
+                      borderRadius: "16px",
+                      border: "none",
+                      background: isOn ? "#10b981" : "#d1d5db",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      outline: "none",
+                      boxShadow: isOn
+                        ? "0 2px 8px rgba(16, 185, 129, 0.3)"
+                        : "0 2px 4px rgba(0, 0, 0, 0.1)",
                     }}
-                  />
-                </button>
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "4px",
+                        left: isOn ? "28px" : "4px",
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        background: "white",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                      }}
+                    />
+                  </button>
+                </div>
+                <p style={{ marginTop: "0.5rem", fontSize: "12px", color: "var(--text-muted)" }}>
+                  {isOn
+                    ? "Chatbot WhatsApp aktif, akan membalas pesan masuk secara otomatis pakai prompt di bawah."
+                    : "Chatbot WhatsApp nonaktif, pesan masuk tidak akan dibalas otomatis oleh AI (bisa di-handle manual). Servis Intent AI di bawah tidak ikut mati - skor/klasifikasi lead tetap jalan."}
+                </p>
               </div>
-              <p
-                style={{
-                  marginTop: "0.5rem",
-                  fontSize: "12px",
-                  color: "var(--text-muted)",
-                }}
-              >
-                {isOn
-                  ? "AI chatbot aktif dan akan merespons pesan masuk secara otomatis"
-                  : "AI chatbot nonaktif, pesan masuk tidak akan diproses oleh AI"}
-              </p>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.75rem",
+                    fontWeight: "600",
+                    fontSize: "16px",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Servis Intent AI
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <span style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: "500" }}>
+                    {intentOn ? "Aktif" : "Nonaktif"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIntentOn(!intentOn)}
+                    style={{
+                      position: "relative",
+                      width: "56px",
+                      height: "32px",
+                      borderRadius: "16px",
+                      border: "none",
+                      background: intentOn ? "#10b981" : "#d1d5db",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      outline: "none",
+                      boxShadow: intentOn
+                        ? "0 2px 8px rgba(16, 185, 129, 0.3)"
+                        : "0 2px 4px rgba(0, 0, 0, 0.1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "4px",
+                        left: intentOn ? "28px" : "4px",
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        background: "white",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                      }}
+                    />
+                  </button>
+                </div>
+                <p style={{ marginTop: "0.5rem", fontSize: "12px", color: "var(--text-muted)" }}>
+                  {intentOn
+                    ? "Aktif: klasifikasi/skor aktivitas lead, analisa percakapan, dan analisa Meta Ads tetap jalan di belakang layar, terlepas dari status Balasan AI di atas."
+                    : "Nonaktif: klasifikasi/skor aktivitas lead, analisa percakapan, dan analisa Meta Ads berhenti memanggil API AI, sampai dinyalakan lagi."}
+                </p>
+              </div>
             </div>
 
             <div style={{ marginBottom: "2rem" }}>

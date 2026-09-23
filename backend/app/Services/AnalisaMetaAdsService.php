@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -26,6 +27,11 @@ class AnalisaMetaAdsService
      */
     public function analisa(array $campaigns, array $total, int $jumlahHari): array
     {
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('AnalisaMetaAdsService: dilewati, Servis Intent AI dimatikan');
+            throw new \RuntimeException('Servis Intent AI sedang dinonaktifkan (menu AI Setting > Servis Intent AI). Aktifkan dulu untuk memakai analisa ini.');
+        }
+
         $dataCampaign = array_map(fn ($c) => array_intersect_key($c, array_flip(self::KOLOM_CAMPAIGN)), $campaigns);
         $dataTotal = array_intersect_key($total, array_flip(self::KOLOM_CAMPAIGN));
 
