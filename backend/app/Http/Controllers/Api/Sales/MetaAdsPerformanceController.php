@@ -566,6 +566,13 @@ class MetaAdsPerformanceController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
+            if (!\App\Models\AiSetting::isIntentEnabled()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Servis Intent AI sedang dinonaktifkan (menu AI Setting > Servis Intent AI).',
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Analisa AI sedang tidak tersedia, coba lagi nanti.',

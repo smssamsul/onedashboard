@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,11 @@ class IntentClassifierService
 {
     public function classify($message)
     {
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('IntentClassifierService: dilewati, Servis Intent AI dimatikan');
+            return 'tidak_jelas';
+        }
+
         try {
             $response = Http::withToken(env('OPENAI_API_KEY'))
                 ->post('https://api.openai.com/v1/chat/completions', [

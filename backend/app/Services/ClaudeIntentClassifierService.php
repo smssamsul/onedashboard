@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,11 @@ class ClaudeIntentClassifierService
 {
     public function classify($message)
     {
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('ClaudeIntentClassifierService: dilewati, Servis Intent AI dimatikan');
+            return 'tidak_jelas';
+        }
+
         try {
             $response = Http::withHeaders([
                 'x-api-key' => config('services.anthropic.key'),

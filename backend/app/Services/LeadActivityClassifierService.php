@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -69,6 +70,11 @@ PROMPT;
             return [];
         }
 
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('LeadActivityClassifierService: dilewati, Servis Intent AI dimatikan');
+            return array_fill_keys(array_keys($messages), 'netral');
+        }
+
         $responses = Http::pool(function ($pool) use ($messages) {
             foreach ($messages as $key => $text) {
                 $pool->as($key)
@@ -114,6 +120,11 @@ PROMPT;
 
     public function classify(string $message): string
     {
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('LeadActivityClassifierService: dilewati, Servis Intent AI dimatikan');
+            return 'netral';
+        }
+
         try {
             $response = Http::withHeaders([
                 'x-api-key' => config('services.anthropic.key'),

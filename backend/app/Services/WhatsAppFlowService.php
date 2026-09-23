@@ -55,10 +55,11 @@ class WhatsAppFlowService
             return;
         }
         
-        // Check if AI is enabled
-        $aiSetting = AiSetting::first();
-        if (!$aiSetting || !$aiSetting->is_on) {
-            Log::channel('woowa')->info('WhatsApp Flow Service: AI is disabled', [
+        // Check if Balasan AI (reply switch) is enabled - lihat
+        // AiSetting::isReplyEnabled(). Servis intent (skor/klasifikasi lead)
+        // punya switch sendiri, tidak ikut mati di sini.
+        if (!AiSetting::isReplyEnabled()) {
+            Log::channel('woowa')->info('WhatsApp Flow Service: Balasan AI dimatikan', [
                 'from' => $from,
                 'message' => $message,
             ]);

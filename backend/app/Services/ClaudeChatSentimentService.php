@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,12 +10,17 @@ class ClaudeChatSentimentService
 {
     /**
      * Classify chat intent/sentiment.
-     * 
+     *
      * @param string $message
      * @return string (negatif, warm, hot, neutral)
      */
     public function classify($message)
     {
+        if (!AiSetting::isIntentEnabled()) {
+            Log::channel('ai')->info('ClaudeChatSentimentService: dilewati, Servis Intent AI dimatikan');
+            return 'neutral';
+        }
+
         try {
             $response = Http::withHeaders([
                 'x-api-key' => config('services.anthropic.key'),
