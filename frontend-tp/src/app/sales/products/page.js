@@ -23,6 +23,7 @@ function useDebouncedValue(value, delay = 250) {
 export default function AdminProductsPage() {
   const { products, loading, error, handleDelete, handleDuplicate, handleToggleStatus, setProducts } = useProducts(true);
   const [togglingId, setTogglingId] = useState(null);
+  const [togglingActiveId, setTogglingActiveId] = useState(null);
 
   const onToggleStatus = async (product) => {
     const newStatus = product.status === "N" ? "1" : "N";
@@ -33,6 +34,20 @@ export default function AdminProductsPage() {
       alert(err?.message || "Gagal mengubah status produk");
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  // Toggle Active (1) / Inactive (0) - terpisah dari Aktifkan/Arsipkan (N)
+  // di atas, supaya produk bisa dinonaktifkan sementara tanpa masuk ke tab Diarsipkan.
+  const onToggleActive = async (product) => {
+    const newStatus = product.status === "1" ? "0" : "1";
+    setTogglingActiveId(product.id);
+    try {
+      await handleToggleStatus(product.id, newStatus);
+    } catch (err) {
+      alert(err?.message || "Gagal mengubah status produk");
+    } finally {
+      setTogglingActiveId(null);
     }
   };
   const [searchInput, setSearchInput] = useState("");
@@ -382,6 +397,16 @@ export default function AdminProductsPage() {
                             >
                               Edit
                             </button>
+                            {p.status !== "N" && (
+                              <button
+                                className="action-btn"
+                                style={{ fontSize: '0.7rem' }}
+                                disabled={togglingActiveId === p.id}
+                                onClick={() => onToggleActive(p)}
+                              >
+                                {togglingActiveId === p.id ? "..." : p.status === "1" ? "Nonaktifkan" : "Aktifkan"}
+                              </button>
+                            )}
                             <button
                               className="action-btn"
                               style={{ fontSize: '0.7rem' }}
