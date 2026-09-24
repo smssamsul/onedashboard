@@ -84,7 +84,9 @@ class BackdateFollowupPending extends Command
         $total = $limit > 0 ? min($limit, count($targets['list'])) : count($targets['list']);
         $progress = ['sales' => $userId, 'total' => $total, 'berhasil' => 0, 'gagal' => 0, 'mulai' => now()->toDateTimeString(),
             'terakhir' => null, 'status' => 'berjalan', 'setting' => compact('maxPerHour', 'minDelay', 'maxDelay', 'jamMulai', 'jamSelesai')];
-        $tulis = fn () => File::put($progressFile, json_encode($progress, JSON_PRETTY_PRINT));
+        $tulis = function () use (&$progress, $progressFile) {
+            File::put($progressFile, json_encode($progress, JSON_PRETTY_PRINT));
+        };
         $tulis();
 
         $kirimTerakhir = [];   // timestamp pengiriman dalam 1 jam terakhir
