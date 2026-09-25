@@ -827,6 +827,11 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       nama: contentName,
       nilai: calculateTotal || finalValue || 0,
     });
+    // Klik "Daftar Sekarang" juga dihitung sebagai lead untuk iklan ChatGPT (sama seperti klik tombol WhatsApp).
+    trackOpenAiEvent(productData?.openai_pixel_ids, "lead_created", {
+      produkId: productData?.id,
+      nama: contentName,
+    });
 
     // Panggil form submission yang sebenarnya agar order bisa dibuat
     await _handleSubmit({
