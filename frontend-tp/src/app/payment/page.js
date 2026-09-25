@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { getCustomerSession } from "@/lib/customerAuth";
 import { fetchCustomerDashboard } from "@/lib/customerDashboard";
 import { trackSalesUploadedPaymentPurchase } from "@/lib/sales/metaPixelPurchase";
+import { trackOpenAiEvent } from "@/lib/openaiPixel";
 
 // --- ICONS (Professional SVGs) ---
 const Icons = {
@@ -268,6 +269,17 @@ function BankTransferPageContent() {
 
         const orderData = result.data;
         const produk = orderData.produk_rel;
+
+        // Pixel iklan ChatGPT: order_created, event_id "order-{id}" (sama dengan Conversions API di backend).
+        // Dijalankan sebelum cek pixel FB di bawah, supaya tetap jalan walau produk tidak punya pixel FB.
+        if (produk?.id && Array.isArray(produk.openai_pixel_ids) && produk.openai_pixel_ids.length > 0) {
+          trackOpenAiEvent(produk.openai_pixel_ids, "order_created", {
+            produkId: produk.id,
+            orderId: orderData.id,
+            nama: produk.nama,
+            nilai: parseFloat(hargaFromQuery) || parseFloat(orderData.total_harga) || 0,
+          });
+        }
 
         // ✅ Sama seperti ProductClient.js: sumber ID pixel dari pixel_list (relasi ke pixel_meta)
         const pixelIds = (produk?.pixel_list || []).map((p) => p.pixel).filter(Boolean);
