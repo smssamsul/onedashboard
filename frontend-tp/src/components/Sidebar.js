@@ -39,6 +39,7 @@ import {
   Mail,
   QrCode,
   ListChecks,
+  Sparkles,
 } from "lucide-react";
 import "@/styles/sales/sidebar.css";
 import { getSuperOpsHomeRoute } from "@/lib/superOps";
@@ -446,6 +447,12 @@ export default function Sidebar({
             { label: "Setting Akun", href: "/marketing/meta-ads/accounts", icon: <Settings size={18} /> },
           ],
         });
+        salesItems.push({
+          section: "CHATGPT ADS",
+          items: [
+            { label: "Pixel ChatGPT", href: "/sales/setting/pixel-chatgpt", icon: <Sparkles size={18} /> },
+          ],
+        });
       }
 
       return salesItems;
@@ -531,6 +538,12 @@ export default function Sidebar({
             { label: "Kelola Campaign", href: "/marketing/meta-ads/campaigns", icon: <Megaphone size={18} /> },
             { label: "Pixel Crosscheck", href: "/marketing/meta-ads/crosscheck", icon: <Activity size={18} /> },
             { label: "Setting Akun", href: "/marketing/meta-ads/accounts", icon: <Settings size={18} /> },
+          ],
+        },
+        {
+          section: "CHATGPT ADS",
+          items: [
+            { label: "Pixel ChatGPT", href: "/sales/setting/pixel-chatgpt", icon: <Sparkles size={18} /> },
           ],
         },
       ];

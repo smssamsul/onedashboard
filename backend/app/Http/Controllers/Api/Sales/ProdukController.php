@@ -937,6 +937,8 @@ class ProdukController extends Controller
             })->get();
 
         $produk->pixel_list = $pixels;
+        // Pixel iklan ChatGPT (menu Pixel ChatGPT) - cuma ID-nya, API key tidak pernah ikut.
+        $produk->openai_pixel_ids = \App\Models\OpenaiPixel::pixelIdsUntukProduk($produk->id);
 
         return response()->json([
             'success' => true,

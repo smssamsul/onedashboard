@@ -479,6 +479,14 @@ export default function SalesSettingPage() {
                 <MonitorPlay size={18} />
                 Kelola Akun Analitik
               </button>
+              <button
+                onClick={() => router.push('/sales/setting/pixel-chatgpt')}
+                className="btn btn-outline"
+                style={{ color: "var(--color-accent-dark)", borderColor: "var(--color-accent-dark)" }}
+              >
+                <MonitorPlay size={18} />
+                Kelola Pixel ChatGPT
+              </button>
             </div>
           </div>
         </div>

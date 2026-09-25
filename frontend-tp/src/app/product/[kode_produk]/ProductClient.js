@@ -11,6 +11,7 @@ import { buildLandingButtonInlineStyle } from "@/lib/landingPageButtonStyle";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { buildImageUrl } from "@/lib/image";
+import { trackOpenAiEvent } from "@/lib/openaiPixel";
 // ✅ OPTIMASI: Tree-shake lucide-react - import icons yang digunakan secara dinamis
 // Icons digunakan dalam iconMap untuk list component, jadi tetap perlu di-import
 import {
@@ -603,6 +604,11 @@ function ProductClient({ initialProductData, initialLandingPage }) {
             value: data.harga || 0,
             currency: "IDR",
           });
+
+          // ✅ Pixel iklan ChatGPT (menu Pixel ChatGPT): page_viewed + contents_viewed
+          const openAiOpts = { produkId: data.id, nama: data.nama, nilai: Number(data.harga_asli || data.harga) || 0 };
+          trackOpenAiEvent(data.openai_pixel_ids, "page_viewed", openAiOpts);
+          trackOpenAiEvent(data.openai_pixel_ids, "contents_viewed", openAiOpts);
         } else {
           toast.error("Produk tidak ditemukan");
         }
@@ -814,6 +820,12 @@ function ProductClient({ initialProductData, initialLandingPage }) {
       content_category: productData?.kategori_rel?.nama || "Product",
       value: calculateTotal || finalValue || 0,
       currency: "IDR",
+    });
+
+    trackOpenAiEvent(productData?.openai_pixel_ids, "checkout_started", {
+      produkId: productData?.id,
+      nama: contentName,
+      nilai: calculateTotal || finalValue || 0,
     });
 
     // Panggil form submission yang sebenarnya agar order bisa dibuat
@@ -2446,6 +2458,15 @@ function ProductClient({ initialProductData, initialLandingPage }) {
               content_type: 'product',
               value: productData?.harga || 0,
               currency: 'IDR'
+            });
+          }
+
+          // Klik tombol yang membuka WhatsApp (mis. "Tanya di WhatsApp") = lead untuk iklan ChatGPT.
+          // Sengaja tidak pakai fbPixelEvent: tombol scroll-ke-form juga sering di-set "Contact".
+          if (/wa\.me|whatsapp\.com/i.test(merged.link || "")) {
+            trackOpenAiEvent(productData?.openai_pixel_ids, "lead_created", {
+              produkId: productData?.id,
+              nama: productData?.nama,
             });
           }
 

@@ -94,6 +94,7 @@ Route::middleware(['throttle:order'])->post('/order', [OrderCustomerController::
 Route::get('/public-order/{id}', [OrderCustomerController::class, 'publicShowOrder']);
 Route::post('/public-order/{id}/upload-bukti-pembayaran', [OrderCustomerController::class, 'publicUploadBuktiPembayaran']);
 Route::post('/pixel-log', [\App\Http\Controllers\Api\Sales\PixelLogController::class, 'store']);
+Route::middleware(['throttle:60,1'])->post('/openai-pixel/event', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'event']);
 
 // Landing Page
 Route::get('/landing/{kode}', [ProdukController::class, 'showByKode']);
@@ -179,6 +180,13 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/pixel-meta', [PixelMetaController::class, 'store']);
         Route::put('/pixel-meta/{id}', [PixelMetaController::class, 'update']);
         Route::delete('/pixel-meta/{id}', [PixelMetaController::class, 'destroy']);
+
+        // Pixel iklan ChatGPT (OpenAI Ads)
+        Route::get('/openai-pixel', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'index']);
+        Route::post('/openai-pixel', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'store']);
+        Route::put('/openai-pixel/{id}', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'update']);
+        Route::delete('/openai-pixel/{id}', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'destroy']);
+        Route::post('/openai-pixel/{id}/test', [\App\Http\Controllers\Api\Sales\OpenaiPixelController::class, 'test']);
 
         // Meta Ads - akun (config/kredensial)
         Route::get('/meta-ads/accounts', [\App\Http\Controllers\Api\Sales\MetaAdsAccountController::class, 'index']);

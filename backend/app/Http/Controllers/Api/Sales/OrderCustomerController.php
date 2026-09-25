@@ -2712,6 +2712,7 @@ class OrderCustomerController extends Controller
                 })->get();
 
             $order->produk_rel->pixel_list = $pixels;
+            $order->produk_rel->openai_pixel_ids = \App\Models\OpenaiPixel::pixelIdsUntukProduk($order->produk_rel->id);
             unset($order->produk_rel->landingpage);
         }
 
