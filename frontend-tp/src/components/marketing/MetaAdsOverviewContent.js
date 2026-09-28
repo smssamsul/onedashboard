@@ -7,6 +7,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { ordersToCsvString, downloadCsvBlob } from "@/lib/sales/orderListQueryParams";
 
 function getToken() {
   if (typeof window === "undefined") return "";
@@ -159,12 +160,50 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
   const iklan = campaign.iklan || [];
   const produk = campaign.produk_terkait || [];
 
+  const handleUnduhPerformaIklan = () => {
+    const records = iklan.map((a) => ({
+      Iklan: a.name || a.ad_id,
+      Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
+      Impresi: a.ada_data ? a.impressions : 0,
+      Result: a.ada_data ? a.leads : 0,
+      CPR: a.ada_data && a.cpl !== null && a.cpl !== undefined ? Math.round(a.cpl) : "",
+    }));
+    const csv = ordersToCsvString(records);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const namaCampaign = (campaign.name || campaign.campaign_id || "campaign")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    downloadCsvBlob(`performa-iklan-${namaCampaign}-${stamp}.csv`, csv);
+  };
+
   return (
     <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
       <td colSpan={jumlahKolom} style={{ padding: "14px 18px" }}>
         {/* Iklan didahulukan: ini yang dinilai, ad set cuma konteksnya. */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 2 }}>
-          Performa Iklan ({iklan.length})
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
+            Performa Iklan ({iklan.length})
+          </div>
+          {iklan.length > 0 && (
+            <button
+              type="button"
+              onClick={handleUnduhPerformaIklan}
+              title="Unduh data Performa Iklan sebagai CSV"
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#374151",
+                background: "#fff",
+                border: "1px solid #d1d5db",
+                borderRadius: 6,
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Unduh CSV
+            </button>
+          )}
         </div>
         <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
           Diurutkan dari lead terbanyak. Biaya sudah termasuk PPN.
@@ -180,11 +219,10 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
               <thead>
                 <tr style={{ background: "#f3f4f6", borderBottom: "1px solid #e5e7eb" }}>
                   <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Iklan</th>
-                  <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Status</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Biaya</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Leads</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CPL</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CTR</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Impresi</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Result</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CPR</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,17 +241,12 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: "8px 10px" }}>
-                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, whiteSpace: "nowrap", background: a.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: a.status === "ACTIVE" ? "#166534" : "#6b7280" }}>
-                        {a.status || "-"}
-                      </span>
-                    </td>
                     {a.ada_data ? (
                       <>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(Math.round(a.spend_ppn))}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(a.impressions)}</td>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.leads > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.leads)}</td>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpl)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{a.ctr === null ? "-" : `${a.ctr}%`}</td>
                       </>
                     ) : (
                       <td colSpan={4} style={{ padding: "8px 10px", fontSize: 11, color: "#9ca3af" }}>
