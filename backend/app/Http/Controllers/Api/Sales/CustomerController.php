@@ -245,7 +245,7 @@ class CustomerController extends Controller
             ->where('status_pembayaran', '2')
             ->whereIn('produk', $produkIds)
             ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun])
-            ->with('bundling_rel:id,nama')
+            ->with('customer_rel:id,keanggotaan')
             ->get();
         foreach ($liveRows as $o) {
             $tier = $resolver->resolveTierLive($o);
