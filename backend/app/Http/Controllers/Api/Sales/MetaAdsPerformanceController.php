@@ -360,16 +360,19 @@ class MetaAdsPerformanceController extends Controller
      * Dashboard SCO (menu Reports): biaya, impresi, leads, dan closing per produk.
      *
      * Beda dengan produk() (Performa per Produk di overview Meta Ads):
-     * - Biaya campaign yang cocok ke beberapa produk DIBAGI RATA ke produk-produk
-     *   itu, bukan dihitung penuh di tiap produk - supaya total biaya semua
-     *   produk sama dengan total biaya iklan yang sebenarnya.
+     * - Biaya campaign yang cocok ke beberapa produk DIBAGI sesuai porsi order
+     *   produk-produk itu, bukan dihitung penuh di tiap produk - supaya total
+     *   biaya semua produk sama dengan total biaya iklan yang sebenarnya.
      * - Biaya campaign yang tidak cocok ke produk mana pun ditampilkan terpisah
      *   (belum_terpetakan), bukan hilang dari laporan.
-     * - Closing dihitung dari SEMUA order produk itu (semua sumber), bukan hanya
-     *   order yang teratribusi ke iklan. Closing = status pembayaran Paid (2)
-     *   atau Waiting Approval (1).
-     * - Leads = hasil iklan Meta: Contact untuk campaign CTWA (chat WA), Leads
-     *   untuk campaign lainnya (landing page) - sama seperti HASIL di produk().
+     * - Leads = orang RIIL dari data order, bukan angka hasil iklan Meta:
+     *   jumlah nomor WA unik yang order produk itu di rentang tanggal (semua
+     *   status & sumber). Lead dari chat (lead_lpwas) sengaja tidak dihitung
+     *   terpisah karena nantinya juga dijadikan order - kalau ikut dihitung
+     *   jadi dobel.
+     * - Closing = nomor WA unik yang ordernya Paid (2) atau Waiting Approval
+     *   (1). Orang yang order 2x tetap dihitung 1; omzet tetap dari semua
+     *   order closing-nya.
      *
      * Default status=all (termasuk campaign yang sekarang sudah dimatikan),
      * karena biaya yang sudah keluar di rentang itu tetap biaya.
@@ -390,8 +393,6 @@ class MetaAdsPerformanceController extends Controller
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.spend), 0) as spend')
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.impressions), 0) as impressions')
             ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.link_clicks), 0) as link_clicks')
-            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.leads), 0) as leads')
-            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.contact), 0) as contact')
             ->groupBy('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
             ->get();
 
@@ -401,29 +402,35 @@ class MetaAdsPerformanceController extends Controller
 
         $order = collect();
         $rowsOrder = OrderCustomer::query()
-            ->where('status', '!=', 'N')
-            ->whereNotNull('produk')
-            ->whereBetween(DB::raw('DATE(create_at)'), [$start, $end])
-            ->get(['produk', 'status_pembayaran', 'total_harga']);
+            ->leftJoin('customer', 'customer.id', '=', 'order_customer.customer')
+            ->where('order_customer.status', '!=', 'N')
+            ->whereNotNull('order_customer.produk')
+            ->whereBetween(DB::raw('DATE(order_customer.create_at)'), [$start, $end])
+            ->get(['order_customer.produk', 'order_customer.customer', 'order_customer.status_pembayaran', 'order_customer.total_harga', 'customer.wa']);
+        $orangLead = [];     // produk => [kunci orang => true]
+        $orangClosing = [];  // produk => [kunci orang => true]
         foreach ($rowsOrder as $r) {
             $pid = (int) $r->produk;
-            $o = $order->get($pid, (object) ['jumlah_order' => 0, 'closing' => 0, 'omzet' => 0.0]);
+            // Satu orang = satu nomor WA (0812.. dan 62812.. dianggap sama);
+            // order tanpa nomor WA dikenali dari id customer-nya.
+            $orang = $this->scoNormalWa($r->wa) ?? ('customer-' . $r->customer);
+            $o = $order->get($pid, (object) ['jumlah_order' => 0, 'omzet' => 0.0]);
             $o->jumlah_order++;
+            $orangLead[$pid][$orang] = true;
             // 2 = Paid (finance approved), 1 = Waiting Approval.
             if (in_array((string) $r->status_pembayaran, ['1', '2'], true)) {
-                $o->closing++;
+                $orangClosing[$pid][$orang] = true;
                 $o->omzet += (float) $r->total_harga;
             }
             $order->put($pid, $o);
         }
 
-        $nol = fn () => ['spend' => 0.0, 'impressions' => 0.0, 'klik' => 0.0, 'leads' => 0.0, 'campaigns' => []];
+        $nol = fn () => ['spend' => 0.0, 'impressions' => 0.0, 'klik' => 0.0, 'campaigns' => []];
         $iklan = [];
         $belumTerpetakan = $nol();
 
         foreach ($campaigns as $c) {
-            $hasil = $this->isCampaignCtwa($c->name) ? (float) $c->contact : (float) $c->leads;
-            if ((float) $c->spend <= 0 && (float) $c->impressions <= 0 && $hasil <= 0) {
+            if ((float) $c->spend <= 0 && (float) $c->impressions <= 0) {
                 continue;
             }
 
@@ -432,7 +439,6 @@ class MetaAdsPerformanceController extends Controller
                 $belumTerpetakan['spend'] += (float) $c->spend;
                 $belumTerpetakan['impressions'] += (float) $c->impressions;
                 $belumTerpetakan['klik'] += (float) $c->link_clicks;
-                $belumTerpetakan['leads'] += $hasil;
                 $belumTerpetakan['campaigns'][] = $c->name;
                 continue;
             }
@@ -455,27 +461,25 @@ class MetaAdsPerformanceController extends Controller
                 $iklan[$pid]['spend'] += (float) $c->spend * $bagian;
                 $iklan[$pid]['impressions'] += (float) $c->impressions * $bagian;
                 $iklan[$pid]['klik'] += (float) $c->link_clicks * $bagian;
-                $iklan[$pid]['leads'] += $hasil * $bagian;
                 $iklan[$pid]['campaigns'][] = $bagian < 1 ? "{$c->name} (" . round($bagian * 100) . '%)' : $c->name;
             }
         }
 
-        $bentuk = function (float $spend, float $impr, float $klik, float $leads, int $jumlahOrder, int $closing, float $omzet) use ($faktorPpn) {
+        $bentuk = function (float $spend, float $impr, float $klik, int $leads, int $jumlahOrder, int $closing, float $omzet) use ($faktorPpn) {
             $biaya = round($spend * $faktorPpn, 2);
-            $leadsBulat = (int) round($leads);
 
             return [
                 'biaya' => $biaya,
                 'impresi' => (int) round($impr),
                 'klik' => (int) round($klik),
-                'leads' => $leadsBulat,
+                'leads' => $leads,
                 'order' => $jumlahOrder,
                 'closing' => $closing,
                 'omzet' => round($omzet, 2),
                 'cpm' => $impr > 0 ? round($biaya / $impr * 1000, 2) : null,
-                'cpl' => $this->bagi($biaya, $leadsBulat),
+                'cpl' => $this->bagi($biaya, $leads),
                 'biaya_per_closing' => $this->bagi($biaya, $closing),
-                'closing_rate' => $leadsBulat > 0 ? round($closing / $leadsBulat * 100, 1) : null,
+                'closing_rate' => $leads > 0 ? round($closing / $leads * 100, 1) : null,
                 'roas' => $this->bagi($omzet, $biaya),
             ];
         };
@@ -493,8 +497,8 @@ class MetaAdsPerformanceController extends Controller
                 'produk_nama' => $namaProduk[$pid],
                 'campaigns' => array_values(array_unique($a['campaigns'])),
                 'ada_iklan' => $a['spend'] > 0 || $a['impressions'] > 0,
-            ] + $bentuk($a['spend'], $a['impressions'], $a['klik'], $a['leads'],
-                (int) ($o->jumlah_order ?? 0), (int) ($o->closing ?? 0), (float) ($o->omzet ?? 0));
+            ] + $bentuk($a['spend'], $a['impressions'], $a['klik'], count($orangLead[$pid] ?? []),
+                (int) ($o->jumlah_order ?? 0), count($orangClosing[$pid] ?? []), (float) ($o->omzet ?? 0));
         }
 
         usort($baris, fn ($x, $y) => [$y['biaya'], $y['closing']] <=> [$x['biaya'], $x['closing']]);
@@ -502,20 +506,29 @@ class MetaAdsPerformanceController extends Controller
         // Total utama hanya untuk produk yang diiklankan (+ biaya belum terpetakan),
         // supaya ROAS / biaya per closing tidak "tertolong" omzet produk yang
         // lakunya bukan dari iklan (mis. workshop). Produk tanpa iklan dilaporkan terpisah.
+        // Leads & closing total = orang unik lintas produk beriklan (orang yang
+        // order 2 produk dihitung 1), bukan penjumlahan kolom per produk.
         $beriklan = array_filter($baris, fn ($b) => $b['ada_iklan']);
         $tanpaIklan = array_filter($baris, fn ($b) => !$b['ada_iklan']);
+        $leadBeriklan = [];
+        $closingBeriklan = [];
+        foreach ($beriklan as $b) {
+            $leadBeriklan += $orangLead[$b['produk_id']] ?? [];
+            $closingBeriklan += $orangClosing[$b['produk_id']] ?? [];
+        }
         $sum = fn (array $rows, string $k) => array_sum(array_column($rows, $k));
         $total = $bentuk(
             array_sum(array_column($iklan, 'spend')) + $belumTerpetakan['spend'],
             array_sum(array_column($iklan, 'impressions')) + $belumTerpetakan['impressions'],
             array_sum(array_column($iklan, 'klik')) + $belumTerpetakan['klik'],
-            array_sum(array_column($iklan, 'leads')) + $belumTerpetakan['leads'],
+            count($leadBeriklan),
             (int) $sum($beriklan, 'order'),
-            (int) $sum($beriklan, 'closing'),
+            count($closingBeriklan),
             (float) $sum($beriklan, 'omzet')
         );
         $totalTanpaIklan = [
             'jumlah_produk' => count($tanpaIklan),
+            'leads' => (int) $sum($tanpaIklan, 'leads'),
             'order' => (int) $sum($tanpaIklan, 'order'),
             'closing' => (int) $sum($tanpaIklan, 'closing'),
             'omzet' => round((float) $sum($tanpaIklan, 'omzet'), 2),
@@ -524,10 +537,10 @@ class MetaAdsPerformanceController extends Controller
         return response()->json([
             'success' => true,
             'connected' => $this->hasConnectedAccount(),
-            'data' => $baris,
+            'data' => array_values($baris),
             'total' => $total,
             'total_tanpa_iklan' => $totalTanpaIklan,
-            'belum_terpetakan' => $bentuk($belumTerpetakan['spend'], $belumTerpetakan['impressions'], $belumTerpetakan['klik'], $belumTerpetakan['leads'], 0, 0, 0)
+            'belum_terpetakan' => $bentuk($belumTerpetakan['spend'], $belumTerpetakan['impressions'], $belumTerpetakan['klik'], 0, 0, 0, 0)
                 + ['campaigns' => array_values(array_unique($belumTerpetakan['campaigns']))],
             'meta' => [
                 'range' => ['start' => $start, 'end' => $end],
@@ -535,6 +548,19 @@ class MetaAdsPerformanceController extends Controller
                 'ppn_persen' => self::PPN_PERSEN,
             ],
         ]);
+    }
+
+    /** Nomor WA ke bentuk baku 62xxx supaya "0812.." dan "62812.." dihitung orang yang sama. */
+    private function scoNormalWa(?string $wa): ?string
+    {
+        $d = preg_replace('/\D/', '', (string) $wa);
+        if (str_starts_with($d, '0')) {
+            $d = '62' . substr($d, 1);
+        } elseif (str_starts_with($d, '8')) {
+            $d = '62' . $d;
+        }
+
+        return strlen($d) >= 9 ? $d : null;
     }
 
     /**

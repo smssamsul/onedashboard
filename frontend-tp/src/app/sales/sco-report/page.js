@@ -189,7 +189,7 @@ export default function ScoReportPage() {
               <div className={styles.summaryCard}>
                 <div className={styles.summaryLabel}>Leads</div>
                 <div className={styles.summaryValue}>{fmtN(total.leads)}</div>
-                <div className={styles.summarySub}>{fmtRp(total.cpl)} / lead</div>
+                <div className={styles.summarySub}>orang unik dari order · {fmtRp(total.cpl)} / lead</div>
               </div>
               <div className={styles.summaryCard}>
                 <div className={styles.summaryLabel}>Closing</div>
@@ -252,9 +252,7 @@ export default function ScoReportPage() {
                       <td>{fmtRp(belum.biaya)}</td>
                       <td>{fmtN(belum.impresi)}</td>
                       <td>{fmtRp(belum.cpm)}</td>
-                      <td>{fmtN(belum.leads)}</td>
-                      <td>{fmtRp(belum.cpl)}</td>
-                      <td colSpan={6}></td>
+                      <td colSpan={8}></td>
                     </tr>
                   )}
                 </tbody>
@@ -271,17 +269,17 @@ export default function ScoReportPage() {
 
             {tanpaIklan && tanpaIklan.jumlah_produk > 0 && (
               <p className={styles.infoTanpaIklan}>
-                Di luar total: {fmtN(tanpaIklan.jumlah_produk)} produk tanpa iklan Meta (baris abu-abu) menghasilkan{" "}
-                {fmtN(tanpaIklan.closing)} closing dengan omzet {fmtRp(tanpaIklan.omzet)}.
+                Di luar total: {fmtN(tanpaIklan.jumlah_produk)} produk tanpa iklan Meta (baris abu-abu) punya{" "}
+                {fmtN(tanpaIklan.leads)} leads dan {fmtN(tanpaIklan.closing)} closing dengan omzet {fmtRp(tanpaIklan.omzet)}.
               </p>
             )}
 
             <details className={styles.catatan}>
               <summary>Cara angka dihitung</summary>
               <ul>
-                <li><b>Biaya, impresi, leads</b> dari data Meta Ads (disinkron tiap jam). Biaya sudah termasuk PPN {data.meta?.ppn_persen}%.</li>
-                <li><b>Leads</b> = hasil iklan: <i>Contact</i> (chat WA) untuk campaign CTWA, <i>Leads</i> untuk campaign landing page.</li>
-                <li><b>Closing</b> = order produk itu yang statusnya Paid atau Waiting Approval, dari semua sumber order, berdasarkan tanggal order dibuat. <b>Order</b> = semua order yang masuk.</li>
+                <li><b>Biaya &amp; impresi</b> dari data Meta Ads (disinkron tiap jam). Biaya sudah termasuk PPN {data.meta?.ppn_persen}%.</li>
+                <li><b>Leads</b> = jumlah orang (nomor WA unik) yang masuk ke data order produk itu, semua status &amp; sumber, berdasarkan tanggal order dibuat. Orang yang order lebih dari sekali dihitung 1.</li>
+                <li><b>Closing</b> = jumlah orang yang ordernya Paid atau Waiting Approval (dihitung 1 per orang). <b>Order</b> = jumlah semua order yang masuk, <b>Omzet</b> = total nilai order closing.</li>
                 <li>Campaign dicocokkan ke produk dari namanya (mis. &quot;Jakarta/CTWA&quot; → Seminar Ternak Properti Jakarta). Kalau cocok ke beberapa produk, biayanya dibagi sesuai porsi order tiap produk (persentase di daftar campaign).</li>
                 <li>Campaign yang tidak cocok ke produk mana pun tampil di baris &quot;Belum terpetakan&quot; dan tetap ikut di total biaya.</li>
                 <li>Warna ROAS: merah di bawah 3x, kuning 3–5x, hijau 5x ke atas.</li>
