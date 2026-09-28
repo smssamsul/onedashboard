@@ -384,6 +384,44 @@ export default function MetaAdsOverviewContent({
   }, [load]);
 
   /**
+   * KPI tiles di bagian atas overview. "Result" belum punya satu angka
+   * tunggal di data kita (beda dengan Ads Manager) - jadi tetap dipecah jadi
+   * tiga hasil nyata yang sudah dilacak terpisah (Leads, Contact, Purchase),
+   * masing-masing dengan cost-per-nya sendiri sebagai baris kecil di bawah,
+   * lalu Biaya, Biaya+PPN, CPC, CPM, Link Klik, CTR, Impresi.
+   *
+   * CPC/CPM/CTR dihitung ulang dari total spend/impressions/clicks - BUKAN
+   * dirata-rata per hari - dengan alasan yang sama seperti totalTabel di bawah.
+   */
+  const kpiTiles = useMemo(() => {
+    const bagi = (a, b) => (b > 0 ? a / b : null);
+    const bulat2 = (n) => (n === null ? null : Math.round(n * 100) / 100);
+
+    const spend = Number(totals?.spend || 0);
+    const spendPpn = spend * (1 + ppnPersen / 100);
+    const impressions = Number(totals?.impressions || 0);
+    const clicks = Number(totals?.clicks || 0);
+    const linkClicks = Number(totals?.link_clicks || 0);
+    const leads = Number(totals?.leads || 0);
+    const contact = Number(totals?.contact || 0);
+    const purchase = Number(totals?.conversions || 0);
+    const ctr = impressions > 0 ? bulat2((clicks / impressions) * 100) : null;
+
+    return [
+      { label: "Leads", value: fmt(leads), sub: leads > 0 ? `${fmtRpOpsional(bagi(spendPpn, leads))} / leads` : null, color: "#2563eb" },
+      { label: "Contact", value: fmt(contact), sub: contact > 0 ? `${fmtRpOpsional(bagi(spendPpn, contact))} / contact` : null, color: "#0d9488" },
+      { label: "Purchase", value: fmt(purchase), sub: purchase > 0 ? `${fmtRpOpsional(bagi(spendPpn, purchase))} / purchase` : null, color: "#16a34a" },
+      { label: "Biaya", value: fmtRp(spend), color: "#111827" },
+      { label: `Biaya + PPN ${ppnPersen}%`, value: fmtRp(Math.round(spendPpn)), color: "#111827" },
+      { label: "CPC", value: fmtRpOpsional(bagi(spendPpn, clicks)), color: "#b45309" },
+      { label: "CPM", value: fmtRpOpsional(bagi(spendPpn * 1000, impressions)), color: "#b45309" },
+      { label: "Link Klik", value: fmt(linkClicks), color: "#7c3aed" },
+      { label: "CTR", value: fmtPersen(ctr), color: "#7c3aed" },
+      { label: "Impresi", value: fmt(impressions), color: "#7c3aed" },
+    ];
+  }, [totals, ppnPersen]);
+
+  /**
    * Total baris tabel. Sengaja dihitung dari `campaigns` (baris yang benar-benar
    * tampil), bukan dari `totals` milik endpoint overview — supaya totalnya selalu
    * cocok dengan yang dijumlah manual di layar, termasuk saat filter "hanya aktif"
@@ -622,17 +660,13 @@ export default function MetaAdsOverviewContent({
         <>
           {/* KPI Tiles */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 16, marginBottom: 24 }}>
-            {[
-              { label: "Biaya", value: fmtRp(totals?.spend), color: "#111827" },
-              { label: `Biaya + PPN ${ppnPersen}%`, value: fmtRp(Math.round(Number(totals?.spend || 0) * (1 + ppnPersen / 100))), color: "#111827" },
-              { label: "Impresi", value: fmt(totals?.impressions), color: "#7c3aed" },
-              { label: "Leads", value: fmt(totals?.leads), color: "#2563eb" },
-              { label: "Contact", value: fmt(totals?.contact), color: "#0d9488" },
-              { label: "Purchase", value: fmt(totals?.conversions), color: "#16a34a" },
-            ].map((tile) => (
+            {kpiTiles.map((tile) => (
               <div key={tile.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px" }}>
                 <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{tile.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: tile.color }}>{loading ? "..." : tile.value}</div>
+                {!loading && tile.sub && (
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{tile.sub}</div>
+                )}
               </div>
             ))}
           </div>
