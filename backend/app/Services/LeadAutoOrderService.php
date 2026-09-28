@@ -68,8 +68,14 @@ class LeadAutoOrderService
         }
 
         $namaProdukDicari = preg_replace('/\s+/', ' ', trim($produkText . ' ' . $lokasi));
-        $matches = Produk::where('status', '!=', 'N')
-            ->whereRaw('LOWER(TRIM(nama)) = LOWER(?)', [$namaProdukDicari])
+        // Seminar kota AS dinamai "... Tegal (AS)", padahal lead-nya cuma menyebut
+        // "Seminar Ternak Properti" + "Tegal" - varian ber-"(AS)" ikut dicocokkan,
+        // tetap exact, dan tetap batal kalau hasilnya lebih dari satu (ambigu).
+        // Hanya produk AKTIF (status 1) - produk yang sengaja dinonaktifkan
+        // (mis. seminar kota yang jadwalnya sudah tidak dibuka) jangan sampai
+        // tetap menerima order otomatis.
+        $matches = Produk::where('status', '1')
+            ->whereRaw('LOWER(TRIM(nama)) IN (LOWER(?), LOWER(?))', [$namaProdukDicari, $namaProdukDicari . ' (AS)'])
             ->get(['id', 'nama', 'harga_asli']);
 
         if ($matches->count() !== 1) {
