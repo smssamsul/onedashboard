@@ -160,9 +160,25 @@ class ChatExtractorService
             ];
         }
 
+        $product = $this->extractProduct($message);
+        $location = $this->extractLocation($message);
+
+        // Format baru tombol WA tidak memakai "di" sebelum kota:
+        // "Halo saya mau ikut Seminar Ternak Properti Jakarta. Harga promo Rp150.000? v18"
+        // Tanpa ini kota ikut masuk ke nama produk dan lokasi kosong - beda dengan
+        // lead format lama ("... Seminar Ternak Properti di Jakarta") dan bikin
+        // LeadAutoOrderService (yang butuh lokasi) tidak pernah jalan.
+        if ($product !== null && $location === null) {
+            $pisah = app(LokasiKeywordService::class)->pisahKotaDiAkhir($product);
+            if ($pisah) {
+                $product = ucwords($pisah['sisa']);
+                $location = $pisah['kota'];
+            }
+        }
+
         return [
-            'product' => $this->extractProduct($message),
-            'location' => $this->extractLocation($message),
+            'product' => $product,
+            'location' => $location,
             'sumber' => $this->extractSumber($message),
         ];
     }
