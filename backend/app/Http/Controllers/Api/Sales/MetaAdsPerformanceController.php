@@ -396,9 +396,21 @@ class MetaAdsPerformanceController extends Controller
             ->groupBy('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
             ->get();
 
-        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama', 'kode']);
-        $namaProduk = $produkList->pluck('nama', 'id')->all();
-        $produkPerCampaign = $this->scoProdukPerCampaign($campaigns, $produkList);
+        $semuaProduk = Produk::get(['id', 'nama', 'kode', 'status']);
+        $namaProduk = $semuaProduk->pluck('nama', 'id')->all();
+        $idDiarsip = $semuaProduk->where('status', 'N')->pluck('id')->map(fn ($id) => (int) $id)->flip()->all();
+
+        // Dicocokkan ke produk aktif dulu. Campaign yang tidak ketemu pasangannya
+        // dicoba lagi ke produk yang sudah diarsip - iklan & order tetap bisa jalan
+        // setelah produknya diarsip (kasus nyata: Kendari diarsip 19 Agu, iklannya
+        // jalan 9-17 Sep dan dapat 18 order), dan biaya itu tetap harus terlihat.
+        $produkPerCampaign = $this->scoProdukPerCampaign($campaigns, $semuaProduk->where('status', '!=', 'N')->values());
+        $belumKetemu = $campaigns->filter(fn ($c) => empty($produkPerCampaign[$c->id]))->values();
+        if ($belumKetemu->isNotEmpty()) {
+            foreach ($this->scoProdukPerCampaign($belumKetemu, $semuaProduk->where('status', 'N')->values()) as $cid => $ids) {
+                $produkPerCampaign[$cid] = $ids;
+            }
+        }
 
         $order = collect();
         $rowsOrder = OrderCustomer::query()
@@ -488,13 +500,14 @@ class MetaAdsPerformanceController extends Controller
         $idProduk = array_unique(array_merge(array_keys($iklan), $order->keys()->all()));
         foreach ($idProduk as $pid) {
             if (!isset($namaProduk[$pid])) {
-                continue; // produk diarsip
+                continue; // order ke produk yang sudah tidak ada di tabel produk
             }
             $a = $iklan[$pid] ?? $nol();
             $o = $order->get($pid);
             $baris[] = [
                 'produk_id' => $pid,
                 'produk_nama' => $namaProduk[$pid],
+                'diarsip' => isset($idDiarsip[$pid]),
                 'campaigns' => array_values(array_unique($a['campaigns'])),
                 'ada_iklan' => $a['spend'] > 0 || $a['impressions'] > 0,
             ] + $bentuk($a['spend'], $a['impressions'], $a['klik'], count($orangLead[$pid] ?? []),

@@ -182,6 +182,18 @@
   color: var(--color-text-primary);
 }
 
+.badgeArsip {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  vertical-align: middle;
+  background: var(--color-warning-lighter, #fef3c7);
+  color: var(--color-warning-dark, #b45309);
+}
+
 .produkSub {
   font-size: 0.6875rem;
   color: var(--color-text-secondary);

@@ -232,7 +232,10 @@ export default function ScoReportPage() {
                     baris.map((b) => (
                       <tr key={b.produk_id} className={b.ada_iklan ? undefined : styles.tanpaIklan}>
                         <td className={styles.produkCell}>
-                          <div className={styles.produkNama}>{b.produk_nama}</div>
+                          <div className={styles.produkNama}>
+                            {b.produk_nama}
+                            {b.diarsip && <span className={styles.badgeArsip} title="Produk sudah diarsip, tapi masih ada biaya iklan atau order di rentang ini">diarsip</span>}
+                          </div>
                           <div className={styles.produkSub} title={b.campaigns.join("\n")}>
                             {b.ada_iklan ? `Campaign: ${b.campaigns.join(", ")}` : "Tanpa iklan Meta di rentang ini"}
                           </div>
@@ -281,7 +284,7 @@ export default function ScoReportPage() {
                 <li><b>Leads</b> = jumlah orang (nomor WA unik) yang masuk ke data order produk itu, semua status &amp; sumber, berdasarkan tanggal order dibuat. Orang yang order lebih dari sekali dihitung 1.</li>
                 <li><b>Closing</b> = jumlah orang yang ordernya Paid atau Waiting Approval (dihitung 1 per orang). <b>Order</b> = jumlah semua order yang masuk, <b>Omzet</b> = total nilai order closing.</li>
                 <li>Campaign dicocokkan ke produk dari namanya (mis. &quot;Jakarta/CTWA&quot; → Seminar Ternak Properti Jakarta). Kalau cocok ke beberapa produk, biayanya dibagi sesuai porsi order tiap produk (persentase di daftar campaign).</li>
-                <li>Campaign yang tidak cocok ke produk mana pun tampil di baris &quot;Belum terpetakan&quot; dan tetap ikut di total biaya.</li>
+                <li>Campaign dicocokkan ke produk aktif dulu; kalau tidak ada, ke produk yang sudah diarsip (tanda <i>diarsip</i>). Yang tetap tidak cocok tampil di baris &quot;Belum terpetakan&quot; dan tetap ikut di total biaya.</li>
                 <li>Warna ROAS: merah di bawah 3x, kuning 3–5x, hijau 5x ke atas.</li>
               </ul>
             </details>
