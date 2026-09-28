@@ -406,7 +406,7 @@ class MetaAdsPerformanceController extends Controller
             ->where('order_customer.status', '!=', 'N')
             ->whereNotNull('order_customer.produk')
             ->whereBetween(DB::raw('DATE(order_customer.create_at)'), [$start, $end])
-            ->get(['order_customer.produk', 'order_customer.customer', 'order_customer.status_pembayaran', 'order_customer.total_harga', 'customer.wa']);
+            ->get(['order_customer.produk', 'order_customer.customer', 'order_customer.status_pembayaran', 'order_customer.total_harga', 'order_customer.create_at', 'customer.wa']);
         $orangLead = [];     // produk => [kunci orang => true]
         $orangClosing = [];  // produk => [kunci orang => true]
         foreach ($rowsOrder as $r) {
@@ -534,12 +534,15 @@ class MetaAdsPerformanceController extends Controller
             'omzet' => round((float) $sum($tanpaIklan, 'omzet'), 2),
         ];
 
+        $harian = $this->scoHarian($start, $end, $hanyaAktif, $rowsOrder, array_flip(array_column($beriklan, 'produk_id')), $faktorPpn);
+
         return response()->json([
             'success' => true,
             'connected' => $this->hasConnectedAccount(),
             'data' => array_values($baris),
             'total' => $total,
             'total_tanpa_iklan' => $totalTanpaIklan,
+            'harian' => $harian,
             'belum_terpetakan' => $bentuk($belumTerpetakan['spend'], $belumTerpetakan['impressions'], $belumTerpetakan['klik'], 0, 0, 0, 0)
                 + ['campaigns' => array_values(array_unique($belumTerpetakan['campaigns']))],
             'meta' => [
@@ -548,6 +551,59 @@ class MetaAdsPerformanceController extends Controller
                 'ppn_persen' => self::PPN_PERSEN,
             ],
         ]);
+    }
+
+    /**
+     * Seri harian untuk grafik Dashboard SCO: biaya & impresi (semua campaign
+     * sesuai filter status, termasuk yang belum terpetakan - sama dengan kartu
+     * total), leads & closing (orang unik per hari, dari order produk beriklan
+     * - sama dengan cakupan total leads/closing). Semua tanggal di rentang
+     * diisi, termasuk yang nol, supaya sumbu waktunya tidak bolong.
+     *
+     * @param  array<int, int>  $idBeriklan  produk id => index (dipakai sebagai set)
+     * @return list<array{tanggal: string, biaya: float, impresi: int, leads: int, closing: int}>
+     */
+    private function scoHarian(string $start, string $end, bool $hanyaAktif, $rowsOrder, array $idBeriklan, float $faktorPpn): array
+    {
+        $iklanPerHari = MetaAdInsightDaily::query()
+            ->whereBetween('meta_ad_insights_daily.date', [$start, $end])
+            ->when($hanyaAktif, fn ($q) => $q->whereIn(
+                'meta_ad_insights_daily.campaign_id',
+                MetaAdCampaign::where('status', 'ACTIVE')->select('campaign_id')
+            ))
+            ->selectRaw('DATE(meta_ad_insights_daily.date) as tanggal, COALESCE(SUM(spend), 0) as spend, COALESCE(SUM(impressions), 0) as impressions')
+            ->groupBy(DB::raw('DATE(meta_ad_insights_daily.date)'))
+            ->get()
+            ->keyBy(fn ($r) => substr((string) $r->tanggal, 0, 10));
+
+        $lead = [];
+        $closing = [];
+        foreach ($rowsOrder as $r) {
+            if (!isset($idBeriklan[(int) $r->produk])) {
+                continue;
+            }
+            $tgl = substr((string) $r->create_at, 0, 10);
+            $orang = $this->scoNormalWa($r->wa) ?? ('customer-' . $r->customer);
+            $lead[$tgl][$orang] = true;
+            if (in_array((string) $r->status_pembayaran, ['1', '2'], true)) {
+                $closing[$tgl][$orang] = true;
+            }
+        }
+
+        $hasil = [];
+        foreach (\Carbon\CarbonPeriod::create($start, $end) as $hari) {
+            $tgl = $hari->format('Y-m-d');
+            $i = $iklanPerHari->get($tgl);
+            $hasil[] = [
+                'tanggal' => $tgl,
+                'biaya' => round((float) ($i->spend ?? 0) * $faktorPpn, 2),
+                'impresi' => (int) ($i->impressions ?? 0),
+                'leads' => count($lead[$tgl] ?? []),
+                'closing' => count($closing[$tgl] ?? []),
+            ];
+        }
+
+        return $hasil;
     }
 
     /** Nomor WA ke bentuk baku 62xxx supaya "0812.." dan "62812.." dihitung orang yang sama. */
