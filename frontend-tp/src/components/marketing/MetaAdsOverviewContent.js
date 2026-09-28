@@ -165,8 +165,8 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
       Iklan: a.name || a.ad_id,
       Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
       Impresi: a.ada_data ? a.impressions : 0,
-      Result: a.ada_data ? a.leads : 0,
-      CPR: a.ada_data && a.cpl !== null && a.cpl !== undefined ? Math.round(a.cpl) : "",
+      Result: a.ada_data ? a.contact : 0,
+      CPR: a.ada_data && a.cpr !== null && a.cpr !== undefined ? Math.round(a.cpr) : "",
     }));
     const csv = ordersToCsvString(records);
     const stamp = new Date().toISOString().slice(0, 10);
@@ -206,7 +206,7 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
           )}
         </div>
         <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
-          Diurutkan dari lead terbanyak. Biaya sudah termasuk PPN.
+          Result dari Contact (chat WA dimulai). Diurutkan dari Contact terbanyak. Biaya sudah termasuk PPN.
         </p>
 
         {iklan.length === 0 ? (
@@ -245,8 +245,8 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
                       <>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(Math.round(a.spend_ppn))}</td>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(a.impressions)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.leads > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.leads)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpl)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.contact > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.contact)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpr)}</td>
                       </>
                     ) : (
                       <td colSpan={4} style={{ padding: "8px 10px", fontSize: 11, color: "#9ca3af" }}>
