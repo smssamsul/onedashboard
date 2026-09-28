@@ -357,6 +357,279 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
+     * Dashboard SCO (menu Reports): biaya, impresi, leads, dan closing per produk.
+     *
+     * Beda dengan produk() (Performa per Produk di overview Meta Ads):
+     * - Biaya campaign yang cocok ke beberapa produk DIBAGI sesuai porsi order
+     *   produk-produk itu, bukan dihitung penuh di tiap produk - supaya total
+     *   biaya semua produk sama dengan total biaya iklan yang sebenarnya.
+     * - Biaya campaign yang tidak cocok ke produk mana pun ditampilkan terpisah
+     *   (belum_terpetakan), bukan hilang dari laporan.
+     * - Leads = orang RIIL dari data order, bukan angka hasil iklan Meta:
+     *   jumlah nomor WA unik yang order produk itu di rentang tanggal (semua
+     *   status & sumber). Lead dari chat (lead_lpwas) sengaja tidak dihitung
+     *   terpisah karena nantinya juga dijadikan order - kalau ikut dihitung
+     *   jadi dobel.
+     * - Closing = nomor WA unik yang ordernya Paid (2) atau Waiting Approval
+     *   (1). Orang yang order 2x tetap dihitung 1; omzet tetap dari semua
+     *   order closing-nya.
+     *
+     * Default status=all (termasuk campaign yang sekarang sudah dimatikan),
+     * karena biaya yang sudah keluar di rentang itu tetap biaya.
+     */
+    public function sco(Request $request)
+    {
+        [$start, $end] = $this->dateRange($request);
+        $hanyaAktif = strtolower((string) $request->get('status', 'all')) === 'active';
+        $faktorPpn = 1 + self::PPN_PERSEN / 100;
+
+        $campaigns = MetaAdCampaign::query()
+            ->when($hanyaAktif, fn ($q) => $q->where('meta_ad_campaigns.status', 'ACTIVE'))
+            ->join('meta_ad_insights_daily', function ($join) use ($start, $end) {
+                $join->on('meta_ad_insights_daily.campaign_id', '=', 'meta_ad_campaigns.campaign_id')
+                    ->whereBetween('meta_ad_insights_daily.date', [$start, $end]);
+            })
+            ->select('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.spend), 0) as spend')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.impressions), 0) as impressions')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.link_clicks), 0) as link_clicks')
+            ->groupBy('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
+            ->get();
+
+        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama', 'kode']);
+        $namaProduk = $produkList->pluck('nama', 'id')->all();
+        $produkPerCampaign = $this->scoProdukPerCampaign($campaigns, $produkList);
+
+        $order = collect();
+        $rowsOrder = OrderCustomer::query()
+            ->leftJoin('customer', 'customer.id', '=', 'order_customer.customer')
+            ->where('order_customer.status', '!=', 'N')
+            ->whereNotNull('order_customer.produk')
+            ->whereBetween(DB::raw('DATE(order_customer.create_at)'), [$start, $end])
+            ->get(['order_customer.produk', 'order_customer.customer', 'order_customer.status_pembayaran', 'order_customer.total_harga', 'customer.wa']);
+        $orangLead = [];     // produk => [kunci orang => true]
+        $orangClosing = [];  // produk => [kunci orang => true]
+        foreach ($rowsOrder as $r) {
+            $pid = (int) $r->produk;
+            // Satu orang = satu nomor WA (0812.. dan 62812.. dianggap sama);
+            // order tanpa nomor WA dikenali dari id customer-nya.
+            $orang = $this->scoNormalWa($r->wa) ?? ('customer-' . $r->customer);
+            $o = $order->get($pid, (object) ['jumlah_order' => 0, 'omzet' => 0.0]);
+            $o->jumlah_order++;
+            $orangLead[$pid][$orang] = true;
+            // 2 = Paid (finance approved), 1 = Waiting Approval.
+            if (in_array((string) $r->status_pembayaran, ['1', '2'], true)) {
+                $orangClosing[$pid][$orang] = true;
+                $o->omzet += (float) $r->total_harga;
+            }
+            $order->put($pid, $o);
+        }
+
+        $nol = fn () => ['spend' => 0.0, 'impressions' => 0.0, 'klik' => 0.0, 'campaigns' => []];
+        $iklan = [];
+        $belumTerpetakan = $nol();
+
+        foreach ($campaigns as $c) {
+            if ((float) $c->spend <= 0 && (float) $c->impressions <= 0) {
+                continue;
+            }
+
+            $produkIds = $produkPerCampaign[$c->id] ?? [];
+            if (empty($produkIds)) {
+                $belumTerpetakan['spend'] += (float) $c->spend;
+                $belumTerpetakan['impressions'] += (float) $c->impressions;
+                $belumTerpetakan['klik'] += (float) $c->link_clicks;
+                $belumTerpetakan['campaigns'][] = $c->name;
+                continue;
+            }
+
+            // Campaign yang cocok ke beberapa produk (mis. "Bandung" -> Seminar
+            // Bandung & Workshop Bandung) dibagi sesuai porsi jumlah order tiap
+            // produk di rentang ini; kalau semuanya belum ada order, dibagi rata.
+            $bobot = [];
+            foreach ($produkIds as $pid) {
+                $bobot[$pid] = (int) ($order->get($pid)->jumlah_order ?? 0);
+            }
+            $totalBobot = array_sum($bobot);
+
+            foreach ($produkIds as $pid) {
+                $bagian = $totalBobot > 0 ? $bobot[$pid] / $totalBobot : 1 / count($produkIds);
+                if ($bagian <= 0) {
+                    continue;
+                }
+                $iklan[$pid] ??= $nol();
+                $iklan[$pid]['spend'] += (float) $c->spend * $bagian;
+                $iklan[$pid]['impressions'] += (float) $c->impressions * $bagian;
+                $iklan[$pid]['klik'] += (float) $c->link_clicks * $bagian;
+                $iklan[$pid]['campaigns'][] = $bagian < 1 ? "{$c->name} (" . round($bagian * 100) . '%)' : $c->name;
+            }
+        }
+
+        $bentuk = function (float $spend, float $impr, float $klik, int $leads, int $jumlahOrder, int $closing, float $omzet) use ($faktorPpn) {
+            $biaya = round($spend * $faktorPpn, 2);
+
+            return [
+                'biaya' => $biaya,
+                'impresi' => (int) round($impr),
+                'klik' => (int) round($klik),
+                'leads' => $leads,
+                'order' => $jumlahOrder,
+                'closing' => $closing,
+                'omzet' => round($omzet, 2),
+                'cpm' => $impr > 0 ? round($biaya / $impr * 1000, 2) : null,
+                'cpl' => $this->bagi($biaya, $leads),
+                'biaya_per_closing' => $this->bagi($biaya, $closing),
+                'closing_rate' => $leads > 0 ? round($closing / $leads * 100, 1) : null,
+                'roas' => $this->bagi($omzet, $biaya),
+            ];
+        };
+
+        $baris = [];
+        $idProduk = array_unique(array_merge(array_keys($iklan), $order->keys()->all()));
+        foreach ($idProduk as $pid) {
+            if (!isset($namaProduk[$pid])) {
+                continue; // produk diarsip
+            }
+            $a = $iklan[$pid] ?? $nol();
+            $o = $order->get($pid);
+            $baris[] = [
+                'produk_id' => $pid,
+                'produk_nama' => $namaProduk[$pid],
+                'campaigns' => array_values(array_unique($a['campaigns'])),
+                'ada_iklan' => $a['spend'] > 0 || $a['impressions'] > 0,
+            ] + $bentuk($a['spend'], $a['impressions'], $a['klik'], count($orangLead[$pid] ?? []),
+                (int) ($o->jumlah_order ?? 0), count($orangClosing[$pid] ?? []), (float) ($o->omzet ?? 0));
+        }
+
+        usort($baris, fn ($x, $y) => [$y['biaya'], $y['closing']] <=> [$x['biaya'], $x['closing']]);
+
+        // Total utama hanya untuk produk yang diiklankan (+ biaya belum terpetakan),
+        // supaya ROAS / biaya per closing tidak "tertolong" omzet produk yang
+        // lakunya bukan dari iklan (mis. workshop). Produk tanpa iklan dilaporkan terpisah.
+        // Leads & closing total = orang unik lintas produk beriklan (orang yang
+        // order 2 produk dihitung 1), bukan penjumlahan kolom per produk.
+        $beriklan = array_filter($baris, fn ($b) => $b['ada_iklan']);
+        $tanpaIklan = array_filter($baris, fn ($b) => !$b['ada_iklan']);
+        $leadBeriklan = [];
+        $closingBeriklan = [];
+        foreach ($beriklan as $b) {
+            $leadBeriklan += $orangLead[$b['produk_id']] ?? [];
+            $closingBeriklan += $orangClosing[$b['produk_id']] ?? [];
+        }
+        $sum = fn (array $rows, string $k) => array_sum(array_column($rows, $k));
+        $total = $bentuk(
+            array_sum(array_column($iklan, 'spend')) + $belumTerpetakan['spend'],
+            array_sum(array_column($iklan, 'impressions')) + $belumTerpetakan['impressions'],
+            array_sum(array_column($iklan, 'klik')) + $belumTerpetakan['klik'],
+            count($leadBeriklan),
+            (int) $sum($beriklan, 'order'),
+            count($closingBeriklan),
+            (float) $sum($beriklan, 'omzet')
+        );
+        $totalTanpaIklan = [
+            'jumlah_produk' => count($tanpaIklan),
+            'leads' => (int) $sum($tanpaIklan, 'leads'),
+            'order' => (int) $sum($tanpaIklan, 'order'),
+            'closing' => (int) $sum($tanpaIklan, 'closing'),
+            'omzet' => round((float) $sum($tanpaIklan, 'omzet'), 2),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'connected' => $this->hasConnectedAccount(),
+            'data' => array_values($baris),
+            'total' => $total,
+            'total_tanpa_iklan' => $totalTanpaIklan,
+            'belum_terpetakan' => $bentuk($belumTerpetakan['spend'], $belumTerpetakan['impressions'], $belumTerpetakan['klik'], 0, 0, 0, 0)
+                + ['campaigns' => array_values(array_unique($belumTerpetakan['campaigns']))],
+            'meta' => [
+                'range' => ['start' => $start, 'end' => $end],
+                'status' => $hanyaAktif ? 'active' : 'all',
+                'ppn_persen' => self::PPN_PERSEN,
+            ],
+        ]);
+    }
+
+    /** Nomor WA ke bentuk baku 62xxx supaya "0812.." dan "62812.." dihitung orang yang sama. */
+    private function scoNormalWa(?string $wa): ?string
+    {
+        $d = preg_replace('/\D/', '', (string) $wa);
+        if (str_starts_with($d, '0')) {
+            $d = '62' . substr($d, 1);
+        } elseif (str_starts_with($d, '8')) {
+            $d = '62' . $d;
+        }
+
+        return strlen($d) >= 9 ? $d : null;
+    }
+
+    /**
+     * Kata penanda di nama campaign yang bukan bagian dari nama produk
+     * ("Jakarta/CTWA", "Manado - CTLP", "Buku TP New", "Tof_CTWA Seminar | Bandung").
+     */
+    private const SCO_KATA_PENANDA = ['ctwa', 'ctlp', 'new', 'tof', 'mof', 'bof'];
+
+    /**
+     * Tambahan pemetaan manual khusus Dashboard SCO, di atas PRODUK_CAMPAIGN_MANUAL.
+     * "JaTim" (Jawa Timur) tidak punya produk sendiri - dibagi ke seminar
+     * Sidoarjo (47) & Surabaya (48) sesuai porsi order.
+     */
+    private const SCO_PRODUK_CAMPAIGN_MANUAL = [
+        'jatim' => [47, 48],
+    ];
+
+    /**
+     * Pencocokan campaign -> produk untuk Dashboard SCO. Lebih ketat dari
+     * produkPerCampaign(): nama campaign dipecah per kata (penanda seperti
+     * CTWA/CTLP/New dibuang), lalu SEMUA kata itu harus muncul sebagai kata
+     * UTUH di nama atau kode produk. Jadi "Jakarta" tidak lagi nyangkut ke
+     * "Jogjakarta", dan "Buku TP New" cocok ke produk berkode "buku-tp".
+     *
+     * @return array<int, int[]>  campaign id lokal => daftar produk id
+     */
+    private function scoProdukPerCampaign($campaigns, $produkList): array
+    {
+        $pecah = fn (?string $teks) => preg_split('/[^a-z0-9]+/', mb_strtolower((string) $teks), -1, PREG_SPLIT_NO_EMPTY);
+
+        $kataProduk = [];
+        foreach ($produkList as $p) {
+            $kataProduk[(int) $p->id] = array_flip(array_merge($pecah($p->nama), $pecah($p->kode)));
+        }
+        $manual = self::SCO_PRODUK_CAMPAIGN_MANUAL + self::PRODUK_CAMPAIGN_MANUAL;
+
+        $peta = [];
+        foreach ($campaigns as $c) {
+            $kata = array_values(array_filter($pecah($c->name), fn ($k) => !in_array($k, self::SCO_KATA_PENANDA, true)));
+            $kunci = implode('', $kata);
+
+            if (array_key_exists($kunci, $manual)) {
+                $peta[$c->id] = array_values(array_intersect(array_map('intval', $manual[$kunci]), array_keys($kataProduk)));
+                continue;
+            }
+            if ($kunci === '' || strlen($kunci) < 4) {
+                $peta[$c->id] = [];
+                continue;
+            }
+
+            $peta[$c->id] = [];
+            foreach ($kataProduk as $pid => $kataP) {
+                $semuaAda = true;
+                foreach ($kata as $k) {
+                    if (!isset($kataP[$k])) {
+                        $semuaAda = false;
+                        break;
+                    }
+                }
+                if ($semuaAda) {
+                    $peta[$c->id][] = $pid;
+                }
+            }
+        }
+
+        return $peta;
+    }
+
+    /**
      * Kata kunci penanda campaign Click-to-WhatsApp di penamaan campaign tim
      * ads (contoh: "Tof_CTWA Seminar | Bandung", "Jakarta - CTWA", "CTWA").
      * Bukan dari field `objective` Meta - hampir semua campaign di akun ini
