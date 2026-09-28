@@ -381,6 +381,7 @@ export default function Sidebar({
           items: [
             { label: "Follow Up Logs", href: `${basePath}/followup/report`, icon: <Activity size={18} /> },
             { label: "Rekap Workshop", href: `${basePath}/workshop-report`, icon: <BarChart3 size={18} /> },
+            { label: "Dashboard SCO", href: "/sales/sco-report", icon: <TrendingUp size={18} /> },
             { label: "Log Pixel", href: `${basePath}/log-pixel`, icon: <Activity size={18} /> },
           ],
         },
@@ -528,6 +529,7 @@ export default function Sidebar({
           section: "REPORTS",
           items: [
             { label: "Follow Up Logs", href: "/sales/followup/report", icon: <Activity size={18} /> },
+            { label: "Dashboard SCO", href: "/sales/sco-report", icon: <TrendingUp size={18} /> },
             { label: "Log Pixel", href: "/sales/log-pixel", icon: <Activity size={18} /> },
           ],
         },
