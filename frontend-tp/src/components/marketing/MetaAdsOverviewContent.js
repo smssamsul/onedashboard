@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
-import { RefreshCw, ChevronRight, ChevronDown, Sparkles } from "lucide-react";
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { RefreshCw, ChevronRight, ChevronDown, Sparkles, Download } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -165,8 +165,8 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
       Iklan: a.name || a.ad_id,
       Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
       Impresi: a.ada_data ? a.impressions : 0,
-      Result: a.ada_data ? a.leads : 0,
-      CPR: a.ada_data && a.cpl !== null && a.cpl !== undefined ? Math.round(a.cpl) : "",
+      Result: a.ada_data ? a.contact : 0,
+      CPR: a.ada_data && a.cpr !== null && a.cpr !== undefined ? Math.round(a.cpr) : "",
     }));
     const csv = ordersToCsvString(records);
     const stamp = new Date().toISOString().slice(0, 10);
@@ -206,7 +206,7 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
           )}
         </div>
         <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
-          Diurutkan dari lead terbanyak. Biaya sudah termasuk PPN.
+          Result dari Contact (chat WA dimulai). Diurutkan dari Contact terbanyak. Biaya sudah termasuk PPN.
         </p>
 
         {iklan.length === 0 ? (
@@ -245,8 +245,8 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
                       <>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(Math.round(a.spend_ppn))}</td>
                         <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(a.impressions)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.leads > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.leads)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpl)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.contact > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.contact)}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpr)}</td>
                       </>
                     ) : (
                       <td colSpan={4} style={{ padding: "8px 10px", fontSize: 11, color: "#9ca3af" }}>
@@ -365,6 +365,9 @@ export default function MetaAdsOverviewContent({
   const [analisaData, setAnalisaData] = useState(null);
   const [analisaCached, setAnalisaCached] = useState(false);
   const [analisaError, setAnalisaError] = useState("");
+  const [csvMenuOpen, setCsvMenuOpen] = useState(false);
+  const [csvSelectedIds, setCsvSelectedIds] = useState(new Set());
+  const csvMenuRef = useRef(null);
 
   const toggleBaris = useCallback((id) => {
     setBarisTerbuka((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -415,6 +418,68 @@ export default function MetaAdsOverviewContent({
   useEffect(() => {
     load();
   }, [load]);
+
+  // Cuma campaign yang punya data iklan tersimpan yang masuk akal dipilih untuk unduh CSV.
+  const campaignsDenganIklan = useMemo(
+    () => campaigns.filter((c) => (c.iklan || []).length > 0),
+    [campaigns]
+  );
+  const semuaCsvTerpilih = campaignsDenganIklan.length > 0 && csvSelectedIds.size === campaignsDenganIklan.length;
+
+  // Tutup dropdown pilihan CSV kalau klik di luar area-nya.
+  useEffect(() => {
+    if (!csvMenuOpen) return;
+    const handleClickLuar = (e) => {
+      if (csvMenuRef.current && !csvMenuRef.current.contains(e.target)) {
+        setCsvMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickLuar);
+    return () => document.removeEventListener("mousedown", handleClickLuar);
+  }, [csvMenuOpen]);
+
+  const bukaCsvMenu = () => {
+    // Default semua campaign terpilih, supaya klik "Unduh" tanpa memilih apa-apa sudah benar.
+    setCsvSelectedIds(new Set(campaignsDenganIklan.map((c) => c.id)));
+    setCsvMenuOpen((prev) => !prev);
+  };
+
+  const toggleSemuaCsv = () => {
+    setCsvSelectedIds(semuaCsvTerpilih ? new Set() : new Set(campaignsDenganIklan.map((c) => c.id)));
+  };
+
+  const toggleCampaignCsv = (id) => {
+    setCsvSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleUnduhSemuaIklan = () => {
+    const dipilih = campaignsDenganIklan.filter((c) => csvSelectedIds.has(c.id));
+    const records = [];
+    dipilih.forEach((c) => {
+      (c.iklan || []).forEach((a) => {
+        records.push({
+          Campaign: c.name || c.campaign_id,
+          Iklan: a.name || a.ad_id,
+          Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
+          Impresi: a.ada_data ? a.impressions : 0,
+          Result: a.ada_data ? a.contact : 0,
+          CPR: a.ada_data && a.cpr !== null && a.cpr !== undefined ? Math.round(a.cpr) : "",
+        });
+      });
+    });
+    if (records.length === 0) return;
+
+    const csv = ordersToCsvString(records);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const label = semuaCsvTerpilih ? "semua-campaign" : `${dipilih.length}-campaign`;
+    downloadCsvBlob(`performa-iklan-${label}-${stamp}.csv`, csv);
+    setCsvMenuOpen(false);
+  };
 
   /**
    * KPI tiles di bagian atas overview. "Result" belum punya satu angka
@@ -733,7 +798,112 @@ export default function MetaAdsOverviewContent({
               <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
                 Performa per Campaign {tampilkanNonAktif ? "(semua status)" : "(hanya aktif)"}
               </h3>
-              <span style={{ fontSize: 11, color: "#6b7280" }}>Klik baris untuk melihat setting ad set</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span style={{ fontSize: 11, color: "#6b7280" }}>Klik baris untuk melihat setting ad set</span>
+                <div ref={csvMenuRef} style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    onClick={bukaCsvMenu}
+                    disabled={campaignsDenganIklan.length === 0}
+                    title="Unduh performa tiap iklan (Biaya, Impresi, Result, CPR) dari campaign yang dipilih"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: campaignsDenganIklan.length === 0 ? "#9ca3af" : "#374151",
+                      background: "#fff",
+                      border: "1px solid #d1d5db",
+                      borderRadius: 6,
+                      padding: "5px 10px",
+                      cursor: campaignsDenganIklan.length === 0 ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <Download size={13} />
+                    Unduh CSV Semua Iklan
+                  </button>
+
+                  {csvMenuOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 6px)",
+                        right: 0,
+                        zIndex: 20,
+                        width: 300,
+                        background: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 8,
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                        padding: 10,
+                      }}
+                    >
+                      <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 8px" }}>
+                        Pilih campaign yang ikut diunduh. Tiap baris CSV = satu iklan (Campaign, Biaya, Impresi, Result, CPR).
+                      </p>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: "5px 4px",
+                          borderBottom: "1px solid #f3f4f6",
+                          marginBottom: 4,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input type="checkbox" checked={semuaCsvTerpilih} onChange={toggleSemuaCsv} />
+                        Semua Campaign ({campaignsDenganIklan.length})
+                      </label>
+                      <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                        {campaignsDenganIklan.map((c) => (
+                          <label
+                            key={c.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              fontSize: 12,
+                              padding: "4px 4px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={csvSelectedIds.has(c.id)}
+                              onChange={() => toggleCampaignCsv(c.id)}
+                            />
+                            <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{c.name || c.campaign_id}</span>
+                            <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0 }}>{(c.iklan || []).length} iklan</span>
+                          </label>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleUnduhSemuaIklan}
+                        disabled={csvSelectedIds.size === 0}
+                        style={{
+                          width: "100%",
+                          marginTop: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#fff",
+                          background: csvSelectedIds.size === 0 ? "#9ca3af" : "#111827",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "7px 10px",
+                          cursor: csvSelectedIds.size === 0 ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        Unduh CSV ({csvSelectedIds.size} campaign)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
               Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.

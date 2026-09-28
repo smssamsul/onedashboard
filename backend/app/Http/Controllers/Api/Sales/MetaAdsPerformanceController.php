@@ -1007,6 +1007,7 @@ class MetaAdsPerformanceController extends Controller
             'contact' => 0,
             'ctr' => null,
             'cpl' => null,
+            'cpr' => null,
             'cpm' => null,
             'ada_data' => false,
         ];
@@ -1054,6 +1055,10 @@ class MetaAdsPerformanceController extends Controller
                 'contact' => (int) $contact,
                 'ctr' => $impressions > 0 ? round(((int) $clicks / $impressions) * 100, 2) : null,
                 'cpl' => $this->bagi($spendPpn, (int) $leads),
+                // Cost per Result untuk panel "Performa Iklan" per-ad - Result di panel itu
+                // dari Contact (chat WA dimulai), bukan Leads, karena campaign-campaign ini
+                // CTWA (lihat isCampaignCtwa()) dan Meta melaporkan hasilnya sebagai Contact.
+                'cpr' => $this->bagi($spendPpn, (int) $contact),
                 'cpm' => $impressions > 0 ? round(($spendPpn / $impressions) * 1000, 2) : null,
                 'ada_data' => true,
             ];
@@ -1127,9 +1132,9 @@ class MetaAdsPerformanceController extends Controller
                             'judul_materi' => $creative['title'] ?? null,
                         ], $performaIklan[$a->ad_id] ?? $this->performaKosong());
                     })
-                    // Lead terbanyak dulu; kalau seri, biaya lebih besar dianggap
-                    // lebih penting untuk dilihat.
-                    ->sortByDesc(fn ($a) => [$a['leads'], $a['spend']])
+                    // Contact terbanyak dulu (Result panel ini) - kalau seri, biaya
+                    // lebih besar dianggap lebih penting untuk dilihat.
+                    ->sortByDesc(fn ($a) => [$a['contact'], $a['spend']])
                     ->values()
                     ->all();
             })
