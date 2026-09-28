@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/Layout";
 import styles from "./scoReport.module.css";
+
+// recharts cukup berat - dimuat terpisah, dan tidak perlu dirender di server.
+const ScoCharts = dynamic(() => import("./ScoCharts"), { ssr: false });
 
 const OPSI_RENTANG = [
   { value: "7", label: "7 Hari Terakhir" },
@@ -204,6 +208,8 @@ export default function ScoReportPage() {
                 </div>
               </div>
             </div>
+
+            <ScoCharts harian={data.harian || []} produk={data.data || []} />
 
             <div className={styles.tableWrap}>
               <table className={styles.table}>

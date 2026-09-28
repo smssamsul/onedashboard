@@ -89,6 +89,93 @@
   margin-top: 0.2rem;
 }
 
+/* ── Grafik ── */
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .chartGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.chartLebar {
+  grid-column: 1 / -1;
+}
+
+.chartCard {
+  background: var(--color-bg-paper, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem 1.125rem 0.75rem;
+  min-width: 0;
+}
+
+.chartJudul {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.chartSub {
+  margin: 0.15rem 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.chartArea {
+  width: 100%;
+  min-width: 0;
+}
+
+.chartTip {
+  background: #fff;
+  border: 1px solid rgba(11, 11, 11, 0.1);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  min-width: 150px;
+}
+
+.chartTipJudul {
+  color: #52514e;
+  margin-bottom: 0.3rem;
+}
+
+.chartTipBaris {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1.6;
+  color: #0b0b0b;
+  font-variant-numeric: tabular-nums;
+}
+
+.chartTipKunci {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.chartTipNama {
+  color: #52514e;
+}
+
+.chartTipEkstra {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid #e8e7e1;
+  color: #52514e;
+}
+
 /* ── Tabel ── */
 .tableWrap {
   background: var(--color-bg-paper, #fff);
