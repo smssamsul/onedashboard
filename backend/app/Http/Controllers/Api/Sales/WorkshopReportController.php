@@ -88,7 +88,7 @@ class WorkshopReportController extends Controller
             ->where('status_pembayaran', '2')
             ->whereIn('produk', $produkIds)
             ->whereRaw("SUBSTRING(CAST(tanggal AS VARCHAR), 1, 4) = ?", [$tahun])
-            ->with(['customer_rel:id,nama,wa', 'bundling_rel:id,nama', 'produk_rel:id,nama']);
+            ->with(['customer_rel:id,nama,wa,keanggotaan', 'produk_rel:id,nama']);
         foreach ($liveQuery->get() as $o) {
             try {
                 if ((int) Carbon::parse($o->tanggal)->format('n') !== $bulan) {

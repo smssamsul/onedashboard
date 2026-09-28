@@ -12,9 +12,12 @@ use App\Models\Produk;
  * CustomerController (breakdown keanggotaan per tahun), supaya logikanya
  * konsisten di dua tempat.
  *
- * Data arsip (order_customer_arsip) tidak punya kolom bundling, jadi tier
- * non-Reseat-nya ditebak dari keanggotaan customer SAAT INI - bisa meleset
- * kalau customer itu upgrade tier di tahun setelahnya, tapi ini pendekatan
+ * Tier non-Reseat (live maupun arsip) ditebak dari keanggotaan customer SAAT
+ * INI, BUKAN dari order_customer.bundling - kolom itu foreign key ke
+ * produk_bundling yang riwayatnya sering dibuat ulang (id baru tiap kali
+ * "pastikan bundling ada" jalan), jadi order lama gampang jadi orphan begitu
+ * baris bundling lamanya diganti. keanggotaan customer bisa meleset kalau
+ * customer itu upgrade tier di tahun setelahnya, tapi ini pendekatan
  * terbaik yang bisa dilakukan dari data yang ada.
  */
 class WorkshopTierResolver
@@ -34,8 +37,8 @@ class WorkshopTierResolver
             return 'reseat';
         }
 
-        $namaBundling = strtolower(trim($order->bundling_rel->nama ?? ''));
-        return in_array($namaBundling, ['platinum', 'gold', 'silver'], true) ? $namaBundling : null;
+        $keanggotaan = strtolower(trim($order->customer_rel->keanggotaan ?? ''));
+        return in_array($keanggotaan, ['platinum', 'gold', 'silver'], true) ? $keanggotaan : null;
     }
 
     public function resolveTierArsip(OrderCustomerArsip $order): ?string
