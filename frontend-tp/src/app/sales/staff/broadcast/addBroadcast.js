@@ -59,6 +59,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
       tanggal_dari: "",
       tanggal_sampai: "",
       excel_data: null,
+      sender_sales_id: "",
     },
     // Pengaturan Pengiriman (anti-banned)
     interval_detik: 8,
@@ -77,7 +78,8 @@ export default function AddBroadcast({ onClose, onAdd }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [senderInfo, setSenderInfo] = useState(null);
-  
+  const [salesList, setSalesList] = useState([]);
+
   const [showProdukDropdown, setShowProdukDropdown] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
@@ -111,10 +113,38 @@ export default function AddBroadcast({ onClose, onAdd }) {
             const profileJson = await profileRes.json();
             if (profileJson.success && profileJson.data) {
               setSenderInfo(profileJson.data);
+              // Default sender_sales_id to current logged-in user
+              setFormData(prev => ({
+                ...prev,
+                target: {
+                  ...prev.target,
+                  sender_sales_id: profileJson.data.id
+                }
+              }));
             }
           }
         } catch (profileErr) {
           console.error("Error fetching sender profile:", profileErr);
+        }
+
+        // Fetch all sales list
+        try {
+          const salesRes = await fetch("/api/sales/sales-list?all=true", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (salesRes.ok) {
+            const salesJson = await salesRes.json();
+            if (salesJson.success && Array.isArray(salesJson.data)) {
+              setSalesList(salesJson.data);
+            }
+          }
+        } catch (salesErr) {
+          console.error("Error fetching sales list:", salesErr);
         }
 
         // Fetch products
@@ -330,6 +360,13 @@ export default function AddBroadcast({ onClose, onAdd }) {
     e.preventDefault();
     setError("");
 
+    // Wajib selalu - lihat catatan di sales/broadcast/addBroadcast.js soal
+    // kenapa ini tidak boleh bergantung ke berhasil-tidaknya daftar sales
+    // dimuat (insiden broadcast gagal kirim 2026-09-29).
+    if (!formData.target.sender_sales_id) {
+      setError("Pilih Sales Pengirim wajib diisi");
+      return;
+    }
     if (!formData.nama.trim()) {
       setError("Nama broadcast wajib diisi");
       return;
@@ -413,7 +450,27 @@ export default function AddBroadcast({ onClose, onAdd }) {
               <i className="pi pi-info-circle" style={{ color: "#F1A124" }}></i>
               Informasi broadcast
             </div>
-            
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Pilih Sales Pengirim <span style={{ color: "#dc2626" }}>*</span></label>
+              <select
+                value={formData.target.sender_sales_id || ""}
+                onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, sender_sales_id: e.target.value ? parseInt(e.target.value) : "" } }))}
+                required
+                style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}
+              >
+                <option value="">-- Pilih Sales Pengirim --</option>
+                {salesList.map(s => (
+                  <option key={s.id} value={s.user_id}>
+                    {s.user_rel?.nama || "Tanpa Nama"} ({s.no_wa || "-"})
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
+                Pesan akan dikirim menggunakan akun WhatsApp milik sales yang dipilih.
+              </small>
+            </div>
+
             <div style={{ marginBottom: "1rem" }}>
               <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Nama broadcast <span style={{ color: "#dc2626" }}>*</span></label>
               <input type="text" name="nama" value={formData.nama} onChange={handleChange} required placeholder="Contoh: Promo Januari 2026" style={{ width: "100%", padding: "0.625rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }} />
@@ -736,7 +793,9 @@ export default function AddBroadcast({ onClose, onAdd }) {
         <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: "0.75rem", background: "#f8fafc", borderBottomLeftRadius: "0.75rem", borderBottomRightRadius: "0.75rem" }}>
           <button type="button" onClick={onClose} style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #e2e8f0", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>Batal</button>
           <button type="button" onClick={handleSubmit} disabled={submitting} style={{ padding: "0.5rem 1rem", background: "#F1A124", color: "white", border: "none", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>
-            {submitting ? "Menyimpan..." : "Simpan Broadcast"}
+            {submitting
+              ? (formData.langsung_kirim ? "Mengirim..." : "Menyimpan...")
+              : (formData.langsung_kirim ? "Kirim" : "Simpan Broadcast")}
           </button>
         </div>
       </div>
