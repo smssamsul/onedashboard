@@ -241,35 +241,56 @@ class BroadcastController extends Controller
                 if ($tipeTarget === 'excel') {
                     // ======= PROSES EXCEL =======
                     $totalOrders = count($excelData);
+                    $engine = \App\Models\SalesSetting::getWaEngine();
+                    // $woowaKey tetap dihitung untuk kompatibilitas parameter job (dipakai
+                    // WhatsAppSenderService kalau gateway = woowa; diabaikan kalau baileys -
+                    // lihat WhatsAppSenderService::sendMessage()).
                     $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
-                    
+
                     $senderSalesId = $validated['target']['sender_sales_id'] ?? null;
                     if ($senderSalesId) {
                         $selectedSales = Sales::where('user_id', $senderSalesId)->first();
                         if ($selectedSales && $selectedSales->woowa_key) {
                             $woowaKey = $selectedSales->woowa_key;
-                            Log::channel('broadcast')->info('Menggunakan Woowa Key dari Sales Terpilih (Excel)', [
-                                'sales_user_id' => $senderSalesId,
-                                'sales_name' => $selectedSales->user_rel?->nama,
-                                'woowa_key' => $woowaKey,
-                            ]);
+                        }
+                        if ($engine === 'woowa') {
+                            if ($selectedSales && $selectedSales->woowa_key) {
+                                Log::channel('broadcast')->info('Menggunakan Woowa Key dari Sales Terpilih (Excel)', [
+                                    'sales_user_id' => $senderSalesId,
+                                    'sales_name' => $selectedSales->user_rel?->nama,
+                                    'woowa_key' => $woowaKey,
+                                ]);
+                            } else {
+                                Log::channel('broadcast')->warning('Sales terpilih tidak memiliki Woowa Key (Excel), fallback ke .env', [
+                                    'sales_user_id' => $senderSalesId,
+                                ]);
+                            }
                         } else {
-                            Log::channel('broadcast')->warning('Sales terpilih tidak memiliki Woowa Key (Excel), fallback ke .env', [
+                            Log::channel('broadcast')->info('Mengirim broadcast Excel via gateway Baileys, mengikuti sales pengirim terpilih', [
                                 'sales_user_id' => $senderSalesId,
+                                'sales_name' => $selectedSales->user_rel?->nama ?? null,
                             ]);
                         }
                     } else {
                         $creatorSales = Sales::where('user_id', $userId)->first();
                         if ($creatorSales && $creatorSales->woowa_key) {
                             $woowaKey = $creatorSales->woowa_key;
-                            Log::channel('broadcast')->info('Menggunakan Woowa Key dari Creator Sales (Excel)', [
-                                'creator_user_id' => $userId,
-                                'sales_name' => $creatorSales->user_rel?->nama,
-                                'woowa_key' => $woowaKey,
-                            ]);
+                        }
+                        if ($engine === 'woowa') {
+                            if ($creatorSales && $creatorSales->woowa_key) {
+                                Log::channel('broadcast')->info('Menggunakan Woowa Key dari Creator Sales (Excel)', [
+                                    'creator_user_id' => $userId,
+                                    'sales_name' => $creatorSales->user_rel?->nama,
+                                    'woowa_key' => $woowaKey,
+                                ]);
+                            } else {
+                                Log::channel('broadcast')->info('Tidak ada sales pengirim terpilih & creator bukan sales, menggunakan key default .env (Excel)', [
+                                    'woowa_key' => $woowaKey,
+                                ]);
+                            }
                         } else {
-                            Log::channel('broadcast')->info('Tidak ada sales pengirim terpilih & creator bukan sales, menggunakan key default .env (Excel)', [
-                                'woowa_key' => $woowaKey,
+                            Log::channel('broadcast')->info('Mengirim broadcast Excel via gateway Baileys (sesi default)', [
+                                'creator_user_id' => $userId,
                             ]);
                         }
                     }
