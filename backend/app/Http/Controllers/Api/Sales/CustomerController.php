@@ -221,6 +221,15 @@ class CustomerController extends Controller
      * harus kehitung. Tier per order pakai WorkshopTierResolver (sama
      * dgn WorkshopReportController). Reseat tidak dihitung krn tidak
      * mengubah keanggotaan.
+     *
+     * Sengaja TIDAK 1:1 dengan total "All Time": customer yang keanggotaannya
+     * non-basic tapi TIDAK PERNAH punya order Workshop paid sama sekali (mis.
+     * tier didapat dari histori/import lain) tidak akan pernah muncul lewat
+     * jalur di atas, di tahun manapun. Supaya tetap kelihatan (dan supaya
+     * jumlah semua tahun mendekati All Time), mereka ditambahkan di bawah,
+     * ditempatkan di tahun akun mereka DIBUAT (create_at) - bukan tahun
+     * order, karena memang tidak ada order Workshop yang bisa dijadikan
+     * acuan tahunnya.
      */
     private function membershipPerTahun(string $tahun): array
     {
@@ -252,6 +261,41 @@ class CustomerController extends Controller
             if ($tier && $tier !== 'reseat') {
                 $tierCustomer[$o->customer] = $tier;
             }
+        }
+
+        // Customer id yang PERNAH punya order Workshop paid, tahun berapa pun
+        // (bukan cuma tahun $tahun) - dipakai untuk menyaring supaya customer
+        // yang tier-nya memang berasal dari Workshop tidak ikut kena fallback
+        // di bawah (mereka sudah/akan kehitung lewat jalur order di atas,
+        // di tahun order-nya masing-masing).
+        $idPernahOrderWorkshop = array_unique(array_merge(
+            OrderCustomerArsip::whereIn('produk_id', $produkIds)
+                ->where('status_pembayaran', '2')
+                ->pluck('customer_id')->all(),
+            OrderCustomer::where('status', '!=', 'N')
+                ->where('status_pembayaran', '2')
+                ->whereIn('produk', $produkIds)
+                ->pluck('customer')->all()
+        ));
+
+        $tanpaOrderWorkshop = Customer::where('status', '!=', 'N')
+            ->whereRaw('LOWER(keanggotaan) IN (?, ?, ?, ?)', ['platinum', 'gold', 'silver', 'bronze'])
+            ->where(function ($q) use ($idPernahOrderWorkshop) {
+                // Bronze TIDAK PERNAH bisa dihasilkan dari jalur order di atas -
+                // WorkshopTierResolver::resolveTier{Live,Arsip}() cuma mengembalikan
+                // platinum/gold/silver/reseat (lihat docblock class-nya) - jadi
+                // customer bronze SELALU masuk sini, punya order Workshop ataupun
+                // tidak. Platinum/Gold/Silver baru masuk sini kalau memang belum
+                // pernah punya order Workshop paid sama sekali (kalau pernah,
+                // sudah/akan kehitung lewat jalur order di atas, di tahun order-nya).
+                $q->whereRaw('LOWER(keanggotaan) = ?', ['bronze'])
+                    ->orWhereNotIn('id', $idPernahOrderWorkshop);
+            })
+            ->where('create_at', 'LIKE', $tahun . '%')
+            ->pluck('keanggotaan', 'id');
+        foreach ($tanpaOrderWorkshop as $keanggotaan) {
+            $tier = strtolower((string) $keanggotaan);
+            $tierCustomer[] = $tier; // pakai append, bukan keyed by id - id-nya sudah pasti unik dari query di atas
         }
 
         $membership = ['platinum' => 0, 'gold' => 0, 'silver' => 0, 'bronze' => 0, 'basic' => 0];
