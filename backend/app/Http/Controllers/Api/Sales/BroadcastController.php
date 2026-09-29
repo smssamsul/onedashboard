@@ -295,6 +295,9 @@ class BroadcastController extends Controller
                         }
                     }
 
+                    // Sesi Baileys ikut sales ini - lihat catatan di kirimBroadcastExcel().
+                    $salesUserIdUntukKirim = $senderSalesId ?: (isset($creatorSales) && $creatorSales ? $userId : null);
+
                     foreach ($excelData as $kontak) {
                         try {
                             $phone = $kontak['phone'] ?? $kontak['wa'] ?? $kontak['no_wa'] ?? null;
@@ -316,7 +319,8 @@ class BroadcastController extends Controller
                                 $phone,
                                 $nama,
                                 $userId,
-                                is_array($kontak['fields'] ?? null) ? $kontak['fields'] : []
+                                is_array($kontak['fields'] ?? null) ? $kontak['fields'] : [],
+                                $salesUserIdUntukKirim
                             );
 
                             $sentCount++;
@@ -797,12 +801,45 @@ class BroadcastController extends Controller
 
         // Parse target dari JSON
         $target = is_array($broadcast->target) ? $broadcast->target : json_decode($broadcast->target, true);
-        
+
         if (!$target || empty($target)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Target tidak valid'
             ], 400);
+        }
+
+        // Broadcast tipe Excel harus dikirim ke kontak di excel_data-nya, BUKAN lewat
+        // getOrdersByTarget() - target Excel selalu punya 'produk' => [] (tidak relevan
+        // untuk tipe ini), dan applyTargetConditions() membaca produk kosong sebagai
+        // "semua produk" alias tanpa filter sama sekali. Insiden nyata 2026-09-29:
+        // broadcast Excel 1 kontak diklik "Send" ulang, lewat jalur ini malah cocok ke
+        // SELURUH order aktif di database (ribuan customer asli ikut terkirim).
+        if (($target['tipe'] ?? null) === 'excel') {
+            $hasil = $this->kirimBroadcastExcel($broadcast, $target, auth()->id());
+
+            if ($hasil['total'] === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data Excel pada broadcast ini kosong'
+                ], 400);
+            }
+
+            $broadcast->update([
+                'status' => '3',
+                'update_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Broadcast berhasil dikirim ke queue',
+                'data' => [
+                    'broadcast_id' => $broadcast->id,
+                    'total_target' => $hasil['total'],
+                    'sent_to_queue' => $hasil['sent'],
+                    'failed' => $hasil['failed'],
+                ]
+            ]);
         }
 
         // Ambil orders berdasarkan target
@@ -1112,11 +1149,22 @@ class BroadcastController extends Controller
 
         // Parse target dari JSON
         $target = is_array($broadcast->target) ? $broadcast->target : json_decode($broadcast->target, true);
-        
+
         if (!$target || empty($target)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Target tidak valid'
+            ], 400);
+        }
+
+        // Broadcast tipe Excel tidak punya konsep "customer milik sales ini" - kontaknya
+        // nomor mentah dari file, bukan customer_rel. Lihat catatan di send() soal kenapa
+        // target Excel tidak boleh masuk ke getOrdersByTarget*() (produk kosong dibaca
+        // sebagai tanpa filter). Ditolak eksplisit di sini, bukan ditebak.
+        if (($target['tipe'] ?? null) === 'excel') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Broadcast tipe Excel tidak didukung untuk dikirim lewat menu ini'
             ], 400);
         }
 
@@ -1204,6 +1252,91 @@ class BroadcastController extends Controller
         $this->applyTargetConditions($query, $target);
 
         return $query->get();
+    }
+
+    /**
+     * Dispatch SendBroadcastExcelJob untuk tiap kontak di target['excel_data'].
+     * Dipakai oleh store() (kirim langsung saat dibuat) dan send() (kirim ulang
+     * draft Excel) - supaya keduanya konsisten dan draft Excel tidak pernah lewat
+     * getOrdersByTarget() (lihat catatan di send()).
+     */
+    private function kirimBroadcastExcel(Broadcast $broadcast, array $target, int $userId): array
+    {
+        $excelData = $target['excel_data'] ?? [];
+        if (empty($excelData) || !is_array($excelData)) {
+            return ['sent' => 0, 'failed' => 0, 'total' => 0];
+        }
+
+        $engine = \App\Models\SalesSetting::getWaEngine();
+        $woowaKey = \App\Models\SalesSetting::getWoowaUtama();
+
+        $senderSalesId = $target['sender_sales_id'] ?? null;
+        if ($senderSalesId) {
+            $selectedSales = Sales::where('user_id', $senderSalesId)->first();
+            if ($selectedSales && $selectedSales->woowa_key) {
+                $woowaKey = $selectedSales->woowa_key;
+            }
+        } else {
+            $creatorSales = Sales::where('user_id', $userId)->first();
+            if ($creatorSales && $creatorSales->woowa_key) {
+                $woowaKey = $creatorSales->woowa_key;
+            }
+        }
+
+        // Sesi Baileys yang dipakai ikut sales ini - sender terpilih kalau ada,
+        // kalau tidak ikut sales si pembuat broadcast (kalau memang dia sales).
+        // Kalau tidak ada keduanya (mis. broadcast dibuat admin non-sales), biarkan
+        // null supaya WhatsAppSenderService fallback ke sesi Baileys "global" -
+        // sebelumnya parameter ini SELALU null, jadi semua broadcast Excel lewat
+        // sesi Baileys global siapa pun yang online, bukan sesi sales terkait.
+        $salesUserIdUntukKirim = $senderSalesId ?: (isset($creatorSales) && $creatorSales ? $userId : null);
+
+        Log::channel('broadcast')->info('Mengirim broadcast Excel via gateway: ' . strtoupper($engine), [
+            'broadcast_id' => $broadcast->id,
+            'total_kontak' => count($excelData),
+            'engine' => $engine,
+            'sales_user_id_pengirim' => $salesUserIdUntukKirim,
+        ]);
+
+        $sentCount = 0;
+        $failedCount = 0;
+
+        foreach ($excelData as $kontak) {
+            try {
+                $phone = $kontak['phone'] ?? $kontak['wa'] ?? $kontak['no_wa'] ?? null;
+                $nama  = $kontak['name'] ?? $kontak['nama'] ?? 'Customer';
+
+                if (!$phone) {
+                    Log::channel('broadcast')->warning('Kontak excel tidak memiliki nomor telepon, skip.', [
+                        'broadcast_id' => $broadcast->id,
+                        'kontak' => $kontak,
+                    ]);
+                    $failedCount++;
+                    continue;
+                }
+
+                SendBroadcastExcelJob::dispatch(
+                    $broadcast->id,
+                    $broadcast->pesan,
+                    $woowaKey,
+                    $phone,
+                    $nama,
+                    $userId,
+                    is_array($kontak['fields'] ?? null) ? $kontak['fields'] : [],
+                    $salesUserIdUntukKirim
+                );
+
+                $sentCount++;
+            } catch (\Exception $e) {
+                Log::channel('broadcast')->error('Gagal dispatch SendBroadcastExcelJob di kirimBroadcastExcel()', [
+                    'broadcast_id' => $broadcast->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $failedCount++;
+            }
+        }
+
+        return ['sent' => $sentCount, 'failed' => $failedCount, 'total' => count($excelData)];
     }
 
     /**
