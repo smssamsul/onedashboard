@@ -449,7 +449,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
             </div>
             
             <div style={{ marginBottom: "1rem" }}>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Pilih Sales Pengirim (Woowa Key) <span style={{ color: "#dc2626" }}>*</span></label>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, fontSize: "0.875rem" }}>Pilih Sales Pengirim <span style={{ color: "#dc2626" }}>*</span></label>
               <select 
                 value={formData.target.sender_sales_id || ""}
                 onChange={(e) => setFormData(p => ({ ...p, target: { ...p.target, sender_sales_id: e.target.value ? parseInt(e.target.value) : "" } }))}
@@ -464,7 +464,7 @@ export default function AddBroadcast({ onClose, onAdd }) {
                 ))}
               </select>
               <small style={{ color: "#64748b", display: "block", marginTop: "0.25rem" }}>
-                Pesan akan dikirim menggunakan Woowa Key milik sales yang dipilih.
+                Pesan akan dikirim menggunakan akun WhatsApp milik sales yang dipilih.
               </small>
             </div>
 
