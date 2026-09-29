@@ -1258,10 +1258,19 @@ class BroadcastController extends Controller
             }
         }
 
+        // Sesi Baileys yang dipakai ikut sales ini - sender terpilih kalau ada,
+        // kalau tidak ikut sales si pembuat broadcast (kalau memang dia sales).
+        // Kalau tidak ada keduanya (mis. broadcast dibuat admin non-sales), biarkan
+        // null supaya WhatsAppSenderService fallback ke sesi Baileys "global" -
+        // sebelumnya parameter ini SELALU null, jadi semua broadcast Excel lewat
+        // sesi Baileys global siapa pun yang online, bukan sesi sales terkait.
+        $salesUserIdUntukKirim = $senderSalesId ?: (isset($creatorSales) && $creatorSales ? $userId : null);
+
         Log::channel('broadcast')->info('Mengirim broadcast Excel via gateway: ' . strtoupper($engine), [
             'broadcast_id' => $broadcast->id,
             'total_kontak' => count($excelData),
             'engine' => $engine,
+            'sales_user_id_pengirim' => $salesUserIdUntukKirim,
         ]);
 
         $sentCount = 0;
@@ -1288,7 +1297,8 @@ class BroadcastController extends Controller
                     $phone,
                     $nama,
                     $userId,
-                    is_array($kontak['fields'] ?? null) ? $kontak['fields'] : []
+                    is_array($kontak['fields'] ?? null) ? $kontak['fields'] : [],
+                    $salesUserIdUntukKirim
                 );
 
                 $sentCount++;

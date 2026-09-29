@@ -38,7 +38,8 @@ class SendBroadcastExcelJob implements ShouldQueue
         public string $phone,
         public string $nama,
         public ?int $userId = null,
-        array $fields = []
+        array $fields = [],
+        public ?int $salesUserId = null
     ) {
         $this->fields = $fields;
         $this->onQueue('broadcast');
@@ -91,7 +92,7 @@ class SendBroadcastExcelJob implements ShouldQueue
             ]);
 
             $waSender = app(\App\Services\WhatsAppSenderService::class);
-            $response = $waSender->sendMessage($this->phone, $renderedMessage, null, $this->woowaKey);
+            $response = $waSender->sendMessage($this->phone, $renderedMessage, $this->salesUserId, $this->woowaKey);
 
             if ($response->successful()) {
                 $this->saveBroadcastPenerima(
