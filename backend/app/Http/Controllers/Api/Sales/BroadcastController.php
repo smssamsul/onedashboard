@@ -295,6 +295,9 @@ class BroadcastController extends Controller
                         }
                     }
 
+                    // Sesi Baileys ikut sales ini - lihat catatan di kirimBroadcastExcel().
+                    $salesUserIdUntukKirim = $senderSalesId ?: (isset($creatorSales) && $creatorSales ? $userId : null);
+
                     foreach ($excelData as $kontak) {
                         try {
                             $phone = $kontak['phone'] ?? $kontak['wa'] ?? $kontak['no_wa'] ?? null;
@@ -316,7 +319,8 @@ class BroadcastController extends Controller
                                 $phone,
                                 $nama,
                                 $userId,
-                                is_array($kontak['fields'] ?? null) ? $kontak['fields'] : []
+                                is_array($kontak['fields'] ?? null) ? $kontak['fields'] : [],
+                                $salesUserIdUntukKirim
                             );
 
                             $sentCount++;
