@@ -131,7 +131,11 @@ class BroadcastController extends Controller
             'target.tanggal_dari' => 'nullable|date',
             'target.tanggal_sampai' => 'nullable|date',
             'target.excel_data' => 'nullable|array',
-            'target.sender_sales_id' => 'nullable|integer',
+            // Wajib khusus tipe excel - kontak Excel tidak punya customer/sales_id
+            // sendiri, jadi ini satu-satunya cara menentukan sesi Baileys yang
+            // dipakai. Tanpa ini, pengiriman jatuh ke sesi "global" yang tidak
+            // pernah ada di server Baileys dan selalu gagal (insiden 2026-09-29).
+            'target.sender_sales_id' => 'nullable|integer|required_if:target.tipe,excel',
             'status' => 'nullable|string|max:2',
             'langsung_kirim' => 'nullable|boolean',
             'interval_detik' => 'nullable|integer|min:0|max:3600',

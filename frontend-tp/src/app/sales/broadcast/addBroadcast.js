@@ -360,7 +360,11 @@ export default function AddBroadcast({ onClose, onAdd }) {
     e.preventDefault();
     setError("");
 
-    if (salesList.length > 0 && !formData.target.sender_sales_id) {
+    // Wajib selalu, bukan cuma kalau daftar sales berhasil dimuat - kalau
+    // dilewati waktu daftar sales gagal/kosong, broadcast tersimpan tanpa
+    // sales pengirim dan pengiriman Baileys jatuh ke sesi "global" yang
+    // tidak pernah ada di server (selalu gagal kirim, insiden 2026-09-29).
+    if (!formData.target.sender_sales_id) {
       setError("Pilih Sales Pengirim wajib diisi");
       return;
     }
@@ -790,7 +794,9 @@ export default function AddBroadcast({ onClose, onAdd }) {
         <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: "0.75rem", background: "#f8fafc", borderBottomLeftRadius: "0.75rem", borderBottomRightRadius: "0.75rem" }}>
           <button type="button" onClick={onClose} style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #e2e8f0", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>Batal</button>
           <button type="button" onClick={handleSubmit} disabled={submitting} style={{ padding: "0.5rem 1rem", background: "#F1A124", color: "white", border: "none", borderRadius: "0.375rem", cursor: "pointer", fontWeight: 500 }}>
-            {submitting ? "Menyimpan..." : "Simpan Broadcast"}
+            {submitting
+              ? (formData.langsung_kirim ? "Mengirim..." : "Menyimpan...")
+              : (formData.langsung_kirim ? "Kirim" : "Simpan Broadcast")}
           </button>
         </div>
       </div>
