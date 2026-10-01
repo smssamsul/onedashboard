@@ -841,6 +841,7 @@ export default function QuickOrderSalesPage() {
                 <option value="sosmedda">sosmedda</option>
                 <option value="lpwa">lpwa</option>
                 <option value="radio">radio</option>
+                <option value="metaads">Meta Ads</option>
                 <option value="lainnya">Lainnya (Input manual)</option>
               </select>
               {sumberOrder === "lainnya" && (
