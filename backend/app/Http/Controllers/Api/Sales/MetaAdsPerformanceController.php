@@ -319,25 +319,23 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Performa iklan per KONTEN. Kode konten (mis. "v9", "i4", "x1" - formatnya
-     * macam-macam, tidak dibatasi ke satu pola huruf tertentu) diambil dari
-     * sumber order (lihat ekstrakKodeSetelahMetaAds()), baru dicocokkan ke
-     * NAMA IKLAN mana yang berakhiran kode itu (mis. "Sby19v6" cocok ke kode
-     * "v6", "jak11i2" cocok ke kode "i2") - lihat cocokkanAkhiranKodeKonten().
-     * Satu kode bisa dipakai di banyak iklan/kota sekaligus (konten yang sama
-     * disebar ke beberapa campaign) - semuanya digabung jadi satu baris.
+     * Performa iklan per PRODUK, dipecah dua channel:
+     *   - Messaging (Chat WA): campaign yang namanya mengandung "CTWA" untuk
+     *     sisi iklan (biaya, contact), digabung order yang sumbernya
+     *     "sales_quick_order" untuk sisi order (order, buyer, omzet) - order
+     *     tipe ini biasanya dibuat sales setelah chat WhatsApp dengan calon
+     *     customer.
+     *   - Landing Page: campaign lain (bukan CTWA) untuk sisi iklan (biaya,
+     *     leads), digabung order yang sumbernya "website" untuk sisi order -
+     *     customer checkout sendiri di halaman produk publik.
+     * Lihat isCampaignCtwa() dan agregatOrderPerProduk() untuk detail masing-
+     * masing pembeda channel.
      *
-     * Order & Purchase dicocokkan ke order yang SUMBERNYA mengandung kode yang
-     * sama persis (format "Meta Ads <kode>") - dicek dari Sumber Lead
-     * (customer -> lead_lpwas.sumber, lewat kecocokan nomor WA) dulu, baru
-     * fallback ke utm_source order itu sendiri kalau Sumber Lead tidak ada/tidak
-     * cocok. Lihat agregatOrderPerKodeKonten().
-     *
-     * Iklan yang namanya tidak berakhiran kode manapun yang ketemu di sumber
-     * order dikumpulkan di baris "Tanpa kode versi" (tetap dihitung
-     * biaya/impresi/result-nya, tapi tidak bisa dicocokkan ke order manapun).
+     * Tiap baris produk juga dilengkapi breakdown `konten` (dipakai saat baris
+     * produk di-klik/expand di frontend, mirip baris Campaign yang nampilin
+     * Performa Iklan) - lihat bangunKontenPerProduk().
      */
-    public function konten(Request $request)
+    public function produk(Request $request)
     {
         if (!$this->hasConnectedAccount()) {
             return response()->json([
@@ -350,7 +348,7 @@ class MetaAdsPerformanceController extends Controller
         [$start, $end] = $this->dateRange($request);
         $hanyaAktif = strtolower((string) $request->get('status', 'active')) !== 'all';
 
-        $data = $this->dataKonten($start, $end, $hanyaAktif);
+        $data = $this->dataProduk($start, $end, $hanyaAktif);
 
         return response()->json([
             'success' => true,
@@ -360,7 +358,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Konten dikelompokkan dari kode yang ditulis setelah "Meta Ads" di sumber order (mis. "Meta Ads v9" -> v9, "Meta Ads i4" -> i4 - tidak dibatasi ke pola vN saja), dicocokkan ke nama iklan yang berakhiran kode itu (mis. "Sby19v6" -> v6). Purchase = order yang sudah Paid. Iklan yang namanya tidak berakhiran kode manapun yang ketemu di sumber order dikumpulkan di baris "Tanpa kode versi". ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Messaging (Chat WA) = campaign yang namanya mengandung "CTWA" (biaya, contact) digabung order dengan sumber "sales_quick_order" (order, bayar, omzet). Landing Page = campaign lainnya (biaya, leads) digabung order dengan sumber "website". HASIL Messaging dihitung dari Contact (WA conversation started), HASIL Landing Page dari Leads. Order dari sumber non-iklan (' . implode(', ', self::SUMBER_BUKAN_IKLAN) . ') tidak dihitung, begitu juga order yang sumbernya bukan sales_quick_order/website. Buyer & omzet mencakup pembayaran yang sudah diapprove finance maupun yang masih menunggu approval. Klik baris produk untuk lihat breakdown per konten (kode yang ditulis setelah "Meta Ads" di sumber order, dicocokkan ke nama iklan yang berakhiran kode itu). Semua cost-per dan ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -709,29 +707,223 @@ class MetaAdsPerformanceController extends Controller
     /**
      * @return \Illuminate\Support\Collection<int, array>
      */
-    private function dataKonten(string $start, string $end, bool $hanyaAktif): \Illuminate\Support\Collection
+    private function dataProduk(string $start, string $end, bool $hanyaAktif): \Illuminate\Support\Collection
     {
-        $ads = MetaAd::query()
-            ->join('meta_ad_sets', 'meta_ads.meta_ad_set_id', '=', 'meta_ad_sets.id')
-            ->join('meta_ad_campaigns', 'meta_ad_sets.meta_ad_campaign_id', '=', 'meta_ad_campaigns.id')
+        $campaigns = MetaAdCampaign::query()
             ->when($hanyaAktif, fn ($q) => $q->where('meta_ad_campaigns.status', 'ACTIVE'))
-            ->leftJoin('meta_ad_insights_ad_daily', function ($join) use ($start, $end) {
-                $join->on('meta_ad_insights_ad_daily.ad_id', '=', 'meta_ads.ad_id')
-                    ->whereBetween('meta_ad_insights_ad_daily.date', [$start, $end]);
+            ->leftJoin('meta_ad_insights_daily', function ($join) use ($start, $end) {
+                $join->on('meta_ad_insights_daily.campaign_id', '=', 'meta_ad_campaigns.campaign_id')
+                    ->whereBetween('meta_ad_insights_daily.date', [$start, $end]);
             })
-            ->select('meta_ads.id', 'meta_ads.ad_id', 'meta_ads.name')
-            ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.spend), 0) as spend')
-            ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.impressions), 0) as impressions')
-            ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.leads), 0) as leads')
-            ->groupBy('meta_ads.id', 'meta_ads.ad_id', 'meta_ads.name')
+            ->select('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.spend), 0) as spend')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.leads), 0) as leads')
+            ->selectRaw('COALESCE(SUM(meta_ad_insights_daily.contact), 0) as contact')
+            ->groupBy('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
             ->get();
 
-        // Kode konten TIDAK ditebak dari pola huruf tertentu (dulu cuma "vN",
-        // ternyata ada juga "iN", "xN", "cN", dst) - diambil langsung dari
-        // kode APAPUN yang beneran dipakai di sumber order (lihat
-        // agregatOrderPerKodeKonten()), baru dicocokkan ke iklan mana yang
-        // namanya berakhiran kode itu.
-        $orderPerKode = $this->agregatOrderPerKodeKonten($start, $end);
+        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
+        $namaProduk = $produkList->pluck('nama', 'id')->all();
+
+        // produkPerCampaign() mencocokkan SELURUH nama campaign (setelah
+        // normalisasi) sebagai substring nama produk. Campaign CTWA biasanya
+        // punya marker "CTWA" tambahan di nama (mis. "Jakarta - CTWA",
+        // "Tof_CTWA Seminar | Bandung") yang bikin whole-name-containment
+        // gagal padahal campaign itu untuk produk yang sama dengan versi
+        // non-CTWA-nya. Untuk pencocokan produk saja, marker itu dibuang
+        // dulu - channel (isCampaignCtwa()) tetap dicek dari nama ASLI lewat
+        // $campaignById di bawah, bukan dari salinan yang sudah dibersihkan ini.
+        $campaignsUntukPencocokanProduk = $campaigns->map(function ($c) {
+            $bersih = clone $c;
+            $bersih->name = preg_replace('/ctwa/i', '', (string) $c->name);
+            return $bersih;
+        });
+        $produkPerCampaign = $this->produkPerCampaign($campaignsUntukPencocokanProduk, $produkList);
+
+        // Dibalik: produk id => daftar campaign (id lokal) yang mengiklankannya.
+        // Satu produk bisa diiklankan campaign CTWA dan non-CTWA sekaligus.
+        $campaignPerProduk = [];
+        foreach ($produkPerCampaign as $campaignLocalId => $produkIds) {
+            foreach ($produkIds as $produkId) {
+                $campaignPerProduk[(int) $produkId][] = $campaignLocalId;
+            }
+        }
+
+        $jumlahIklanPerCampaign = $campaigns->isEmpty() ? collect() : MetaAd::query()
+            ->join('meta_ad_sets', 'meta_ads.meta_ad_set_id', '=', 'meta_ad_sets.id')
+            ->whereIn('meta_ad_sets.meta_ad_campaign_id', $campaigns->pluck('id'))
+            ->selectRaw('meta_ad_sets.meta_ad_campaign_id as campaign_local_id, COUNT(*) as jumlah')
+            ->groupBy('meta_ad_sets.meta_ad_campaign_id')
+            ->pluck('jumlah', 'campaign_local_id');
+
+        $campaignById = $campaigns->keyBy('id');
+        $kosongAd = fn () => [
+            'messaging' => ['spend' => 0.0, 'leads' => 0, 'contact' => 0],
+            'landing_page' => ['spend' => 0.0, 'leads' => 0, 'contact' => 0],
+            'jumlah_iklan' => 0,
+            'jumlah_campaign' => 0,
+        ];
+
+        $adAgg = [];
+        foreach ($campaignPerProduk as $produkId => $campaignLocalIds) {
+            foreach (array_unique($campaignLocalIds) as $cid) {
+                $c = $campaignById->get($cid);
+                if (!$c) {
+                    continue;
+                }
+
+                $channel = $this->isCampaignCtwa($c->name) ? 'messaging' : 'landing_page';
+                $adAgg[$produkId] ??= $kosongAd();
+
+                $adAgg[$produkId][$channel]['spend'] += (float) $c->spend;
+                $adAgg[$produkId][$channel]['leads'] += (int) $c->leads;
+                $adAgg[$produkId][$channel]['contact'] += (int) $c->contact;
+                $adAgg[$produkId]['jumlah_iklan'] += (int) ($jumlahIklanPerCampaign[$cid] ?? 0);
+                $adAgg[$produkId]['jumlah_campaign']++;
+            }
+        }
+
+        // Order dicek untuk SEMUA produk aktif (bukan cuma yang ketemu campaign-nya)
+        // supaya produk yang order-nya ada tapi pencocokan nama campaign-nya gagal
+        // tetap kelihatan (biaya 0, order tetap jalan) - itu sinyal untuk dicek manual.
+        $semuaProdukIds = $produkList->pluck('id')->all();
+        $orderAgg = $this->agregatOrderPerProduk($start, $end, $semuaProdukIds);
+
+        // Breakdown konten per produk (dipakai waktu baris produk di-expand di
+        // frontend) - dihitung sekali untuk SEMUA produk sekaligus (bulk),
+        // bukan query per produk, supaya tidak N+1. Lihat bangunKontenPerProduk().
+        $kontenPerProduk = $this->bangunKontenPerProduk($start, $end, $hanyaAktif, $campaignPerProduk, $semuaProdukIds);
+
+        $kosongOrder = fn () => [
+            'messaging' => ['order' => 0, 'buyer' => 0, 'revenue' => 0.0],
+            'landing_page' => ['order' => 0, 'buyer' => 0, 'revenue' => 0.0],
+        ];
+
+        $produkIds = array_unique(array_merge(array_keys($adAgg), array_keys($orderAgg)));
+
+        $bangunChannel = function (array $ad, array $order, string $channel, string $labelHasil) {
+            $spend = (float) $ad[$channel]['spend'];
+            $spendPpn = round($spend * (1 + self::PPN_PERSEN / 100), 2);
+            $hasil = $labelHasil === 'contact' ? (int) $ad[$channel]['contact'] : (int) $ad[$channel]['leads'];
+            $jumlahOrder = (int) $order[$channel]['order'];
+            $buyer = (int) $order[$channel]['buyer'];
+            $revenue = (float) $order[$channel]['revenue'];
+
+            return [
+                'spend' => $spend,
+                'spend_ppn' => $spendPpn,
+                'hasil' => $hasil,
+                'hasil_label' => $labelHasil === 'contact' ? 'Contact' : 'Leads',
+                'cost_per_hasil' => $this->bagi($spendPpn, $hasil),
+                'order' => $jumlahOrder,
+                'cpo' => $this->bagi($spendPpn, $jumlahOrder),
+                'buyer' => $buyer,
+                'omzet' => round($revenue, 2),
+                'roas' => $this->bagi($revenue, $spendPpn),
+            ];
+        };
+
+        $baris = [];
+        foreach ($produkIds as $produkId) {
+            $ad = $adAgg[$produkId] ?? $kosongAd();
+            $order = $orderAgg[$produkId] ?? $kosongOrder();
+
+            $baris[] = [
+                'produk_id' => $produkId,
+                'produk_nama' => $namaProduk[$produkId] ?? "Produk #{$produkId}",
+                'jumlah_iklan' => $ad['jumlah_iklan'],
+                'jumlah_campaign' => $ad['jumlah_campaign'],
+                'messaging' => $bangunChannel($ad, $order, 'messaging', 'contact'),
+                'landing_page' => $bangunChannel($ad, $order, 'landing_page', 'leads'),
+                'konten' => $kontenPerProduk[$produkId] ?? [],
+            ];
+        }
+
+        usort($baris, function ($a, $b) {
+            $totalA = $a['messaging']['spend'] + $a['landing_page']['spend'];
+            $totalB = $b['messaging']['spend'] + $b['landing_page']['spend'];
+
+            return $totalB <=> $totalA;
+        });
+
+        return collect(array_values($baris));
+    }
+
+    /**
+     * Breakdown "Performa Konten" per produk - ditampilkan waktu baris produk
+     * di-expand di frontend (mirip baris Campaign yang nampilin Performa
+     * Iklan). Beda dengan dulu (dataKonten() lama, sudah dihapus): sekarang
+     * di-scope PER PRODUK, bukan satu tabel global - jadi iklan & order yang
+     * dihitung cuma punya produk itu saja.
+     *
+     * Dihitung bulk (satu query ads + satu query order untuk SEMUA produk
+     * sekaligus), bukan query per produk, supaya tidak N+1 - lihat pemanggil
+     * di dataProduk().
+     *
+     * @param  array<int, int[]>  $campaignPerProduk  produk id => daftar campaign id lokal
+     * @param  int[]  $produkIds
+     * @return array<int, array>  produk id => daftar baris konten
+     */
+    private function bangunKontenPerProduk(string $start, string $end, bool $hanyaAktif, array $campaignPerProduk, array $produkIds): array
+    {
+        $semuaCampaignLocalIds = array_values(array_unique(array_merge([], ...array_values($campaignPerProduk))));
+
+        $adsPerCampaign = [];
+        if (!empty($semuaCampaignLocalIds)) {
+            $adsRows = MetaAd::query()
+                ->join('meta_ad_sets', 'meta_ads.meta_ad_set_id', '=', 'meta_ad_sets.id')
+                ->whereIn('meta_ad_sets.meta_ad_campaign_id', $semuaCampaignLocalIds)
+                ->when($hanyaAktif, fn ($q) => $q->whereIn('meta_ad_sets.meta_ad_campaign_id', MetaAdCampaign::where('status', 'ACTIVE')->pluck('id')))
+                ->leftJoin('meta_ad_insights_ad_daily', function ($join) use ($start, $end) {
+                    $join->on('meta_ad_insights_ad_daily.ad_id', '=', 'meta_ads.ad_id')
+                        ->whereBetween('meta_ad_insights_ad_daily.date', [$start, $end]);
+                })
+                ->select('meta_ad_sets.meta_ad_campaign_id as campaign_local_id', 'meta_ads.id', 'meta_ads.name')
+                ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.spend), 0) as spend')
+                ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.impressions), 0) as impressions')
+                ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.leads), 0) as leads')
+                ->groupBy('meta_ad_sets.meta_ad_campaign_id', 'meta_ads.id', 'meta_ads.name')
+                ->get();
+
+            foreach ($adsRows as $row) {
+                $adsPerCampaign[$row->campaign_local_id][] = $row;
+            }
+        }
+
+        $orderPerProdukKode = $this->agregatOrderPerProdukDanKodeKonten($start, $end, $produkIds);
+
+        $hasil = [];
+        foreach ($produkIds as $produkId) {
+            $campaignLocalIds = array_unique($campaignPerProduk[$produkId] ?? []);
+            $adsProduk = [];
+            foreach ($campaignLocalIds as $cid) {
+                foreach ($adsPerCampaign[$cid] ?? [] as $ad) {
+                    $adsProduk[] = $ad;
+                }
+            }
+
+            $orderPerKode = $orderPerProdukKode[$produkId] ?? [];
+            if (empty($adsProduk) && empty($orderPerKode)) {
+                continue;
+            }
+
+            $hasil[$produkId] = $this->bangunBarisKonten($adsProduk, $orderPerKode);
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Susun baris "Performa Konten" dari daftar iklan (hasil query gabungan
+     * meta_ads + meta_ad_insights_ad_daily) dan order-per-kode yang sudah
+     * dihitung sebelumnya. Dipakai oleh bangunKontenPerProduk() - satu produk
+     * satu panggilan.
+     *
+     * @param  iterable<object{name: string, spend: mixed, impressions: mixed, leads: mixed}>  $ads
+     * @param  array<string, array{order: int, purchase: int, omzet: float}>  $orderPerKode
+     */
+    private function bangunBarisKonten(iterable $ads, array $orderPerKode): array
+    {
         $semuaKode = array_keys($orderPerKode);
 
         $grup = [];
@@ -783,7 +975,7 @@ class MetaAdsPerformanceController extends Controller
 
         usort($baris, fn ($a, $b) => $b['spend'] <=> $a['spend']);
 
-        return collect(array_values($baris));
+        return array_values($baris);
     }
 
     /**
@@ -814,27 +1006,39 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Ambil kode APAPUN yang ditulis setelah kata "Meta Ads" di sumber order
-     * (mis. "Meta Ads v9" -> "v9", "Meta Ads i4" -> "i4") - sengaja tidak
-     * dibatasi ke pola tertentu (vN/iN/xN/dst) supaya kode baru yang dipakai
-     * tim marketing otomatis ikut kebaca tanpa perlu ubah kode lagi.
+     * Sama seperti agregatOrderPerKodeKonten() dulu, tapi dikelompokkan JUGA
+     * per produk (bukan cuma per kode) - supaya Order & Purchase konten yang
+     * ditampilkan waktu baris produk di-expand cuma punya produk itu, tidak
+     * ketukar punya produk lain yang kebetulan pakai kode sama.
+     *
+     * Kode diambil dari kata APAPUN setelah "Meta Ads" di sumber order (mis.
+     * "Meta Ads v9" -> "v9", "Meta Ads i4" -> "i4") - sengaja tidak dibatasi
+     * ke pola tertentu (vN/iN/xN/dst) supaya kode baru yang dipakai tim
+     * marketing otomatis ikut kebaca tanpa perlu ubah kode lagi.
      *
      * Order yang dibuat otomatis dari lead WA (LeadAutoOrderService) selalu
      * punya order_customer.sumber = "sales_quick_order" generik - kode
      * sebenarnya cuma kesimpan di lead_lpwas.sumber, dihubungkan lewat nomor
      * WA customer (sama seperti kolom "Sumber Lead" di menu Order). Makanya
-     * Sumber Lead dicek DULUAN, baru fallback ke utm_source order itu sendiri
-     * (dipakai order checkout landing page yang utm_source-nya memang
-     * langsung terisi dari URL iklan).
+     * Sumber Lead dicek DULUAN, baru fallback ke utm_source order itu sendiri.
+     *
+     * @param  int[]  $produkIds
+     * @return array<int, array<string, array{order: int, purchase: int, omzet: float}>>
      */
-    private function agregatOrderPerKodeKonten(string $start, string $end): array
+    private function agregatOrderPerProdukDanKodeKonten(string $start, string $end, array $produkIds): array
     {
+        if (empty($produkIds)) {
+            return [];
+        }
+
         $orders = OrderCustomer::query()
             ->leftJoin('customer', 'customer.id', '=', 'order_customer.customer')
             ->leftJoin('lead_lpwas', 'lead_lpwas.no_wa', '=', 'customer.wa')
             ->where('order_customer.status', '!=', 'N')
+            ->whereIn('order_customer.produk', $produkIds)
             ->whereBetween(DB::raw('DATE(order_customer.create_at)'), [$start, $end])
             ->get([
+                'order_customer.produk',
                 'order_customer.utm_source',
                 'lead_lpwas.sumber as lead_sumber',
                 'order_customer.status_pembayaran',
@@ -850,13 +1054,15 @@ class MetaAdsPerformanceController extends Controller
                 continue;
             }
 
-            $hasil[$kode] ??= ['order' => 0, 'purchase' => 0, 'omzet' => 0.0];
-            $hasil[$kode]['order']++;
+            $produkId = (int) $o->produk;
+            $hasil[$produkId] ??= [];
+            $hasil[$produkId][$kode] ??= ['order' => 0, 'purchase' => 0, 'omzet' => 0.0];
+            $hasil[$produkId][$kode]['order']++;
 
             // 2 = Paid (finance approved).
             if ((string) $o->status_pembayaran === '2') {
-                $hasil[$kode]['purchase']++;
-                $hasil[$kode]['omzet'] += (float) $o->total_harga;
+                $hasil[$produkId][$kode]['purchase']++;
+                $hasil[$produkId][$kode]['omzet'] += (float) $o->total_harga;
             }
         }
 
@@ -870,6 +1076,73 @@ class MetaAdsPerformanceController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Agregat order internal per PRODUK, dipecah channel lewat kolom `sumber`.
+     * Beda dengan agregatOrderPerCampaign(): di sini produk sudah pasti dari
+     * kolom order_customer.produk (ground truth), tidak perlu ditebak lewat
+     * pencocokan nama campaign.
+     *
+     *   sumber "sales_quick_order" -> Messaging (Chat WA): order dibuat sales
+     *     (menu Quick Order / Leads LPWA), biasanya lanjutan chat WhatsApp.
+     *   sumber "website"           -> Landing Page: customer checkout sendiri
+     *     di halaman produk publik (useProductForm.js).
+     *   sumber lain (mis. "manual") sengaja tidak dihitung ke channel manapun -
+     *     datanya terlalu sedikit dan ambigu untuk diklaim salah satu channel.
+     *
+     * Buyer & revenue pakai definisi sama seperti agregatOrderPerCampaign():
+     * status_pembayaran 2 (Paid) atau 1 (Waiting Approval).
+     *
+     * @param  int[]  $produkIds
+     * @return array<int, array{messaging: array, landing_page: array}>
+     */
+    private function agregatOrderPerProduk(string $start, string $end, array $produkIds): array
+    {
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $orders = OrderCustomer::query()
+            ->where('status', '!=', 'N')
+            ->whereIn('produk', $produkIds)
+            ->whereBetween(DB::raw('DATE(create_at)'), [$start, $end])
+            ->get(['produk', 'sumber', 'utm_source', 'status_pembayaran', 'total_harga']);
+
+        $hasil = [];
+        foreach ($orders as $o) {
+            // Sama seperti agregatOrderPerCampaign(): sumber non-iklan tidak
+            // boleh dihitung, apapun channel/sumber order-nya.
+            if (in_array(strtolower(trim((string) $o->utm_source)), self::SUMBER_BUKAN_IKLAN, true)) {
+                continue;
+            }
+
+            $channel = match (strtolower(trim((string) $o->sumber))) {
+                'sales_quick_order' => 'messaging',
+                'website' => 'landing_page',
+                default => null,
+            };
+            if ($channel === null) {
+                continue;
+            }
+
+            $produkId = (int) $o->produk;
+            $hasil[$produkId] ??= [
+                'messaging' => ['order' => 0, 'buyer' => 0, 'revenue' => 0.0],
+                'landing_page' => ['order' => 0, 'buyer' => 0, 'revenue' => 0.0],
+            ];
+
+            $hasil[$produkId][$channel]['order']++;
+
+            // 2 = Paid (finance approved), 1 = Waiting Approval.
+            $adalahBuyer = in_array((string) $o->status_pembayaran, ['2', '1'], true);
+            if ($adalahBuyer) {
+                $hasil[$produkId][$channel]['buyer']++;
+                $hasil[$produkId][$channel]['revenue'] += (float) $o->total_harga;
+            }
+        }
+
+        return $hasil;
     }
 
     /**
