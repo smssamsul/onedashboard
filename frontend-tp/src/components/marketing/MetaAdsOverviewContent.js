@@ -1116,7 +1116,7 @@ export default function MetaAdsOverviewContent({
             </div>
           </div>
 
-          {/* Konten table: performa dikelompokkan dari kode versi "vN" di nama iklan */}
+          {/* Konten table: performa dikelompokkan dari kode yang ditulis setelah "Meta Ads" di sumber order */}
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20, marginTop: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
@@ -1124,10 +1124,11 @@ export default function MetaAdsOverviewContent({
               </h3>
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
-              Konten dikelompokkan dari kode versi <b>&quot;vN&quot;</b> di nama iklan (mis. &quot;Sby19v6&quot; → v6) — satu kode versi
-              bisa dipakai di banyak iklan/kota sekaligus, semuanya digabung jadi satu baris. <b>Order</b> &amp; <b>Purchase</b>
-              dicocokkan ke order yang sumbernya <b>&quot;Meta Ads vN&quot;</b> dengan N yang sama (dicek dari Sumber Lead, fallback UTM
-              Source). Iklan tanpa kode versi di namanya masuk baris &quot;Tanpa kode versi&quot;. ROAS memakai biaya termasuk PPN {ppnPersen}%.
+              Konten dikelompokkan dari kode yang ditulis setelah <b>&quot;Meta Ads&quot;</b> di sumber order (mis. &quot;Meta Ads v9&quot; → v9,
+              &quot;Meta Ads i4&quot; → i4 — tidak dibatasi ke pola &quot;vN&quot; saja), dicocokkan ke nama iklan yang berakhiran kode itu
+              (mis. &quot;Sby19v6&quot; → v6). <b>Order</b> &amp; <b>Purchase</b> dicek dari Sumber Lead dulu, fallback UTM Source. Iklan yang
+              namanya tidak berakhiran kode manapun yang ketemu di sumber order masuk baris &quot;Tanpa kode versi&quot;. ROAS memakai biaya
+              termasuk PPN {ppnPersen}%.
             </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>

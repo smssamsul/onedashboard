@@ -319,20 +319,23 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Performa iklan per KONTEN, dikelompokkan dari kode versi "vN" yang ada
-     * di NAMA IKLAN (mis. "Sby19v6" atau "Video V44" -> kelompok "v6"/"v44").
-     * Satu kode versi bisa dipakai di banyak iklan/kota sekaligus (konten yang
-     * sama disebar ke beberapa campaign) - semuanya digabung jadi satu baris.
+     * Performa iklan per KONTEN. Kode konten (mis. "v9", "i4", "x1" - formatnya
+     * macam-macam, tidak dibatasi ke satu pola huruf tertentu) diambil dari
+     * sumber order (lihat ekstrakKodeSetelahMetaAds()), baru dicocokkan ke
+     * NAMA IKLAN mana yang berakhiran kode itu (mis. "Sby19v6" cocok ke kode
+     * "v6", "jak11i2" cocok ke kode "i2") - lihat cocokkanAkhiranKodeKonten().
+     * Satu kode bisa dipakai di banyak iklan/kota sekaligus (konten yang sama
+     * disebar ke beberapa campaign) - semuanya digabung jadi satu baris.
      *
-     * Order & Purchase dicocokkan ke order yang SUMBERNYA mengandung kode versi
-     * yang sama persis (format "Meta Ads vN") - dicek dari Sumber Lead
+     * Order & Purchase dicocokkan ke order yang SUMBERNYA mengandung kode yang
+     * sama persis (format "Meta Ads <kode>") - dicek dari Sumber Lead
      * (customer -> lead_lpwas.sumber, lewat kecocokan nomor WA) dulu, baru
      * fallback ke utm_source order itu sendiri kalau Sumber Lead tidak ada/tidak
-     * cocok. Lihat ekstrakVersiKonten() dan agregatOrderPerVersiKonten().
+     * cocok. Lihat agregatOrderPerKodeKonten().
      *
-     * Iklan yang namanya tidak mengandung kode versi dikumpulkan di baris
-     * "Tanpa kode versi" (tetap dihitung biaya/impresi/result-nya, tapi tidak
-     * bisa dicocokkan ke order manapun).
+     * Iklan yang namanya tidak berakhiran kode manapun yang ketemu di sumber
+     * order dikumpulkan di baris "Tanpa kode versi" (tetap dihitung
+     * biaya/impresi/result-nya, tapi tidak bisa dicocokkan ke order manapun).
      */
     public function konten(Request $request)
     {
@@ -357,7 +360,7 @@ class MetaAdsPerformanceController extends Controller
                 'range' => ['start' => $start, 'end' => $end],
                 'ppn_persen' => self::PPN_PERSEN,
                 'hanya_aktif' => $hanyaAktif,
-                'catatan' => 'Konten dikelompokkan dari kode versi "vN" di nama iklan (mis. "Sby19v6" -> v6). Order & Purchase dicocokkan ke order yang sumbernya "Meta Ads vN" dengan N yang sama (dicek dari Sumber Lead, fallback UTM Source). Purchase = order yang sudah Paid. Iklan tanpa kode versi di namanya dikumpulkan di baris "Tanpa kode versi". ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
+                'catatan' => 'Konten dikelompokkan dari kode yang ditulis setelah "Meta Ads" di sumber order (mis. "Meta Ads v9" -> v9, "Meta Ads i4" -> i4 - tidak dibatasi ke pola vN saja), dicocokkan ke nama iklan yang berakhiran kode itu (mis. "Sby19v6" -> v6). Purchase = order yang sudah Paid. Iklan yang namanya tidak berakhiran kode manapun yang ketemu di sumber order dikumpulkan di baris "Tanpa kode versi". ROAS memakai biaya termasuk PPN ' . self::PPN_PERSEN . '%.',
             ],
         ]);
     }
@@ -723,16 +726,21 @@ class MetaAdsPerformanceController extends Controller
             ->groupBy('meta_ads.id', 'meta_ads.ad_id', 'meta_ads.name')
             ->get();
 
-        // Kelompokkan iklan berdasarkan kode versi "vN" di namanya - satu versi
-        // bisa dipakai banyak iklan/kota, semuanya digabung jadi satu baris
-        // konten. Iklan tanpa kode versi masuk kunci TANPA_KODE_VERSI.
+        // Kode konten TIDAK ditebak dari pola huruf tertentu (dulu cuma "vN",
+        // ternyata ada juga "iN", "xN", "cN", dst) - diambil langsung dari
+        // kode APAPUN yang beneran dipakai di sumber order (lihat
+        // agregatOrderPerKodeKonten()), baru dicocokkan ke iklan mana yang
+        // namanya berakhiran kode itu.
+        $orderPerKode = $this->agregatOrderPerKodeKonten($start, $end);
+        $semuaKode = array_keys($orderPerKode);
+
         $grup = [];
         foreach ($ads as $ad) {
-            $versi = $this->ekstrakVersiKonten($ad->name);
-            $key = $versi ?? self::TANPA_KODE_VERSI;
+            $kode = $this->cocokkanAkhiranKodeKonten((string) $ad->name, $semuaKode);
+            $key = $kode ?? self::TANPA_KODE_VERSI;
 
             $grup[$key] ??= [
-                'versi' => $versi,
+                'kode' => $kode,
                 'nama_iklan' => [],
                 'jumlah_iklan' => 0,
                 'spend' => 0.0,
@@ -746,21 +754,19 @@ class MetaAdsPerformanceController extends Controller
             $grup[$key]['leads'] += (int) $ad->leads;
         }
 
-        $orderPerVersi = $this->agregatOrderPerVersiKonten($start, $end);
-
         $kosongOrder = ['order' => 0, 'purchase' => 0, 'omzet' => 0.0];
-        $semuaKey = array_unique(array_merge(array_keys($grup), array_keys($orderPerVersi)));
+        $semuaKey = array_unique(array_merge(array_keys($grup), array_keys($orderPerKode)));
 
         $baris = [];
         foreach ($semuaKey as $key) {
-            $g = $grup[$key] ?? ['versi' => $key === self::TANPA_KODE_VERSI ? null : $key, 'nama_iklan' => [], 'jumlah_iklan' => 0, 'spend' => 0.0, 'impressions' => 0, 'leads' => 0];
-            $o = $orderPerVersi[$key] ?? $kosongOrder;
+            $g = $grup[$key] ?? ['kode' => $key === self::TANPA_KODE_VERSI ? null : $key, 'nama_iklan' => [], 'jumlah_iklan' => 0, 'spend' => 0.0, 'impressions' => 0, 'leads' => 0];
+            $o = $orderPerKode[$key] ?? $kosongOrder;
 
             $spendPpn = round($g['spend'] * (1 + self::PPN_PERSEN / 100), 2);
 
             $baris[] = [
-                'versi' => $g['versi'],
-                'label' => $g['versi'] !== null ? "v{$g['versi']}" : 'Tanpa kode versi',
+                'versi' => $g['kode'],
+                'label' => $g['kode'] ?? 'Tanpa kode versi',
                 'jumlah_iklan' => $g['jumlah_iklan'],
                 'contoh_nama_iklan' => array_slice(array_unique($g['nama_iklan']), 0, 3),
                 'spend' => $g['spend'],
@@ -781,45 +787,47 @@ class MetaAdsPerformanceController extends Controller
     }
 
     /**
-     * Ambil kode versi "vN" dari nama iklan (case-insensitive). Nama sering
-     * punya angka lain sebelum "v" (mis. "mks9v3" = kota mks, batch 9, versi
-     * 3) - regex ini spesifik cari "v" yang LANGSUNG diikuti angka, jadi "9"
-     * di depan "v3" tidak ikut kebaca.
+     * Cari kode mana (dari daftar kode yang BENERAN muncul di sumber order)
+     * yang jadi akhiran nama iklan ini. Nama iklan formatnya "{kota}{batch}{kode}"
+     * tanpa pemisah (mis. "mks9v3" = kota mks, batch 9, kode v3) - makanya
+     * dicek sebagai AKHIRAN (bukan dicari di mana saja), supaya angka batch di
+     * depan tidak ketukar kebaca sebagai kode. Kalau lebih dari satu kode
+     * cocok sebagai akhiran (mis. kode "1" dan "v1" sama-sama akhiran dari
+     * "...v1"), yang paling panjang/spesifik yang dipakai.
      */
-    private function ekstrakVersiKonten(?string $namaIklan): ?string
+    private function cocokkanAkhiranKodeKonten(string $namaIklan, array $semuaKode): ?string
     {
-        if ($namaIklan && preg_match('/v(\d+)/i', $namaIklan, $m)) {
-            return $m[1];
+        $namaLower = strtolower($namaIklan);
+        $terbaik = null;
+
+        foreach ($semuaKode as $kode) {
+            $kodeLower = strtolower($kode);
+            if ($kodeLower === '') {
+                continue;
+            }
+            if (str_ends_with($namaLower, $kodeLower) && ($terbaik === null || strlen($kode) > strlen($terbaik))) {
+                $terbaik = $kode;
+            }
         }
 
-        return null;
+        return $terbaik;
     }
 
     /**
-     * Sama seperti ekstrakVersiKonten(), tapi untuk teks sumber order (mis.
-     * "Meta Ads v9") - sengaja fungsi terpisah (bukan dipakai bareng) supaya
-     * kalau salah satu polanya perlu diubah nanti, tidak ikut mengubah yang lain.
+     * Ambil kode APAPUN yang ditulis setelah kata "Meta Ads" di sumber order
+     * (mis. "Meta Ads v9" -> "v9", "Meta Ads i4" -> "i4") - sengaja tidak
+     * dibatasi ke pola tertentu (vN/iN/xN/dst) supaya kode baru yang dipakai
+     * tim marketing otomatis ikut kebaca tanpa perlu ubah kode lagi.
+     *
+     * Order yang dibuat otomatis dari lead WA (LeadAutoOrderService) selalu
+     * punya order_customer.sumber = "sales_quick_order" generik - kode
+     * sebenarnya cuma kesimpan di lead_lpwas.sumber, dihubungkan lewat nomor
+     * WA customer (sama seperti kolom "Sumber Lead" di menu Order). Makanya
+     * Sumber Lead dicek DULUAN, baru fallback ke utm_source order itu sendiri
+     * (dipakai order checkout landing page yang utm_source-nya memang
+     * langsung terisi dari URL iklan).
      */
-    private function ekstrakVersiDariSumber(?string $sumber): ?string
-    {
-        if ($sumber && preg_match('/meta\s*ads\s*v(\d+)/i', $sumber, $m)) {
-            return $m[1];
-        }
-
-        return null;
-    }
-
-    /**
-     * Cocokkan order ke kode versi konten lewat sumbernya. Order yang dibuat
-     * otomatis dari lead WA (LeadAutoOrderService) selalu punya
-     * order_customer.sumber = "sales_quick_order" generik - kode versi
-     * sebenarnya (mis. "Meta Ads v9") cuma kesimpan di lead_lpwas.sumber,
-     * dihubungkan lewat nomor WA customer (sama seperti kolom "Sumber Lead"
-     * di menu Order). Makanya Sumber Lead dicek DULUAN, baru fallback ke
-     * utm_source order itu sendiri (dipakai order checkout landing page yang
-     * utm_source-nya memang langsung terisi dari URL iklan).
-     */
-    private function agregatOrderPerVersiKonten(string $start, string $end): array
+    private function agregatOrderPerKodeKonten(string $start, string $end): array
     {
         $orders = OrderCustomer::query()
             ->leftJoin('customer', 'customer.id', '=', 'order_customer.customer')
@@ -835,24 +843,33 @@ class MetaAdsPerformanceController extends Controller
 
         $hasil = [];
         foreach ($orders as $o) {
-            $versi = $this->ekstrakVersiDariSumber($o->lead_sumber)
-                ?? $this->ekstrakVersiDariSumber($o->utm_source);
+            $kode = $this->ekstrakKodeSetelahMetaAds($o->lead_sumber)
+                ?? $this->ekstrakKodeSetelahMetaAds($o->utm_source);
 
-            if ($versi === null) {
+            if ($kode === null) {
                 continue;
             }
 
-            $hasil[$versi] ??= ['order' => 0, 'purchase' => 0, 'omzet' => 0.0];
-            $hasil[$versi]['order']++;
+            $hasil[$kode] ??= ['order' => 0, 'purchase' => 0, 'omzet' => 0.0];
+            $hasil[$kode]['order']++;
 
             // 2 = Paid (finance approved).
             if ((string) $o->status_pembayaran === '2') {
-                $hasil[$versi]['purchase']++;
-                $hasil[$versi]['omzet'] += (float) $o->total_harga;
+                $hasil[$kode]['purchase']++;
+                $hasil[$kode]['omzet'] += (float) $o->total_harga;
             }
         }
 
         return $hasil;
+    }
+
+    private function ekstrakKodeSetelahMetaAds(?string $sumber): ?string
+    {
+        if ($sumber && preg_match('/meta\s*ads\s+(\S+)/i', trim($sumber), $m)) {
+            return trim($m[1]);
+        }
+
+        return null;
     }
 
     /**
