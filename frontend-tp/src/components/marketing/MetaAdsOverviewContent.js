@@ -354,7 +354,7 @@ export default function MetaAdsOverviewContent({
   const [daily, setDaily] = useState([]);
   const [totals, setTotals] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
-  const [produkPerforma, setProdukPerforma] = useState([]);
+  const [kontenPerforma, setKontenPerforma] = useState([]);
   const [startDate, setStartDate] = useState(todayMinus(29));
   const [endDate, setEndDate] = useState(todayMinus(0));
   const [tampilkanNonAktif, setTampilkanNonAktif] = useState(false);
@@ -379,21 +379,21 @@ export default function MetaAdsOverviewContent({
     try {
       const params = `start_date=${startDate}&end_date=${endDate}&status=${tampilkanNonAktif ? "all" : "active"}`;
 
-      const [overviewRes, campaignsRes, produkRes] = await Promise.all([
+      const [overviewRes, campaignsRes, kontenRes] = await Promise.all([
         fetch(`/api/sales/meta-ads/performance/overview?${params}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         }),
         fetch(`/api/sales/meta-ads/performance/campaigns?${params}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         }),
-        fetch(`/api/sales/meta-ads/performance/produk?${params}`, {
+        fetch(`/api/sales/meta-ads/performance/konten?${params}`, {
           headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/json" },
         }),
       ]);
 
       const overviewJson = await overviewRes.json();
       const campaignsJson = await campaignsRes.json();
-      const produkJson = await produkRes.json();
+      const kontenJson = await kontenRes.json();
 
       setConnected(overviewJson.connected !== false);
       setDaily((overviewJson.data?.daily || []).map((d) => ({
@@ -405,7 +405,7 @@ export default function MetaAdsOverviewContent({
       })));
       setTotals(overviewJson.data?.totals || null);
       setCampaigns(campaignsJson.data || []);
-      setProdukPerforma(produkJson.data || []);
+      setKontenPerforma(kontenJson.data || []);
       setPpnPersen(campaignsJson.meta?.ppn_persen ?? overviewJson.data?.ppn_persen ?? 11);
     } catch (e) {
       console.error("[META ADS] Gagal memuat data:", e);
@@ -568,42 +568,33 @@ export default function MetaAdsOverviewContent({
   }, [campaigns]);
 
   /**
-   * Total tabel "Performa per Produk", dihitung ulang per channel dari angka
-   * total (bukan rata-rata per baris) - alasan sama seperti totalTabel di atas.
+   * Total tabel "Performa per Konten", dihitung ulang dari angka total (bukan
+   * rata-rata per baris) - alasan sama seperti totalTabel di atas.
    */
-  const totalProduk = useMemo(() => {
-    if (!produkPerforma.length) return null;
+  const totalKonten = useMemo(() => {
+    if (!kontenPerforma.length) return null;
 
     const bagi = (a, b) => (b > 0 ? a / b : null);
+    const jml = (kunci) => kontenPerforma.reduce((t, k) => t + Number(k[kunci] || 0), 0);
 
-    const jumlahChannel = (channel) => {
-      const jml = (kunci) => produkPerforma.reduce((t, p) => t + Number(p[channel]?.[kunci] || 0), 0);
-      const spendPpn = jml("spend_ppn");
-      const hasil = jml("hasil");
-      const order = jml("order");
-      const buyer = jml("buyer");
-      const omzet = jml("omzet");
-
-      return {
-        spend: jml("spend"),
-        spend_ppn: spendPpn,
-        hasil,
-        cost_per_hasil: bagi(spendPpn, hasil),
-        order,
-        cpo: bagi(spendPpn, order),
-        buyer,
-        omzet,
-        roas: bagi(omzet, spendPpn),
-      };
-    };
+    const spendPpn = jml("spend_ppn");
+    const result = jml("result");
+    const omzet = jml("omzet");
 
     return {
-      jumlahProduk: produkPerforma.length,
-      jumlahIklan: produkPerforma.reduce((t, p) => t + Number(p.jumlah_iklan || 0), 0),
-      messaging: jumlahChannel("messaging"),
-      landing_page: jumlahChannel("landing_page"),
+      jumlahKonten: kontenPerforma.length,
+      jumlahIklan: jml("jumlah_iklan"),
+      spend: jml("spend"),
+      spend_ppn: spendPpn,
+      impressions: jml("impressions"),
+      result,
+      cpr: bagi(spendPpn, result),
+      order: jml("order"),
+      purchase: jml("purchase"),
+      omzet,
+      roas: bagi(omzet, spendPpn),
     };
-  }, [produkPerforma]);
+  }, [kontenPerforma]);
 
   /**
    * Sync jalan di background (queue) di backend - request POST ini cuma
@@ -1125,104 +1116,80 @@ export default function MetaAdsOverviewContent({
             </div>
           </div>
 
-          {/* Produk table: performa dipecah per channel (Messaging vs Landing Page) */}
+          {/* Konten table: performa dikelompokkan dari kode versi "vN" di nama iklan */}
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20, marginTop: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
-                Performa per Produk {tampilkanNonAktif ? "(semua status)" : "(hanya campaign aktif)"}
+                Performa per Konten {tampilkanNonAktif ? "(semua status)" : "(hanya campaign aktif)"}
               </h3>
             </div>
             <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
-              <b>Messaging (Chat WA)</b>: campaign yang namanya mengandung &quot;CTWA&quot; (biaya, hasil dari Contact), digabung order
-              dengan sumber <b>sales_quick_order</b> (order, bayar, omzet) — biasanya order lanjutan chat WhatsApp.
-              <b> Landing Page</b>: campaign lainnya (biaya, hasil dari Leads), digabung order dengan sumber <b>website</b> — customer
-              checkout sendiri di halaman produk. Order dari sumber non-iklan tidak dihitung. ROAS memakai biaya termasuk PPN {ppnPersen}%.
+              Konten dikelompokkan dari kode versi <b>&quot;vN&quot;</b> di nama iklan (mis. &quot;Sby19v6&quot; → v6) — satu kode versi
+              bisa dipakai di banyak iklan/kota sekaligus, semuanya digabung jadi satu baris. <b>Order</b> &amp; <b>Purchase</b>
+              dicocokkan ke order yang sumbernya <b>&quot;Meta Ads vN&quot;</b> dengan N yang sama (dicek dari Sumber Lead, fallback UTM
+              Source). Iklan tanpa kode versi di namanya masuk baris &quot;Tanpa kode versi&quot;. ROAS memakai biaya termasuk PPN {ppnPersen}%.
             </p>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
                 <thead>
-                  <tr style={{ textAlign: "left", color: "#374151" }}>
-                    <th rowSpan={2} style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb", verticalAlign: "bottom" }}>Produk</th>
-                    <th colSpan={6} style={{ padding: "6px 12px", textAlign: "center", background: "#eef2ff", color: "#3730a3", borderBottom: "1px solid #e0e7ff", borderLeft: "1px solid #e5e7eb" }}>
-                      Messaging (Chat WA)
-                    </th>
-                    <th colSpan={6} style={{ padding: "6px 12px", textAlign: "center", background: "#ecfdf5", color: "#065f46", borderBottom: "1px solid #d1fae5", borderLeft: "1px solid #e5e7eb" }}>
-                      Landing Page
-                    </th>
-                  </tr>
                   <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "right", color: "#6b7280", fontSize: 11 }}>
-                    <th style={{ padding: "6px 12px", borderLeft: "1px solid #e5e7eb" }}>Biaya</th>
-                    <th style={{ padding: "6px 12px" }}>Hasil</th>
+                    <th style={{ padding: "8px 12px", textAlign: "left", color: "#374151" }}>Konten</th>
+                    <th style={{ padding: "6px 12px" }}>Biaya</th>
+                    <th style={{ padding: "6px 12px" }}>Impresi</th>
+                    <th style={{ padding: "6px 12px" }}>Result</th>
+                    <th style={{ padding: "6px 12px" }}>CPR</th>
                     <th style={{ padding: "6px 12px" }}>Order</th>
-                    <th style={{ padding: "6px 12px" }}>Bayar</th>
-                    <th style={{ padding: "6px 12px" }}>Omzet</th>
-                    <th style={{ padding: "6px 12px" }}>ROAS</th>
-                    <th style={{ padding: "6px 12px", borderLeft: "1px solid #e5e7eb" }}>Biaya</th>
-                    <th style={{ padding: "6px 12px" }}>Hasil</th>
-                    <th style={{ padding: "6px 12px" }}>Order</th>
-                    <th style={{ padding: "6px 12px" }}>Bayar</th>
+                    <th style={{ padding: "6px 12px" }}>Purchase</th>
                     <th style={{ padding: "6px 12px" }}>Omzet</th>
                     <th style={{ padding: "6px 12px" }}>ROAS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {produkPerforma.length === 0 ? (
+                  {kontenPerforma.length === 0 ? (
                     <tr>
-                      <td colSpan={13} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
-                        {loading ? "Memuat..." : "Belum ada data performa produk untuk rentang tanggal ini."}
+                      <td colSpan={9} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
+                        {loading ? "Memuat..." : "Belum ada data performa konten untuk rentang tanggal ini."}
                       </td>
                     </tr>
                   ) : (
                     <>
-                      {totalProduk && (
+                      {totalKonten && (
                         <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb", fontWeight: 600 }}>
                           <td style={{ padding: "10px 12px" }}>
                             <div style={{ fontWeight: 700 }}>TOTAL</div>
                             <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                              {totalProduk.jumlahProduk} produk &middot; {totalProduk.jumlahIklan} iklan
+                              {totalKonten.jumlahKonten} konten &middot; {totalKonten.jumlahIklan} iklan
                             </div>
                           </td>
-                          <SelMetrik utama={fmtRp(totalProduk.messaging.spend)} />
-                          <SelMetrik utama={fmt(totalProduk.messaging.hasil)} bawah={fmtRpOpsional(totalProduk.messaging.cost_per_hasil)} />
-                          <SelMetrik utama={fmt(totalProduk.messaging.order)} />
-                          <SelMetrik utama={fmt(totalProduk.messaging.buyer)} />
-                          <SelMetrik utama={fmtRp(totalProduk.messaging.omzet)} />
-                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(totalProduk.messaging.roas) }}>
-                            {fmtRoas(totalProduk.messaging.roas)}
-                          </td>
-                          <SelMetrik utama={fmtRp(totalProduk.landing_page.spend)} />
-                          <SelMetrik utama={fmt(totalProduk.landing_page.hasil)} bawah={fmtRpOpsional(totalProduk.landing_page.cost_per_hasil)} />
-                          <SelMetrik utama={fmt(totalProduk.landing_page.order)} />
-                          <SelMetrik utama={fmt(totalProduk.landing_page.buyer)} />
-                          <SelMetrik utama={fmtRp(totalProduk.landing_page.omzet)} />
-                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(totalProduk.landing_page.roas) }}>
-                            {fmtRoas(totalProduk.landing_page.roas)}
+                          <SelMetrik utama={fmtRp(totalKonten.spend)} />
+                          <SelMetrik utama={fmt(totalKonten.impressions)} />
+                          <SelMetrik utama={fmt(totalKonten.result)} />
+                          <SelMetrik utama={fmtRpOpsional(totalKonten.cpr)} />
+                          <SelMetrik utama={fmt(totalKonten.order)} />
+                          <SelMetrik utama={fmt(totalKonten.purchase)} />
+                          <SelMetrik utama={fmtRp(totalKonten.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(totalKonten.roas) }}>
+                            {fmtRoas(totalKonten.roas)}
                           </td>
                         </tr>
                       )}
-                      {produkPerforma.map((p) => (
-                        <tr key={p.produk_id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      {kontenPerforma.map((k) => (
+                        <tr key={k.versi ?? "tanpa-kode"} style={{ borderBottom: "1px solid #f3f4f6" }}>
                           <td style={{ padding: "8px 12px", minWidth: 200 }}>
-                            <div style={{ fontWeight: 500 }}>{p.produk_nama}</div>
-                            {p.jumlah_iklan > 0 && (
-                              <span style={{ fontSize: 10, color: "#6b7280" }}>{p.jumlah_iklan} iklan</span>
-                            )}
+                            <div style={{ fontWeight: 500 }}>{k.label}</div>
+                            <div style={{ fontSize: 10, color: "#6b7280" }}>
+                              {k.jumlah_iklan} iklan{k.contoh_nama_iklan?.length ? ` · ${k.contoh_nama_iklan.join(", ")}` : ""}
+                            </div>
                           </td>
-                          <SelMetrik utama={fmtRp(p.messaging.spend)} />
-                          <SelMetrik utama={fmt(p.messaging.hasil)} bawah={fmtRpOpsional(p.messaging.cost_per_hasil)} />
-                          <SelMetrik utama={fmt(p.messaging.order)} />
-                          <SelMetrik utama={fmt(p.messaging.buyer)} />
-                          <SelMetrik utama={fmtRp(p.messaging.omzet)} />
-                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(p.messaging.roas) }}>
-                            {fmtRoas(p.messaging.roas)}
-                          </td>
-                          <SelMetrik utama={fmtRp(p.landing_page.spend)} />
-                          <SelMetrik utama={fmt(p.landing_page.hasil)} bawah={fmtRpOpsional(p.landing_page.cost_per_hasil)} />
-                          <SelMetrik utama={fmt(p.landing_page.order)} />
-                          <SelMetrik utama={fmt(p.landing_page.buyer)} />
-                          <SelMetrik utama={fmtRp(p.landing_page.omzet)} />
-                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(p.landing_page.roas) }}>
-                            {fmtRoas(p.landing_page.roas)}
+                          <SelMetrik utama={fmtRp(k.spend)} />
+                          <SelMetrik utama={fmt(k.impressions)} />
+                          <SelMetrik utama={fmt(k.result)} />
+                          <SelMetrik utama={fmtRpOpsional(k.cpr)} />
+                          <SelMetrik utama={fmt(k.order)} />
+                          <SelMetrik utama={fmt(k.purchase)} />
+                          <SelMetrik utama={fmtRp(k.omzet)} />
+                          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(k.roas) }}>
+                            {fmtRoas(k.roas)}
                           </td>
                         </tr>
                       ))}
