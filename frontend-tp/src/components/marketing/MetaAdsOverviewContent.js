@@ -346,11 +346,9 @@ function BarisDetailProduk({ produk, jumlahKolom }) {
     const records = konten.map((k) => ({
       Konten: k.label,
       Biaya: Math.round(k.spend),
-      Impresi: k.impressions,
-      Result: k.result,
-      CPR: k.cpr !== null && k.cpr !== undefined ? Math.round(k.cpr) : "",
+      Hasil: k.hasil,
       Order: k.order,
-      Purchase: k.purchase,
+      Bayar: k.buyer,
       Omzet: Math.round(k.omzet),
       ROAS: k.roas !== null && k.roas !== undefined ? k.roas.toFixed(2) : "",
     }));
@@ -392,7 +390,8 @@ function BarisDetailProduk({ produk, jumlahKolom }) {
         </div>
         <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
           Konten dikelompokkan dari kode yang ditulis setelah &quot;Meta Ads&quot; di sumber order (mis. &quot;Meta Ads v9&quot; → v9),
-          dicocokkan ke nama iklan yang berakhiran kode itu. Order &amp; Purchase di sini khusus produk ini saja.
+          dicocokkan ke nama iklan yang berakhiran kode itu. Hasil dihitung dari Contact (WA conversation started), sama
+          seperti Performa Iklan di Campaign. Order &amp; Bayar di sini khusus produk ini saja.
         </p>
 
         {konten.length === 0 ? (
@@ -406,11 +405,9 @@ function BarisDetailProduk({ produk, jumlahKolom }) {
                 <tr style={{ background: "#f3f4f6", borderBottom: "1px solid #e5e7eb" }}>
                   <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Konten</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Biaya</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Impresi</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Result</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CPR</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Hasil</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Order</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Purchase</th>
+                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Bayar</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Omzet</th>
                   <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>ROAS</th>
                 </tr>
@@ -425,11 +422,14 @@ function BarisDetailProduk({ produk, jumlahKolom }) {
                       </div>
                     </td>
                     <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(k.spend)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.impressions)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.result)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(k.cpr)}</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>
+                      {fmt(k.hasil)}
+                      {k.cost_per_hasil !== null && k.cost_per_hasil !== undefined && (
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{fmtRpOpsional(k.cost_per_hasil)}</div>
+                      )}
+                    </td>
                     <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.order)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.purchase)}</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.buyer)}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(k.omzet)}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 700, color: warnaRoas(k.roas) }}>{fmtRoas(k.roas)}</td>
                   </tr>
