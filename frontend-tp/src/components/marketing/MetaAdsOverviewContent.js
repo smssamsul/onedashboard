@@ -339,107 +339,56 @@ function BarisDetailCampaign({ campaign, jumlahKolom }) {
 }
 
 /** Baris detail: breakdown "Performa Konten" untuk satu produk (muncul waktu baris Produk di-expand). */
-function BarisDetailProduk({ produk, jumlahKolom }) {
+/**
+ * Baris breakdown konten, dirender LANGSUNG sebagai <tr> tambahan di tabel
+ * "Performa per Produk" yang sama (bukan tabel terpisah di dalam baris
+ * produk) - waktu baris produk di-klik/expand, baris-baris ini muncul
+ * persis di bawahnya pakai kolom yang sama (SelMetrik), cuma kegeser ke
+ * posisi Messaging karena field konten memang tidak dipecah channel.
+ */
+function BarisKontenProduk({ produk }) {
   const konten = produk.konten || [];
 
-  const handleUnduhKonten = () => {
-    const records = konten.map((k) => ({
-      Konten: k.label,
-      Biaya: Math.round(k.spend),
-      Hasil: k.hasil,
-      Order: k.order,
-      Bayar: k.buyer,
-      Omzet: Math.round(k.omzet),
-      ROAS: k.roas !== null && k.roas !== undefined ? k.roas.toFixed(2) : "",
-    }));
-    const csv = ordersToCsvString(records);
-    const stamp = new Date().toISOString().slice(0, 10);
-    const namaProduk = (produk.produk_nama || "produk")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    downloadCsvBlob(`performa-konten-${namaProduk}-${stamp}.csv`, csv);
-  };
+  if (konten.length === 0) {
+    return (
+      <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+        <td colSpan={13} style={{ padding: "10px 12px 10px 40px", fontSize: 12, color: "#9ca3af" }}>
+          Belum ada data iklan/order untuk produk ini di rentang tanggal ini.
+        </td>
+      </tr>
+    );
+  }
 
   return (
-    <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-      <td colSpan={jumlahKolom} style={{ padding: "14px 18px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
-            Performa Konten ({konten.length})
-          </div>
-          {konten.length > 0 && (
-            <button
-              type="button"
-              onClick={handleUnduhKonten}
-              title="Unduh data Performa Konten sebagai CSV"
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#374151",
-                background: "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                padding: "4px 10px",
-                cursor: "pointer",
-              }}
-            >
-              Unduh CSV
-            </button>
-          )}
-        </div>
-        <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
-          Konten dikelompokkan dari kode yang ditulis setelah &quot;Meta Ads&quot; di sumber order (mis. &quot;Meta Ads v9&quot; → v9),
-          dicocokkan ke nama iklan yang berakhiran kode itu. Hasil dihitung dari Contact (WA conversation started), sama
-          seperti Performa Iklan di Campaign. Order &amp; Bayar di sini khusus produk ini saja.
-        </p>
-
-        {konten.length === 0 ? (
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>
-            Belum ada data iklan/order untuk produk ini di rentang tanggal ini.
-          </p>
-        ) : (
-          <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
-              <thead>
-                <tr style={{ background: "#f3f4f6", borderBottom: "1px solid #e5e7eb" }}>
-                  <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Konten</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Biaya</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Hasil</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Order</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Bayar</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Omzet</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>ROAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {konten.map((k) => (
-                  <tr key={k.versi ?? "tanpa-kode"} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "8px 10px", minWidth: 180 }}>
-                      <div style={{ fontWeight: 500 }}>{k.label}</div>
-                      <div style={{ fontSize: 10, color: "#9ca3af" }}>
-                        {k.jumlah_iklan} iklan{k.contoh_nama_iklan?.length ? ` · ${k.contoh_nama_iklan.join(", ")}` : ""}
-                      </div>
-                    </td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(k.spend)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>
-                      {fmt(k.hasil)}
-                      {k.cost_per_hasil !== null && k.cost_per_hasil !== undefined && (
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{fmtRpOpsional(k.cost_per_hasil)}</div>
-                      )}
-                    </td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.order)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(k.buyer)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(k.omzet)}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 700, color: warnaRoas(k.roas) }}>{fmtRoas(k.roas)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </td>
-    </tr>
+    <>
+      {konten.map((k, i) => (
+        <tr
+          key={k.versi ?? `tanpa-kode-${i}`}
+          style={{ background: "#f9fafb", borderBottom: i === konten.length - 1 ? "1px solid #e5e7eb" : "1px solid #f3f4f6" }}
+        >
+          <td style={{ padding: "6px 12px 6px 40px", minWidth: 200 }}>
+            <div style={{ fontSize: 12, color: "#374151" }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>
+              {k.jumlah_iklan} iklan{k.contoh_nama_iklan?.length ? ` · ${k.contoh_nama_iklan.join(", ")}` : ""}
+            </div>
+          </td>
+          <SelMetrik utama={fmtRp(k.spend)} />
+          <SelMetrik utama={fmt(k.hasil)} bawah={fmtRpOpsional(k.cost_per_hasil)} />
+          <SelMetrik utama={fmt(k.order)} />
+          <SelMetrik utama={fmt(k.buyer)} />
+          <SelMetrik utama={fmtRp(k.omzet)} />
+          <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: warnaRoas(k.roas) }}>
+            {fmtRoas(k.roas)}
+          </td>
+          <td style={{ padding: "8px 12px" }} />
+          <td style={{ padding: "8px 12px" }} />
+          <td style={{ padding: "8px 12px" }} />
+          <td style={{ padding: "8px 12px" }} />
+          <td style={{ padding: "8px 12px" }} />
+          <td style={{ padding: "8px 12px" }} />
+        </tr>
+      ))}
+    </>
   );
 }
 
@@ -1347,7 +1296,7 @@ export default function MetaAdsOverviewContent({
                                 {fmtRoas(p.landing_page.roas)}
                               </td>
                             </tr>
-                            {terbuka && <BarisDetailProduk produk={p} jumlahKolom={13} />}
+                            {terbuka && <BarisKontenProduk produk={p} />}
                           </Fragment>
                         );
                       })}
