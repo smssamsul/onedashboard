@@ -51,7 +51,7 @@ class MetaAdsService
     public function getAdSets(): array
     {
         $response = $this->request('GET', "/{$this->account->ad_account_id}/adsets", [
-            'fields' => 'id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,bid_strategy,targeting,start_time,end_time',
+            'fields' => 'id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,destination_type,bid_strategy,targeting,start_time,end_time',
             'limit' => 500,
         ]);
 
