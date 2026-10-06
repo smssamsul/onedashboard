@@ -22,6 +22,7 @@ class MetaAdSet extends Model
         'lifetime_budget',
         'billing_event',
         'optimization_goal',
+        'destination_type',
         'targeting',
         'start_time',
         'end_time',

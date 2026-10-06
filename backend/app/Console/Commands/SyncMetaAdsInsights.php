@@ -143,6 +143,7 @@ class SyncMetaAdsInsights extends Command
                     'lifetime_budget' => isset($s['lifetime_budget']) ? $s['lifetime_budget'] / 100 : null,
                     'billing_event' => $s['billing_event'] ?? null,
                     'optimization_goal' => $s['optimization_goal'] ?? null,
+                    'destination_type' => $s['destination_type'] ?? null,
                     'targeting' => $s['targeting'] ?? null,
                     'start_time' => $s['start_time'] ?? null,
                     'end_time' => $s['end_time'] ?? null,

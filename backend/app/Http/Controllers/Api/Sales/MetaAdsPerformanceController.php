@@ -712,6 +712,34 @@ class MetaAdsPerformanceController extends Controller
      * (CTWA maupun bukan) memakai objective OUTCOME_SALES yang sama, jadi
      * objective tidak bisa dipakai membedakan channel.
      */
+    /**
+     * Channel tiap campaign dari tujuan (destination_type) ad set-nya di Meta:
+     * WHATSAPP = Messaging (Chat WA), selain itu = Landing Page. Kalau satu
+     * campaign punya ad set WHATSAPP, campaign itu dihitung Messaging.
+     * Campaign yang belum punya data destination (belum ter-sync) tidak masuk
+     * peta ini dan jatuh ke pencocokan nama di isCampaignCtwa().
+     *
+     * @return array<int, string>  campaign id lokal => messaging | landing_page
+     */
+    private function channelPerCampaign($campaignIds): array
+    {
+        $peta = [];
+        $tujuan = MetaAdSet::whereIn('meta_ad_campaign_id', $campaignIds)
+            ->whereNotNull('destination_type')
+            ->get(['meta_ad_campaign_id', 'destination_type']);
+
+        foreach ($tujuan as $ad) {
+            $cid = (int) $ad->meta_ad_campaign_id;
+            if (strtoupper((string) $ad->destination_type) === 'WHATSAPP') {
+                $peta[$cid] = 'messaging';
+            } else {
+                $peta[$cid] ??= 'landing_page';
+            }
+        }
+
+        return $peta;
+    }
+
     private function isCampaignCtwa(?string $nama): bool
     {
         return str_contains(mb_strtolower((string) $nama), 'ctwa');
@@ -767,6 +795,7 @@ class MetaAdsPerformanceController extends Controller
             ->pluck('jumlah', 'campaign_local_id');
 
         $campaignById = $campaigns->keyBy('id');
+        $channelPerCampaign = $this->channelPerCampaign($campaigns->pluck('id'));
         $kosongAd = fn () => [
             'messaging' => ['spend' => 0.0, 'leads' => 0, 'contact' => 0],
             'landing_page' => ['spend' => 0.0, 'leads' => 0, 'contact' => 0],
@@ -782,7 +811,7 @@ class MetaAdsPerformanceController extends Controller
                     continue;
                 }
 
-                $channel = $this->isCampaignCtwa($c->name) ? 'messaging' : 'landing_page';
+                $channel = $channelPerCampaign[$cid] ?? ($this->isCampaignCtwa($c->name) ? 'messaging' : 'landing_page');
                 $adAgg[$produkId] ??= $kosongAd();
 
                 $adAgg[$produkId][$channel]['spend'] += (float) $c->spend;
