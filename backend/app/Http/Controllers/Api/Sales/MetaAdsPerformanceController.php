@@ -242,7 +242,7 @@ class MetaAdsPerformanceController extends Controller
         $adSetPerCampaign = $this->ringkasanAdSet($campaigns->pluck('id'), $performa['adSet']);
         $iklanPerCampaign = $this->ringkasanIklan($campaigns->pluck('id'), $performa['iklan']);
 
-        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
+        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama', 'kode']);
         $namaProduk = $produkList->pluck('nama', 'id')->all();
         $produkPerCampaign = $this->produkPerCampaign($campaigns, $produkList);
         $agregatOrder = $this->agregatOrderPerCampaign($start, $end, $campaigns, $produkPerCampaign);
@@ -735,16 +735,13 @@ class MetaAdsPerformanceController extends Controller
             ->groupBy('meta_ad_campaigns.id', 'meta_ad_campaigns.campaign_id', 'meta_ad_campaigns.name')
             ->get();
 
-        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama']);
+        $produkList = Produk::where('status', '!=', 'N')->get(['id', 'nama', 'kode']);
         $namaProduk = $produkList->pluck('nama', 'id')->all();
 
-        // produkPerCampaign() mencocokkan SELURUH nama campaign (setelah
-        // normalisasi) sebagai substring nama produk. Campaign CTWA biasanya
-        // punya marker "CTWA" tambahan di nama (mis. "Jakarta - CTWA",
-        // "Tof_CTWA Seminar | Bandung") yang bikin whole-name-containment
-        // gagal padahal campaign itu untuk produk yang sama dengan versi
-        // non-CTWA-nya. Untuk pencocokan produk saja, marker itu dibuang
-        // dulu - channel (isCampaignCtwa()) tetap dicek dari nama ASLI lewat
+        // produkPerCampaign() mencocokkan nama campaign (setelah normalisasi)
+        // dengan kode produk. Marker "CTWA" dibuang dulu supaya campaign
+        // "seminar-bandung/CTWA" tetap cocok ke kode "seminar-bandung" -
+        // channel (isCampaignCtwa()) tetap dicek dari nama ASLI lewat
         // $campaignById di bawah, bukan dari salinan yang sudah dibersihkan ini.
         $campaignsUntukPencocokanProduk = $campaigns->map(function ($c) {
             $bersih = clone $c;
@@ -1554,12 +1551,11 @@ class MetaAdsPerformanceController extends Controller
 
     /**
      * Produk yang diiklankan tiap campaign, dicocokkan dari nama campaign yang
-     * muncul di nama produk ("Webinar" ada di "Webinar Ternak Properti",
-     * "Gorontalo" ada di "Seminar Akuisisi Properti Gorontalo").
+     * sama persis (setelah normalisasi) dengan kode produk ("seminar-bandung"
+     * di campaign "seminar-bandung" atau "Seminar-Bandung").
      *
-     * Menggantikan pemetaan lewat daftar kota. Lebih umum: kota baru tidak perlu
-     * didaftarkan dulu, dan campaign non-kota (Webinar, Buku) ikut tertangani —
-     * dua hal yang dulu jadi lubang.
+     * Dulu dicocokkan sebagai substring nama produk, sehingga campaign "Bandung"
+     * ikut nyasar ke semua produk yang namanya mengandung "Bandung".
      *
      * Nama campaign yang terlalu pendek diabaikan; potongan 3 huruf gampang
      * nyangkut di nama produk yang tidak ada hubungannya.
@@ -1590,12 +1586,8 @@ class MetaAdsPerformanceController extends Controller
                 continue;
             }
 
-            if (strlen($nama) < 4) {
-                continue;
-            }
-
             foreach ($produkList as $p) {
-                if (str_contains($this->normalisasi($p->nama), $nama)) {
+                if ($p->kode !== null && $this->normalisasi($p->kode) === $nama) {
                     $peta[$c->id][] = (int) $p->id;
                 }
             }
