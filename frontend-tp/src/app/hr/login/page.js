@@ -14,7 +14,7 @@ export default function HRLoginPage() {
         <div className="hr-login-box">
           <div className="hr-logo">
             <div className="hr-logo-badge">
-              <img src="/assets/logo-boosterin.png" alt="Logo" className="hr-login-logo" />
+              <img src="/assets/logo.png" alt="Logo" className="hr-login-logo" />
             </div>
             <h3>HR Management Portal</h3>
             <p>Sign in to your HR account</p>
