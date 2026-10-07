@@ -13,15 +13,21 @@ use Illuminate\Console\Command;
  * diunduh ulang dan disimpan ke disk lokal - sama seperti yang sekarang
  * otomatis dilakukan SyncMetaAdsInsights::syncAds() untuk creative baru.
  *
+ * PENTING: URL yang sudah tersimpan di DB kemungkinan BESAR sudah kedaluwarsa
+ * (itu kan sebabnya command ini ada) - jadi command ini minta ULANG field
+ * creative ke Meta (dapat URL thumbnail yang baru/fresh), baru diunduh dari
+ * situ. Diproses per-batch (bukan satu panggilan besar) supaya kalau Meta
+ * error di tengah jalan, batch yang sudah berhasil tidak ikut hilang.
+ *
  * Baris yang thumbnail_url-nya SUDAH berupa path lokal (sudah pernah
  * dibackfill / baru disync) dilewati, jadi command ini aman dijalankan
  * berulang kali.
  */
 class BackfillMetaAdsThumbnails extends Command
 {
-    protected $signature = 'meta-ads:backfill-thumbnails {--limit=}';
+    protected $signature = 'meta-ads:backfill-thumbnails {--limit=} {--batch=50}';
 
-    protected $description = 'Unduh ulang & simpan lokal thumbnail iklan Meta yang masih pakai URL Meta mentah (sudah/akan kedaluwarsa)';
+    protected $description = 'Minta ulang creative ke Meta (URL fresh) lalu unduh & simpan lokal thumbnail iklan yang masih pakai URL Meta mentah';
 
     public function handle(): int
     {
@@ -56,32 +62,52 @@ class BackfillMetaAdsThumbnails extends Command
             return self::FAILURE;
         }
         $service = new MetaAdsService($account);
+        $batchSize = max(1, (int) $this->option('batch'));
 
         $bar = $this->output->createProgressBar($total);
         $bar->start();
 
         $berhasil = 0;
-        $gagal = 0;
+        $gagalFetchCreative = 0;
+        $gagalUnduh = 0;
 
-        foreach ($ads as $ad) {
-            $urlLama = $ad->creative_payload['thumbnail_url'] ?? null;
-            $pathLokal = $urlLama ? $service->simpanThumbnailLokal($ad->ad_id, $urlLama) : null;
-
-            if ($pathLokal) {
-                $payload = $ad->creative_payload;
-                $payload['thumbnail_url'] = $pathLokal;
-                $ad->update(['creative_payload' => $payload]);
-                $berhasil++;
-            } else {
-                $gagal++;
+        foreach ($ads->chunk($batchSize) as $batch) {
+            try {
+                $creativeSegar = $service->getAdsCreatives($batch->pluck('ad_id')->all(), $batchSize);
+            } catch (\Throwable $e) {
+                $this->newLine();
+                $this->warn('Batch gagal minta creative ke Meta (' . $batch->count() . ' iklan dilewati): ' . $e->getMessage());
+                $gagalFetchCreative += $batch->count();
+                $bar->advance($batch->count());
+                continue;
             }
 
-            $bar->advance();
+            foreach ($batch as $ad) {
+                $urlSegar = $creativeSegar[$ad->ad_id]['thumbnail_url'] ?? null;
+                $pathLokal = $urlSegar ? $service->simpanThumbnailLokal($ad->ad_id, $urlSegar) : null;
+
+                if ($pathLokal) {
+                    $payload = $ad->creative_payload;
+                    $payload['thumbnail_url'] = $pathLokal;
+                    $ad->update(['creative_payload' => $payload]);
+                    $berhasil++;
+                } elseif ($urlSegar === null) {
+                    $gagalFetchCreative++;
+                } else {
+                    $gagalUnduh++;
+                }
+
+                $bar->advance();
+            }
         }
 
         $bar->finish();
         $this->newLine(2);
-        $this->info("Selesai. Berhasil: {$berhasil}. Gagal (URL sudah benar-benar mati di Meta): {$gagal}.");
+        $this->info(
+            "Selesai. Berhasil: {$berhasil}. " .
+            "Meta tidak kasih creative lagi (ad lama/arsip): {$gagalFetchCreative}. " .
+            "Creative ada tapi gagal unduh gambarnya: {$gagalUnduh}."
+        );
 
         return self::SUCCESS;
     }
