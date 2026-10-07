@@ -172,9 +172,25 @@ function BarisKontenProduk({ produk }) {
           style={{ background: "#f9fafb", borderBottom: i === konten.length - 1 ? "1px solid #e5e7eb" : "1px solid #f3f4f6" }}
         >
           <td style={{ padding: "6px 12px 6px 40px", minWidth: 200 }}>
-            <div style={{ fontSize: 12, color: "#374151" }}>{k.label}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>
-              {k.jumlah_iklan} iklan{k.contoh_nama_iklan?.length ? ` · ${k.contoh_nama_iklan.join(", ")}` : ""}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {k.thumbnail ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={k.thumbnail}
+                  alt=""
+                  width={32}
+                  height={32}
+                  style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid #e5e7eb" }}
+                />
+              ) : (
+                <div style={{ width: 32, height: 32, borderRadius: 6, background: "#e5e7eb", flexShrink: 0 }} />
+              )}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: "#374151" }}>{k.label}</div>
+                <div style={{ fontSize: 10, color: "#9ca3af" }}>
+                  {k.jumlah_iklan} iklan{k.contoh_nama_iklan?.length ? ` · ${k.contoh_nama_iklan.join(", ")}` : ""}
+                </div>
+              </div>
             </div>
           </td>
           <SelMetrik utama={fmtRp(k.spend)} />
