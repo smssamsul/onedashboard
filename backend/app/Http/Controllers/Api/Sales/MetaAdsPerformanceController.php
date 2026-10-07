@@ -927,9 +927,15 @@ class MetaAdsPerformanceController extends Controller
                         ->whereBetween('meta_ad_insights_ad_daily.date', [$start, $end]);
                 })
                 ->select('meta_ad_sets.meta_ad_campaign_id as campaign_local_id', 'meta_ads.id', 'meta_ads.name')
+                ->selectRaw("meta_ads.creative_payload->>'thumbnail_url' as thumbnail")
                 ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.spend), 0) as spend')
                 ->selectRaw('COALESCE(SUM(meta_ad_insights_ad_daily.contact), 0) as contact')
-                ->groupBy('meta_ad_sets.meta_ad_campaign_id', 'meta_ads.id', 'meta_ads.name')
+                ->groupBy(
+                    'meta_ad_sets.meta_ad_campaign_id',
+                    'meta_ads.id',
+                    'meta_ads.name',
+                    DB::raw("meta_ads.creative_payload->>'thumbnail_url'")
+                )
                 ->get();
 
             foreach ($adsRows as $row) {
@@ -990,11 +996,18 @@ class MetaAdsPerformanceController extends Controller
                 'jumlah_iklan' => 0,
                 'spend' => 0.0,
                 'contact' => 0,
+                'thumbnail' => null,
             ];
             $grup[$key]['nama_iklan'][] = $ad->name;
             $grup[$key]['jumlah_iklan']++;
             $grup[$key]['spend'] += (float) $ad->spend;
             $grup[$key]['contact'] += (int) $ad->contact;
+            // Satu kode versi bisa punya beberapa iklan (mis. beberapa ad set) -
+            // thumbnail yang ditampilkan cuma dari iklan pertama yang punya
+            // thumbnail, mewakili grupnya saja, bukan tiap iklan.
+            if ($grup[$key]['thumbnail'] === null && !empty($ad->thumbnail)) {
+                $grup[$key]['thumbnail'] = $ad->thumbnail;
+            }
         }
 
         $kosongOrder = ['order' => 0, 'buyer' => 0, 'omzet' => 0.0];
@@ -1002,7 +1015,7 @@ class MetaAdsPerformanceController extends Controller
 
         $baris = [];
         foreach ($semuaKey as $key) {
-            $g = $grup[$key] ?? ['kode' => $key === self::TANPA_KODE_VERSI ? null : $key, 'nama_iklan' => [], 'jumlah_iklan' => 0, 'spend' => 0.0, 'contact' => 0];
+            $g = $grup[$key] ?? ['kode' => $key === self::TANPA_KODE_VERSI ? null : $key, 'nama_iklan' => [], 'jumlah_iklan' => 0, 'spend' => 0.0, 'contact' => 0, 'thumbnail' => null];
             $o = $orderPerKode[$key] ?? $kosongOrder;
 
             $spendPpn = round($g['spend'] * (1 + self::PPN_PERSEN / 100), 2);
@@ -1014,6 +1027,7 @@ class MetaAdsPerformanceController extends Controller
                 'label' => $g['kode'] ?? 'Tanpa kode versi',
                 'jumlah_iklan' => $g['jumlah_iklan'],
                 'contoh_nama_iklan' => array_slice(array_unique($g['nama_iklan']), 0, 3),
+                'thumbnail' => $g['thumbnail'],
                 'spend' => $g['spend'],
                 'spend_ppn' => $spendPpn,
                 'hasil' => $hasil,
