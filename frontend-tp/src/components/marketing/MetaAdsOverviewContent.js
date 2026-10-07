@@ -1,13 +1,12 @@
 "use client";
 
-import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { RefreshCw, ChevronRight, ChevronDown, Sparkles, Download } from "lucide-react";
+import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
+import { RefreshCw, ChevronRight, ChevronDown, Sparkles } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { ordersToCsvString, downloadCsvBlob } from "@/lib/sales/orderListQueryParams";
 
 function getToken() {
   if (typeof window === "undefined") return "";
@@ -144,200 +143,6 @@ function SelMetrik({ utama, bawah, labelBawah }) {
   );
 }
 
-/** Kolom metrik kecil dipakai bareng oleh panel iklan dan ad set. */
-function MetrikMini({ label, nilai, warna }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10, color: "#9ca3af" }}>{label}</div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: warna || "#374151" }}>{nilai}</div>
-    </div>
-  );
-}
-
-/** Baris detail: performa iklan, setting ad set, lalu produk sumber order. */
-function BarisDetailCampaign({ campaign, jumlahKolom }) {
-  const adSets = campaign.ad_sets || [];
-  const iklan = campaign.iklan || [];
-  const produk = campaign.produk_terkait || [];
-
-  const handleUnduhPerformaIklan = () => {
-    const records = iklan.map((a) => ({
-      Iklan: a.name || a.ad_id,
-      Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
-      Impresi: a.ada_data ? a.impressions : 0,
-      Result: a.ada_data ? a.contact : 0,
-      CPR: a.ada_data && a.cpr !== null && a.cpr !== undefined ? Math.round(a.cpr) : "",
-    }));
-    const csv = ordersToCsvString(records);
-    const stamp = new Date().toISOString().slice(0, 10);
-    const namaCampaign = (campaign.name || campaign.campaign_id || "campaign")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    downloadCsvBlob(`performa-iklan-${namaCampaign}-${stamp}.csv`, csv);
-  };
-
-  return (
-    <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-      <td colSpan={jumlahKolom} style={{ padding: "14px 18px" }}>
-        {/* Iklan didahulukan: ini yang dinilai, ad set cuma konteksnya. */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
-            Performa Iklan ({iklan.length})
-          </div>
-          {iklan.length > 0 && (
-            <button
-              type="button"
-              onClick={handleUnduhPerformaIklan}
-              title="Unduh data Performa Iklan sebagai CSV"
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#374151",
-                background: "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                padding: "4px 10px",
-                cursor: "pointer",
-              }}
-            >
-              Unduh CSV
-            </button>
-          )}
-        </div>
-        <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 8px" }}>
-          Result dari Contact (chat WA dimulai). Diurutkan dari Contact terbanyak. Biaya sudah termasuk PPN.
-        </p>
-
-        {iklan.length === 0 ? (
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 14px" }}>
-            Belum ada data iklan. Jalankan Sync untuk menariknya dari Meta.
-          </p>
-        ) : (
-          <div style={{ overflowX: "auto", marginBottom: 16, border: "1px solid #e5e7eb", borderRadius: 8 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
-              <thead>
-                <tr style={{ background: "#f3f4f6", borderBottom: "1px solid #e5e7eb" }}>
-                  <th style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Iklan</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Biaya</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Impresi</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Result</th>
-                  <th style={{ textAlign: "right", padding: "6px 10px", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>CPR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {iklan.map((a) => (
-                  <tr key={a.ad_id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "8px 10px", verticalAlign: "middle" }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        {a.thumbnail && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={a.thumbnail} alt="" width={32} height={32}
-                            style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid #e5e7eb" }} />
-                        )}
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, wordBreak: "break-word" }}>{a.name || a.ad_id}</div>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>{a.ad_set_nama}</div>
-                        </div>
-                      </div>
-                    </td>
-                    {a.ada_data ? (
-                      <>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRp(Math.round(a.spend_ppn))}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmt(a.impressions)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 600, color: a.contact > 0 ? "#2563eb" : "#9ca3af" }}>{fmt(a.contact)}</td>
-                        <td style={{ padding: "8px 10px", textAlign: "right", fontSize: 12 }}>{fmtRpOpsional(a.cpr)}</td>
-                      </>
-                    ) : (
-                      <td colSpan={4} style={{ padding: "8px 10px", fontSize: 11, color: "#9ca3af" }}>
-                        Tidak ada belanja di rentang tanggal ini.
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-          Setting Ad Set ({adSets.length})
-        </div>
-
-        {adSets.length === 0 ? (
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 12px" }}>
-            Belum ada data ad set tersimpan. Jalankan Sync untuk menariknya dari Meta.
-          </p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10, marginBottom: 14 }}>
-            {adSets.map((s) => (
-              <div key={s.ad_set_id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{s.name || s.ad_set_id}</span>
-                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 999, background: s.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: s.status === "ACTIVE" ? "#166534" : "#6b7280", whiteSpace: "nowrap" }}>
-                    {s.status || "-"}
-                  </span>
-                </div>
-
-                <div style={{ fontSize: 11, color: "#4b5563", lineHeight: 1.7 }}>
-                  <div>
-                    <strong>Budget:</strong>{" "}
-                    {s.daily_budget ? `${fmtRp(s.daily_budget)}/hari` : s.lifetime_budget ? `${fmtRp(s.lifetime_budget)} (lifetime)` : "-"}
-                  </div>
-                  <div><strong>Optimasi:</strong> {s.optimization_goal || "-"} {s.billing_event ? `(bayar per ${s.billing_event})` : ""}</div>
-                  {(s.start_time || s.end_time) && (
-                    <div><strong>Jadwal:</strong> {s.start_time || "?"} s/d {s.end_time || "tanpa batas"}</div>
-                  )}
-                  {Object.entries(s.targeting || {}).map(([k, v]) => (
-                    <div key={k}><strong>{LABEL_TARGETING[k] || k}:</strong> {v}</div>
-                  ))}
-                </div>
-
-                {/* Angka ad set dijumlahkan dari iklan di dalamnya, bukan
-                    panggilan terpisah ke Meta. */}
-                {s.ada_data && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, borderTop: "1px dashed #e5e7eb", marginTop: 8, paddingTop: 8 }}>
-                    <MetrikMini label="Biaya" nilai={fmtRp(Math.round(s.spend_ppn))} />
-                    <MetrikMini label="Leads" nilai={fmt(s.leads)} warna={s.leads > 0 ? "#2563eb" : "#9ca3af"} />
-                    <MetrikMini label="CPL" nilai={fmtRpOpsional(s.cpl)} />
-                    <MetrikMini label="CTR" nilai={s.ctr === null ? "-" : `${s.ctr}%`} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 2 }}>
-          Produk yang ordernya dihitung ke campaign ini
-        </div>
-        <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 6px" }}>
-          Order untuk produk di bawah ini diklaim campaign ini bila tidak tercocokkan lewat utm_campaign.
-        </p>
-        {produk.length === 0 ? (
-          <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>
-            {`Tidak ada produk yang dipetakan ke "${campaign.name || "campaign ini"}". Order hanya bisa masuk lewat utm_campaign.`}
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {produk.map((p) => (
-              <span key={p.id} style={{ fontSize: 11, background: "#eef2ff", color: "#3730a3", padding: "3px 10px", borderRadius: 999 }}>
-                {p.nama || `Produk #${p.id}`}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {campaign.lokasi_dipakai_bersama && (
-          <p style={{ fontSize: 11, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 10px", marginTop: 10, marginBottom: 0 }}>
-            Lokasi <strong>{campaign.lokasi}</strong> juga dipakai campaign lain. Order dan buyer kota ini dihitung di setiap campaign tersebut, jadi jangan dijumlahkan antar baris.
-          </p>
-        )}
-      </td>
-    </tr>
-  );
-}
-
 /** Baris detail: breakdown "Performa Konten" untuk satu produk (muncul waktu baris Produk di-expand). */
 /**
  * Baris breakdown konten, dirender LANGSUNG sebagai <tr> tambahan di tabel
@@ -412,7 +217,6 @@ export default function MetaAdsOverviewContent({
   const [startDate, setStartDate] = useState(todayMinus(29));
   const [endDate, setEndDate] = useState(todayMinus(0));
   const [tampilkanNonAktif, setTampilkanNonAktif] = useState(false);
-  const [barisTerbuka, setBarisTerbuka] = useState({});
   const [barisProdukTerbuka, setBarisProdukTerbuka] = useState({});
   const [ppnPersen, setPpnPersen] = useState(11);
   const [error, setError] = useState("");
@@ -420,13 +224,6 @@ export default function MetaAdsOverviewContent({
   const [analisaData, setAnalisaData] = useState(null);
   const [analisaCached, setAnalisaCached] = useState(false);
   const [analisaError, setAnalisaError] = useState("");
-  const [csvMenuOpen, setCsvMenuOpen] = useState(false);
-  const [csvSelectedIds, setCsvSelectedIds] = useState(new Set());
-  const csvMenuRef = useRef(null);
-
-  const toggleBaris = useCallback((id) => {
-    setBarisTerbuka((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
 
   const toggleBarisProduk = useCallback((id) => {
     setBarisProdukTerbuka((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -477,68 +274,6 @@ export default function MetaAdsOverviewContent({
   useEffect(() => {
     load();
   }, [load]);
-
-  // Cuma campaign yang punya data iklan tersimpan yang masuk akal dipilih untuk unduh CSV.
-  const campaignsDenganIklan = useMemo(
-    () => campaigns.filter((c) => (c.iklan || []).length > 0),
-    [campaigns]
-  );
-  const semuaCsvTerpilih = campaignsDenganIklan.length > 0 && csvSelectedIds.size === campaignsDenganIklan.length;
-
-  // Tutup dropdown pilihan CSV kalau klik di luar area-nya.
-  useEffect(() => {
-    if (!csvMenuOpen) return;
-    const handleClickLuar = (e) => {
-      if (csvMenuRef.current && !csvMenuRef.current.contains(e.target)) {
-        setCsvMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickLuar);
-    return () => document.removeEventListener("mousedown", handleClickLuar);
-  }, [csvMenuOpen]);
-
-  const bukaCsvMenu = () => {
-    // Default semua campaign terpilih, supaya klik "Unduh" tanpa memilih apa-apa sudah benar.
-    setCsvSelectedIds(new Set(campaignsDenganIklan.map((c) => c.id)));
-    setCsvMenuOpen((prev) => !prev);
-  };
-
-  const toggleSemuaCsv = () => {
-    setCsvSelectedIds(semuaCsvTerpilih ? new Set() : new Set(campaignsDenganIklan.map((c) => c.id)));
-  };
-
-  const toggleCampaignCsv = (id) => {
-    setCsvSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleUnduhSemuaIklan = () => {
-    const dipilih = campaignsDenganIklan.filter((c) => csvSelectedIds.has(c.id));
-    const records = [];
-    dipilih.forEach((c) => {
-      (c.iklan || []).forEach((a) => {
-        records.push({
-          Campaign: c.name || c.campaign_id,
-          Iklan: a.name || a.ad_id,
-          Biaya: a.ada_data ? Math.round(a.spend_ppn) : 0,
-          Impresi: a.ada_data ? a.impressions : 0,
-          Result: a.ada_data ? a.contact : 0,
-          CPR: a.ada_data && a.cpr !== null && a.cpr !== undefined ? Math.round(a.cpr) : "",
-        });
-      });
-    });
-    if (records.length === 0) return;
-
-    const csv = ordersToCsvString(records);
-    const stamp = new Date().toISOString().slice(0, 10);
-    const label = semuaCsvTerpilih ? "semua-campaign" : `${dipilih.length}-campaign`;
-    downloadCsvBlob(`performa-iklan-${label}-${stamp}.csv`, csv);
-    setCsvMenuOpen(false);
-  };
 
   /**
    * KPI tiles di bagian atas overview. "Result" belum punya satu angka
@@ -851,339 +586,6 @@ export default function MetaAdsOverviewContent({
             )}
           </div>
 
-          {/* Campaign table */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
-                Performa per Campaign {tampilkanNonAktif ? "(semua status)" : "(hanya aktif)"}
-              </h3>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <span style={{ fontSize: 11, color: "#6b7280" }}>Klik baris untuk melihat setting ad set</span>
-                <div ref={csvMenuRef} style={{ position: "relative" }}>
-                  <button
-                    type="button"
-                    onClick={bukaCsvMenu}
-                    disabled={campaignsDenganIklan.length === 0}
-                    title="Unduh performa tiap iklan (Biaya, Impresi, Result, CPR) dari campaign yang dipilih"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: campaignsDenganIklan.length === 0 ? "#9ca3af" : "#374151",
-                      background: "#fff",
-                      border: "1px solid #d1d5db",
-                      borderRadius: 6,
-                      padding: "5px 10px",
-                      cursor: campaignsDenganIklan.length === 0 ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <Download size={13} />
-                    Unduh CSV Semua Iklan
-                  </button>
-
-                  {csvMenuOpen && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "calc(100% + 6px)",
-                        right: 0,
-                        zIndex: 20,
-                        width: 300,
-                        background: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 8,
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                        padding: 10,
-                      }}
-                    >
-                      <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 8px" }}>
-                        Pilih campaign yang ikut diunduh. Tiap baris CSV = satu iklan (Campaign, Biaya, Impresi, Result, CPR).
-                      </p>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          padding: "5px 4px",
-                          borderBottom: "1px solid #f3f4f6",
-                          marginBottom: 4,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input type="checkbox" checked={semuaCsvTerpilih} onChange={toggleSemuaCsv} />
-                        Semua Campaign ({campaignsDenganIklan.length})
-                      </label>
-                      <div style={{ maxHeight: 220, overflowY: "auto" }}>
-                        {campaignsDenganIklan.map((c) => (
-                          <label
-                            key={c.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              fontSize: 12,
-                              padding: "4px 4px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={csvSelectedIds.has(c.id)}
-                              onChange={() => toggleCampaignCsv(c.id)}
-                            />
-                            <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{c.name || c.campaign_id}</span>
-                            <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0 }}>{(c.iklan || []).length} iklan</span>
-                          </label>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleUnduhSemuaIklan}
-                        disabled={csvSelectedIds.size === 0}
-                        style={{
-                          width: "100%",
-                          marginTop: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#fff",
-                          background: csvSelectedIds.size === 0 ? "#9ca3af" : "#111827",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "7px 10px",
-                          cursor: csvSelectedIds.size === 0 ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        Unduh CSV ({csvSelectedIds.size} campaign)
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 14px" }}>
-              Semua biaya per hasil (CPM, CPL, cost/purchase, CPO, CPB) dan ROAS dihitung dari biaya termasuk PPN {ppnPersen}%.
-              Order, buyer, dan ROAS berasal dari order internal. Order dari sumber non-iklan (<b>sosmedtp, sosmedda, website</b>) tidak
-              dihitung. Sisanya dicocokkan berurutan: utm_campaign berisi ID campaign Meta, lalu utm_campaign mengandung nama campaign,
-              terakhir nama campaign yang muncul di <b>nama produk</b> yang dibeli.
-              Buyer &amp; revenue mencakup pembayaran <b>Paid</b> maupun <b>Waiting Approval</b>, jadi sebagian kecil masih bisa turun kalau finance menolak.
-            </p>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1320 }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left", color: "#374151" }}>
-                    <th style={{ padding: "8px 12px" }}>Campaign</th>
-                    <th style={{ padding: "8px 12px" }}>Status</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Biaya</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Biaya + PPN {ppnPersen}%</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Impresi<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPM</span></th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPL</span></th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Contact</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Purchase<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>Cost/purchase</span></th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Order<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPO</span></th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Buyer<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>CPB</span></th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Lead &rarr;<br />Purchase</th>
-                    {/* Ditaruh sebelum Order -> Buyer supaya corongnya terbaca berurutan
-                        dari kiri ke kanan: lead jadi order, order jadi buyer. */}
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Leads &rarr;<br />Order</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Order &rarr;<br />Buyer</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right" }}>Revenue<br /><span style={{ fontWeight: 400, fontSize: 11, color: "#6b7280" }}>ROAS</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.length === 0 ? (
-                    <tr>
-                      <td colSpan={14} style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>
-                        {loading
-                          ? "Memuat..."
-                          : tampilkanNonAktif
-                            ? "Belum ada campaign tersimpan."
-                            : "Tidak ada campaign aktif. Centang \"Tampilkan campaign non-aktif\" untuk melihat sisanya."}
-                      </td>
-                    </tr>
-                  ) : (
-                    <>
-                    {totalTabel && (
-                      <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb", fontWeight: 600 }}>
-                        <td style={{ padding: "10px 12px" }}>
-                          <div style={{ fontWeight: 700 }}>TOTAL</div>
-                          <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                            {totalTabel.jumlahCampaign} campaign{tampilkanNonAktif ? "" : " aktif"}
-                          </div>
-                        </td>
-                        <td style={{ padding: "10px 12px" }} />
-                        <SelMetrik utama={fmtRp(totalTabel.spend)} />
-                        <SelMetrik utama={fmtRp(totalTabel.spend_ppn)} />
-                        <SelMetrik utama={fmt(totalTabel.impressions)} bawah={fmtRpOpsional(totalTabel.cpm)} />
-                        <SelMetrik utama={fmt(totalTabel.leads)} bawah={fmtRpOpsional(totalTabel.cpl)} />
-                        <SelMetrik utama={fmt(totalTabel.contact)} />
-                        <SelMetrik utama={fmt(totalTabel.purchase)} bawah={fmtRpOpsional(totalTabel.cost_per_purchase)} />
-                        <SelMetrik utama={fmt(totalTabel.order)} bawah={fmtRpOpsional(totalTabel.cpo)} />
-                        <SelMetrik utama={fmt(totalTabel.buyer)} bawah={fmtRpOpsional(totalTabel.cpb)} />
-                        <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_purchase)} />
-                        <SelMetrik utama={fmtPersen(totalTabel.rasio_lead_to_order)} />
-                        <SelMetrik utama={fmtPersen(totalTabel.rasio_order_to_buyer)} />
-                        <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                          <div style={{ fontWeight: 700 }}>{fmtRp(totalTabel.revenue)}</div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(totalTabel.roas), marginTop: 2 }}>{fmtRoas(totalTabel.roas)}</div>
-                        </td>
-                      </tr>
-                    )}
-                    {campaigns.map((c) => {
-                      const terbuka = !!barisTerbuka[c.id];
-                      return (
-                        <Fragment key={c.id}>
-                          <tr
-                            onClick={() => toggleBaris(c.id)}
-                            style={{ borderBottom: terbuka ? "none" : "1px solid #f3f4f6", cursor: "pointer" }}
-                          >
-                            <td style={{ padding: "8px 12px", minWidth: 240 }}>
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                                {terbuka ? <ChevronDown size={15} style={{ marginTop: 2, flexShrink: 0, color: "#6b7280" }} /> : <ChevronRight size={15} style={{ marginTop: 2, flexShrink: 0, color: "#9ca3af" }} />}
-                                <div>
-                                  <div style={{ fontWeight: 500 }}>{c.name || c.campaign_id}</div>
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                                    <span style={{ fontSize: 10, color: "#6b7280" }}>{(c.ad_sets || []).length} ad set</span>
-                                    {c.lokasi ? (
-                                      <span style={{ fontSize: 10, background: "#eef2ff", color: "#3730a3", padding: "1px 7px", borderRadius: 999 }}>{c.lokasi}</span>
-                                    ) : (
-                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Nama campaign tidak menyebut kota. Order tetap terhitung kalau ada yang membawa utm_campaign cocok.">
-                                        tanpa lokasi
-                                      </span>
-                                    )}
-                                    {/* Asal angka order dibedakan: lewat UTM itu bukti langsung,
-                                        lewat lokasi cuma kesamaan nama kota. */}
-                                    {c.order_dari_utm > 0 && (
-                                      <span style={{ fontSize: 10, background: "#dcfce7", color: "#166534", padding: "1px 7px", borderRadius: 999 }} title="Order yang membawa utm_campaign cocok dengan nama campaign ini - bukti langsung">
-                                        {c.order_dari_utm} via UTM
-                                      </span>
-                                    )}
-                                    {c.order_dari_produk > 0 && (
-                                      <span style={{ fontSize: 10, background: "#f3f4f6", color: "#6b7280", padding: "1px 7px", borderRadius: 999 }} title="Dicocokkan lewat nama campaign yang muncul di nama produk yang dibeli - perkiraan, bukan bukti">
-                                        {c.order_dari_produk} via produk
-                                      </span>
-                                    )}
-                                    {c.lokasi_dipakai_bersama && (
-                                      <span style={{ fontSize: 10, background: "#fffbeb", color: "#b45309", padding: "1px 7px", borderRadius: 999 }} title="Lokasi ini dipakai lebih dari satu campaign - order & buyer terhitung di tiap campaign">
-                                        lokasi dipakai bersama
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: "8px 12px" }}>
-                              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: c.status === "ACTIVE" ? "#dcfce7" : "#f3f4f6", color: c.status === "ACTIVE" ? "#166534" : "#6b7280" }}>
-                                {c.status || "-"}
-                              </span>
-                            </td>
-                            <SelMetrik utama={fmtRp(c.spend)} />
-                            <SelMetrik utama={fmtRp(c.spend_ppn)} />
-                            <SelMetrik utama={fmt(c.impressions)} bawah={fmtRpOpsional(c.cpm)} />
-                            <SelMetrik utama={fmt(c.leads)} bawah={fmtRpOpsional(c.cpl)} />
-                            <SelMetrik utama={fmt(c.contact)} />
-                            <SelMetrik utama={fmt(c.purchase)} bawah={fmtRpOpsional(c.cost_per_purchase)} />
-                            <SelMetrik utama={fmt(c.order)} bawah={fmtRpOpsional(c.cpo)} />
-                            <SelMetrik utama={fmt(c.buyer)} bawah={fmtRpOpsional(c.cpb)} />
-                            <SelMetrik utama={fmtPersen(c.rasio_lead_to_purchase)} />
-                            <SelMetrik utama={fmtPersen(c.rasio_lead_to_order)} />
-                            <SelMetrik utama={fmtPersen(c.rasio_order_to_buyer)} />
-                            <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                              <div style={{ fontWeight: 600 }}>{fmtRp(c.revenue)}</div>
-                              {/* ROAS jadi baris bawah, tapi tetap tebal supaya warnanya
-                                  terbaca di ukuran 11px - ini angka yang dipakai menilai. */}
-                              <div style={{ fontSize: 11, fontWeight: 700, color: warnaRoas(c.roas), marginTop: 2 }}>{fmtRoas(c.roas)}</div>
-                            </td>
-                          </tr>
-                          {terbuka && <BarisDetailCampaign campaign={c} jumlahKolom={14} />}
-                        </Fragment>
-                      );
-                    })}
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Analisa AI - tombol manual, lihat handleAnalisa() untuk alasan */}
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e5e7eb" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: (analisaData || analisaError) ? 14 : 0 }}>
-                <div>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Analisa AI</h3>
-                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
-                    Ringkasan &amp; rekomendasi dari Claude berdasarkan data tabel di atas.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAnalisa}
-                  disabled={analisaLoading || campaigns.length === 0}
-                  title="Kirim ringkasan angka campaign ke AI untuk dianalisa"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-                    borderRadius: 6, border: "1px solid #4338ca", background: analisaLoading ? "#eef2ff" : "#4338ca",
-                    color: analisaLoading ? "#4338ca" : "#fff", fontSize: 13, fontWeight: 600,
-                    cursor: (analisaLoading || campaigns.length === 0) ? "not-allowed" : "pointer",
-                    opacity: campaigns.length === 0 ? 0.5 : 1,
-                  }}
-                >
-                  <Sparkles size={15} style={analisaLoading ? { animation: "metaSpin 1s linear infinite" } : undefined} />
-                  {analisaLoading ? "Menganalisa..." : "Analisa dengan AI"}
-                </button>
-              </div>
-
-              {analisaError && (
-                <div style={{ color: "#dc2626", fontSize: 13, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px" }}>
-                  {analisaError}
-                </div>
-              )}
-
-              {analisaData && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Ringkasan</span>
-                      {analisaCached && (
-                        <span style={{ fontSize: 10, color: "#6b7280", background: "#f3f4f6", padding: "1px 8px", borderRadius: 999 }} title="Hasil dari cache 1 jam, bukan panggilan AI baru">
-                          hasil tersimpan
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ fontSize: 13, color: "#374151", margin: 0, lineHeight: 1.6 }}>{analisaData.ringkasan}</p>
-                  </div>
-
-                  {(analisaData.temuan || []).length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Temuan per Campaign</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                        {analisaData.temuan.map((t, i) => (
-                          <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderLeft: `4px solid ${warnaUrgensi(t.urgensi)}`, borderRadius: 8, padding: "10px 12px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600 }}>{t.campaign}</span>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: warnaUrgensi(t.urgensi), whiteSpace: "nowrap" }}>{labelUrgensi(t.urgensi)}</span>
-                            </div>
-                            <p style={{ fontSize: 12, color: "#4b5563", margin: 0, lineHeight: 1.5 }}>{t.catatan}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {(analisaData.rekomendasi || []).length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Rekomendasi</div>
-                      <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
-                        {analisaData.rekomendasi.map((r, i) => <li key={i}>{r}</li>)}
-                      </ol>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Produk table: performa dipecah per channel (Messaging vs Landing Page). Klik baris untuk lihat breakdown per Konten. */}
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20, marginTop: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
@@ -1304,6 +706,81 @@ export default function MetaAdsOverviewContent({
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Analisa AI - tombol manual, lihat handleAnalisa() untuk alasan */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e5e7eb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: (analisaData || analisaError) ? 14 : 0 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Analisa AI</h3>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
+                    Ringkasan &amp; rekomendasi dari Claude berdasarkan data tabel di atas.
+                  </p>
+                </div>
+                <button
+                  onClick={handleAnalisa}
+                  disabled={analisaLoading || campaigns.length === 0}
+                  title="Kirim ringkasan angka campaign ke AI untuk dianalisa"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
+                    borderRadius: 6, border: "1px solid #4338ca", background: analisaLoading ? "#eef2ff" : "#4338ca",
+                    color: analisaLoading ? "#4338ca" : "#fff", fontSize: 13, fontWeight: 600,
+                    cursor: (analisaLoading || campaigns.length === 0) ? "not-allowed" : "pointer",
+                    opacity: campaigns.length === 0 ? 0.5 : 1,
+                  }}
+                >
+                  <Sparkles size={15} style={analisaLoading ? { animation: "metaSpin 1s linear infinite" } : undefined} />
+                  {analisaLoading ? "Menganalisa..." : "Analisa dengan AI"}
+                </button>
+              </div>
+
+              {analisaError && (
+                <div style={{ color: "#dc2626", fontSize: 13, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px" }}>
+                  {analisaError}
+                </div>
+              )}
+
+              {analisaData && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Ringkasan</span>
+                      {analisaCached && (
+                        <span style={{ fontSize: 10, color: "#6b7280", background: "#f3f4f6", padding: "1px 8px", borderRadius: 999 }} title="Hasil dari cache 1 jam, bukan panggilan AI baru">
+                          hasil tersimpan
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 13, color: "#374151", margin: 0, lineHeight: 1.6 }}>{analisaData.ringkasan}</p>
+                  </div>
+
+                  {(analisaData.temuan || []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Temuan per Campaign</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+                        {analisaData.temuan.map((t, i) => (
+                          <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderLeft: `4px solid ${warnaUrgensi(t.urgensi)}`, borderRadius: 8, padding: "10px 12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600 }}>{t.campaign}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: warnaUrgensi(t.urgensi), whiteSpace: "nowrap" }}>{labelUrgensi(t.urgensi)}</span>
+                            </div>
+                            <p style={{ fontSize: 12, color: "#4b5563", margin: 0, lineHeight: 1.5 }}>{t.catatan}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(analisaData.rekomendasi || []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Rekomendasi</div>
+                      <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
+                        {analisaData.rekomendasi.map((r, i) => <li key={i}>{r}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>
