@@ -174,9 +174,14 @@ function BarisKontenProduk({ produk }) {
           <td style={{ padding: "6px 12px 6px 40px", minWidth: 200 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {k.thumbnail ? (
+                // thumbnail = path relatif di storage backend (lihat
+                // MetaAdsService::simpanThumbnailLokal()), bukan URL Meta
+                // langsung - URL Meta bertanda tangan dan kedaluwarsa dalam
+                // hitungan minggu. Lewat proxy /api/image yang sudah dipakai
+                // di tempat lain supaya tidak kena masalah domain/CORS.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={k.thumbnail}
+                  src={`/api/image?path=${encodeURIComponent(k.thumbnail)}`}
                   alt=""
                   width={32}
                   height={32}

@@ -6,6 +6,7 @@ use App\Exceptions\MetaAdsApiException;
 use App\Models\MetaAdsAccount;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class MetaAdsService
 {
@@ -117,6 +118,36 @@ class MetaAdsService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Unduh thumbnail dari URL Meta (bertanda tangan, kedaluwarsa lewat
+     * parameter "oe" di URL-nya - biasanya cuma bertahan beberapa minggu) dan
+     * simpan ke disk "public" lokal, supaya tampil permanen di dashboard
+     * tanpa tergantung umur signature Meta. Dipanggil sekali waktu creative
+     * baru diambil (lihat SyncMetaAdsInsights::syncAds()) dan oleh
+     * BackfillMetaAdsThumbnails untuk iklan lama yang masih nyimpan URL Meta
+     * mentah di creative_payload.
+     *
+     * @return string|null  path relatif di disk "public" (null kalau gagal unduh)
+     */
+    public function simpanThumbnailLokal(string $adId, string $urlMeta): ?string
+    {
+        try {
+            $response = Http::timeout(15)->get($urlMeta);
+            if (!$response->successful()) {
+                Log::warning('simpanThumbnailLokal: unduh gagal', ['ad_id' => $adId, 'status' => $response->status()]);
+                return null;
+            }
+
+            $path = "meta-ads-thumbnails/{$adId}.jpg";
+            Storage::disk('public')->put($path, $response->body());
+
+            return $path;
+        } catch (\Throwable $e) {
+            Log::warning('simpanThumbnailLokal: exception', ['ad_id' => $adId, 'error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**

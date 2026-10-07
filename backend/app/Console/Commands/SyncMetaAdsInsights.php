@@ -190,6 +190,18 @@ class SyncMetaAdsInsights extends Command
 
         $creativeMap = $idsButuhCreative ? $service->getAdsCreatives($idsButuhCreative) : [];
 
+        // thumbnail_url dari Meta adalah URL bertanda tangan yang KEDALUWARSA
+        // (parameter "oe" di URL-nya) - kalau disimpan apa adanya, gambar akan
+        // berhenti muncul beberapa minggu kemudian meski baris iklannya tidak
+        // pernah disync ulang (creative cuma diambil sekali, lihat catatan di
+        // atas). Jadi begitu Meta kasih URL-nya, langsung diunduh dan disimpan
+        // lokal di sini - creative_payload menyimpan PATH lokal, bukan URL Meta.
+        foreach ($creativeMap as $adId => $creative) {
+            if (!empty($creative['thumbnail_url'])) {
+                $creativeMap[$adId]['thumbnail_url'] = $service->simpanThumbnailLokal($adId, $creative['thumbnail_url']);
+            }
+        }
+
         $count = 0;
         foreach ($ads as $a) {
             $localAdSetId = $adSetMap[$a['adset_id'] ?? null] ?? null;
