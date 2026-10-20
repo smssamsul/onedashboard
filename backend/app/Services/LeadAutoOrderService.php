@@ -93,14 +93,14 @@ class LeadAutoOrderService
             'harga' => $totalHarga,
             'ongkir' => '0',
             'total_harga' => $totalHarga,
-            // Samakan dengan flow manual "+ Order" (bukan marker custom) -
-            // supaya ikut perilaku standar order cepat (mis. randomisasi
-            // rupiah terakhir di applyPriceTailRandomizationForQuickOrder,
-            // yang cuma jalan kalau sumber persis "sales_quick_order").
-            // Sumber sebenarnya (mis. "Meta Ads v16") tetap kebaca dari lead
-            // lewat kolom "Sumber Lead" (customer -> leadLpwa.sumber) - bukan
-            // dari sini - dan itu sudah wajib terisi (dicek di atas, $sumber
-            // === '' ditolak) sebelum order ini sempat dibuat.
+            // Sengaja dikirim "sales_quick_order" DULU (bukan $sumber asli) -
+            // supaya ikut perilaku standar order cepat di store_admin, mis.
+            // randomisasi rupiah terakhir di
+            // applyPriceTailRandomizationForQuickOrder yang cuma jalan kalau
+            // sumber persis "sales_quick_order". Sumber asli ($sumber, mis.
+            // "Meta Ads v16") ditimpakan SETELAH order dibuat, lihat bawah -
+            // kolom "Sumber" di Order roster sekarang baca langsung dari
+            // order_customer.sumber (tidak lagi join ke leadLpwa).
             'sumber' => 'sales_quick_order',
             'notif' => 1,
         ]);
@@ -120,11 +120,18 @@ class LeadAutoOrderService
 
         $orderId = $payload['data']['order']['id'] ?? null;
 
+        // Timpa sumber placeholder dengan sumber lead yang sebenarnya -
+        // harga/randomisasi di atas sudah terjadi, aman diubah sekarang.
+        if ($orderId) {
+            OrderCustomer::where('id', $orderId)->update(['sumber' => $sumber]);
+        }
+
         Log::channel('webhook_baileys')->info('Lead otomatis dikonversi jadi order', [
             'lead_id' => $lead->id,
             'produk_id' => $produk->id,
             'produk_nama' => $produk->nama,
             'order_id' => $orderId,
+            'sumber' => $sumber,
         ]);
 
         return $orderId ? OrderCustomer::find($orderId) : null;
