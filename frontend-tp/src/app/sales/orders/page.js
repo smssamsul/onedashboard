@@ -114,7 +114,7 @@ function orderRowToExportRecord(order) {
     "Total Dibayar": order.total_paid ?? "",
     Sisa: order.remaining ?? "",
     Sales: getOrderSalesNama(order) || "",
-    "Sumber Lead": order.sumber_lead || "",
+    Sumber: order.sumber_lead || "",
   };
   UTM_FILTER_FIELDS.forEach(({ key, label }) => {
     row[label] = order[key] != null && String(order[key]).trim() !== "" ? String(order[key]) : "";
@@ -489,9 +489,9 @@ export default function DaftarPesanan() {
   const [utmSearch, setUtmSearch] = useState(() =>
     Object.fromEntries(UTM_FILTER_FIELDS.map(({ key }) => [key, ""]))
   );
-  // Filter "Sumber Lead" - terpisah dari UTM_FILTER_FIELDS karena nilainya
-  // datang dari LeadLpwa (bukan kolom order_customer) dan kolom "SUMBER LEAD"
-  // di tabel sudah tampil sendiri di luar mekanisme UTM ini.
+  // Filter "Sumber" - terpisah dari UTM_FILTER_FIELDS karena kolom "SUMBER"
+  // di tabel sudah tampil sendiri di luar mekanisme UTM ini. Nilainya
+  // sekarang langsung dari order_customer.sumber (bukan LeadLpwa lagi).
   const [selectedSumberLead, setSelectedSumberLead] = useState([]);
   const [sumberLeadOptions, setSumberLeadOptions] = useState([]);
   const [sumberLeadSearch, setSumberLeadSearch] = useState("");
@@ -1616,7 +1616,7 @@ export default function DaftarPesanan() {
                     </div>
                   </th>
                   <th>SALES</th>
-                  <th>SUMBER LEAD</th>
+                  <th>SUMBER</th>
 
                   {UTM_FILTER_FIELDS.map(({ key, label }) => (
                     <th key={key} style={{ whiteSpace: "nowrap", fontSize: "0.7rem", fontWeight: 600, color: "var(--color-text-secondary)" }}>
@@ -1769,7 +1769,7 @@ export default function DaftarPesanan() {
                           </span>
                         </td>
 
-                        {/* Sumber Lead - dari chat WA (lead_lpwas) yang nomornya sama dengan customer */}
+                        {/* Sumber - langsung dari order_customer.sumber */}
                         <td>
                           <span style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
                             {order.sumber_lead || "-"}
@@ -2929,7 +2929,7 @@ export default function DaftarPesanan() {
                 </div>
               </div>
 
-              {/* Sumber Lead — dari LeadLpwa, mis. "Meta Ads v9" */}
+              {/* Sumber — dari order_customer.sumber, mis. "Meta Ads v9" */}
               <div style={{ marginBottom: "2rem" }}>
                 <label className="field-label" style={{
                   marginBottom: "0.875rem",
@@ -2939,7 +2939,7 @@ export default function DaftarPesanan() {
                   color: "var(--color-text-primary)",
                   letterSpacing: "-0.01em"
                 }}>
-                  Filter Sumber Lead
+                  Filter Sumber
                 </label>
                 {sumberLeadOptions.length === 0 && !loadingUtmOptions ? (
                   <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", margin: 0 }}>Belum ada nilai untuk kolom ini.</p>
@@ -2956,7 +2956,7 @@ export default function DaftarPesanan() {
                     <div style={{ position: "relative", marginBottom: "0.5rem" }}>
                       <input
                         type="text"
-                        placeholder="Cari Sumber Lead..."
+                        placeholder="Cari Sumber..."
                         value={sumberLeadSearch}
                         onChange={(e) => setSumberLeadSearch(e.target.value)}
                         style={{
