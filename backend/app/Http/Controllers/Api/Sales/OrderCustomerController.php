@@ -99,10 +99,23 @@ class OrderCustomerController extends Controller
             $query->whereIn('status_order', $statusOrders);
         }
 
-        // Filter Status Pembayaran
+        // Filter Status Pembayaran. "Unpaid" di data kita bisa berarti literal
+        // '0' ATAU benar-benar NULL (mayoritas - 3468 dari ~4500 baris) -
+        // whereIn biasa TIDAK PERNAH menangkap NULL, jadi kalau '0' ikut
+        // dipilih, NULL harus ikut disertakan lewat orWhereNull juga.
         if ($request->has('status_pembayaran')) {
             $statusPembayarans = is_array($request->status_pembayaran) ? $request->status_pembayaran : [$request->status_pembayaran];
-            $query->whereIn('status_pembayaran', $statusPembayarans);
+            $includesUnpaid = in_array('0', $statusPembayarans, true) || in_array('null', $statusPembayarans, true);
+            $literalValues = array_values(array_diff($statusPembayarans, ['null']));
+
+            $query->where(function ($q) use ($literalValues, $includesUnpaid) {
+                if (!empty($literalValues)) {
+                    $q->whereIn('status_pembayaran', $literalValues);
+                }
+                if ($includesUnpaid) {
+                    $q->orWhereNull('status_pembayaran');
+                }
+            });
         }
 
         // Filter Produk ID (mendukung produk_id atau product_id, tunggal atau array)
@@ -1978,9 +1991,18 @@ class OrderCustomerController extends Controller
             $query->where('status_order', $request->status);
         }
 
-        // Filter berdasarkan status_pembayaran
+        // Filter berdasarkan status_pembayaran. "Unpaid" ('0') juga harus
+        // menangkap baris yang benar-benar NULL - lihat catatan yang sama di
+        // applyOrderFilters().
         if ($request->has('status_pembayaran') && $request->status_pembayaran !== '') {
-            $query->where('status_pembayaran', $request->status_pembayaran);
+            $nilaiFilter = $request->status_pembayaran;
+            if ($nilaiFilter === '0' || $nilaiFilter === 'null') {
+                $query->where(function ($q) {
+                    $q->where('status_pembayaran', '0')->orWhereNull('status_pembayaran');
+                });
+            } else {
+                $query->where('status_pembayaran', $nilaiFilter);
+            }
         }
 
         // Filter berdasarkan Produk ID

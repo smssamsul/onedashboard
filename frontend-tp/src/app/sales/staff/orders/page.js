@@ -2532,7 +2532,12 @@ export default function DaftarPesanan() {
                     borderRadius: "0.625rem",
                     border: "1.5px solid #e5e7eb",
                   }}>
-                    {Object.entries(STATUS_PEMBAYARAN_MAP).map(([value, { label }]) => {
+                    {Object.entries(STATUS_PEMBAYARAN_MAP)
+                      // 2 key ("0" dan "null") sama-sama label "Unpaid" -
+                      // backend sekarang mencocokkan keduanya kalau "0" yang
+                      // dikirim (lihat applyOrderFilters) - tampil sekali saja.
+                      .filter(([value]) => value !== "null")
+                      .map(([value, { label }]) => {
                       const isChecked = selectedStatusPembayaran.includes(String(value));
                       return (
                         <label

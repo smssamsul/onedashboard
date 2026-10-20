@@ -2761,7 +2761,13 @@ export default function DaftarPesanan() {
                   borderRadius: "0.625rem",
                   border: "1.5px solid var(--color-divider)",
                 }}>
-                  {Object.entries(STATUS_PEMBAYARAN_MAP).map(([value, { label }]) => {
+                  {Object.entries(STATUS_PEMBAYARAN_MAP)
+                    // STATUS_PEMBAYARAN_MAP punya 2 key ("0" dan "null") yang
+                    // sama-sama label "Unpaid" (backend sekarang mencocokkan
+                    // keduanya kalau "0" yang dikirim - lihat
+                    // applyOrderFilters) - tampilkan checkbox-nya cuma sekali.
+                    .filter(([value]) => value !== "null")
+                    .map(([value, { label }]) => {
                     const isChecked = selectedStatusPembayaran.includes(String(value));
                     return (
                       <label
