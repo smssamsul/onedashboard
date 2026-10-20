@@ -256,9 +256,10 @@ class OrderCustomerController extends Controller
                 }
             }
 
-            // Sumber Lead - dicocokkan lewat nomor WA yang sama antara customer
-            // & lead_lpwas (lihat Customer::leadLpwa relation)
-            $order->sumber_lead = $order->customer_rel->leadLpwa->sumber ?? null;
+            // Sumber - dulu dicocokkan lewat LeadLpwa (nomor WA sama), sekarang
+            // langsung dari order_customer.sumber (lebih akurat, tidak hilang
+            // kalau tidak ada baris lead_lpwas yang cocok).
+            $order->sumber_lead = $order->sumber;
         }
 
         return response()->json([
@@ -513,7 +514,7 @@ class OrderCustomerController extends Controller
         }
 
         if ($query) {
-            $query->sumber_lead = $query->customer_rel->leadLpwa->sumber ?? null;
+            $query->sumber_lead = $query->sumber;
         }
 
         return response()->json([
@@ -2049,23 +2050,13 @@ class OrderCustomerController extends Controller
                 ->all();
         }
 
-        // Sumber Lead diambil dari LeadLpwa (bukan kolom order_customer), jadi
-        // dicari terpisah: kumpulkan no WA customer yang punya order (scope
-        // sama seperti kolom lain), baru ambil nilai sumber unik dari sana.
+        // Sumber - dulu diambil dari LeadLpwa lewat matching no WA, sekarang
+        // langsung dari order_customer.sumber (scope sama seperti kolom lain).
         $sumberLeadQuery = OrderCustomer::query()->where('status', '!=', 'N');
         if ($isStaffSales) {
             $sumberLeadQuery->ownedBySales($user->id);
         }
-        $waNumbers = $sumberLeadQuery
-            ->with('customer_rel:id,wa')
-            ->get(['customer'])
-            ->pluck('customer_rel.wa')
-            ->filter()
-            ->unique()
-            ->values();
-
-        $out['sumber_lead'] = $waNumbers->isEmpty() ? [] : \App\Models\LeadLpwa::query()
-            ->whereIn('no_wa', $waNumbers)
+        $out['sumber_lead'] = $sumberLeadQuery
             ->whereNotNull('sumber')
             ->where('sumber', '!=', '')
             ->select('sumber')
@@ -2106,8 +2097,8 @@ class OrderCustomerController extends Controller
             }
         }
 
-        // Sumber Lead bukan kolom order_customer - diambil dari LeadLpwa lewat
-        // relasi customer (matching by no WA), jadi difilter lewat whereHas.
+        // Sumber - sekarang langsung whereIn ke order_customer.sumber (dulu
+        // whereHas ke LeadLpwa lewat matching no WA).
         $sumberLeadValues = $request->input('sumber_lead');
         if ($sumberLeadValues !== null && $sumberLeadValues !== '') {
             if (! is_array($sumberLeadValues)) {
@@ -2119,9 +2110,7 @@ class OrderCustomerController extends Controller
                 return $s !== '';
             })));
             if (count($sumberLeadValues) > 0) {
-                $query->whereHas('customer_rel.leadLpwa', function ($q) use ($sumberLeadValues) {
-                    $q->whereIn('sumber', $sumberLeadValues);
-                });
+                $query->whereIn('sumber', $sumberLeadValues);
             }
         }
     }
