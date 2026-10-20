@@ -21,6 +21,36 @@ function cleanWaDigits(wa) {
   return String(wa || "").replace(/\D/g, "");
 }
 
+/**
+ * Pilihan dropdown "Sumber / Keterangan" dulu kesimpan ke utm_source (bug -
+ * sumber order selalu hardcode "sales_quick_order" apa pun yang dipilih).
+ * Sekarang pilihan ini yang jadi sumber order sebenarnya; utm_source cuma
+ * dipakai utk sosmedtp/sosmedda (penanda non-iklan, sama kayak boosterin -
+ * lihat KalibrasiSumberOrder di backend). Nilai "lainnya" (free text) ikut
+ * di-Title Case ringan biar konsisten dengan data lama yang sudah dikalibrasi.
+ */
+function resolveSumberDanUtm(pilihanMentah) {
+  const pilihan = String(pilihanMentah || "").trim();
+  const lower = pilihan.toLowerCase();
+
+  if (!pilihan) {
+    return { sumber: "sales_quick_order", utm_source: "" };
+  }
+  if (lower === "sosmedtp" || lower === "sosmedda") {
+    return { sumber: "sales_quick_order", utm_source: lower };
+  }
+  if (lower === "lpwa") return { sumber: "Lpwa", utm_source: "" };
+  if (lower === "radio") return { sumber: "Radio", utm_source: "" };
+  if (lower === "metaads") return { sumber: "Meta Ads", utm_source: "" };
+
+  // "lainnya" - free text, dipakai apa adanya (Title Case per kata)
+  const titleCased = pilihan
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
+  return { sumber: titleCased, utm_source: "" };
+}
+
 function productBasePrice(prod) {
   return Number(prod.harga_asli ?? prod.harga ?? 0) || 0;
 }
@@ -235,6 +265,7 @@ export default function QuickOrderSalesPage() {
 
     const harga = priceForProduct(prod, bundleId);
     const email = `order_${digits || Date.now()}@quickorder.local`;
+    const { sumber, utm_source } = resolveSumberDanUtm(sumberVal);
 
     const res = await api("/sales/order-admin", {
       method: "POST",
@@ -247,8 +278,8 @@ export default function QuickOrderSalesPage() {
         harga: String(harga),
         ongkir: "0",
         total_harga: String(harga),
-        sumber: "sales_quick_order",
-        utm_source: String(sumberVal || ""),
+        sumber,
+        utm_source,
         bundling: bundleId ? String(bundleId) : "",
         notif: 1,
       }),
