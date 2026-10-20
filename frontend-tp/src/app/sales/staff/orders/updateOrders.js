@@ -63,6 +63,11 @@ export default function UpdateOrders({ order, onClose, onSave }) {
   const [isDP, setIsDP] = useState(false);
   const [amount, setAmount] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
+  // Tipe pembayaran & persen DP - cuma relevan utk pembayaran PERTAMA (status
+  // belum 4). Konfirmasi lanjutan (sudah DP) tetap pakai alur lama: langsung
+  // input manual, tidak ada tab.
+  const [tipePembayaran, setTipePembayaran] = useState("lunas"); // "lunas" | "dp"
+  const [persenDP, setPersenDP] = useState(null); // 50 | 30 | "custom" | null
 
   useEffect(() => {
     if (order) {
@@ -78,6 +83,8 @@ export default function UpdateOrders({ order, onClose, onSave }) {
       setErrorMsg("");
       setIsDP(false);
       setAmount("");
+      setTipePembayaran("lunas");
+      setPersenDP(null);
     }
   }, [order]);
 
@@ -109,6 +116,34 @@ export default function UpdateOrders({ order, onClose, onSave }) {
     // Format with thousand separator if has value
     const formattedValue = numericValue ? formatCurrency(numericValue) : "";
     setAmount(formattedValue);
+  };
+
+  // Pilih tab "Lunas" / "DP (Cicil)" di modal Konfirmasi Pembayaran (hanya
+  // tampil utk pembayaran pertama, lihat computedStatus() !== 4 di JSX).
+  const pilihTipePembayaran = (tipe) => {
+    setTipePembayaran(tipe);
+    setPersenDP(null);
+    const totalHarga = Number(updatedOrder.total_harga || order?.total_harga || 0);
+    if (tipe === "dp") {
+      setIsDP(true);
+      setAmount("");
+    } else {
+      setIsDP(false);
+      setAmount(totalHarga > 0 ? formatCurrency(totalHarga) : "");
+    }
+  };
+
+  // Pilih persen DP cepat (50%/30%) - hitung nominal dari total_harga.
+  // "custom" cuma mengosongkan amount supaya user ketik manual.
+  const pilihPersenDP = (persen) => {
+    setPersenDP(persen);
+    if (persen === "custom") {
+      setAmount("");
+      return;
+    }
+    const totalHarga = Number(updatedOrder.total_harga || order?.total_harga || 0);
+    const nominal = Math.round((totalHarga * persen) / 100);
+    setAmount(nominal > 0 ? formatCurrency(nominal) : "");
   };
 
   // Update amount ketika isDP atau total_harga berubah
@@ -1180,6 +1215,73 @@ export default function UpdateOrders({ order, onClose, onSave }) {
                   <strong>Rp {Number(updatedOrder.total_harga || order.total_harga || 0).toLocaleString("id-ID")}</strong>
                 </div>
               </div>
+
+              {/* Tab Lunas / DP - cuma utk pembayaran pertama. Konfirmasi
+                  lanjutan (order sudah berstatus DP) langsung ke input
+                  manual, tidak perlu pilih tipe lagi. */}
+              {computedStatus() !== 4 && (
+                <div className="form-field" style={{ marginBottom: 12 }}>
+                  <span className="field-label">Tipe Pembayaran</span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => pilihTipePembayaran("lunas")}
+                      style={{
+                        flex: 1, padding: "8px 12px", borderRadius: 8,
+                        border: tipePembayaran === "lunas" ? "2px solid #f59e0b" : "1px solid #d1d5db",
+                        background: tipePembayaran === "lunas" ? "#fff7ed" : "#fff",
+                        fontWeight: 600, fontSize: 13, cursor: "pointer",
+                      }}
+                    >
+                      Lunas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => pilihTipePembayaran("dp")}
+                      style={{
+                        flex: 1, padding: "8px 12px", borderRadius: 8,
+                        border: tipePembayaran === "dp" ? "2px solid #f59e0b" : "1px solid #d1d5db",
+                        background: tipePembayaran === "dp" ? "#fff7ed" : "#fff",
+                        fontWeight: 600, fontSize: 13, cursor: "pointer",
+                      }}
+                    >
+                      DP (Cicil)
+                    </button>
+                  </div>
+
+                  {tipePembayaran === "dp" && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      {[50, 30].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => pilihPersenDP(p)}
+                          style={{
+                            flex: 1, padding: "6px 10px", borderRadius: 8,
+                            border: persenDP === p ? "2px solid #2563eb" : "1px solid #d1d5db",
+                            background: persenDP === p ? "#eff6ff" : "#fff",
+                            fontSize: 13, cursor: "pointer",
+                          }}
+                        >
+                          {p}%
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => pilihPersenDP("custom")}
+                        style={{
+                          flex: 1, padding: "6px 10px", borderRadius: 8,
+                          border: persenDP === "custom" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: persenDP === "custom" ? "#eff6ff" : "#fff",
+                          fontSize: 13, cursor: "pointer",
+                        }}
+                      >
+                        Custom
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Input Amount */}
               <label className="form-field">
