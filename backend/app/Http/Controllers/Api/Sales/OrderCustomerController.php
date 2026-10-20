@@ -2056,11 +2056,16 @@ class OrderCustomerController extends Controller
         if ($isStaffSales) {
             $sumberLeadQuery->ownedBySales($user->id);
         }
+        // Urutan custom: "Meta Ads <kode>" dulu, baru "Meta Ads" polos,
+        // sisanya bebas (alfabetis) - dikonfirmasi manual ke pemilik repo.
+        // Ekspresi CASE-nya WAJIB ikut di select list - Postgres menolak
+        // SELECT DISTINCT dengan ORDER BY yang tidak ada di select list.
         $out['sumber_lead'] = $sumberLeadQuery
             ->whereNotNull('sumber')
             ->where('sumber', '!=', '')
-            ->select('sumber')
+            ->selectRaw("sumber, CASE WHEN sumber ILIKE 'Meta Ads %' THEN 0 WHEN sumber = 'Meta Ads' THEN 1 ELSE 2 END as sumber_sort_group")
             ->distinct()
+            ->orderBy('sumber_sort_group')
             ->orderBy('sumber')
             ->limit(150)
             ->pluck('sumber')
