@@ -288,6 +288,15 @@ class OrderValidationController extends Controller
                         'error' => $e->getMessage(),
                     ]);
                 }
+            } else {
+                // Masih ada sisa tagihan (DP) - tandai status_pembayaran=4
+                // supaya kelihatan di listing & modal update order bisa
+                // menawarkan "Konfirmasi Pembayaran Lanjutan". status_order
+                // sengaja TIDAK ikut diubah - order belum selesai.
+                $order->update([
+                    'status_pembayaran' => '4',
+                    'update_at' => now(),
+                ]);
             }
         }
 
