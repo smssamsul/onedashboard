@@ -23,6 +23,10 @@ export async function GET(request) {
       ...searchParams.getAll('produk_id'),
       ...searchParams.getAll('produk_id[]')
     ];
+    const sumberLead = [
+      ...searchParams.getAll('sumber_lead'),
+      ...searchParams.getAll('sumber_lead[]')
+    ];
 
     const tanggalFrom = searchParams.get("tanggal_from") || "";
     const tanggalTo = searchParams.get("tanggal_to") || "";
@@ -46,6 +50,9 @@ export async function GET(request) {
     });
     produkIds.forEach((val) => {
       backendUrl += `&produk_id[]=${encodeURIComponent(val)}`;
+    });
+    sumberLead.forEach((val) => {
+      backendUrl += `&sumber_lead[]=${encodeURIComponent(val)}`;
     });
 
     if (tanggalFrom) backendUrl += `&tanggal_from=${encodeURIComponent(tanggalFrom)}`;

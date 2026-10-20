@@ -24,6 +24,10 @@ export async function GET(request) {
       ...searchParams.getAll('produk_id'),
       ...searchParams.getAll('produk_id[]')
     ];
+    const sumberLead = [
+      ...searchParams.getAll('sumber_lead'),
+      ...searchParams.getAll('sumber_lead[]')
+    ];
 
     const sumber = searchParams.get('sumber') || '';
     const tanggalFrom = searchParams.get('tanggal_from') || '';
@@ -48,6 +52,7 @@ export async function GET(request) {
     statusOrder.forEach(val => backendUrl += `&status_order[]=${encodeURIComponent(val)}`);
     statusPembayaran.forEach(val => backendUrl += `&status_pembayaran[]=${encodeURIComponent(val)}`);
     produkIds.forEach(val => backendUrl += `&produk_id[]=${encodeURIComponent(val)}`);
+    sumberLead.forEach(val => backendUrl += `&sumber_lead[]=${encodeURIComponent(val)}`);
 
     if (sumber) backendUrl += `&sumber=${encodeURIComponent(sumber)}`;
     if (tanggalFrom) backendUrl += `&tanggal_from=${encodeURIComponent(tanggalFrom)}`;
