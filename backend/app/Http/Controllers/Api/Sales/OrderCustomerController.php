@@ -1453,9 +1453,12 @@ class OrderCustomerController extends Controller
 
         foreach ($rows as $idx => $row) {
             try {
-                // Default khusus order cepat
+                // Sengaja dikirim "sales_quick_order" DULU ke store_admin (bukan
+                // sumber asli) - supaya ikut perilaku randomisasi rupiah terakhir
+                // di applyPriceTailRandomizationForQuickOrder yang cuma jalan
+                // kalau sumber persis "sales_quick_order". Sumber asli ditimpakan
+                // SETELAH order dibuat, lihat bawah - sama seperti LeadAutoOrderService.
                 $row['sumber'] = 'sales_quick_order';
-                $row['utm_source'] = 'order_cepat';
                 $row['notif'] = $bulkNotif;
 
                 // Harga/total_harga wajib di store_admin. Untuk bulk import order cepat,
@@ -1563,6 +1566,23 @@ class OrderCustomerController extends Controller
 
                 if (is_array($payload) && ($payload['success'] ?? false) === true) {
                     $ok++;
+
+                    // Timpa sumber placeholder dengan sumber lead yang sebenarnya
+                    // (cocokkan via no WA ke lead_lpwas) - harga/randomisasi di atas
+                    // sudah terjadi, aman diubah sekarang. Tidak ketemu -> dikosongkan,
+                    // jangan dibiarkan "sales_quick_order".
+                    $orderId = $payload['data']['order']['id'] ?? null;
+                    if ($orderId) {
+                        $leadSumber = DB::table('lead_lpwas')
+                            ->where('no_wa', $row['wa'])
+                            ->whereNotNull('sumber')
+                            ->where('sumber', '!=', '')
+                            ->value('sumber');
+                        OrderCustomer::where('id', $orderId)->update([
+                            'sumber' => $leadSumber ?: null,
+                        ]);
+                    }
+
                     $results[] = [
                         'index' => $idx,
                         'success' => true,
