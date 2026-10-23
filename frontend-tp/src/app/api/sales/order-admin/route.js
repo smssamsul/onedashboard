@@ -67,7 +67,7 @@ export async function POST(request) {
       ongkir: toCurrencyString(body.ongkir), // string
       total_harga: toCurrencyString(body.total_harga), // string
       sumber: String(body.sumber), // string
-      utm_source: String(body.utm_source || "-"),
+      utm_source: String(body.utm_source || ""),
       notif, // 1 atau 0
       alamat: String(body.alamat || "").trim(), // string, selalu dikirim (required untuk order)
     };
