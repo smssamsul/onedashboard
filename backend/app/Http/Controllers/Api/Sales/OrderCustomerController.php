@@ -1281,6 +1281,23 @@ class OrderCustomerController extends Controller
             SyncContactToGoogleJob::dispatchSync($syncCustomer->nama ?? '', $syncCustomer->wa, $syncCustomer->id, (string) ($syncCustomer->sales_id ?? '1'));
         }
 
+        // "sales_quick_order" di $request->sumber cuma trik supaya ikut
+        // randomisasi rupiah terakhir di applyPriceTailRandomizationForQuickOrder
+        // (lihat komentar di LeadAutoOrderService & store_admin_bulk) - BUKAN
+        // sumber order yang sebenarnya. Berlaku untuk semua caller yang pakai
+        // trik ini (quick order single/bulk, convert lead jadi order, dst),
+        // supaya tidak ada lagi order yang nyangkut dengan sumber placeholder
+        // ini kalau ada caller baru yang lupa menimpanya sendiri.
+        if ($request->sumber === 'sales_quick_order' && $syncCustomer && !empty($syncCustomer->wa)) {
+            $leadSumber = DB::table('lead_lpwas')
+                ->where('no_wa', $syncCustomer->wa)
+                ->whereNotNull('sumber')
+                ->where('sumber', '!=', '')
+                ->value('sumber');
+            $order->sumber = $leadSumber ?: null;
+            $order->save();
+        }
+
         $dataCustomer = null;
 
         if ($request->notif || $request->sumber === 'sales_quick_order')
@@ -1566,22 +1583,8 @@ class OrderCustomerController extends Controller
 
                 if (is_array($payload) && ($payload['success'] ?? false) === true) {
                     $ok++;
-
-                    // Timpa sumber placeholder dengan sumber lead yang sebenarnya
-                    // (cocokkan via no WA ke lead_lpwas) - harga/randomisasi di atas
-                    // sudah terjadi, aman diubah sekarang. Tidak ketemu -> dikosongkan,
-                    // jangan dibiarkan "sales_quick_order".
-                    $orderId = $payload['data']['order']['id'] ?? null;
-                    if ($orderId) {
-                        $leadSumber = DB::table('lead_lpwas')
-                            ->where('no_wa', $row['wa'])
-                            ->whereNotNull('sumber')
-                            ->where('sumber', '!=', '')
-                            ->value('sumber');
-                        OrderCustomer::where('id', $orderId)->update([
-                            'sumber' => $leadSumber ?: null,
-                        ]);
-                    }
+                    // Sumber placeholder "sales_quick_order" sudah ditimpa otomatis
+                    // di dalam store_admin() (lihat komentar di sana).
 
                     $results[] = [
                         'index' => $idx,
