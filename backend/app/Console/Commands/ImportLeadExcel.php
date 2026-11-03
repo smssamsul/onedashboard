@@ -21,6 +21,7 @@ class ImportLeadExcel extends Command
     protected $signature = 'import:lead-excel
         {--file= : Path ke file xlsx}
         {--sales= : user_id sales pemilik batch lead ini (wajib)}
+        {--swap-bc : Pakai kalau kolom B/C di file ini kebalik (B=kota, C=nama) - cek manual dulu sebelum pakai}
         {--dry-run : Cuma tampilkan ringkasan, tidak menulis apapun ke database}';
 
     protected $description = 'Import batch leads mentah dari Excel (phone, name, kota, kode iklan) ke lead_lpwas, skip WA yang sudah ada';
@@ -40,8 +41,9 @@ class ImportLeadExcel extends Command
         }
 
         $dryRun = (bool) $this->option('dry-run');
+        $swapBc = (bool) $this->option('swap-bc');
 
-        $this->info(($dryRun ? '[DRY-RUN] ' : '') . "Membaca file: {$file}");
+        $this->info(($dryRun ? '[DRY-RUN] ' : '') . "Membaca file: {$file}" . ($swapBc ? ' (kolom B/C dibalik)' : ''));
 
         $spreadsheet = IOFactory::load($file);
         $sheet = $spreadsheet->getActiveSheet();
@@ -54,8 +56,10 @@ class ImportLeadExcel extends Command
 
         for ($row = 2; $row <= $highestRow; $row++) {
             $wa = $this->normWa($sheet->getCell("A{$row}")->getValue());
-            $nama = trim((string) $sheet->getCell("B{$row}")->getValue());
-            $kota = trim((string) $sheet->getCell("C{$row}")->getValue());
+            $colNama = $swapBc ? 'C' : 'B';
+            $colKota = $swapBc ? 'B' : 'C';
+            $nama = trim((string) $sheet->getCell("{$colNama}{$row}")->getValue());
+            $kota = trim((string) $sheet->getCell("{$colKota}{$row}")->getValue());
             $kode = trim((string) $sheet->getCell("D{$row}")->getValue());
             $label = trim((string) $sheet->getCell("E{$row}")->getValue());
 
@@ -69,7 +73,10 @@ class ImportLeadExcel extends Command
             }
             $seenWa[$wa] = true;
 
-            $sumber = trim($label . ' ' . $kode) ?: null;
+            // Kode varian iklan kadang ditulis campur besar/kecil ("I3", "V1") -
+            // disamakan huruf kecil semua biar konsisten dengan konvensi sumber
+            // yang sudah berjalan ("Meta Ads i3", bukan "Meta Ads I3").
+            $sumber = trim($label . ' ' . mb_strtolower($kode)) ?: null;
 
             $parsed[] = [
                 'row' => $row,
