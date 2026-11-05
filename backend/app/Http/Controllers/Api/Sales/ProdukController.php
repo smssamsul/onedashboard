@@ -1025,6 +1025,41 @@ class ProdukController extends Controller
         ]);
     }
 
+    /**
+     * Toggle aktif/non-aktif follow-up produk ini. Kalau dimatikan, semua
+     * follow-up (reminder unpaid, processing, complete, redirect, cancel,
+     * upselling, cron) berhenti terkirim - KECUALI pesan Welcome (type 5)
+     * yang tetap jalan apa pun status ini, karena itu konfirmasi order
+     * dibuat, bukan follow-up susulan.
+     */
+    public function updateFollowUpStatus(Request $request, $id)
+    {
+        $produk = Produk::find($id);
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        $request->validate([
+            'follow_up_enabled' => 'required|boolean',
+        ]);
+
+        $produk->follow_up_enabled = $request->boolean('follow_up_enabled');
+        $produk->update_at = now();
+        $produk->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $produk->follow_up_enabled
+                ? 'Follow up produk ini diaktifkan'
+                : 'Follow up produk ini dinonaktifkan (pesan Welcome tetap terkirim)',
+            'data' => $produk,
+        ]);
+    }
+
     public function publicSeminarSchedules(Request $request, ?string $unitBisnisSlug = null)
     {
         // Kategori 3 = Seminar

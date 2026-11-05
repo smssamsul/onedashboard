@@ -1707,8 +1707,10 @@ class OrderCustomerController extends Controller
                 ->where('type', '6')
                 ->first();
 
-            // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
-            $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+            // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA.
+            // Follow up produk ini dinonaktifkan (follow_up_enabled) juga berarti jangan kirim -
+            // beda dari Welcome (type 5) yang selalu kirim apa pun status follow_up_enabled.
+            $autoSendEnabled = (!$produk || $produk->follow_up_enabled) && (!$templateFollup || $templateFollup->status !== '2');
 
             if ($customer && $customer->wa && $autoSendEnabled) {
                 $dataText = [
@@ -2573,8 +2575,9 @@ class OrderCustomerController extends Controller
                         ->where('type', '6')
                         ->first();
 
-                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
-                    $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA.
+                    // Follow up produk ini dinonaktifkan (follow_up_enabled) juga berarti jangan kirim.
+                    $autoSendEnabled = (!$produk || $produk->follow_up_enabled) && (!$templateFollup || $templateFollup->status !== '2');
 
                     \Log::info('Customer Upload Bukti - Template followup', [
                         'order_id' => $order->id,
@@ -2799,7 +2802,10 @@ class OrderCustomerController extends Controller
         // === Ambil Template Follow-up untuk Payment ===
         $templateFollupPayment = null;
         try {
-            if ($order->produk) {
+            $produkRow = $order->produk ? Produk::find($order->produk) : null;
+            $produkFollowUpEnabled = $produkRow ? $produkRow->follow_up_enabled : false;
+
+            if ($order->produk && $produkFollowUpEnabled) {
                 // Ambil template follup redirect atau type 9 (hanya yang "Enable Auto Send" aktif)
                 $template = \App\Models\TemplateFollup::where('produk_id', $order->produk)
                     ->where('status', '1')
@@ -2893,8 +2899,9 @@ class OrderCustomerController extends Controller
                         ->where('type', '6')
                         ->first();
 
-                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
-                    $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+                    // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA.
+                    // Follow up produk ini dinonaktifkan (follow_up_enabled) juga berarti jangan kirim.
+                    $autoSendEnabled = (!$produk || $produk->follow_up_enabled) && (!$templateFollup || $templateFollup->status !== '2');
 
                     $dataText = [
                         'customer_name' => $customerData->nama ?? '',

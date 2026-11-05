@@ -94,6 +94,11 @@ class CancelUnpaidOrdersCron extends Command
             return;
         }
 
+        if ($order->produk_rel && !$order->produk_rel->follow_up_enabled) {
+            // Follow up produk ini dinonaktifkan - jangan kirim notifikasi Cancel.
+            return;
+        }
+
         $template = TemplateFollup::active()
             ->where('produk_id', $order->produk)
             ->where('type', '10')

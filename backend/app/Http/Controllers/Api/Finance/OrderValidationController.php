@@ -311,8 +311,9 @@ class OrderValidationController extends Controller
                     ->where('type', '7') // Asumsi type 7 untuk pembayaran berhasil diverifikasi
                     ->first();
 
-                // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA
-                $autoSendEnabled = !$templateFollup || $templateFollup->status !== '2';
+                // Jika template ada tapi "Enable Auto Send" dimatikan (status = 2), jangan kirim WA.
+                // Follow up produk ini dinonaktifkan (follow_up_enabled) juga berarti jangan kirim.
+                $autoSendEnabled = (!$produk || $produk->follow_up_enabled) && (!$templateFollup || $templateFollup->status !== '2');
 
                 // Jika tidak ada template, gunakan pesan default
                 if ($templateFollup) {

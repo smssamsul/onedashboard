@@ -70,6 +70,11 @@ class SendFollowupCron extends Command
         $produkList = Produk::where('status', '1')->get();
 
         foreach ($produkList as $produk) {
+            if (!$produk->follow_up_enabled) {
+                $this->info("Produk {$produk->nama}: follow up dinonaktifkan, skip.");
+                continue;
+            }
+
             $this->info("Produk aktif: {$produk->nama}");
             Log::channel('followup')->info("Memproses produk", [
                 'produk_id' => $produk->id,

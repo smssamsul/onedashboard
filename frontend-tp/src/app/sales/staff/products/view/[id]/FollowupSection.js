@@ -83,6 +83,12 @@ export default function FollowupSection() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Master switch follow up produk ini (bukan per-template). Nonaktif =
+  // semua follow up (reminder, processing, complete, redirect, cancel,
+  // upselling) berhenti terkirim - KECUALI Welcome, yang tetap jalan.
+  const [followUpEnabled, setFollowUpEnabled] = useState(true);
+  const [togglingFollowUp, setTogglingFollowUp] = useState(false);
+
   // INLINE FORM STATE (for non-unlimited, non-upselling types)
   const [text, setText] = useState("");
   const [eventValue, setEventValue] = useState("0d-00:00");
@@ -197,6 +203,55 @@ export default function FollowupSection() {
         setLoading(false);
       });
   }, [produkId]);
+
+  // Fetch status aktif/non-aktif follow up produk ini
+  useEffect(() => {
+    if (!produkId) return;
+
+    const token = localStorage.getItem("token");
+    fetch(`${BASE_URL}/sales/produk/${produkId}`, {
+      headers: {
+        "Accept": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setFollowUpEnabled(data.data.follow_up_enabled !== false);
+        }
+      })
+      .catch(() => {});
+  }, [produkId]);
+
+  const handleToggleFollowUp = async () => {
+    const next = !followUpEnabled;
+    setTogglingFollowUp(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`${BASE_URL}/sales/produk/${produkId}/follow-up-status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ follow_up_enabled: next }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFollowUpEnabled(next);
+        toast.success(data.message || "Status follow up diperbarui");
+      } else {
+        toast.error(data.message || "Gagal mengubah status follow up");
+      }
+    } catch {
+      toast.error("Gagal mengubah status follow up");
+    } finally {
+      setTogglingFollowUp(false);
+    }
+  };
 
   // Update INLINE form state if activeType is instant
   useEffect(() => {
@@ -567,6 +622,43 @@ export default function FollowupSection() {
 
   return (
     <div className="followup-container">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          padding: "12px 16px",
+          marginBottom: "16px",
+          borderRadius: "10px",
+          background: followUpEnabled ? "#f0fdf4" : "#fef2f2",
+          border: `1px solid ${followUpEnabled ? "#bbf7d0" : "#fecaca"}`,
+        }}
+      >
+        <div>
+          <strong style={{ color: followUpEnabled ? "#166534" : "#991b1b" }}>
+            Follow Up {followUpEnabled ? "Aktif" : "Non-aktif"}
+          </strong>
+          <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#6b7280" }}>
+            {followUpEnabled
+              ? "Semua follow up produk ini terkirim sesuai jadwal/trigger-nya."
+              : "Follow up (reminder, processing, complete, redirect, cancel, upselling) tidak terkirim. Pesan Welcome tetap terkirim."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleToggleFollowUp}
+          disabled={togglingFollowUp}
+          className="save-btn"
+          style={{
+            background: followUpEnabled ? "#dc2626" : "#16a34a",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {togglingFollowUp ? "Menyimpan..." : followUpEnabled ? "Non-aktifkan Follow Up" : "Aktifkan Follow Up"}
+        </button>
+      </div>
+
       <div className="followup-tabs-container">
         {FOLLOWUP_TABS.map((t) => (
           <button
@@ -884,7 +976,7 @@ export default function FollowupSection() {
         .text-gray-700 {
           color: #334155;
         }
-        
+
         .text-gray-500 {
           color: #64748b;
           font-size: 14px;
@@ -911,7 +1003,7 @@ export default function FollowupSection() {
         .control-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         .autotext-group { display: flex; gap: 8px; }
         .select-auto { border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-size: 14px; background: #fff; }
-        
+
         .btn-outline {
           border: 1px solid #cbd5e1;
           background: #ffffff;
@@ -922,7 +1014,7 @@ export default function FollowupSection() {
           cursor: pointer;
           font-weight: 500;
         }
-        
+
         .btn-outline:hover {
           background: #f8fafc;
         }

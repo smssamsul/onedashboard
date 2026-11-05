@@ -37,6 +37,7 @@ class Produk extends Model
         'create_at',
         'update_at',
         'status',
+        'follow_up_enabled',
         'assign',
         'custom_field',
         'list_point',
@@ -56,6 +57,7 @@ class Produk extends Model
     protected $appends = ['assign_users', 'post_rel'];
 
     protected $casts = [
+        'follow_up_enabled' => 'boolean',
         'gambar'    => 'array',
         'assign' => 'array',
         'custom_field' => 'array',

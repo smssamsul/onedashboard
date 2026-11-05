@@ -255,6 +255,7 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);
         Route::put('/produk/{id}/trainer', [ProdukController::class, 'updateTrainer']);
         Route::put('/produk/{id}/post', [ProdukController::class, 'updatePost']);
+        Route::put('/produk/{id}/follow-up-status', [ProdukController::class, 'updateFollowUpStatus']);
         Route::delete('/produk/{id}/gambar/{index}', [ProdukController::class, 'deleteImage']);
         Route::delete('/produk/{id}/testimoni/{index}', [ProdukController::class, 'deleteTestimoni']);
 
