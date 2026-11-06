@@ -735,6 +735,23 @@ export default function PengirimanResiPage({ ordersPath }) {
         o.alamat ||
         "-";
 
+      // Alamat pengirim: ambil dari origin milik shipment ini sendiri (Biteship
+      // response), bukan di-hardcode - origin permanen per shipment sejak
+      // dibuat, jadi kalau alamat pengirim diganti di kemudian hari, label
+      // utk shipment LAMA tetap benar menampilkan origin aslinya saat dibuat.
+      const biteshipOriginName =
+        resi.meta?.create_response?.origin?.contact_name ||
+        resi.meta?.last_order_fetch?.origin?.contact_name ||
+        "Ternak Properti";
+      const biteshipOriginPhone =
+        resi.meta?.create_response?.origin?.contact_phone ||
+        resi.meta?.last_order_fetch?.origin?.contact_phone ||
+        "-";
+      const biteshipOriginAddress =
+        resi.meta?.create_response?.origin?.address ||
+        resi.meta?.last_order_fetch?.origin?.address ||
+        "-";
+
       const params = new URLSearchParams({
         resi_id: resi.id,
         waybill_id: resi.waybill_id || resi.tracking_id || "-",
@@ -748,9 +765,9 @@ export default function PengirimanResiPage({ ordersPath }) {
         reference_number: resi.meta?.create_response?.reference_id || resi.meta?.last_order_fetch?.reference_id || resi.biteship_order_id || o.kode_order || `od-${o.id}`,
         quantity: "1",
         weight: "1",
-        sender_name: "Ternak Properti",
-        sender_phone: "085773119613",
-        sender_address: "Jl. Mission Drive No.35, Klp. Dua, Kecamatan Kelapa Dua, Kabupaten Tangerang, Banten 15810",
+        sender_name: biteshipOriginName,
+        sender_phone: biteshipOriginPhone,
+        sender_address: biteshipOriginAddress,
         jenis_barang: o.produk_rel?.nama || "Goods",
         catatan: o.catatan || "Tidak Ada",
       });

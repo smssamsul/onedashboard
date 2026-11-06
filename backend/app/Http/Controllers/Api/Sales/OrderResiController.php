@@ -522,26 +522,50 @@ class OrderResiController extends Controller
         $contact_name = $request->input('contact_name', '-');
         $contact_phone = $request->input('contact_phone', '-');
         $address = $request->input('address', '-');
+        $sender_name = $request->input('sender_name', 'Ternak Properti');
+        $sender_phone = $request->input('sender_phone', '-');
+        $sender_address = $request->input('sender_address', '-');
 
         if ($request->filled('resi_id')) {
             $resi = \App\Models\OrderResi::find($request->input('resi_id'));
             if ($resi) {
                 $meta = is_string($resi->meta) ? json_decode($resi->meta, true) : $resi->meta;
-                
+
                 // 1. Nama penerima murni dari destination->contact_name
-                $biteshipName = $meta['create_response']['destination']['contact_name'] ?? 
-                                $meta['last_order_fetch']['destination']['contact_name'] ?? 
+                $biteshipName = $meta['create_response']['destination']['contact_name'] ??
+                                $meta['last_order_fetch']['destination']['contact_name'] ??
                                 $meta['last_tracking']['destination']['contact_name'] ?? null;
                 if ($biteshipName) {
                     $contact_name = $biteshipName;
                 }
-                
+
                 // 2. Alamat penerima murni dari destination->address
-                $biteshipAddress = $meta['create_response']['destination']['address'] ?? 
-                                   $meta['last_order_fetch']['destination']['address'] ?? 
+                $biteshipAddress = $meta['create_response']['destination']['address'] ??
+                                   $meta['last_order_fetch']['destination']['address'] ??
                                    $meta['last_tracking']['destination']['address'] ?? null;
                 if ($biteshipAddress) {
                     $address = $biteshipAddress;
+                }
+
+                // 3-5. Pengirim murni dari origin shipment INI (bukan dari input
+                // request, bukan dari config saat ini) - origin permanen sejak
+                // shipment dibuat di Biteship, jadi kalau alamat pengirim
+                // default berubah di kemudian hari, label shipment lama tetap
+                // benar menampilkan origin aslinya.
+                $biteshipOriginName = $meta['create_response']['origin']['contact_name'] ??
+                                      $meta['last_order_fetch']['origin']['contact_name'] ?? null;
+                if ($biteshipOriginName) {
+                    $sender_name = $biteshipOriginName;
+                }
+                $biteshipOriginPhone = $meta['create_response']['origin']['contact_phone'] ??
+                                       $meta['last_order_fetch']['origin']['contact_phone'] ?? null;
+                if ($biteshipOriginPhone) {
+                    $sender_phone = $biteshipOriginPhone;
+                }
+                $biteshipOriginAddress = $meta['create_response']['origin']['address'] ??
+                                         $meta['last_order_fetch']['origin']['address'] ?? null;
+                if ($biteshipOriginAddress) {
+                    $sender_address = $biteshipOriginAddress;
                 }
             }
         }
@@ -559,9 +583,9 @@ class OrderResiController extends Controller
             'reference_number' => $request->input('reference_number', '-'),
             'quantity'         => $request->input('quantity', '1 Pcs'),
             'weight'           => $request->input('weight', '1 Kg'),
-            'sender_name'      => $request->input('sender_name', 'Ternak Properti'),
-            'sender_phone'     => $request->input('sender_phone', '-'),
-            'sender_address'   => $request->input('sender_address', '-'),
+            'sender_name'      => $sender_name,
+            'sender_phone'     => $sender_phone,
+            'sender_address'   => $sender_address,
             'jenis_barang'     => $request->input('jenis_barang', '-'),
             'catatan'          => $request->input('catatan', 'Tidak Ada'),
         ];
