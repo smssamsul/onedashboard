@@ -73,6 +73,27 @@ class BiteshipService
     }
 
     /**
+     * Batalkan order Biteship yang sudah dibuat (mis. pengiriman salah/pengirim
+     * berubah). Biteship tidak punya endpoint "update origin" - origin
+     * permanen sejak order dibuat, jadi satu-satunya cara memperbaikinya
+     * adalah batalkan lalu buat order baru dengan origin yang benar.
+     *
+     * @return array<string, mixed>
+     */
+    public static function cancelOrder(string $biteshipOrderId, string $reason = 'Dibatalkan dari sistem'): array
+    {
+        $res = self::client()->post(self::baseUrl() . '/v1/orders/' . urlencode($biteshipOrderId) . '/cancel', [
+            'cancellation_reason' => $reason,
+        ]);
+        $json = $res->json();
+        if ($res->failed()) {
+            $msg = is_array($json) ? ($json['message'] ?? $json['error'] ?? $res->body()) : $res->body();
+            throw new \RuntimeException('Biteship cancel order gagal: ' . $msg);
+        }
+        return is_array($json) ? $json : [];
+    }
+
+    /**
      * Ambil URL label/resi PDF dari Biteship.
      *
      * @return array<string, mixed>  berisi 'label_url' jika tersedia
